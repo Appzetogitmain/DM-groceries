@@ -45,58 +45,60 @@ const HelpSupport = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="flex items-center p-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2">
-            <ArrowLeft size={20} className="text-gray-600" />
-          </button>
-          <h1 className="ds-h3 text-gray-900">Help & Support</h1>
-        </div>
+    <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+      
+      {/* Sticky Deep Green Header Banner */}
+      <div className="bg-[#1A4516] text-white py-3 px-5 sticky top-0 z-40 shadow-sm flex items-center">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-1.5 rounded-full hover:bg-white/10 transition-colors mr-2 cursor-pointer"
+          aria-label="Go Back"
+        >
+          <ArrowLeft className="text-white" size={18} />
+        </button>
+        <h1 className="text-sm font-black leading-tight tracking-tight">Help & Support</h1>
       </div>
 
-      <div className="p-4 max-w-lg mx-auto space-y-6">
+      {/* Main Content Area overlapping with rounded corners */}
+      <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-4 space-y-4.5 relative z-10">
+        
         {/* Support Channels */}
-        <section className="grid grid-cols-2 gap-4">
-          <Card className="p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center text-brand-600 mb-3">
-              <MessageCircle size={24} />
+        <section className="grid grid-cols-2 gap-3.5 mt-5">
+          <Card className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow">
+            <div className="w-10 h-10 bg-[#1A4516]/5 rounded-full flex items-center justify-center text-[#1A4516] mb-2 shrink-0">
+              <MessageCircle size={18} />
             </div>
-            <h4 className="font-bold text-gray-800">Chat Support</h4>
-            <p className="text-xs text-gray-500 mt-1">Wait time: ~2 mins</p>
+            <h4 className="font-bold text-gray-800 text-xs">Chat Support</h4>
+            <p className="text-[10px] text-gray-400 mt-0.5">Wait time: ~2 mins</p>
           </Card>
-          <Card className="p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center text-brand-600 mb-3">
-              <Phone size={24} />
+          <Card className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow">
+            <div className="w-10 h-10 bg-[#1A4516]/5 rounded-full flex items-center justify-center text-[#1A4516] mb-2 shrink-0">
+              <Phone size={18} />
             </div>
-            <h4 className="font-bold text-gray-800">Call Support</h4>
-            <p className="text-xs text-gray-500 mt-1">Available 24/7</p>
+            <h4 className="font-bold text-gray-800 text-xs">Call Support</h4>
+            <p className="text-[10px] text-gray-400 mt-0.5">Available 24/7</p>
           </Card>
         </section>
 
         {/* FAQs */}
-        <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-            <HelpCircle size={20} className="mr-2 text-primary" /> Frequently
-            Asked Questions
+        <section className="space-y-2.5">
+          <h2 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2.5 flex items-center px-1">
+            <HelpCircle size={14} className="mr-1.5 text-[#1A4516]" /> Frequently Asked Questions
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {faqs.map((faq, index) => (
               <Card
                 key={index}
-                className="overflow-hidden cursor-pointer"
+                className="overflow-hidden cursor-pointer bg-white border border-gray-100 rounded-xl shadow-sm"
                 onClick={() => toggleAccordion(index)}>
-                <div className="p-4 flex justify-between items-center bg-white">
-                  <h4 className="font-medium text-gray-800 text-sm pr-4">
+                <div className="p-3 flex justify-between items-center bg-white">
+                  <h4 className="font-semibold text-gray-800 text-xs pr-3">
                     {faq.question}
                   </h4>
                   {openIndex === index ? (
-                    <ChevronUp size={18} className="text-gray-400" />
+                    <ChevronUp size={14} className="text-gray-400 shrink-0" />
                   ) : (
-                    <ChevronDown size={18} className="text-gray-400" />
+                    <ChevronDown size={14} className="text-gray-400 shrink-0" />
                   )}
                 </div>
                 <AnimatePresence>
@@ -105,8 +107,8 @@ const HelpSupport = () => {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="bg-gray-50">
-                      <div className="p-4 text-sm text-gray-600 border-t border-gray-100 leading-relaxed">
+                      className="bg-gray-50/50">
+                      <div className="p-3 text-[11px] text-gray-500 border-t border-gray-100/50 leading-relaxed font-medium">
                         {faq.answer}
                       </div>
                     </motion.div>
@@ -117,9 +119,9 @@ const HelpSupport = () => {
           </div>
         </section>
 
-        <div className="text-center pt-8">
-          <p className="text-gray-500 text-sm">Still need help?</p>
-          <Button variant="link" className="text-primary font-bold">
+        <div className="text-center pt-4">
+          <p className="text-gray-400 text-xs">Still need help?</p>
+          <Button variant="link" className="text-[#1A4516] font-bold text-xs p-0 h-auto mt-1 hover:underline">
             View All FAQs
           </Button>
         </div>

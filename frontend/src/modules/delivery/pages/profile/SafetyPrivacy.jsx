@@ -12,22 +12,10 @@ const SafetyPrivacy = () => {
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
 
-  const [contacts, setContacts] = useState(() => {
-    const saved = localStorage.getItem('emergencyContacts');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return [
-      { id: 1, name: "Anita Kumar (Wife)", phone: "+91 98765 12345" },
-      { id: 2, name: "Ravi Singh (Brother)", phone: "+91 98765 67890" },
-    ];
-  });
-
-  React.useEffect(() => {
-    localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
-  }, [contacts]);
+  const [contacts, setContacts] = useState([
+    { id: 1, name: "Anita Kumar (Wife)", phone: "+91 98765 12345" },
+    { id: 2, name: "Ravi Singh (Brother)", phone: "+91 98765 67890" },
+  ]);
 
   const [newContact, setNewContact] = useState({ name: "", phone: "" });
   const [showAddContact, setShowAddContact] = useState(false);
@@ -96,19 +84,13 @@ const SafetyPrivacy = () => {
                 <Input 
                   placeholder="Name (e.g. Wife, Brother)" 
                   value={newContact.name}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
-                    setNewContact({...newContact, name: val});
-                  }}
+                  onChange={(e) => setNewContact({...newContact, name: e.target.value})}
                   className="mb-3 bg-white"
                 />
                 <Input 
-                  placeholder="Phone Number (10 digits)" 
+                  placeholder="Phone Number" 
                   value={newContact.phone}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                    setNewContact({...newContact, phone: val});
-                  }}
+                  onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
                   className="mb-3 bg-white"
                 />
                 <div className="flex space-x-2">

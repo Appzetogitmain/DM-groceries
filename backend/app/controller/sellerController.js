@@ -1,6 +1,7 @@
 import Seller from "../models/seller.js";
 import Transaction from "../models/transaction.js";
 import { handleResponse, calculateDistance } from "../utils/helper.js";
+import { roundCurrency } from "../utils/money.js";
 import mongoose from "mongoose";
 import { invalidateSellerName } from "../services/entityNameCache.js";
 
@@ -96,9 +97,9 @@ export const requestWithdrawal = async (req, res) => {
       )
       .reduce((acc, t) => acc + Math.abs(t.amount || 0), 0);
 
-    const availableBalance = settledBalance - pendingPayouts;
+    const availableBalance = roundCurrency(settledBalance - pendingPayouts);
 
-    if (amount > availableBalance) {
+    if (roundCurrency(amount) > availableBalance) {
       return handleResponse(
         res,
         400,
@@ -153,7 +154,7 @@ export const getSellerProfile = async (req, res) => {
 ================================ */
 export const updateSellerProfile = async (req, res) => {
   try {
-    const { name, shopName, phone, address, locality, pincode, city, state, lat, lng, radius } = req.body;
+    const { name, shopName, phone, address, locality, pincode, city, state, lat, lng, radius, dob } = req.body;
 
     // Find seller
     const seller = await Seller.findById(req.user.id);
@@ -170,6 +171,7 @@ export const updateSellerProfile = async (req, res) => {
     if (pincode !== undefined) seller.pincode = pincode;
     if (city !== undefined) seller.city = city;
     if (state !== undefined) seller.state = state;
+    if (dob) seller.dob = dob;
 
     // Validate and update geo data
     if (lat !== undefined && lng !== undefined) {

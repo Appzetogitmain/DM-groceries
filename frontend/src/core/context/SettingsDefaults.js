@@ -8,7 +8,7 @@ export const DEFAULT_SETTINGS = {
   timezone: "Asia/Kolkata",
   logoUrl: "",
   faviconUrl: "",
-  primaryColor: "var(--primary)",
+  primaryColor: "#1A4516",
   secondaryColor: "#64748b",
   companyName: "",
   taxId: "",

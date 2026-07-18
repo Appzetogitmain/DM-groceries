@@ -87,8 +87,8 @@ export const getDeliveryWithdrawals = async (req, res) => {
 export const updateWithdrawalStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, reason } = req.body;
-    const transaction = await updateWithdrawalStatusById({ id, status, reason });
+    const { status, reason, paymentProofUrl } = req.body;
+    const transaction = await updateWithdrawalStatusById({ id, status, reason, paymentProofUrl });
 
     if (!transaction) {
       return handleResponse(res, 404, "Transaction not found");

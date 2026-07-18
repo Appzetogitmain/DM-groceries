@@ -28,6 +28,7 @@ import {
   Area,
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -38,6 +39,16 @@ import { cn } from "@/lib/utils";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
 import { useSellerOrders } from "../context/SellerOrdersContext";
+
+const BAR_COLORS = [
+  "#0B3B24", // Deep Forest Green
+  "#0F2537", // Deep Ocean Blue
+  "#722F37", // Wine Red / Maroon
+  "#8B5A2B", // Bronze Gold
+  "#3A1F5D", // Deep Purple / Violet
+  "#0A5C61", // Deep Teal
+  "#2C3E50", // Slate Dark Blue
+];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -97,10 +108,9 @@ const Dashboard = () => {
       change: "+12.5%",
       changeType: "increase",
       icon: DollarSign,
-      iconBg: "bg-brand-50",
-      iconColor: "text-brand-600",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-700",
       description: "vs last month",
-      path: "/seller/earnings",
     },
     {
       label: "Total Orders",
@@ -108,10 +118,9 @@ const Dashboard = () => {
       change: "+8.2%",
       changeType: "increase",
       icon: ShoppingBag,
-      iconBg: "bg-brand-50",
-      iconColor: "text-brand-600",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-700",
       description: "vs last month",
-      path: "/seller/orders",
     },
     {
       label: "Avg Order Value",
@@ -119,10 +128,9 @@ const Dashboard = () => {
       change: "+2",
       changeType: "increase",
       icon: Package,
-      iconBg: "bg-purple-50",
-      iconColor: "text-purple-600",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-700",
       description: "per order",
-      path: "/seller/analytics",
     },
     {
       label: "Pending Orders",
@@ -133,7 +141,6 @@ const Dashboard = () => {
       iconBg: "bg-orange-50",
       iconColor: "text-orange-600",
       description: "need attention",
-      path: "/seller/orders",
     },
   ];
 
@@ -250,32 +257,27 @@ const Dashboard = () => {
       />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <Card 
-            key={stat.label} 
-            className={cn("hover:shadow-lg transition-all hover:-translate-y-1", stat.path && "cursor-pointer")}
-            onClick={() => stat.path && navigate(stat.path)}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-base font-medium text-slate-600">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-900 mt-2">{stat.value}</p>
-                <div className="flex items-center gap-2 mt-2">
+          <Card key={stat.label} className="hover:shadow-lg transition-all !p-0">
+            <div className="flex items-center gap-2.5 p-2.5">
+              <div className={cn("h-9 w-9 rounded-full flex items-center justify-center shrink-0 shadow-sm", stat.iconBg)}>
+                <stat.icon className={cn("h-4 w-4", stat.iconColor)} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
+                <p className="text-lg font-extrabold text-slate-800 leading-tight mt-0.5">{stat.value}</p>
+                <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                   <span
                     className={cn(
-                      "text-xs font-semibold flex items-center gap-1",
-                      stat.changeType === "increase" ? "text-brand-600" : "text-red-600"
+                      "text-[10px] font-bold flex items-center gap-0.5",
+                      stat.changeType === "increase" ? "text-emerald-700" : "text-red-700"
                     )}
                   >
-                    <TrendingUp className={cn("h-3 w-3", stat.changeType === "decrease" && "rotate-180")} />
-                    {stat.change}
+                    {stat.changeType === "increase" ? "▲" : "▼"} {stat.change}
                   </span>
-                  <span className="text-sm text-slate-600">{stat.description}</span>
+                  <span className="text-[9px] text-slate-400 font-medium">{stat.description}</span>
                 </div>
-              </div>
-              <div className={cn("p-3 rounded-lg", stat.iconBg)}>
-                <stat.icon className={cn("h-6 w-6", stat.iconColor)} />
               </div>
             </div>
           </Card>
@@ -293,19 +295,19 @@ const Dashboard = () => {
               onClick={() => navigate(action.path)}
               className={cn(
                 "p-6 rounded-xl text-left transition-all duration-200 shadow-sm hover:shadow-md border-2",
-                isPrimary && "bg-primary border-primary text-white hover:bg-primary/90 hover:border-primary/90",
-                action.variant === "outline" && "bg-white border-slate-200 text-slate-900 hover:border-primary hover:bg-primary/5",
-                isEmerald && "bg-white border-slate-200 text-slate-900 hover:border-brand-500 hover:bg-brand-50"
+                isPrimary && "bg-[#1A4516] border-[#1A4516] text-white hover:bg-[#133A10] hover:border-[#133A10]",
+                action.variant === "outline" && "bg-white border-slate-200 text-slate-900 hover:border-[#1A4516] hover:bg-[#1A4516]/5",
+                isEmerald && "bg-white border-slate-200 text-slate-900 hover:border-[#1A4516] hover:bg-[#1A4516]/5"
               )}
             >
               <div className="flex items-start gap-4">
                 <div className={cn(
                   "p-2 rounded-lg",
-                  isPrimary ? "bg-white/20" : isEmerald ? "bg-brand-50" : "bg-slate-100"
+                  isPrimary ? "bg-white/20" : isEmerald ? "bg-emerald-50" : "bg-slate-100"
                 )}>
                   <action.icon className={cn(
                     "h-5 w-5",
-                    isPrimary ? "text-white" : isEmerald ? "text-brand-600" : "text-slate-700"
+                    isPrimary ? "text-white" : isEmerald ? "text-[#1A4516]" : "text-slate-700"
                   )} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -340,8 +342,8 @@ const Dashboard = () => {
               <AreaChart data={revenueChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.05} />
+                    <stop offset="5%" stopColor="#1A4516" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#1A4516" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -373,7 +375,7 @@ const Dashboard = () => {
                 <Area
                   type="monotone"
                   dataKey="sales"
-                  stroke="#4f46e5"
+                  stroke="#1A4516"
                   strokeWidth={2}
                   fill="url(#revenueGradient)"
                   isAnimationActive={true}
@@ -407,7 +409,11 @@ const Dashboard = () => {
                     color: "#334155",
                   }}
                 />
-                <Bar dataKey="A" fill="#4f46e5" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="A" radius={[0, 4, 4, 0]}>
+                  {(statsData?.categoryMix || []).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -467,7 +473,7 @@ const Dashboard = () => {
                     </div>
                   </td>
                   <td className="py-4 px-4 align-middle">
-                    <span className="text-sm text-slate-600">{new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                    <span className="text-sm text-slate-600">{new Date(order.createdAt).toLocaleDateString()}</span>
                   </td>
                   <td className="py-4 px-4 align-middle">
                     <span className="text-sm font-semibold text-slate-900">₹{order.pricing?.total || 0}</span>
@@ -693,11 +699,11 @@ const Dashboard = () => {
                                     : "bg-slate-100 text-slate-700 focus:ring-slate-200"
                       )}
                     >
-                      <option value="pending" disabled={['confirmed','packed','out_for_delivery','delivered','cancelled'].includes(selectedOrder.status.toLowerCase())}>Pending</option>
-                      <option value="confirmed" disabled={['packed','out_for_delivery','delivered','cancelled'].includes(selectedOrder.status.toLowerCase())}>Confirmed</option>
-                      <option value="packed" disabled={['out_for_delivery','delivered','cancelled'].includes(selectedOrder.status.toLowerCase())}>Packed</option>
-                      <option value="out_for_delivery" disabled={['delivered','cancelled'].includes(selectedOrder.status.toLowerCase())}>Out for Delivery</option>
-                      <option value="delivered" disabled={selectedOrder.status.toLowerCase() === 'cancelled'}>Delivered</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="packed">Packed</option>
+                      <option value="out_for_delivery">Out for Delivery</option>
+                      <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
                     <HiOutlineChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-60" />

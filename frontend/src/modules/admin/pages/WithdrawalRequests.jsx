@@ -27,6 +27,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@shared/components/ui/Pagination';
 import { adminApi } from "../services/adminApi";
 import { toast } from "sonner";
+import axiosInstance from '@core/api/axios';
+import { Upload, FileImage } from 'lucide-react';
 
 const WithdrawalRequests = () => {
     const [activeTab, setActiveTab] = useState('sellers');
@@ -35,6 +37,7 @@ const WithdrawalRequests = () => {
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionModal, setActionModal] = useState({ isOpen: false, type: null, request: null });
+    const [paymentProofFile, setPaymentProofFile] = useState(null);
 
     const [sellerRequests, setSellerRequests] = useState([]);
     const [deliveryRequests, setDeliveryRequests] = useState([]);
@@ -132,11 +135,25 @@ const WithdrawalRequests = () => {
         try {
             setLoading(true);
             const status = actionModal.type === 'approve' ? 'Settled' : 'Failed';
-            const res = await adminApi.updateWithdrawalStatus(actionModal.request._id, { status });
+            let paymentProofUrl = null;
+
+            if (actionModal.type === 'approve' && paymentProofFile) {
+                const formData = new FormData();
+                formData.append('file', paymentProofFile);
+                const uploadRes = await axiosInstance.post('/media/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (uploadRes.data.success) {
+                    paymentProofUrl = uploadRes.data.result.url || uploadRes.data.result;
+                }
+            }
+
+            const res = await adminApi.updateWithdrawalStatus(actionModal.request._id, { status, paymentProofUrl });
             if (res.data.success) {
                 toast.success(`Request ${status} successfully`);
                 fetchData(sellerPage, deliveryPage);
                 setActionModal({ isOpen: false, type: null, request: null });
+                setPaymentProofFile(null);
             }
         } catch (error) {
             toast.error("Action failed");
@@ -486,7 +503,12 @@ const WithdrawalRequests = () => {
             {/* Action Confirmation Modal */}
             <Modal
                 isOpen={actionModal.isOpen}
-                onClose={() => !loading && setActionModal({ isOpen: false, type: null, request: null })}
+                onClose={() => {
+                    if (!loading) {
+                        setActionModal({ isOpen: false, type: null, request: null });
+                        setPaymentProofFile(null);
+                    }
+                }}
                 title="Confirm Financial Action"
                 size="sm"
             >
@@ -504,6 +526,55 @@ const WithdrawalRequests = () => {
                                 You are about to {actionModal.type === 'approve' ? 'approve' : 'reject'} the withdrawal request for <b className="text-slate-900">₹{Math.abs(actionModal.request.amount).toLocaleString()}</b>.
                             </p>
                         </div>
+                        
+                        {actionModal.type === 'approve' && actionModal.request.user?.accountNumber && (
+                            <div className="mt-4 p-4 bg-slate-50 rounded-xl text-left space-y-2 border border-slate-100">
+                                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Bank Details</h4>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-500">Account Name:</span>
+                                    <span className="font-medium text-slate-900">{actionModal.request.user.accountHolder || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-500">Account No:</span>
+                                    <span className="font-medium text-slate-900">{actionModal.request.user.accountNumber}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-500">IFSC:</span>
+                                    <span className="font-medium text-slate-900">{actionModal.request.user.ifsc}</span>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {actionModal.type === 'approve' && (
+                            <div className="mt-4">
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider text-left mb-2">Payment Proof (Optional)</label>
+                                <div className="relative">
+                                    <input 
+                                        type="file" 
+                                        accept="image/*"
+                                        onChange={(e) => setPaymentProofFile(e.target.files[0])}
+                                        className="hidden" 
+                                        id="payment-proof"
+                                    />
+                                    <label 
+                                        htmlFor="payment-proof"
+                                        className="flex items-center justify-center w-full py-3 px-4 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
+                                    >
+                                        {paymentProofFile ? (
+                                            <div className="flex items-center gap-2 text-brand-600">
+                                                <FileImage size={16} />
+                                                <span className="text-sm font-medium truncate max-w-[200px]">{paymentProofFile.name}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-slate-400">
+                                                <Upload size={16} />
+                                                <span className="text-sm font-medium">Upload Screenshot</span>
+                                            </div>
+                                        )}
+                                    </label>
+                                </div>
+                            </div>
+                        )}
                         <div className="space-y-3">
                             <button
                                 onClick={confirmAction}
@@ -517,7 +588,10 @@ const WithdrawalRequests = () => {
                                 {loading ? 'PROCESSING...' : `YES, ${actionModal.type.toUpperCase()}`}
                             </button>
                             <button
-                                onClick={() => setActionModal({ isOpen: false, type: null, request: null })}
+                                onClick={() => {
+                                    setActionModal({ isOpen: false, type: null, request: null });
+                                    setPaymentProofFile(null);
+                                }}
                                 disabled={loading}
                                 className="w-full py-4 bg-slate-50 text-slate-400 font-black text-[11px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
                             >

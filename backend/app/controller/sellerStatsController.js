@@ -4,6 +4,7 @@ import handleResponse from "../utils/helper.js";
 import mongoose from "mongoose";
 import Wallet from "../models/wallet.js";
 import { getSellerStats as getSellerStatsFromService } from "../services/seller/sellerStatsService.js";
+import { roundCurrency } from "../utils/money.js";
 
 /* ===============================
    GET SELLER DASHBOARD STATS
@@ -33,13 +34,13 @@ export const getSellerEarnings = async (req, res) => {
             .sort({ createdAt: -1 })
             .populate("order", "orderId");
 
-        const settledBalance = transactions
+        const settledBalance = roundCurrency(transactions
             .filter(t => t.status === 'Settled')
-            .reduce((acc, t) => acc + t.amount, 0);
+            .reduce((acc, t) => acc + (t.amount || 0), 0));
 
-        const pendingPayouts = transactions
+        const pendingPayouts = roundCurrency(transactions
             .filter(t => t.type === 'Withdrawal' && (t.status === 'Pending' || t.status === 'Processing'))
-            .reduce((acc, t) => acc + Math.abs(t.amount), 0);
+            .reduce((acc, t) => acc + Math.abs(t.amount || 0), 0));
 
         // Fetch wallet for live pending balance (money on hold due to return window)
         const wallet = await Wallet.findOne({ ownerType: 'SELLER', ownerId: sellerId });
@@ -64,9 +65,9 @@ export const getSellerEarnings = async (req, res) => {
         ]);
         const totalRevenue = Number(orderRevenueAgg?.totalRevenue || 0);
 
-        const totalWithdrawn = transactions
+        const totalWithdrawn = roundCurrency(transactions
             .filter(t => t.type === 'Withdrawal' && t.status === 'Settled')
-            .reduce((acc, t) => acc + Math.abs(t.amount), 0);
+            .reduce((acc, t) => acc + Math.abs(t.amount || 0), 0));
 
         // Monthly Revenue Aggregation (Last 6 Months)
         const sixMonthsAgo = new Date();

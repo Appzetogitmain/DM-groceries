@@ -119,7 +119,7 @@ export async function getDeliveryWithdrawalsData({ page, limit, skip }) {
 
   const [transactions, total] = await Promise.all([
     Transaction.find(query)
-      .populate("user", "name phone")
+      .populate("user", "name phone accountNumber accountHolder ifsc")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -136,7 +136,7 @@ export async function getDeliveryWithdrawalsData({ page, limit, skip }) {
   };
 }
 
-export async function updateWithdrawalStatusById({ id, status, reason }) {
+export async function updateWithdrawalStatusById({ id, status, reason, paymentProofUrl }) {
   if (!["Settled", "Failed", "Processing"].includes(status)) {
     throw new Error("Invalid status");
   }
@@ -149,6 +149,11 @@ export async function updateWithdrawalStatusById({ id, status, reason }) {
   transaction.status = status;
   if (reason) {
     transaction.notes = reason;
+  }
+  if (paymentProofUrl) {
+    transaction.meta = transaction.meta || {};
+    transaction.meta.paymentProofUrl = paymentProofUrl;
+    transaction.markModified('meta');
   }
 
   await transaction.save();

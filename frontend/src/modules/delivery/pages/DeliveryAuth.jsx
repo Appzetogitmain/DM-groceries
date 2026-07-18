@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Phone,
   ArrowRight,
@@ -39,16 +39,9 @@ const DeliveryAuth = () => {
   const logoUrl = settings?.logoUrl || "";
   const { login } = useAuth();
 
-  React.useEffect(() => {
-    import('@core/auth/activeRoleStore').then(({ setActiveRole, ROLES }) => {
-        setActiveRole(ROLES.DELIVERY);
-    });
-  }, []);
-
   // mode: "login" | "signup"
   const [mode, setMode] = useState("login");
   const [step, setStep] = useState("form"); // "form" | "otp"
-  const [showPendingModal, setShowPendingModal] = useState(false);
 
   // Login state
   const [loginPhone, setLoginPhone] = useState("");
@@ -67,9 +60,6 @@ const DeliveryAuth = () => {
   const [signupAccountNumber, setSignupAccountNumber] = useState("");
   const [signupIfsc, setSignupIfsc] = useState("");
   const [signupAccountHolder, setSignupAccountHolder] = useState("");
-  const [signupPreferredArea, setSignupPreferredArea] = useState("");
-  const [signupDob, setSignupDob] = useState("");
-  const [signupBloodGroup, setSignupBloodGroup] = useState("");
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState("");
@@ -200,17 +190,17 @@ const DeliveryAuth = () => {
   };
 
   const handleDLUpload = (file) => {
-    if (file) { setDlFile(file); setDlVerified(true); }
+    if (file) performOCR(file, "dl");
     else { setDlFile(null); setDlVerified(null); }
   };
 
   const handlePanUpload = (file) => {
-    if (file) { setPanFile(file); setPanVerified(true); }
+    if (file) performOCR(file, "pan");
     else { setPanFile(null); setPanVerified(null); }
   };
 
   const handleAadharUpload = (file) => {
-    if (file) { setAadharFile(file); setAadharVerified(true); }
+    if (file) performOCR(file, "aadhar");
     else { setAadharFile(null); setAadharVerified(null); }
   };
 
@@ -240,9 +230,6 @@ const DeliveryAuth = () => {
         formData.append("accountHolder", signupAccountHolder);
         formData.append("accountNumber", signupAccountNumber);
         formData.append("ifsc", signupIfsc);
-        formData.append("dob", signupDob);
-        formData.append("bloodGroup", signupBloodGroup);
-        formData.append("currentArea", signupPreferredArea);
 
         if (profileImageFile) formData.append("profileImage", profileImageFile);
         if (aadharFile) formData.append("aadhar", aadharFile);
@@ -270,12 +257,6 @@ const DeliveryAuth = () => {
       const phone = mode === "login" ? loginPhone : signupPhone;
       const otpString = otp.join("");
       const response = await deliveryApi.verifyOtp({ phone, otp: otpString });
-      
-      if (response.data.result?.pendingApproval) {
-        setShowPendingModal(true);
-        return;
-      }
-
       const { token, delivery } = response.data.result;
 
       login({ ...delivery, token, role: "delivery" });
@@ -310,6 +291,24 @@ const DeliveryAuth = () => {
     setMode(newMode);
     setStep("form");
     setOtp(["", "", "", ""]);
+    setLoginPhone("");
+    setSignupStep(1);
+    setSignupName("");
+    setSignupPhone("");
+    setSignupEmail("");
+    setSignupAddress("");
+    setSignupVehicle("bike");
+    setSignupVehicleNumber("");
+    setSignupDLNumber("");
+    setSignupAccountNumber("");
+    setSignupIfsc("");
+    setSignupAccountHolder("");
+    setAadharFile(null);
+    setPanFile(null);
+    setDlFile(null);
+    setAgreed(false);
+    setProfileImageFile(null);
+    setProfileImagePreview("");
   };
 
   const slideVariants = {
@@ -319,11 +318,11 @@ const DeliveryAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F4FF] flex flex-col items-center justify-center p-5 font-['Outfit',_sans-serif]">
+    <div className="min-h-screen bg-[#F2F7F5] flex flex-col items-center justify-center p-5 font-['Outfit',_sans-serif]">
       {/* Background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-32 -left-32 w-80 h-80 bg-brand-200/40 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-brand-200/20 rounded-full blur-3xl" />
       </div>
 
       <motion.div
@@ -333,72 +332,50 @@ const DeliveryAuth = () => {
         className="w-full max-w-[420px] relative z-10"
       >
         {/* Card */}
-        <div className="bg-white rounded-[2.5rem] shadow-[0_24px_60px_rgba(99,102,241,0.1)] border border-brand-50 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="bg-white rounded-[2.5rem] shadow-[0_24px_60px_rgba(26,69,22,0.08)] border border-brand-50 overflow-hidden pb-6">
 
-          {/* Header with Lottie */}
-          <div className="bg-gradient-to-br from-brand-50 to-purple-50 p-8 flex flex-col items-center relative shrink-0">
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-              <div className="w-14 h-14 rounded-2xl bg-white/85 backdrop-blur-sm border border-brand-100 shadow-sm flex items-center justify-center overflow-hidden">
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={`${appName} logo`}
-                    className="w-10 h-10 object-contain"
-                  />
-                ) : (
-                  <ShieldCheck className="w-5 h-5 text-brand-600" />
-                )}
-              </div>
-            </div>
-            <div className="w-40 h-40">
-              <Lottie animationData={deliveryRiding} loop />
-            </div>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={`${mode}-${step}-title`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                className="text-center mt-3"
-              >
-                <h1 className="text-2xl font-black text-gray-900">
-                  {step === "otp"
-                    ? "Verify OTP"
-                    : mode === "login"
-                      ? "Partner Login"
-                      : "Partner Registration"}
-                </h1>
-                <p className="text-gray-500 text-sm mt-1 max-w-[240px] mx-auto">
-                  {step === "otp"
-                    ? `Enter the 4-digit code sent to +91 ${mode === "login" ? loginPhone : signupPhone}`
-                    : mode === "login"
-                      ? "Login with your registered phone number"
-                      : `Step ${signupStep} of 4: ${signupStep === 1 ? "Personal Info" : signupStep === 2 ? "Vehicle Info" : signupStep === 3 ? "Bank Info" : "Documents"}`}
-                </p>
-              </motion.div>
-            </AnimatePresence>
+          {/* Curved Green Banner */}
+          <div className="relative h-[220px] bg-white overflow-hidden">
+            <svg viewBox="0 0 1440 320" className="absolute top-0 left-0 w-full h-full" preserveAspectRatio="none">
+              <path
+                fill="#1A4516"
+                d="M0,0 L1440,0 L1440,240 Q720,120 0,240 Z"
+              />
+            </svg>
           </div>
 
-          {/* Tab Switch */}
-          {step === "form" && (
-            <div className="flex mx-6 mt-6 bg-gray-100 rounded-2xl p-1 shrink-0">
-              {["login", "signup"].map((m) => (
-                <button
-                  key={m}
-                  onClick={() => switchMode(m)}
-                  className={`flex-1 py-2.5 text-sm font-black rounded-xl transition-all duration-300 ${mode === m
-                    ? "bg-white text-brand-600 shadow-sm"
-                    : "text-gray-400 hover:text-gray-600"
-                    }`}
-                >
-                  {m === "login" ? "Login" : "Join Now"}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Logo Container (No Circle) */}
+          <div className="relative -mt-28 self-center z-10 flex justify-center">
+            <img src="/Logo.png" alt="Logo" className="w-44 h-44 object-contain" />
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${mode}-${step}-title`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="text-center mt-6 px-6"
+            >
+              <h1 className="text-2xl font-black text-[#1A4516] tracking-tight">
+                {step === "otp"
+                  ? "Verify OTP"
+                  : mode === "login"
+                    ? "Welcome Back!"
+                    : "Join Our Team"}
+              </h1>
+              <p className="text-gray-500 text-sm mt-1.5 max-w-[280px] mx-auto">
+                {step === "otp"
+                  ? `Enter the 4-digit code sent to +91 ${mode === "login" ? loginPhone : signupPhone}`
+                  : mode === "login"
+                    ? "Login to continue your deliveries"
+                    : `Step ${signupStep} of 4: ${signupStep === 1 ? "Personal Info" : signupStep === 2 ? "Vehicle Info" : signupStep === 3 ? "Bank Info" : "Documents"}`}
+              </p>
+            </motion.div>
+          </AnimatePresence>
 
           {/* Form Body */}
-          <div className="p-6 pt-4 overflow-y-auto custom-scrollbar">
+          <div className="p-6 pt-2">
             <AnimatePresence mode="wait">
               {step === "form" && (
                 <motion.div
@@ -446,7 +423,7 @@ const DeliveryAuth = () => {
                               />
                               <label
                                 htmlFor="profile-upload"
-                                className="absolute -bottom-2 -right-2 p-2.5 bg-black text-white rounded-2xl shadow-lg shadow-brand-200 cursor-pointer hover:bg-brand-700 hover:scale-110 active:scale-95 transition-all"
+                                className="absolute -bottom-2 -right-2 p-2.5 bg-brand-600 text-primary-foreground rounded-2xl shadow-lg shadow-brand-200 cursor-pointer hover:bg-brand-700 hover:scale-110 active:scale-95 transition-all"
                               >
                                 <Camera className="w-4 h-4" />
                               </label>
@@ -455,18 +432,13 @@ const DeliveryAuth = () => {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Full Name</label>
                             <div className="relative">
                               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
                                 type="text"
                                 value={signupName}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (/^[a-zA-Z\s]*$/.test(val)) {
-                                    setSignupName(val);
-                                  }
-                                }}
+                                onChange={(e) => setSignupName(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                                 placeholder="Enter your full name"
                               />
@@ -474,7 +446,7 @@ const DeliveryAuth = () => {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Phone Number</label>
                             <div className="relative">
                               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm border-r border-gray-200 pr-2.5">+91</span>
@@ -490,7 +462,7 @@ const DeliveryAuth = () => {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Email Address</label>
                             <div className="relative">
                               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
@@ -504,75 +476,21 @@ const DeliveryAuth = () => {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Permanent Address</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Permanent Address</label>
                             <div className="relative">
                               <MapPin className="absolute left-4 top-4 text-gray-300 w-4 h-4" />
                               <textarea
                                 value={signupAddress}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (/^[a-zA-Z0-9\s,.\-/#]*$/.test(val)) {
-                                    setSignupAddress(val);
-                                  }
-                                }}
+                                onChange={(e) => setSignupAddress(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all resize-none h-24"
                                 placeholder="Complete building address..."
                               />
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <div className="space-y-1.5 flex-1">
-                              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Date of Birth</label>
-                              <div className="relative">
-                                <input
-                                  type="date"
-                                  value={signupDob}
-                                  onChange={(e) => setSignupDob(e.target.value)}
-                                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-1.5 flex-1">
-                              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Blood Group</label>
-                              <div className="relative">
-                                <select
-                                  value={signupBloodGroup}
-                                  onChange={(e) => setSignupBloodGroup(e.target.value)}
-                                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all appearance-none"
-                                >
-                                  <option value="">Select</option>
-                                  <option value="A+">A+</option>
-                                  <option value="A-">A-</option>
-                                  <option value="B+">B+</option>
-                                  <option value="B-">B-</option>
-                                  <option value="AB+">AB+</option>
-                                  <option value="AB-">AB-</option>
-                                  <option value="O+">O+</option>
-                                  <option value="O-">O-</option>
-                                </select>
-                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Preferred Delivery Area</label>
-                            <div className="relative">
-                              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
-                              <input
-                                type="text"
-                                value={signupPreferredArea}
-                                onChange={(e) => setSignupPreferredArea(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
-                                placeholder="E.g. Downtown, North Side, etc."
-                              />
-                            </div>
-                          </div>
-
                           <button
                             onClick={() => {
-                              if (!signupName.trim() || !signupPhone || !signupEmail.trim() || !signupAddress.trim() || !signupDob || !signupBloodGroup || !profileImageFile) {
+                              if (!signupName || !signupPhone || !signupEmail || !signupAddress || !profileImageFile) {
                                 toast.error("Please fill all personal information fields and upload photo");
                                 return;
                               }
@@ -580,13 +498,9 @@ const DeliveryAuth = () => {
                                 toast.error("Please enter a valid 10-digit phone number");
                                 return;
                               }
-                              if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail.trim())) {
-                                toast.error("Please enter a valid email address");
-                                return;
-                              }
                               setSignupStep(2);
                             }}
-                            className="w-full py-4 bg-black text-white rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
                           >
                             Next Step <ArrowRight className="w-4 h-4" />
                           </button>
@@ -601,7 +515,7 @@ const DeliveryAuth = () => {
                           className="space-y-4"
                         >
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Vehicle Type</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Vehicle Type</label>
                             <div className="relative">
                               <Bike className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <button
@@ -635,17 +549,14 @@ const DeliveryAuth = () => {
                             </div>
                           </div>
 
-                          {signupVehicle !== 'cycle' && (
-                            <>
-                              <div className="space-y-1.5">
-                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Vehicle Plate Number</label>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Vehicle Plate Number</label>
                             <div className="relative">
                               <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
                                 type="text"
-                                maxLength={15}
                                 value={signupVehicleNumber}
-                                onChange={(e) => setSignupVehicleNumber(e.target.value.toUpperCase().replace(/[^A-Z0-9\s-]/g, ''))}
+                                onChange={(e) => setSignupVehicleNumber(e.target.value.toUpperCase())}
                                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                                 placeholder="KA 05 MN 8921"
                               />
@@ -653,21 +564,18 @@ const DeliveryAuth = () => {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Driving License Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Driving License Number</label>
                             <div className="relative">
                               <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
                                 type="text"
-                                maxLength={16}
                                 value={signupDLNumber}
-                                onChange={(e) => setSignupDLNumber(e.target.value.toUpperCase().replace(/[^A-Z0-9\s-]/g, ''))}
+                                onChange={(e) => setSignupDLNumber(e.target.value.toUpperCase())}
                                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                                 placeholder="DL-1420110012345"
                               />
                             </div>
                           </div>
-                          </>
-                          )}
 
                           <div className="flex gap-4 pt-2">
                             <button
@@ -678,27 +586,17 @@ const DeliveryAuth = () => {
                             </button>
                             <button
                               onClick={() => {
-                                if (signupVehicle !== 'cycle') {
-                                  if (!signupVehicleNumber) {
-                                    toast.error("Please enter your vehicle plate number");
-                                    return;
+                                if (!signupVehicleNumber) {
+                                  toast.error("Please enter your vehicle plate number");
+                                  return;
                                   }
-                                  if (!/^[A-Z]{2}\s?[0-9]{1,2}\s?[A-Z]{0,3}\s?[0-9]{1,4}$/.test(signupVehicleNumber.trim())) {
-                                    toast.error("Please enter a valid vehicle plate number (e.g. KA 05 MN 8921)");
-                                    return;
-                                  }
-                                  if (!signupDLNumber) {
-                                    toast.error("Please enter your driving license number");
-                                    return;
-                                  }
-                                  if (!/^[A-Z]{2}[0-9]{13}$/.test(signupDLNumber.replace(/[\s-]/g, '').trim())) {
-                                    toast.error("Please enter a valid driving license number (e.g. DL1420110012345)");
-                                    return;
-                                  }
+                                if (!signupDLNumber) {
+                                  toast.error("Please enter your driving license number");
+                                  return;
                                 }
                                 setSignupStep(3);
                               }}
-                              className="flex-[2] py-4 bg-black text-white rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                              className="flex-[2] py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
                             >
                               Next Step <ArrowRight className="w-4 h-4" />
                             </button>
@@ -714,7 +612,7 @@ const DeliveryAuth = () => {
                           className="space-y-4"
                         >
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Aadhar Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Aadhar Number</label>
                             <input
                               type="text"
                               value={signupAadharNumber}
@@ -724,41 +622,29 @@ const DeliveryAuth = () => {
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">PAN Card Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">PAN Card Number</label>
                             <input
                               type="text"
-                              maxLength={10}
                               value={signupPanNumber}
-                              onChange={(e) => setSignupPanNumber(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                              onBlur={(e) => {
-                                if (e.target.value && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(e.target.value)) {
-                                  toast.error("Invalid PAN format (e.g. ABCDE1234F)");
-                                }
-                              }}
+                              onChange={(e) => setSignupPanNumber(e.target.value.toUpperCase().slice(0, 10))}
                               className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all font-mono"
                               placeholder="ABCDE1234F"
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Account Holder Name</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Account Holder Name</label>
                             <input
                               type="text"
                               value={signupAccountHolder}
-                              onChange={(e) => {
-                                const val = e.target.value.toUpperCase();
-                                if (/^[A-Z\s]*$/.test(val)) {
-                                  setSignupAccountHolder(val);
-                                }
-                              }}
+                              onChange={(e) => setSignupAccountHolder(e.target.value.toUpperCase())}
                               className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                               placeholder="AS PER BANK RECORDS"
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Account Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Account Number</label>
                             <input
                               type="text"
-                              maxLength={18}
                               value={signupAccountNumber}
                               onChange={(e) => setSignupAccountNumber(e.target.value.replace(/\D/g, ""))}
                               className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
@@ -766,17 +652,11 @@ const DeliveryAuth = () => {
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">IFSC Code</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">IFSC Code</label>
                             <input
                               type="text"
-                              maxLength={11}
                               value={signupIfsc}
-                              onChange={(e) => setSignupIfsc(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                              onBlur={(e) => {
-                                if (e.target.value && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(e.target.value)) {
-                                  toast.error("Invalid IFSC format (e.g. HDFC0001234)");
-                                }
-                              }}
+                              onChange={(e) => setSignupIfsc(e.target.value.toUpperCase())}
                               className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                               placeholder="HDFC0001234"
                             />
@@ -791,7 +671,7 @@ const DeliveryAuth = () => {
                             </button>
                             <button
                               onClick={() => {
-                                if (!signupAadharNumber || !signupPanNumber || !signupAccountHolder.trim() || !signupAccountNumber || !signupIfsc) {
+                                if (!signupAadharNumber || !signupPanNumber || !signupAccountHolder || !signupAccountNumber || !signupIfsc) {
                                   toast.error("Please fill all bank and identification fields");
                                   return;
                                 }
@@ -799,21 +679,13 @@ const DeliveryAuth = () => {
                                   toast.error("Aadhar number must be 12 digits");
                                   return;
                                 }
-                                if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(signupPanNumber)) {
-                                  toast.error("Invalid PAN format (e.g. ABCDE1234F)");
-                                  return;
-                                }
-                                if (signupAccountNumber.length < 9 || signupAccountNumber.length > 18) {
-                                  toast.error("Account Number must be between 9 and 18 digits");
-                                  return;
-                                }
-                                if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(signupIfsc)) {
-                                  toast.error("Invalid IFSC format (e.g. HDFC0001234)");
+                                if (signupPanNumber.length !== 10) {
+                                  toast.error("PAN number must be 10 characters");
                                   return;
                                 }
                                 setSignupStep(4);
                               }}
-                              className="flex-[2] py-4 bg-black text-white rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                              className="flex-[2] py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
                             >
                               Next Step <ArrowRight className="w-4 h-4" />
                             </button>
@@ -908,7 +780,12 @@ const DeliveryAuth = () => {
                                       </div>
                                     )}
 
-
+                                    {!isScanning && dlVerified === false && (
+                                      <div className="flex items-center gap-1.5 text-rose-500 animate-in shake duration-500">
+                                        <XCircle className="w-3.5 h-3.5" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-500">AI Warning: DL Match Failed</span>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
 
@@ -938,7 +815,12 @@ const DeliveryAuth = () => {
                                       </div>
                                     )}
 
-
+                                    {!isScanning && panVerified === false && (
+                                      <div className="flex items-center gap-1.5 text-rose-500 animate-in shake duration-500">
+                                        <XCircle className="w-3.5 h-3.5" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-500">AI Warning: PAN Match Failed</span>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
 
@@ -968,7 +850,12 @@ const DeliveryAuth = () => {
                                       </div>
                                     )}
 
-
+                                    {!isScanning && aadharVerified === false && (
+                                      <div className="flex items-center gap-1.5 text-rose-500 animate-in shake duration-500">
+                                        <XCircle className="w-3.5 h-3.5" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-500">AI Warning: Aadhar Match Failed</span>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -989,7 +876,7 @@ const DeliveryAuth = () => {
                             <button
                               onClick={handleSendOtp}
                               disabled={loading || dlVerified !== true || panVerified !== true || aadharVerified !== true}
-                              className="flex-[2] py-4 bg-black text-white rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="flex-[2] py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               {loading ? (
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1005,9 +892,9 @@ const DeliveryAuth = () => {
 
                       <p className="text-center text-xs text-gray-400 font-semibold pt-1">
                         By joining, you agree to our{" "}
-                        <Link to="/terms" className="text-brand-500 font-bold cursor-pointer hover:underline">Terms</Link>{" "}
+                        <span className="text-brand-500 font-bold cursor-pointer hover:underline">Terms</span>{" "}
                         &amp;{" "}
-                        <Link to="/privacy" className="text-brand-500 font-bold cursor-pointer hover:underline">Privacy Policy</Link>
+                        <span className="text-brand-500 font-bold cursor-pointer hover:underline">Privacy Policy</span>
                       </p>
                     </div>
                   )}
@@ -1017,11 +904,11 @@ const DeliveryAuth = () => {
                     <div className="space-y-4">
                       {/* Phone */}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                        <label className="text-xs font-black text-[#1A4516] uppercase tracking-widest ml-1">
                           Phone Number
                         </label>
                         <div className="relative">
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                           <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm border-r border-gray-200 pr-2.5">
                             +91
                           </span>
@@ -1033,8 +920,8 @@ const DeliveryAuth = () => {
                               setLoginPhone(val);
                             }}
                             maxLength={10}
-                            className="w-full pl-24 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all placeholder:text-gray-300"
-                            placeholder="00000 00000"
+                            className="w-full pl-24 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/10 focus:border-[#1A4516] transition-all placeholder:text-gray-300"
+                            placeholder="98765 43210"
                           />
                         </div>
                       </div>
@@ -1042,14 +929,25 @@ const DeliveryAuth = () => {
                       <button
                         onClick={handleSendOtp}
                         disabled={loading}
-                        className="w-full py-4 bg-black text-white rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+                        className="w-full py-4 bg-[#1A4516] text-white rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-[#0f2d0f] hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-60"
                       >
                         {loading ? (
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
-                          <>Login Now <ArrowRight className="w-4 h-4" /></>
+                          <>Login <ArrowRight className="w-4 h-4" /></>
                         )}
                       </button>
+
+                      <p className="text-center text-sm text-gray-500 mt-6 font-medium">
+                        Don't have an account?{" "}
+                        <button
+                          type="button"
+                          onClick={() => switchMode("signup")}
+                          className="text-[#1A4516] font-bold hover:underline"
+                        >
+                          Register
+                        </button>
+                      </p>
                     </div>
                   )}
                 </motion.div>
@@ -1080,7 +978,7 @@ const DeliveryAuth = () => {
                           value={digit}
                           onChange={(e) => handleOtpChange(index, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(index, e)}
-                          className="w-14 h-14 text-center text-2xl font-black border-2 border-gray-100 rounded-2xl focus:border-brand-500 focus:ring-4 focus:ring-brand-100 outline-none transition-all bg-gray-50 text-gray-900"
+                          className="w-14 h-14 text-center text-2xl font-black border-2 border-gray-100 rounded-2xl focus:border-[#1A4516] focus:ring-4 focus:ring-green-100 outline-none transition-all bg-gray-50 text-gray-900"
                         />
                       ))}
                     </div>
@@ -1090,12 +988,12 @@ const DeliveryAuth = () => {
                   <div className="text-center">
                     {timer > 0 ? (
                       <p className="text-gray-400 text-sm font-medium">
-                        Resend code in <span className="text-brand-600 font-bold">{timer}s</span>
+                        Resend code in <span className="text-[#1A4516] font-bold">{timer}s</span>
                       </p>
                     ) : (
                       <button
                         onClick={handleSendOtp}
-                        className="text-brand-600 font-black text-sm uppercase tracking-wide hover:underline"
+                        className="text-[#1A4516] font-black text-sm uppercase tracking-wide hover:underline"
                       >
                         Resend OTP
                       </button>
@@ -1109,12 +1007,12 @@ const DeliveryAuth = () => {
                       type="checkbox"
                       checked={agreed}
                       onChange={(e) => setAgreed(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 accent-brand-600 cursor-pointer"
+                      className="mt-0.5 h-4 w-4 accent-[#1A4516] cursor-pointer"
                     />
                     <label htmlFor="terms" className="text-xs text-gray-500 leading-relaxed cursor-pointer">
                       I confirm my phone number is correct and I agree to the{" "}
-                      <Link to="/terms" onClick={(e) => e.stopPropagation()} className="text-brand-600 font-bold hover:underline relative z-10">Terms of Service</Link> &amp;{" "}
-                      <Link to="/privacy" onClick={(e) => e.stopPropagation()} className="text-brand-600 font-bold hover:underline relative z-10">Privacy Policy</Link>.
+                      <span className="text-[#1A4516] font-bold">Terms of Service</span> &amp;{" "}
+                      <span className="text-[#1A4516] font-bold">Privacy Policy</span>.
                     </label>
                   </div>
 
@@ -1122,7 +1020,7 @@ const DeliveryAuth = () => {
                   <button
                     onClick={handleVerifyOtp}
                     disabled={!agreed || otp.some((d) => !d) || loading}
-                    className="w-full py-4 bg-black text-white rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full py-4 bg-[#1A4516] text-white rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-[#0f2d0f] hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1154,51 +1052,6 @@ const DeliveryAuth = () => {
           {appName} Partner Ecosystem • v1.0
         </p>
       </motion.div>
-
-      {/* Pending Approval Modal */}
-      <AnimatePresence>
-        {showPendingModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-              onClick={() => {
-                setShowPendingModal(false);
-                setStep("form");
-                setMode("login");
-                setOtp(["", "", "", ""]);
-              }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl overflow-hidden text-center"
-            >
-              <div className="w-20 h-20 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-brand-100">
-                <FileText className="w-10 h-10 text-brand-500" />
-              </div>
-              <h3 className="ds-h3 mb-2 text-gray-900">Application Under Review</h3>
-              <p className="text-sm text-gray-500 mb-6">
-                Your application has been successfully submitted! Our team is currently reviewing your documents and details. We will notify you once your application is approved.
-              </p>
-              <button
-                onClick={() => {
-                  setShowPendingModal(false);
-                  setStep("form");
-                  setMode("login");
-                  setOtp(["", "", "", ""]);
-                }}
-                className="w-full py-4 bg-black text-white rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
-              >
-                Back to Login
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

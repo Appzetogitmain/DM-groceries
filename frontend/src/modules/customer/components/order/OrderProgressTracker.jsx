@@ -97,9 +97,9 @@ const OrderProgressTracker = ({
                 <div
                   className={`relative z-10 h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 ${
                     isCompleted
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                      ? "bg-[#1A4516] text-white shadow-lg shadow-[#1A4516]/20"
                       : isActive
-                      ? "bg-amber-100 text-amber-600 border-2 border-amber-400"
+                      ? "bg-[#F5FBF5] text-[#1A4516] border-2 border-[#1A4516]"
                       : "bg-slate-100 text-slate-400"
                   }`}
                 >
@@ -119,16 +119,16 @@ const OrderProgressTracker = ({
                   <p
                     className={`text-sm font-bold ${
                       isCompleted
-                        ? "text-slate-900"
+                        ? "text-[#1A4516]"
                         : isActive
-                        ? "text-amber-700"
+                        ? "text-[#1A4516]"
                         : "text-slate-400"
                     }`}
                   >
                     {step.label}
                   </p>
                   {isActive && (
-                    <p className="text-xs text-amber-600 font-medium mt-0.5">
+                    <p className="text-xs text-[#1A4516]/80 font-medium mt-0.5">
                       In progress...
                     </p>
                   )}
@@ -136,8 +136,8 @@ const OrderProgressTracker = ({
 
                 {/* Status Indicator */}
                 {isCompleted && (
-                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center transition-opacity duration-200">
-                    <CheckCircle size={14} className="text-primary" />
+                  <div className="h-6 w-6 rounded-full bg-[#1A4516]/10 flex items-center justify-center transition-opacity duration-200">
+                    <CheckCircle size={14} className="text-[#1A4516]" />
                   </div>
                 )}
               </div>
@@ -147,7 +147,7 @@ const OrderProgressTracker = ({
                 <div className="absolute left-6 top-12 bottom-0 w-0.5 -mb-4">
                   <div
                     className={`h-full w-full ${
-                      isCompleted ? "bg-primary" : "bg-slate-200"
+                      isCompleted ? "bg-[#1A4516]" : "bg-slate-200"
                     }`}
                   />
                 </div>
@@ -160,24 +160,24 @@ const OrderProgressTracker = ({
       {/* ETA Display */}
       {status !== "delivered" && (
         <div className="mt-6 pt-5 border-t border-slate-100">
-          <div className="flex items-center justify-between bg-amber-50 rounded-2xl p-4 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-[#F5FBF5] rounded-2xl p-3 gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                <Clock size={20} className="text-amber-600" />
+              <div className="h-10 w-10 bg-[#1A4516]/10 rounded-xl flex items-center justify-center shrink-0">
+                <Clock size={20} className="text-[#1A4516]" />
               </div>
               <div>
-                <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">
+                <p className="text-[11px] font-bold text-[#1A4516]/80 uppercase tracking-wider">
                   Estimated Time
                 </p>
-                <p className="text-lg font-black text-amber-900">{estimatedArrivalText}</p>
+                <p className="text-base font-black text-[#1A4516]">{estimatedArrivalText}</p>
               </div>
             </div>
-            <div className="text-right flex flex-col items-end gap-1">
-              <div>
-                <p className="text-xs text-amber-600 font-semibold">Arriving in</p>
-                <p className="text-2xl font-black text-amber-900">{arrivingInText}</p>
+            <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-0 border-[#1A4516]/10">
+              <div className="flex flex-col sm:items-end">
+                <p className="text-[11px] text-[#1A4516]/80 font-semibold">Arriving in</p>
+                <p className="text-xl font-black text-[#1A4516] leading-none mt-0.5">{arrivingInText}</p>
               </div>
-              <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">
+              <div className="inline-flex items-center rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-bold text-[#1A4516] ring-1 ring-[#1A4516]/20 whitespace-nowrap">
                 Total distance: {totalDistanceText}
               </div>
             </div>

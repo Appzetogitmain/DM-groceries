@@ -420,11 +420,24 @@ const OrderDetails = () => {
           return;
         }
       } else {
-        const location = await new Promise((resolve, reject) => {
-          getCurrentPositionWithCache(resolve, reject, {
-            maxCacheAgeMs: 20 * 60 * 1000,
+        let location;
+        try {
+          location = await new Promise((resolve, reject) => {
+            getCurrentPositionWithCache(resolve, reject, {
+              maxCacheAgeMs: 20 * 60 * 1000,
+            });
           });
-        });
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.warn("GPS failed, using fallback location for testing");
+            const destCoords = order?.seller?.location?.coordinates;
+            location = destCoords && destCoords.length >= 2 
+              ? { lat: destCoords[1], lng: destCoords[0] } 
+              : { lat: 22.7196, lng: 75.8577 }; // fallback
+          } else {
+            throw new Error("Location unavailable. Please enable GPS to proceed.");
+          }
+        }
 
         if (step === 1) {
           const res = await deliveryApi.markArrivedAtStore(order.orderId, {
@@ -457,8 +470,10 @@ const OrderDetails = () => {
       }
     } catch (error) {
       console.error("Failed to update status", error);
-      const message = error.response?.data?.message || "Failed to update status";
+      const message = error?.response?.data?.message || error?.message || (typeof error === "string" ? error : "Failed to update status");
       toast.error(message);
+      setIsSlideComplete(false);
+      setDragX(0);
     }
   };
 
@@ -1057,12 +1072,19 @@ const OrderDetails = () => {
                   {(isReturn ? order.returnItems : order.items)?.map((item, i) => (
                     <div key={i} className="flex justify-between items-center text-sm">
                       <div className="flex items-center">
+                        <div className="h-10 w-10 mr-3 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200">
+                          <img
+                            src={item.image || item.product?.mainImage || "/placeholder.png"}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
                         <span className="font-bold text-gray-500 mr-3 text-xs w-6 bg-white border border-gray-200 text-center rounded py-0.5">
                           x{item.quantity}
                         </span>
-                        <span className="text-gray-800 font-medium">{item.name}</span>
+                        <span className="text-gray-800 font-medium max-w-[130px] sm:max-w-[180px] truncate" title={item.name}>{item.name}</span>
                       </div>
-                      <span className="font-bold text-gray-600">Rs.{item.price * item.quantity}</span>
+                      <span className="font-bold text-gray-600 flex-shrink-0">Rs.{item.price * item.quantity}</span>
                     </div>
                   ))}
                   <div className="pt-3 mt-2 border-t border-gray-200 flex justify-between items-center">
@@ -1213,18 +1235,26 @@ const OrderDetails = () => {
           <div className="max-w-2xl mx-auto p-4">
             <div className="relative h-16 bg-slate-100 rounded-full overflow-hidden select-none">
               <motion.div
-                className={`absolute inset-0 flex items-center justify-center text-slate-400 font-bold text-lg pointer-events-none transition-opacity duration-300 ${dragX > 50 ? "opacity-0" : "opacity-100"
-                  }`}
-                animate={{ x: [0, 5, 0] }}
+                className={`absolute inset-0 pl-14 flex items-center justify-center font-bold text-lg pointer-events-none transition-opacity duration-300 ${!isSlideComplete && dragX > 50 ? "opacity-0" : "opacity-100"} ${isSlideComplete ? "text-brand-600" : "text-slate-400"}`}
+                animate={!isSlideComplete ? { x: [0, 5, 0] } : {}}
                 transition={{ repeat: Infinity, duration: 1.5 }}
               >
-                Slide to {
-                  isReturn
-                    ? step === 1 ? "ARRIVED AT CUSTOMER"
-                      : step === 3 ? "ARRIVED AT SELLER"
+                {isSlideComplete ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Slide to {
+                      isReturn
+                        ? step === 1 ? "ARRIVED AT CUSTOMER"
+                          : step === 3 ? "ARRIVED AT SELLER"
+                            : steps[step - 1]?.action
                         : steps[step - 1]?.action
-                    : steps[step - 1]?.action
-                } <ChevronRight className="ml-1" />
+                    } <ChevronRight className="ml-1" />
+                  </>
+                )}
               </motion.div>
 
               <motion.div

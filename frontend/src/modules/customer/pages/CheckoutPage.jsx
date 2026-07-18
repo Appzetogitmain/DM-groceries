@@ -450,61 +450,66 @@ const CheckoutPage = () => {
   };
 
   const handleSaveEditedAddress = async () => {
+    const formName = editAddressForm.name?.trim() || user?.name || "Customer";
     if (
-      !editAddressForm.name.trim() ||
-      !editAddressForm.address.trim() ||
-      !editAddressForm.city.trim()
+      !formName ||
+      !editAddressForm.address?.trim() ||
+      !editAddressForm.city?.trim()
     ) {
       showToast("Please fill name, address and city", "error");
       return;
     }
 
-    let location = null;
-    let placeId = null;
-    let formattedAddress = null;
-    try {
-      const query = [
-        editAddressForm.address,
-        editAddressForm.landmark,
-        editAddressForm.city,
-      ]
-        .filter(Boolean)
-        .join(", ");
-      const resp = await customerApi.geocodeAddress(query);
-      const loc = resp.data?.result?.location;
-      if (
-        loc &&
-        typeof loc.lat === "number" &&
-        typeof loc.lng === "number" &&
-        Number.isFinite(loc.lat) &&
-        Number.isFinite(loc.lng)
-      ) {
-        location = { lat: loc.lat, lng: loc.lng };
-        placeId = resp.data?.result?.placeId || null;
-        formattedAddress = resp.data?.result?.formattedAddress || null;
-        updateLocation(
-          {
-            name: resp.data?.result?.formattedAddress || query,
-            time: currentLocation?.time || "12-15 mins",
-            city: currentLocation?.city,
-            state: currentLocation?.state,
-            pincode: currentLocation?.pincode,
-            latitude: loc.lat,
-            longitude: loc.lng,
-          },
-          { persist: true, updateSavedHome: false },
+    let location = editAddressForm.location || null;
+    let placeId = editAddressForm.placeId || null;
+    let formattedAddress = editAddressForm.formattedAddress || null;
+
+    if (!location) {
+      try {
+        const query = [
+          editAddressForm.address,
+          editAddressForm.landmark,
+          editAddressForm.city,
+        ]
+          .filter(Boolean)
+          .join(", ");
+        const resp = await customerApi.geocodeAddress(query);
+        const loc = resp.data?.result?.location;
+        if (
+          loc &&
+          typeof loc.lat === "number" &&
+          typeof loc.lng === "number" &&
+          Number.isFinite(loc.lat) &&
+          Number.isFinite(loc.lng)
+        ) {
+          location = { lat: loc.lat, lng: loc.lng };
+          placeId = resp.data?.result?.placeId || null;
+          formattedAddress = resp.data?.result?.formattedAddress || null;
+          updateLocation(
+            {
+              name: resp.data?.result?.formattedAddress || query,
+              time: currentLocation?.time || "12-15 mins",
+              city: currentLocation?.city,
+              state: currentLocation?.state,
+              pincode: currentLocation?.pincode,
+              latitude: loc.lat,
+              longitude: loc.lng,
+            },
+            { persist: true, updateSavedHome: false },
+          );
+        }
+      } catch (e) {
+        showToast(
+          e.response?.data?.message ||
+            "Could not fetch coordinates for this address. Delivery charges may be inaccurate.",
+          "error",
         );
       }
-    } catch (e) {
-      showToast(
-        e.response?.data?.message ||
-          "Could not fetch coordinates for this address. Delivery charges may be inaccurate.",
-        "error",
-      );
     }
 
     setCurrentAddress({
       ...editAddressForm,
+      name: formName,
       ...(location ? { location } : {}),
       ...(placeId ? { placeId } : {}),
       ...(formattedAddress ? { formattedAddress } : {}),
@@ -888,7 +893,7 @@ const CheckoutPage = () => {
   }, [orderId, showSuccess]);
 
   // ─── Empty cart state ────────────────────────────────────────────────────────
-  if (cart.length === 0 && !showSuccess) {
+  if (cart.length === 0 && !showSuccess && !isPlacingOrder) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-50/50 via-transparent to-transparent pointer-events-none" />
@@ -1172,16 +1177,44 @@ const CheckoutPage = () => {
                 <Label htmlFor="edit-address" className="text-xs font-semibold text-slate-700">Address</Label>
                 {isLoaded ? (
                   <Autocomplete
+                    fields={["formatted_address", "geometry", "name", "address_components"]}
                     onLoad={(autocomplete) => {
                       autocompleteRef.current = autocomplete;
                     }}
                     onPlaceChanged={() => {
                       if (autocompleteRef.current !== null) {
                         const place = autocompleteRef.current.getPlace();
-                        if (place && place.formatted_address) {
+                        const finalAddress = place?.formatted_address || place?.name;
+                        
+                        if (place && finalAddress) {
+                          const newForm = { address: finalAddress };
+
+                          if (place.geometry && place.geometry.location) {
+                            newForm.location = {
+                              lat: place.geometry.location.lat(),
+                              lng: place.geometry.location.lng()
+                            };
+                          }
+                          
+                          if (place.address_components) {
+                            let city = "";
+                            let pincode = "";
+                            for (const component of place.address_components) {
+                              if (component.types.includes("locality") || component.types.includes("administrative_area_level_2")) {
+                                city = city || component.long_name;
+                              }
+                              if (component.types.includes("postal_code")) {
+                                pincode = component.long_name;
+                              }
+                            }
+                            if (city || pincode) {
+                              newForm.city = [city, pincode].filter(Boolean).join(" - ");
+                            }
+                          }
+
                           setEditAddressForm((prev) => ({ 
                             ...prev, 
-                            address: place.formatted_address,
+                            ...newForm
                           }));
                         }
                       }

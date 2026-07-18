@@ -22,6 +22,7 @@ import {
   Sparkles,
   User,
   Store,
+  Gift,
 } from "lucide-react";
 
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
@@ -53,6 +54,7 @@ const PendingDeliveryBoys = React.lazy(
   () => import("../pages/PendingDeliveryBoys"),
 );
 const DeliveryFunds = React.lazy(() => import("../pages/DeliveryFunds"));
+const DeliveryReviewsPage = React.lazy(() => import("../pages/DeliveryReviewsPage"));
 const AdminWallet = React.lazy(() => import("../pages/AdminWallet"));
 const WithdrawalRequests = React.lazy(
   () => import("../pages/WithdrawalRequests"),
@@ -93,6 +95,7 @@ const ShopByStoreManagement = React.lazy(
 const AdminSettings = React.lazy(() => import("../pages/AdminSettings"));
 const EnvSettings = React.lazy(() => import("../pages/EnvSettings"));
 const AdminProfile = React.lazy(() => import("../pages/AdminProfile"));
+const BirthdayCenter = React.lazy(() => import("../pages/BirthdayCenter"));
 
 const navItems = [
   {
@@ -155,6 +158,7 @@ const navItems = [
       { label: "Waiting for Review", path: "/admin/delivery-boys/pending" },
       { label: "Track Drivers", path: "/admin/tracking" },
       { label: "Send Money", path: "/admin/delivery-funds" },
+      { label: "Delivery Reviews", path: "/admin/delivery-reviews" },
     ],
   },
   { label: "Wallet", path: "/admin/wallet", icon: Wallet, color: "violet" },
@@ -176,7 +180,15 @@ const navItems = [
     icon: CircleDollarSign,
     color: "green",
   },
-  { label: "Customers", path: "/admin/customers", icon: Users, color: "sky" },
+  {
+    label: "Customers",
+    icon: Users,
+    color: "sky",
+    children: [
+      { label: "All Customers", path: "/admin/customers" },
+      { label: "Birthday Center", path: "/admin/birthdays" },
+    ],
+  },
   { label: "FAQs", path: "/admin/faqs", icon: HelpCircle, color: "pink" },
   {
     label: "Orders",
@@ -263,12 +275,14 @@ const AdminRoutes = () => {
         />
         <Route path="/tracking" element={<FleetTracking />} />
         <Route path="/delivery-funds" element={<DeliveryFunds />} />
+        <Route path="/delivery-reviews" element={<DeliveryReviewsPage />} />
         <Route path="/wallet" element={<AdminWallet />} />
         <Route path="/withdrawals" element={<WithdrawalRequests />} />
         <Route path="/seller-transactions" element={<SellerTransactions />} />
         <Route path="/cash-collection" element={<CashCollection />} />
         <Route path="/customers" element={<CustomerManagement />} />
         <Route path="/customers/:id" element={<CustomerDetail />} />
+        <Route path="/birthdays" element={<BirthdayCenter />} />
         <Route path="/faqs" element={<FAQManagement />} />
         <Route path="/orders/:status" element={<OrdersList />} />
         <Route path="/orders/view/:orderId" element={<OrderDetail />} />

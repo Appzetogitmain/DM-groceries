@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { createPortal } from "react-dom";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import BottomNav from "../components/BottomNav";
-import { toast } from "sonner";
+import { Toaster, toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { BellRing, MapPin } from "lucide-react";
 import { deliveryApi } from "../services/deliveryApi";
@@ -156,7 +156,7 @@ const DeliveryLayout = () => {
     shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(payload.orderId);
     const total = typeof p.total === "number" ? p.total : Number(p.total) || 0;
     const dropLabel = typeof p.drop === "string" ? p.drop : String(p.drop);
-    const earnings = typeof p.earnings === "number" ? p.earnings : (payload.paymentBreakdown?.riderPayoutTotal ?? Math.round(total * 0.1));
+    const earnings = typeof p.earnings === "number" ? p.earnings : Math.round(total * 0.1);
     setActiveOrder({
       id: payload.orderId,
       mongoId: undefined,
@@ -166,7 +166,7 @@ const DeliveryLayout = () => {
       estTime: "10-15 min",
       value: total,
       earnings: earnings,
-      expiresAt: payload.deliverySearchExpiresAt || new Date(Date.now() + 60000).toISOString(),
+      expiresAt: payload.deliverySearchExpiresAt || null,
       isReturnPickup: payload.type === "RETURN_PICKUP" || payload.isReturnPickup === true,
       items: payload.items || [],
     });
@@ -190,7 +190,7 @@ const DeliveryLayout = () => {
     shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(newOrder.orderId);
     const total = newOrder.pricing?.total || 0;
     const isReturnPickup = newOrder.isReturnPickup || false;
-    const earnings = newOrder.paymentBreakdown?.riderPayoutTotal ?? newOrder.riderEarnings ?? Math.round(total * 0.1);
+    const earnings = newOrder.riderEarnings || Math.round(total * 0.1);
     setActiveOrder({
       id: newOrder.orderId,
       mongoId: newOrder._id,
@@ -204,7 +204,7 @@ const DeliveryLayout = () => {
       estTime: "10-15 min",
       value: total,
       earnings: earnings,
-      expiresAt: newOrder.deliverySearchExpiresAt || new Date(Date.now() + 60000).toISOString(),
+      expiresAt: newOrder.deliverySearchExpiresAt || null,
       isReturnPickup,
       items: newOrder.items || [],
     });
@@ -213,13 +213,9 @@ const DeliveryLayout = () => {
   useEffect(() => {
     if (activeOrder) {
       startOrderRingtone();
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "unset";
-      };
+      return undefined;
     }
     stopOrderRingtone();
-    document.body.style.overflow = "unset";
     return undefined;
   }, [activeOrder]);
 
@@ -229,6 +225,12 @@ const DeliveryLayout = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--primary", "#1A4516");
+    root.style.setProperty("--primary-color", "#1A4516");
+  }, []);
+
   const hideBottomNavRoutes = [
     "/delivery/login",
     "/delivery/auth",
@@ -236,6 +238,7 @@ const DeliveryLayout = () => {
     "/delivery/navigation",
     "/delivery/confirm-delivery",
     "/delivery/order-details",
+    "/delivery/profile/",
   ];
 
   const shouldShowBottomNav = !hideBottomNavRoutes.some((route) =>
@@ -772,7 +775,7 @@ const DeliveryLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-gray-100">
+    <div className="h-screen h-[100dvh] bg-gray-50 text-gray-900 font-sans max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-gray-100">
       {/* Full-screen order alert — portaled so it always stacks above nav/content */}
       {typeof document !== "undefined" &&
         createPortal(
@@ -911,11 +914,12 @@ const DeliveryLayout = () => {
         )}
 
       <main
-        className={`h-full min-h-screen overflow-y-auto ${shouldShowBottomNav ? "pb-24" : ""} no-scrollbar`}>
+        className={`h-full overflow-y-auto ${shouldShowBottomNav ? "pb-16" : ""} no-scrollbar`}>
         <Outlet />
       </main>
 
       {shouldShowBottomNav && <BottomNav />}
+      <Toaster position="top-center" />
     </div>
   );
 };

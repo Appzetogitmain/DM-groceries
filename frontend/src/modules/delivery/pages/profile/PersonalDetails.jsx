@@ -4,19 +4,17 @@ import { ArrowLeft, Save, User, Mail, Phone, MapPin, Calendar, Droplet } from "l
 import Button from "@/shared/components/ui/Button";
 import Input from "@/shared/components/ui/Input";
 import { toast } from "sonner";
-import { useAuth } from "@core/context/AuthContext";
 
 const PersonalDetails = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
-  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    fullName: user?.name || "",
-    phone: user?.phone || "",
-    email: user?.email || "",
-    address: user?.address || "",
-    dob: user?.dob || "",
-    bloodGroup: user?.bloodGroup || "",
+    fullName: "Rahul Kumar",
+    phone: "+91 98765 43210",
+    email: "rahul.kumar@example.com",
+    address: "Flat 302, Green Apts, MG Road, Bangalore - 560001",
+    dob: "1995-08-15",
+    bloodGroup: "O+",
   });
 
   const handleSave = () => {
@@ -25,72 +23,77 @@ const PersonalDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="flex items-center p-4">
+    <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+      
+      {/* Deep Green Header Banner */}
+      <div className="bg-[#1A4516] text-white pt-4 pb-12 px-6 relative">
+        <div className="flex items-center">
           <button 
             onClick={() => navigate(-1)} 
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
+            className="p-2 rounded-full hover:bg-white/10 transition-colors mr-2 cursor-pointer"
+            aria-label="Go Back"
           >
-            <ArrowLeft size={20} className="text-gray-600" />
+            <ArrowLeft size={18} className="text-white" />
           </button>
-          <h1 className="ds-h3 text-gray-900">Personal Details</h1>
+          <h1 className="text-lg font-black leading-tight tracking-tight">Personal Details</h1>
           <div className="ml-auto">
             {isEditing ? (
-              <Button size="sm" onClick={handleSave} className="h-8 px-3">
-                Save
-              </Button>
+              <button 
+                onClick={handleSave} 
+                className="h-8 px-4 rounded-full bg-white text-[#1A4516] text-xs font-black hover:bg-gray-100 transition-colors cursor-pointer shadow-sm flex items-center gap-1"
+              >
+                <Save size={12} /> Save
+              </button>
             ) : (
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <button 
                 onClick={() => setIsEditing(true)} 
-                className="text-primary hover:bg-primary/5"
+                className="h-8 px-4 rounded-full bg-white/10 border border-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors cursor-pointer"
               >
                 Edit
-              </Button>
+              </button>
             )}
           </div>
         </div>
       </div>
 
-      <div className="p-4 max-w-lg mx-auto space-y-6">
+      {/* Main Content Area overlapping with rounded corners */}
+      <div className="bg-white rounded-t-[32px] -mt-5 pt-3 px-5 space-y-4 relative z-10">
+        
         {/* Profile Photo */}
-        <div className="flex flex-col items-center justify-center py-6">
+        <div className="flex flex-col items-center justify-center py-4">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full p-1 bg-white shadow-md">
+            <div className="w-18 h-18 rounded-full p-0.5 bg-white shadow-md">
               <img
-                src={user?.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
                 alt="Profile"
                 className="w-full h-full rounded-full object-cover bg-gray-100"
               />
             </div>
             {isEditing && (
-              <button className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-1.5 rounded-full shadow-lg hover:bg-primary/90 transition-colors">
-                <User size={14} />
+              <button className="absolute bottom-0 right-0 bg-[#1A4516] text-white p-1 rounded-full shadow-md hover:bg-[#153b12] transition-colors cursor-pointer">
+                <User size={12} />
               </button>
             )}
           </div>
-          <p className="mt-3 text-sm text-gray-500">Delivery Partner ID: {(user?._id || user?.id || "").slice(-6).toUpperCase()}</p>
+          <p className="mt-2.5 text-[11px] font-bold text-gray-400">Delivery Partner ID: 882190</p>
         </div>
 
         {/* Form Fields */}
-        <div className="space-y-4 bg-white p-4 rounded-xl shadow-sm">
+        <div className="space-y-3.5 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
           <Input
             label="Full Name"
             value={formData.fullName}
-            readOnly={!isEditing} // Usually name is locked after verification
+            readOnly={!isEditing} 
             icon={User}
-            className={!isEditing ? "bg-gray-50 border-transparent" : ""}
+            className={!isEditing ? "bg-gray-50/60 border-transparent text-gray-700" : "focus:ring-[#1A4516]/10 focus:border-[#1A4516]"}
           />
           
           <Input
             label="Phone Number"
             value={formData.phone}
-            readOnly={true} // Phone is usually locked
+            readOnly={true} 
             icon={Phone}
-            className="bg-gray-50 border-transparent text-gray-500"
+            className="bg-gray-50 border-transparent text-gray-400"
             helperText="Contact support to change phone number"
           />
 
@@ -101,36 +104,38 @@ const PersonalDetails = () => {
             onChange={(e) => setFormData({...formData, email: e.target.value})}
             icon={Mail}
             type="email"
-            className={!isEditing ? "bg-gray-50 border-transparent" : ""}
+            className={!isEditing ? "bg-gray-50/60 border-transparent text-gray-700" : "focus:ring-[#1A4516]/10 focus:border-[#1A4516]"}
           />
 
           <div className="relative">
-            <label className="block text-xs font-medium text-gray-700 mb-1 ml-1">Current Address</label>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 ml-1">Current Address</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <MapPin size={18} />
+                <MapPin size={16} />
               </div>
               <textarea
                 value={formData.address}
                 readOnly={!isEditing}
                 onChange={(e) => setFormData({...formData, address: e.target.value})}
-                className={`w-full pl-10 pr-4 py-2 rounded-xl text-sm border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none ${
-                  !isEditing ? "bg-gray-50 border-transparent text-gray-600" : "bg-white border-gray-200"
+                className={`w-full pl-9 pr-4 py-2 rounded-xl text-xs border outline-none transition-all resize-none ${
+                  !isEditing 
+                    ? "bg-gray-50/60 border-transparent text-gray-700" 
+                    : "bg-white border-gray-200 focus:ring-2 focus:ring-[#1A4516]/10 focus:border-[#1A4516]"
                 }`}
-                rows={3}
+                rows={2}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3.5">
             <Input
               label="Date of Birth"
-              type="date"
               value={formData.dob}
+              type="date"
               readOnly={!isEditing}
               onChange={(e) => setFormData({...formData, dob: e.target.value})}
               icon={Calendar}
-              className={!isEditing ? "bg-gray-50 border-transparent text-gray-600" : ""}
+              className={!isEditing ? "bg-gray-50 border-transparent text-gray-400" : "focus:ring-[#1A4516]/10 focus:border-[#1A4516]"}
             />
             <Input
               label="Blood Group"
@@ -138,7 +143,7 @@ const PersonalDetails = () => {
               readOnly={!isEditing}
               onChange={(e) => setFormData({...formData, bloodGroup: e.target.value})}
               icon={Droplet}
-              className={!isEditing ? "bg-gray-50 border-transparent" : ""}
+              className={!isEditing ? "bg-gray-50/60 border-transparent text-gray-700" : "focus:ring-[#1A4516]/10 focus:border-[#1A4516]"}
             />
           </div>
         </div>

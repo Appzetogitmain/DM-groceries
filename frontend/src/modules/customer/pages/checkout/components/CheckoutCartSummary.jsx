@@ -42,12 +42,12 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
             )}
             <button
               onClick={() => onMoveToWishlist(item)}
-              className="text-xs text-slate-500 underline hover:text-primary transition-colors">
+              className="text-xs text-slate-500 underline hover:text-[#1A4516] transition-colors">
               Move to wishlist
             </button>
           </div>
             <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-2 bg-primary rounded-lg px-2 py-1">
+              <div className="flex items-center gap-2 bg-[#1A4516] rounded-lg px-2 py-1">
                 <button
                   onClick={() => {
                     const productId = item.id || item._id;

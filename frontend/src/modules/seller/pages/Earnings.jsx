@@ -37,16 +37,17 @@ const Earnings = () => {
   const [withdrawAmount, setWithdrawAmount] = React.useState("");
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = React.useState(false);
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
+  const [selectedTxn, setSelectedTxn] = React.useState(null);
 
   React.useEffect(() => {
     if (data?.balances != null && withdrawAmount === "") {
-      const settled = Number(data.balances?.settledBalance ?? 0);
+      const settled = Number(data.balances?.availableBalance ?? 0);
       setWithdrawAmount(settled > 0 ? String(settled) : "");
     }
   }, [data?.balances]);
 
   const handleWithdraw = () => {
-    const totalBalance = Number(data?.balances?.settledBalance ?? 0);
+    const totalBalance = Number(data?.balances?.availableBalance ?? 0);
     const amount = parseFloat(withdrawAmount);
     if (isNaN(amount) || amount <= 0 || amount > totalBalance) {
       alert(
@@ -71,13 +72,13 @@ const Earnings = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen font-black text-slate-600">LOADING EARNINGS...</div>;
+    return <div className="flex items-center justify-center h-screen font-semibold text-slate-500">LOADING EARNINGS...</div>;
   }
   return (
     <div className="space-y-8 pb-16">
       <BlurFade delay={0.1}>
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-800 hidden md:block">
+          <h2 className="text-xl font-bold text-slate-800 hidden md:block">
             Earnings Overview
           </h2>
           <div className="flex space-x-3">
@@ -93,7 +94,7 @@ const Earnings = () => {
                   type: txn.type ?? "",
                   amount: `₹${Number(txn.amount ?? 0).toLocaleString()}`,
                   status: txn.status ?? "",
-                  date: txn.date ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ""),
+                  date: txn.date ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : ""),
                   customer: txn.customer ?? "",
                   ref: txn.ref ?? "",
                 }));
@@ -109,64 +110,65 @@ const Earnings = () => {
                 toast.success("Earnings report downloaded successfully!");
               }}
               variant="outline"
-              className="border-gray-200">
-              <Download className="mr-2 h-5 w-5" />
+              className="border-gray-200 text-slate-600 text-xs font-semibold">
+              <Download className="mr-2 h-4 w-4" />
               Download Report
             </Button>
             <ShimmerButton
               onClick={() => navigate("/seller/withdrawals")}
-              className="px-6 py-2 rounded-xl text-sm font-bold text-white shadow-lg">
+              background="#1A4516"
+              className="px-6 py-2 rounded-xl text-xs font-bold text-white shadow-lg">
               <span className="text-white">Withdraw Funds</span>
             </ShimmerButton>
           </div>
         </div>
       </BlurFade>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-[850px]">
         <BlurFade delay={0.2}>
-          <Card className="bg-gradient-to-br from-brand-600 to-teal-700 text-white border-none shadow-lg h-full">
+          <Card className="bg-gradient-to-br from-[#1A4516] to-[#0f2e0f] text-white border-none shadow-lg h-full p-4 relative overflow-hidden rounded-xl">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-brand-100 font-medium">Total Revenue</p>
-                <h3 className="text-4xl font-bold mt-2">₹{Number(data?.balances?.totalRevenue ?? 0).toLocaleString()}</h3>
+                <p className="text-emerald-100 text-[10px] font-semibold uppercase tracking-wider">Total Revenue</p>
+                <h3 className="text-2xl font-bold mt-1">₹{Number(data?.balances?.totalRevenue ?? 0).toLocaleString()}</h3>
               </div>
-              <div className="p-3 bg-white/20 rounded-xl">
-                <DollarSign className="h-8 w-8 text-white" />
+              <div className="p-2 bg-white/10 rounded-full h-9 w-9 flex items-center justify-center shrink-0">
+                <DollarSign className="h-4.5 w-4.5 text-white" />
               </div>
             </div>
-            <div className="mt-8 flex items-center text-brand-100 bg-white/10 w-fit px-3 py-1 rounded-full text-sm">
-              <TrendingUp className="mr-2" />
+            <div className="mt-4 flex items-center text-emerald-100 bg-white/10 w-fit px-2.5 py-0.5 rounded-full text-[10px] font-semibold">
+              <TrendingUp className="mr-1.5 h-3.5 w-3.5" />
               <span>Real-time earnings data</span>
             </div>
           </Card>
         </BlurFade>
 
         <BlurFade delay={0.3}>
-          <Card className="h-full border-none shadow-md bg-white p-6 flex flex-col justify-between group hover:shadow-xl transition-all duration-300">
+          <Card className="h-full border-none shadow-sm ring-1 ring-slate-100 bg-white p-4 flex flex-col justify-between group hover:shadow-md transition-all duration-300 rounded-xl">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs font-black text-slate-600 uppercase tracking-widest mb-1">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">
                   Total Withdrawn
                 </p>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                <h2 className="text-2xl font-bold text-slate-800 leading-tight">
                   ₹{Number(data?.balances?.totalWithdrawn ?? 0).toLocaleString()}
                 </h2>
               </div>
-              <div className="p-3 bg-brand-50 rounded-lg group-hover:scale-110 transition-transform duration-300">
-                <Banknote className="h-6 w-6 text-brand-500" />
+              <div className="p-2 bg-emerald-50 rounded-full h-9 w-9 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
+                <Banknote className="h-4.5 w-4.5 text-emerald-700" />
               </div>
             </div>
-            <div className="mt-4">
+            <div className="mt-4 border-t border-slate-50 pt-3">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">
-                  <ArrowDownToLine className="h-4 w-4" />
+                <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-semibold text-xs">
+                  <ArrowDownToLine className="h-3.5 w-3.5" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-600 uppercase">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-none">
                     Available to Withdraw
                   </p>
-                  <p className="text-xs font-black text-slate-900">
-                    ₹{Number(data?.balances?.settledBalance ?? 0).toLocaleString()}
+                  <p className="text-xs font-bold text-slate-800 mt-1 leading-none">
+                    ₹{Number(data?.balances?.availableBalance ?? 0).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -176,16 +178,16 @@ const Earnings = () => {
       </div>
 
       <BlurFade delay={0.4}>
-        <Card className="p-6 border-none shadow-md bg-white">
+        <Card className="p-6 border-none shadow-sm ring-1 ring-slate-100 bg-white rounded-xl">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-brand-500" />
+            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-[#1A4516]" />
               Monthly Revenue Performance
             </h3>
           </div>
           <div className="h-[300px] w-full min-h-[200px] flex items-center justify-center">
             {(Array.isArray(data?.monthlyChart) ? data.monthlyChart : []).length === 0 ? (
-              <p className="text-slate-600 text-sm font-medium">No monthly revenue data yet.</p>
+              <p className="text-slate-500 text-sm font-medium">No monthly revenue data yet.</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.monthlyChart}>
@@ -198,13 +200,13 @@ const Earnings = () => {
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }}
+                    tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }}
+                    tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
                     tickFormatter={(value) => `₹${value}`}
                   />
                   <Tooltip
@@ -214,7 +216,7 @@ const Earnings = () => {
                       border: "none",
                       boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                       fontSize: "12px",
-                      fontWeight: "700",
+                      fontWeight: "600",
                     }}
                     formatter={(value) => [`₹${value.toLocaleString()}`, "Revenue"]}
                   />
@@ -226,12 +228,75 @@ const Earnings = () => {
                   />
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={1} />
-                      <stop offset="95%" stopColor="#818cf8" stopOpacity={1} />
+                      <stop offset="5%" stopColor="#1A4516" stopOpacity={1} />
+                      <stop offset="95%" stopColor="#4A8A3F" stopOpacity={1} />
                     </linearGradient>
                   </defs>
                 </BarChart>
               </ResponsiveContainer>
+            )}
+          </div>
+        </Card>
+      </BlurFade>
+
+      <BlurFade delay={0.5}>
+        <Card className="p-6 border-none shadow-sm ring-1 ring-slate-100 bg-white rounded-xl">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Banknote className="h-5 w-5 text-[#1A4516]" />
+              Transaction History
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            {(!data?.ledger || data.ledger.length === 0) ? (
+              <p className="text-slate-500 text-sm font-medium text-center py-4">No transactions found.</p>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Order / Ref</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.ledger.map((txn, index) => (
+                    <tr 
+                      key={txn.id || index} 
+                      className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                      onClick={() => setSelectedTxn(txn)}
+                    >
+                      <td className="py-4 text-sm text-slate-700 font-medium">
+                        {txn.date || (txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : "-")}
+                      </td>
+                      <td className="py-4 text-sm text-slate-700">
+                        {txn.ref || txn.id || "-"}
+                      </td>
+                      <td className="py-4 text-sm">
+                        <span className="capitalize text-slate-600">{txn.type?.toLowerCase().replace(/_/g, " ") || "-"}</span>
+                      </td>
+                      <td className="py-4 text-sm font-bold text-slate-900">
+                        ₹{Number(txn.amount || 0).toLocaleString()}
+                      </td>
+                      <td className="py-4 text-sm">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "uppercase text-[10px] tracking-wider",
+                            txn.status === "completed" || txn.status === "SUCCESS" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            txn.status === "pending" || txn.status === "PENDING" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                            "bg-slate-50 text-slate-700 border-slate-200"
+                          )}
+                        >
+                          {txn.status || "Completed"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </Card>
@@ -246,32 +311,32 @@ const Earnings = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className="w-full max-w-md relative z-10 bg-white rounded-lg shadow-2xl overflow-hidden p-8 text-center">
-              <div className="h-16 w-16 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                <Banknote className="h-8 w-8 text-brand-600" />
+              <div className="h-16 w-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <Banknote className="h-8 w-8 text-[#1A4516]" />
               </div>
 
-              <h2 className="text-2xl font-black text-slate-900 mb-2">
+              <h2 className="text-xl font-bold text-slate-800 mb-2">
                 Withdraw Funds
               </h2>
-              <p className="text-sm text-slate-600 font-medium mb-8">
+              <p className="text-sm text-slate-500 font-medium mb-8">
                 Available Balance:{" "}
-                <span className="text-brand-600 font-bold">
-                  ₹{Number(data?.balances?.settledBalance ?? 0).toLocaleString()}
+                <span className="text-[#1A4516] font-bold">
+                  ₹{Number(data?.balances?.availableBalance ?? 0).toLocaleString()}
                 </span>
               </p>
 
               <div className="space-y-4 text-left">
                 <div>
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 block">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
                     Amount
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">
                       ₹
                     </span>
                     <input
                       type="number"
-                      className="w-full pl-8 pr-4 py-3 rounded-lg border-slate-200 bg-slate-50 font-bold text-slate-900 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none"
+                      className="w-full pl-8 pr-4 py-3 rounded-lg border-slate-200 bg-slate-50 font-bold text-slate-900 focus:ring-2 focus:ring-[#1A4516]/10 focus:border-[#1A4516] transition-all outline-none"
                       placeholder="0.00"
                       value={withdrawAmount}
                       onChange={(e) => setWithdrawAmount(e.target.value)}
@@ -280,22 +345,22 @@ const Earnings = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 block">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
                     Select Bank Account
                   </label>
-                  <div className="p-4 border border-slate-200 rounded-lg flex items-center gap-4 cursor-pointer hover:border-brand-500 hover:bg-brand-50/10 transition-all group">
-                    <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
+                  <div className="p-4 border border-slate-200 rounded-lg flex items-center gap-4 cursor-pointer hover:border-[#1A4516] hover:bg-emerald-50/10 transition-all group">
+                    <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">
                       <Building2 className="h-5 w-5" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-black text-slate-900">
+                      <p className="text-sm font-semibold text-slate-800">
                         HDFC Bank **** 4589
                       </p>
-                      <p className="text-xs text-slate-600 font-bold">
+                      <p className="text-xs text-slate-500 font-medium">
                         Primary Account
                       </p>
                     </div>
-                    <div className="h-5 w-5 rounded-full border-2 border-slate-200 group-hover:border-brand-500 group-hover:bg-brand-500 transition-all"></div>
+                    <div className="h-5 w-5 rounded-full border-2 border-slate-200 group-hover:border-[#1A4516] group-hover:bg-[#1A4516] transition-all"></div>
                   </div>
                 </div>
               </div>
@@ -303,7 +368,7 @@ const Earnings = () => {
               <div className="grid grid-cols-2 gap-3 mt-8">
                 <button
                   onClick={() => setIsWithdrawModalOpen(false)}
-                  className="py-3 rounded-lg font-black text-slate-600 hover:bg-slate-50 transition-colors">
+                  className="py-3 rounded-lg font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
                   CANCEL
                 </button>
                 <button
@@ -311,9 +376,81 @@ const Earnings = () => {
                     setIsWithdrawModalOpen(false);
                     alert("Withdrawal request submitted!");
                   }}
-                  className="py-3 rounded-lg bg-black  text-primary-foreground font-black shadow-lg shadow-brand-200 hover:bg-brand-700 hover:shadow-brand-300 transition-all">
+                  className="py-3 rounded-lg bg-[#1A4516] hover:bg-[#133A10] text-white font-bold shadow-lg shadow-[#1A4516]/10 hover:shadow-[#1A4516]/20 transition-all">
                   CONFIRM
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Transaction Details Modal */}
+      <AnimatePresence>
+        {selectedTxn && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedTxn(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md relative z-10 bg-white rounded-xl shadow-2xl overflow-hidden p-6 text-left">
+              
+              <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <h2 className="text-xl font-bold text-slate-800">
+                  Transaction Details
+                </h2>
+                <button onClick={() => setSelectedTxn(null)} className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-slate-100 hover:bg-slate-200 rounded-full">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                 <div className="flex justify-between items-center bg-slate-50 p-4 rounded-lg">
+                    <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Amount</span>
+                    <span className="text-2xl font-bold text-[#1A4516]">₹{Number(selectedTxn.amount || 0).toLocaleString()}</span>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Status</p>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "uppercase text-[10px] tracking-wider",
+                            selectedTxn.status === "completed" || selectedTxn.status === "SUCCESS" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            selectedTxn.status === "pending" || selectedTxn.status === "PENDING" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                            "bg-slate-50 text-slate-700 border-slate-200"
+                          )}
+                        >
+                          {selectedTxn.status || "Completed"}
+                        </Badge>
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Date</p>
+                        <p className="text-sm font-medium text-slate-800">{selectedTxn.date || (selectedTxn.createdAt ? new Date(selectedTxn.createdAt).toLocaleDateString() : "-")}</p>
+                    </div>
+                    <div className="col-span-2">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Type</p>
+                        <p className="text-sm font-medium text-slate-800 capitalize">{selectedTxn.type?.toLowerCase().replace(/_/g, " ") || "-"}</p>
+                    </div>
+                    <div className="col-span-2">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Order / Reference ID</p>
+                        <p className="text-sm font-mono bg-slate-100 p-2 rounded-md text-slate-800 break-all">{selectedTxn.ref || selectedTxn.id || "N/A"}</p>
+                    </div>
+                    {selectedTxn.customer && (
+                        <div className="col-span-2">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Customer</p>
+                            <p className="text-sm font-medium text-slate-700">{selectedTxn.customer}</p>
+                        </div>
+                    )}
+                    {selectedTxn.description && (
+                        <div className="col-span-2">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Description</p>
+                            <p className="text-sm font-medium text-slate-700">{selectedTxn.description}</p>
+                        </div>
+                    )}
+                 </div>
               </div>
             </motion.div>
           </div>

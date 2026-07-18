@@ -148,163 +148,172 @@ const OrderHistory = () => {
   };
 
   return (
-    <div className="bg-gray-50/50 min-h-screen pb-24">
-      {/* Header */}
-      <div className="bg-white shadow-sm p-4 sticky top-0 z-30 backdrop-blur-md bg-white/90">
-        <h1 className="ds-h2 text-gray-900 mb-4">Order History</h1>
-
-        {/* Search & Filter */}
-        <div className="mb-4">
-          <div className="relative flex-1 min-w-0">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={18}
-            />
-            <input
-              type="text"
-              placeholder="Search Order ID, Customer..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all border border-transparent focus:border-primary/20"
-            />
-          </div>
+    <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+      
+      {/* Deep Green Header Banner */}
+      <div className="bg-[#1A4516] text-white pt-4 pb-12 px-6 relative">
+        <h1 className="text-lg font-black leading-tight tracking-tight mb-3">Order History</h1>
+        
+        {/* Search Input inside Green Header */}
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-gray-400"
+            size={16}
+          />
+          <input
+            type="text"
+            placeholder="Search Order ID, Customer..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white/10 text-white placeholder:text-white/50 rounded-xl text-xs focus:outline-none focus:bg-white focus:text-gray-900 focus:placeholder:text-gray-400 focus:ring-2 focus:ring-white/10 transition-all border border-white/5"
+          />
         </div>
+      </div>
 
+      {/* Main Content Area overlapping with rounded corners */}
+      <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-4 space-y-3.5 relative z-10">
+        
         {/* Status Filters */}
-        <div className="-mx-4 px-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar snap-x snap-mandatory">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar snap-x snap-mandatory">
           {["All", "Delivered", "Cancelled", "Returns"].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status.toLowerCase())}
-              className={`snap-start h-9 px-4 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${filter === status.toLowerCase()
-                ? "bg-primary text-primary-foreground border-transparent shadow-lg shadow-primary/25"
-                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                }`}
+              className={`snap-start h-8 px-4 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                filter === status.toLowerCase()
+                  ? "bg-[#1A4516] text-white border-transparent shadow-md shadow-[#1A4516]/10"
+                  : "bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100"
+              }`}
             >
               {status}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Orders List */}
-      <div className="p-4 space-y-4 max-w-lg mx-auto">
-        {refreshing && (
-          <div className="flex items-center justify-center gap-2 py-1 text-xs font-medium text-primary">
-            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <span>Updating…</span>
-          </div>
-        )}
-        {initialLoading ? (
-          <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <AnimatePresence mode="popLayout">
-            {filteredOrders.length > 0 ? filteredOrders.map((order) => (
-              <motion.div
-                key={order._id}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}>
-                <Card
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openOrderDetail(order)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      openOrderDetail(order);
-                    }
-                  }}
-                  className="hover:shadow-md transition-shadow cursor-pointer group">
-                  <div className="p-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start mb-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1 min-w-0 flex-wrap">
-                          <span className="font-bold text-gray-900 text-sm group-hover:text-primary transition-colors break-all">
-                            #{order.orderId}
-                          </span>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${displayOrderStatus(order) === "delivered"
-                              ? "bg-brand-100 text-brand-700"
-                              : displayOrderStatus(order) === "cancelled"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-brand-100 text-brand-700"
-                              }`}>
-                            {displayOrderStatus(order)}
-                          </span>
+        {/* Orders List */}
+        <div className="space-y-3.5 max-w-lg mx-auto">
+          {refreshing && (
+            <div className="flex items-center justify-center gap-1.5 py-1 text-[11px] font-bold text-[#1A4516]">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#1A4516] border-t-transparent" />
+              <span>Updating…</span>
+            </div>
+          )}
+          
+          {initialLoading ? (
+            <div className="flex justify-center py-16">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1A4516]"></div>
+            </div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              {filteredOrders.length > 0 ? (
+                filteredOrders.map((order) => (
+                  <motion.div
+                    key={order._id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Card
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openOrderDetail(order)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openOrderDetail(order);
+                        }
+                      }}
+                      className="hover:shadow-sm transition-shadow cursor-pointer group bg-white border border-gray-100 rounded-xl"
+                    >
+                      <div className="p-3.5">
+                        <div className="flex justify-between items-start mb-2.5">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5 min-w-0 flex-wrap">
+                              <span className="font-bold text-gray-900 text-xs group-hover:text-[#1A4516] transition-colors break-all">
+                                #{order.orderId}
+                              </span>
+                              <span
+                                className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                  displayOrderStatus(order) === "delivered"
+                                    ? "bg-green-50 text-emerald-700 border border-green-100/30"
+                                    : displayOrderStatus(order) === "cancelled"
+                                    ? "bg-rose-50 text-rose-700 border border-rose-100/30"
+                                    : "bg-green-50 text-[#1A4516]"
+                                }`}
+                              >
+                                {displayOrderStatus(order)}
+                              </span>
+                            </div>
+                            <div className="flex items-center text-gray-400 text-[10px]">
+                              <Calendar size={10} className="mr-1" />
+                              {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="block font-black text-base text-[#1A4516] leading-none mb-0.5">
+                              ₹{Math.round(order.paymentBreakdown?.riderPayoutTotal || ((order.pricing?.total || 0) * 0.1))}
+                            </span>
+                            <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Earnings</span>
+                          </div>
                         </div>
-                        <div className="flex items-center text-gray-400 text-xs">
-                          <Calendar size={12} className="mr-1" />
-                          {new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                      <div className="text-left sm:text-right shrink-0">
-                        <span className="block font-bold text-lg text-brand-600 whitespace-nowrap">
-                          ₹{order.paymentBreakdown?.riderPayoutTotal || order.returnDeliveryCommission || 0}
-                        </span>
-                        <span className="ds-caption text-gray-400">Earnings</span>
-                      </div>
-                    </div>
 
-                    <div className="border-t border-b border-gray-50 py-3 my-3 space-y-2">
-                      <div className="flex items-start">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 mr-2 flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
-                        <div>
-                          <p className="ds-caption text-gray-500 mb-0.5">Store</p>
-                          <p className="text-sm font-medium text-gray-800 line-clamp-1">
-                            {order.seller?.shopName || "Unknown Store"}
-                          </p>
+                        <div className="border-t border-b border-gray-100 py-2 my-2 space-y-1.5">
+                          <div className="flex items-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 flex-shrink-0 shadow-[0_0_6px_rgba(34,197,94,0.4)]"></div>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase shrink-0">Store:</span>
+                              <span className="text-xs font-semibold text-gray-700 truncate">
+                                {order.seller?.shopName || "Unknown Store"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2 flex-shrink-0 shadow-[0_0_6px_rgba(239,68,68,0.4)]"></div>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase shrink-0">Cust:</span>
+                              <span className="text-xs font-semibold text-gray-700 truncate">
+                                {order.customer?.name || "Customer"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-start">
-                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                        <div>
-                          <p className="ds-caption text-gray-500 mb-0.5">
-                            Customer
-                          </p>
-                          <p className="text-sm font-medium text-gray-800 line-clamp-1">
-                            {order.customer?.name || "Customer"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center text-xs text-gray-500">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="flex items-center bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                          <MapPin size={12} className="mr-1 text-gray-400" />{" "}
-                          {order.distanceSnapshot?.distanceKmActual?.toFixed(1) || order.paymentBreakdown?.distanceKmActual?.toFixed(1) || "0.0"} km
-                        </span>
-                        <span className="flex items-center bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                          <Clock size={12} className="mr-1 text-gray-400" /> 15
-                          min
-                        </span>
+                        <div className="flex justify-between items-center text-[10px] text-gray-500">
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 font-medium">
+                              <MapPin size={10} className="mr-0.5 text-gray-400" />{" "}
+                              {order.distanceSnapshot?.distanceKmRounded || 2.4} km
+                            </span>
+                            <span className="flex items-center bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 font-medium">
+                              <Clock size={10} className="mr-0.5 text-gray-400" /> {Math.round((order.distanceSnapshot?.distanceKmRounded || 2.4) * 6.25)} min
+                            </span>
+                          </div>
+                          <div className="flex items-center text-[#1A4516] font-bold group-hover:underline">
+                            View Details <ChevronRight size={12} className="ml-0.5" />
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center text-primary font-bold group-hover:underline self-end sm:self-auto">
-                        View Details <ChevronRight size={14} className="ml-0.5" />
-                      </div>
-                    </div>
+                    </Card>
+                  </motion.div>
+                ))
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-16"
+                >
+                  <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-gray-100">
+                    <Filter size={24} className="text-gray-400" />
                   </div>
-                </Card>
-              </motion.div>
-            )) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Filter size={32} className="text-gray-400" />
-                </div>
-                <h3 className="ds-h3 text-gray-900">No Orders Found</h3>
-                <p className="text-gray-500 text-sm">Try changing your filters.</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        )}
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">No Orders Found</h3>
+                  <p className="text-gray-400 text-xs">Try changing your filters.</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+        </div>
       </div>
     </div>
   );

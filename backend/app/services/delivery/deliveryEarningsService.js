@@ -134,7 +134,7 @@ async function computeDeliveryEarnings(deliveryBoyId) {
     ownerType: "DELIVERY_PARTNER",
     ownerId: deliveryBoyId,
   })
-    .select("cashInHand")
+    .select("cashInHand availableBalance pendingBalance")
     .lean();
 
   const totalEarnings = transactions
@@ -217,6 +217,10 @@ async function computeDeliveryEarnings(deliveryBoyId) {
     cashCollected,
     chartData,
     transactions: transactions.slice(0, 20),
+    balances: {
+      availableBalance: wallet?.availableBalance || 0,
+      pendingBalance: wallet?.pendingBalance || 0,
+    }
   };
 }
 

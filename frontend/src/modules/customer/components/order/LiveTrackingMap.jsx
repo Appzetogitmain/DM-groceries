@@ -16,7 +16,7 @@ import customerPin from "@/assets/customer-pin.png";
 import deliveryIcon from "@/assets/deliveryIcon.png";
 import storePin from "@/assets/store-pin.png";
 
-const libraries = ["geometry"];
+const libraries = ["places", "geometry"];
 
 const containerStyle = {
   width: "100%",
@@ -51,7 +51,8 @@ function hasValidLatLng(location) {
 const LiveTrackingMap = memo(({
   status = "out for delivery",
   eta = "8 mins",
-  riderName = "Ramesh Kumar",
+  riderName,
+  riderPlate,
   riderPhone,
   riderLocation,
   sellerLocation,
@@ -69,7 +70,7 @@ const LiveTrackingMap = memo(({
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
   const { isLoaded, loadError } = useJsApiLoader({
-    id: "customer-tracking-map",
+    id: "google-map-script",
     googleMapsApiKey: apiKey,
     libraries,
   });
@@ -467,7 +468,7 @@ const LiveTrackingMap = memo(({
                 <h3 className="font-bold text-gray-900 text-xs truncate">{riderName}</h3>
                 <p className="text-[10px] text-gray-500 flex items-center gap-1">
                   <Shield size={8} />
-                  Vaccinated
+                  Vaccinated {riderPlate ? `• ${riderPlate}` : ""}
                 </p>
               </div>
               <div className="flex items-center gap-1.5">

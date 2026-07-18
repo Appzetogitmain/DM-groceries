@@ -5,8 +5,8 @@
 
 :root {
   /* Brand colors: overridden at runtime by SettingsContext from API (settings.primaryColor, settings.secondaryColor) */
-  --primary: #0284c7; /* Default brand blue */
-  --primary-color: #0284c7;
+  --primary: #1A4516; /* Default brand green */
+  --primary-color: #1A4516;
   
   /* Dynamic Brand Shades based on primary */
   --brand-50: color-mix(in srgb, var(--primary), white 95%);
@@ -133,9 +133,21 @@ body {
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Brand Colors */
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
 }
 
 .dark {
@@ -274,6 +286,14 @@ body {
     font-weight: 600; /* was 500 */
   }
 
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   /* Custom Scrollbar Utilities */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -392,18 +412,4 @@ body {
     /* Disable long-press context menu on iOS */
     -webkit-touch-callout: none;
   }
-}
-
-/* Remove focus outline from Recharts */
-.recharts-wrapper,
-.recharts-surface,
-.recharts-layer,
-.recharts-cartesian-grid {
-  outline: none !important;
-}
-
-.recharts-wrapper:focus,
-.recharts-surface:focus,
-.recharts-layer:focus {
-  outline: none !important;
 }

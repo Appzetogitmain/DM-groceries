@@ -57,7 +57,6 @@ export class PhonePeAdapter extends PaymentProviderPort {
       .merchantOrderId(merchantOrderId)
       .amount(amountPaise)
       .redirectUrl(redirectUrl)
-      .callbackUrl(callbackUrl || redirectUrl)
       .build();
     const response = await client.pay(request);
     return {

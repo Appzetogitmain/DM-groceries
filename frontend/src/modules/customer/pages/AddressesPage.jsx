@@ -586,28 +586,26 @@ const AddressesPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-24 font-sans">
-            <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-slate-200/60 mb-4 flex items-center gap-2">
+        <div className="min-h-screen bg-white pb-24 font-sans">
+            <div className="sticky top-0 z-30 bg-white px-4 pt-5 pb-4 border-b border-slate-100 mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="flex items-center justify-center p-1 -ml-1"
+                    >
+                        <ChevronLeft size={24} className="text-[#1A4516]" />
+                    </button>
+                    <h1 className="text-[19px] font-bold text-[#1A4516] tracking-tight">Saved Addresses</h1>
+                </div>
                 <button
-                    onClick={() => navigate(-1)}
-                    className="w-10 h-10 flex items-center justify-center hover:bg-slate-200/70 rounded-full transition-colors -ml-1"
+                    onClick={openAddModal}
+                    className="text-[#1A4516] font-bold text-[15px]"
                 >
-                    <ChevronLeft size={22} className="text-slate-800" />
+                    + Add New
                 </button>
-                <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Saved Addresses</h1>
             </div>
 
             <div className="max-w-2xl mx-auto px-4 pt-1 relative z-20 space-y-4">
-                {/* Add New Address Button */}
-                <button
-                    onClick={openAddModal}
-                    className="w-full bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-center gap-2 text-slate-700 hover:bg-slate-50 transition-colors group"
-                >
-                    <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                        <Plus size={18} strokeWidth={2.5} />
-                    </div>
-                    <span className="font-semibold text-sm">Add New Address</span>
-                </button>
 
                 {/* Address List */}
                 <div className="space-y-4">
@@ -624,23 +622,23 @@ const AddressesPage = () => {
                     ) : addresses.map((addr) => (
                         <div key={addr.id} className="bg-white rounded-xl p-4 border border-slate-200 relative overflow-hidden">
                             {addr.isDefault && (
-                                <div className="absolute top-0 right-0 bg-slate-900 text-white text-[10px] font-semibold px-2.5 py-1 rounded-bl-lg uppercase tracking-wide">
+                                <div className="absolute top-0 right-0 bg-[#1A4516] text-white text-[10px] font-semibold px-2.5 py-1 rounded-bl-lg uppercase tracking-wide">
                                     Default
                                 </div>
                             )}
 
                             <div className="flex items-start gap-3">
-                                <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 flex-shrink-0">
+                                <div className="h-10 w-10 rounded-lg bg-[#F5FBF5] flex items-center justify-center text-[#1A4516] flex-shrink-0">
                                     {addr.type === 'Home' ? <Home size={18} /> : addr.type === 'Work' ? <Briefcase size={18} /> : <MapPin size={18} />}
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-0.5">
-                                        <h3 className="text-sm font-semibold text-slate-800">{addr.type}</h3>
+                                        <h3 className="text-[15px] font-bold text-[#1A4516]">{addr.type}</h3>
                                     </div>
-                                    <p className="text-slate-800 font-medium text-sm mb-1">{addr.name}</p>
-                                    <p className="text-slate-500 text-xs leading-relaxed mb-1">{addr.address}</p>
-                                    <p className="text-slate-500 text-xs mb-2">{[addr.city, addr.state, addr.pincode].filter(Boolean).join(', ')}</p>
-                                    <p className="text-slate-700 font-medium text-xs">Phone: {addr.phone}</p>
+                                    <p className="text-[#1A4516] font-bold text-[15px] mb-1">{addr.name}</p>
+                                    <p className="text-[#1A4516]/80 text-[14px] leading-relaxed mb-0.5">{addr.address}</p>
+                                    <p className="text-[#1A4516]/80 text-[14px] mb-2">{[addr.city, addr.state, addr.pincode].filter(Boolean).join(', ')}</p>
+                                    <p className="text-[#1A4516] font-medium text-[13px]">Phone: {addr.phone}</p>
                                 </div>
                             </div>
 
@@ -648,22 +646,26 @@ const AddressesPage = () => {
                                 {!addr.isDefault && (
                                     <button
                                         onClick={() => handleMakeDefault(addr)}
-                                        className="flex-1 py-2 rounded-lg bg-slate-100 text-slate-700 font-medium text-xs hover:bg-slate-200 transition-colors flex items-center justify-center gap-1.5"
+                                        className="flex-1 bg-white border border-[#1A4516] text-[#1A4516] py-2 rounded-lg text-[13px] font-semibold hover:bg-[#F5FBF5] transition-colors"
                                     >
-                                        Make Default
+                                        Set Default
                                     </button>
                                 )}
                                 <button
                                     onClick={() => handleEdit(addr)}
-                                    className="flex-1 py-2 rounded-lg bg-slate-100 text-slate-700 font-medium text-xs hover:bg-slate-200 transition-colors flex items-center justify-center gap-1.5"
+                                    className="flex-1 bg-[#F5FBF5] text-[#1A4516] py-2 rounded-lg text-[13px] font-semibold hover:bg-[#e6f4e6] transition-colors"
                                 >
-                                    <Edit2 size={14} /> Edit
+                                    Edit
                                 </button>
                                 <button
-                                    onClick={() => handleDelete(addr)}
-                                    className="flex-1 py-2 rounded-lg bg-slate-100 text-slate-700 font-medium text-xs hover:bg-slate-200 transition-colors flex items-center justify-center gap-1.5"
+                                    onClick={() => {
+                                        if (window.confirm('Are you sure you want to delete this address?')) {
+                                            handleDelete(addr);
+                                        }
+                                    }}
+                                    className="w-10 h-[38px] flex items-center justify-center bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                                 >
-                                    <Trash2 size={14} /> Delete
+                                    <Trash2 size={16} />
                                 </button>
                             </div>
                         </div>
@@ -684,9 +686,9 @@ const AddressesPage = () => {
                         <div className="grid gap-2">
                             <Label>Address Type</Label>
                             <div className="flex gap-2">
-                                <Button type="button" variant="outline" className={`flex-1 ${addForm.type === 'home' ? 'border-primary text-primary bg-brand-50' : ''}`} onClick={() => setAddForm(f => ({ ...f, type: 'home' }))}>Home</Button>
-                                <Button type="button" variant="outline" className={`flex-1 ${addForm.type === 'work' ? 'border-primary text-primary bg-brand-50' : ''}`} onClick={() => setAddForm(f => ({ ...f, type: 'work' }))}>Work</Button>
-                                <Button type="button" variant="outline" className={`flex-1 ${addForm.type === 'other' ? 'border-primary text-primary bg-brand-50' : ''}`} onClick={() => setAddForm(f => ({ ...f, type: 'other' }))}>Other</Button>
+                                <Button type="button" variant="outline" className={`flex-1 ${addForm.type === 'home' ? 'border-[#1A4516] text-[#1A4516] bg-[#F5FBF5]' : ''}`} onClick={() => setAddForm(f => ({ ...f, type: 'home' }))}>Home</Button>
+                                <Button type="button" variant="outline" className={`flex-1 ${addForm.type === 'work' ? 'border-[#1A4516] text-[#1A4516] bg-[#F5FBF5]' : ''}`} onClick={() => setAddForm(f => ({ ...f, type: 'work' }))}>Work</Button>
+                                <Button type="button" variant="outline" className={`flex-1 ${addForm.type === 'other' ? 'border-[#1A4516] text-[#1A4516] bg-[#F5FBF5]' : ''}`} onClick={() => setAddForm(f => ({ ...f, type: 'other' }))}>Other</Button>
                             </div>
                         </div>
                         <div className="grid gap-2">
@@ -702,10 +704,10 @@ const AddressesPage = () => {
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="address">Address</Label>
                                 <div className="flex gap-2">
-                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs text-primary border-primary bg-brand-50" onClick={() => handleDetectLocation(false)}>
+                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs text-[#1A4516] border-[#1A4516] bg-[#F5FBF5]" onClick={() => handleDetectLocation(false)}>
                                         <Crosshair size={12} className="mr-1" /> Detect
                                     </Button>
-                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs text-primary border-primary bg-brand-50" onClick={() => { setMapPickerTarget('add'); setIsMapPickerOpen(true); }}>
+                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs text-[#1A4516] border-[#1A4516] bg-[#F5FBF5]" onClick={() => { setMapPickerTarget('add'); setIsMapPickerOpen(true); }}>
                                         <MapPin size={12} className="mr-1" /> Map
                                     </Button>
                                 </div>
@@ -751,7 +753,7 @@ const AddressesPage = () => {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={handleCloseAddModal} disabled={saving}>Cancel</Button>
-                        <Button className="bg-primary hover:bg-[#0b721b]" onClick={handleSaveNewAddress} disabled={saving}>{saving ? 'Saving...' : 'Save Address'}</Button>
+                        <Button className="bg-[#1A4516] hover:bg-[#0a3000] text-white" onClick={handleSaveNewAddress} disabled={saving}>{saving ? 'Saving...' : 'Save Address'}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -769,9 +771,9 @@ const AddressesPage = () => {
                         <div className="grid gap-2">
                             <Label>Address Type</Label>
                             <div className="flex gap-2">
-                                <Button type="button" variant="outline" className={`flex-1 ${editForm.type === 'home' ? 'border-primary text-primary bg-brand-50' : ''}`} onClick={() => setEditForm(f => ({ ...f, type: 'home' }))}>Home</Button>
-                                <Button type="button" variant="outline" className={`flex-1 ${editForm.type === 'work' ? 'border-primary text-primary bg-brand-50' : ''}`} onClick={() => setEditForm(f => ({ ...f, type: 'work' }))}>Work</Button>
-                                <Button type="button" variant="outline" className={`flex-1 ${editForm.type === 'other' ? 'border-primary text-primary bg-brand-50' : ''}`} onClick={() => setEditForm(f => ({ ...f, type: 'other' }))}>Other</Button>
+                                <Button type="button" variant="outline" className={`flex-1 ${editForm.type === 'home' ? 'border-[#1A4516] text-[#1A4516] bg-[#F5FBF5]' : ''}`} onClick={() => setEditForm(f => ({ ...f, type: 'home' }))}>Home</Button>
+                                <Button type="button" variant="outline" className={`flex-1 ${editForm.type === 'work' ? 'border-[#1A4516] text-[#1A4516] bg-[#F5FBF5]' : ''}`} onClick={() => setEditForm(f => ({ ...f, type: 'work' }))}>Work</Button>
+                                <Button type="button" variant="outline" className={`flex-1 ${editForm.type === 'other' ? 'border-[#1A4516] text-[#1A4516] bg-[#F5FBF5]' : ''}`} onClick={() => setEditForm(f => ({ ...f, type: 'other' }))}>Other</Button>
                             </div>
                         </div>
                         <div className="grid gap-2">
@@ -787,10 +789,10 @@ const AddressesPage = () => {
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="edit-address">Address</Label>
                                 <div className="flex gap-2">
-                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs text-primary border-primary bg-brand-50" onClick={() => handleDetectLocation(true)}>
+                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs text-[#1A4516] border-[#1A4516] bg-[#F5FBF5]" onClick={() => handleDetectLocation(true)}>
                                         <Crosshair size={12} className="mr-1" /> Detect
                                     </Button>
-                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs text-primary border-primary bg-brand-50" onClick={() => { setMapPickerTarget('edit'); setIsMapPickerOpen(true); }}>
+                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs text-[#1A4516] border-[#1A4516] bg-[#F5FBF5]" onClick={() => { setMapPickerTarget('edit'); setIsMapPickerOpen(true); }}>
                                         <MapPin size={12} className="mr-1" /> Map
                                     </Button>
                                 </div>
@@ -835,7 +837,7 @@ const AddressesPage = () => {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating}>Cancel</Button>
-                        <Button className="bg-primary hover:bg-[#0b721b]" onClick={handleUpdateAddress} disabled={updating}>{updating ? 'Updating...' : 'Update Address'}</Button>
+                        <Button className="bg-[#1A4516] hover:bg-[#0a3000] text-white" onClick={handleUpdateAddress} disabled={updating}>{updating ? 'Updating...' : 'Update Address'}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -1,0 +1,1 @@
+require('dotenv').config(); const mongoose = require('mongoose'); mongoose.connect(process.env.MONGO_URI).then(async () => { const db = mongoose.connection.useDb('quickcom'); await db.collection('settings').updateOne({}, { $set: { appName: 'DM groceries' } }); console.log('Updated appName in DB'); process.exit(0); });

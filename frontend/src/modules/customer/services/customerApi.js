@@ -98,6 +98,7 @@ export const customerApi = {
   verifyPaymentStatus: (id) => axiosInstance.get(`/payments/status/${id}`),
 
   // Support & Reviews
+  submitDeliveryReview: (data) => axiosInstance.post("/delivery-reviews/submit", data),
   getProductReviews: (productId) =>
     getWithDedupe(`/reviews/product/${productId}`),
   submitReview: (data) => {

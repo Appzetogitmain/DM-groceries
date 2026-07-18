@@ -75,6 +75,11 @@ const sellerSchema = new mongoose.Schema(
       other: { type: String, trim: true },
     },
 
+    dob: {
+      type: String,
+      trim: true,
+    },
+
     role: {
       type: String,
       default: "seller",

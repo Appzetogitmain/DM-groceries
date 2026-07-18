@@ -1,8 +1,8 @@
 import handleResponse from "../utils/helper.js";
 import {
   createPaymentOrderForOrderRef,
-  verifyPhonePePaymentStatus,
-  processPhonePeWebhook,
+  verifyPaymentStatus as verifyPaymentStatusService,
+  processWebhook,
 } from "../services/paymentService.js";
 import {
   createPaymentOrderSchema,
@@ -16,12 +16,15 @@ function resolvePaymentErrorMessage(error) {
   if (directMessage) return directMessage;
 
   const responseStatusText = String(error?.response?.statusText || "").trim();
-  if (responseStatusText) return `PhonePe gateway error: ${responseStatusText}`;
+  if (responseStatusText) return `Payment gateway error: ${responseStatusText}`;
+
+  const razorpayErrorDescription = String(error?.error?.description || "").trim();
+  if (razorpayErrorDescription) return `Razorpay error: ${razorpayErrorDescription}`;
 
   const causeCode = String(error?.cause?.code || error?.code || "").trim();
-  if (causeCode) return `PhonePe gateway request failed (${causeCode})`;
+  if (causeCode) return `Payment gateway request failed (${causeCode})`;
 
-  return "Unable to initiate payment with PhonePe right now";
+  return "Unable to initiate payment right now";
 }
 
 export const createPaymentOrder = async (req, res) => {
@@ -73,7 +76,7 @@ export const verifyPaymentStatus = async (req, res) => {
         return handleResponse(res, 400, "merchantOrderId is required");
     }
 
-    const verification = await verifyPhonePePaymentStatus({
+    const verification = await verifyPaymentStatusService({
       merchantOrderId,
       userId: req.user?.id,
       correlationId: req.correlationId || null,
@@ -102,7 +105,7 @@ export const handlePhonePeWebhook = async (req, res) => {
         return res.status(401).send("Unauthorized");
     }
 
-    const result = await processPhonePeWebhook({
+    const result = await processWebhook({
       rawBody,
       authorization,
       correlationId: req.correlationId || null,
@@ -124,12 +127,48 @@ export const handlePhonePeWebhook = async (req, res) => {
   }
 };
 
+export const handleRazorpayWebhook = async (req, res) => {
+  try {
+    const authorization = req.headers["x-razorpay-signature"];
+    const rawBody = req.body;
+
+    if (!authorization) {
+        logger.warn("Razorpay webhook missing signature header", {
+          scope: "PaymentController.handleRazorpayWebhook",
+          correlationId: req.correlationId || null,
+          ip: req.ip,
+        });
+        return res.status(401).send("Unauthorized");
+    }
+
+    const result = await processWebhook({
+      rawBody,
+      authorization,
+      correlationId: req.correlationId || null,
+    });
+
+    if (result.accepted) {
+      return res.status(200).send("OK");
+    }
+    
+    return res.status(400).send("Bad Request");
+  } catch (error) {
+    logger.error("Razorpay webhook processing failed", {
+      scope: "PaymentController.handleRazorpayWebhook",
+      correlationId: req.correlationId || null,
+      message: error?.message,
+      error,
+    });
+    return res.status(500).send("Internal Server Error");
+  }
+};
+
 export const getPaymentStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const merchantOrderId = id;
     
-        const verification = await verifyPhonePePaymentStatus({
+        const verification = await verifyPaymentStatusService({
           merchantOrderId,
           userId: req.user?.id,
           correlationId: req.correlationId || null,
@@ -144,4 +183,36 @@ export const getPaymentStatus = async (req, res) => {
       } catch (error) {
         return handleResponse(res, error.statusCode || 500, error.message);
       }
+};
+export const handleRazorpayMockBypass = async (req, res) => {
+  try {
+    const { merchantOrderId, redirect } = req.query;
+    if (!merchantOrderId) return res.status(400).send('Missing merchantOrderId');
+
+    const mockPayload = {
+      event: 'payment_link.paid',
+      payload: {
+        payment_link: {
+          entity: {
+            reference_id: merchantOrderId,
+            status: 'paid',
+            id: 'plink_mock_' + Date.now(),
+          }
+        }
+      }
+    };
+
+    req.headers['x-razorpay-signature'] = 'MOCK_SIGNATURE';
+    req.body = Buffer.from(JSON.stringify(mockPayload));
+    
+    await processWebhook('razorpay', {
+      rawBody: req.body,
+      authorization: 'MOCK_SIGNATURE',
+    });
+
+    return res.redirect(redirect);
+  } catch (error) {
+    logger.error('Razorpay mock bypass failed', { error: error.message });
+    return res.status(500).send('Mock bypass failed');
+  }
 };

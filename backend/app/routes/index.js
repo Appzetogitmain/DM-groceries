@@ -14,6 +14,7 @@ import ticketRoute from "./ticketRoutes.js";
 import reviewRoute from "./reviewRoutes.js";
 import faqRoute from "./faqRoutes.js";
 import experienceRoute from "./experienceRoutes.js";
+import deliveryReviewRoute from "./deliveryReviewRoutes.js";
 import offerRoute from "./offerRoutes.js";
 import couponRoute from "./couponRoutes.js";
 import settingsRoute from "./settingsRoutes.js";
@@ -66,6 +67,7 @@ const setupRoutes = (app) => {
     router.use("/push", pushRoute);
     router.use("/tickets", ticketRoute);
     router.use("/reviews", reviewRoute);
+    router.use("/delivery-reviews", deliveryReviewRoute);
     router.use("/admin/faqs", faqRoute);
     router.use("/public/faqs", faqRoute); // For public access without admin prefix
 

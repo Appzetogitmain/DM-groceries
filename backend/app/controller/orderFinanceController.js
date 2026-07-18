@@ -17,6 +17,8 @@ import { placeOrderAtomic } from "../services/orderPlacementService.js";
 import { orderMatchQueryFromRouteParam } from "../utils/orderLookup.js";
 import { verifyClientPaymentCallback } from "../services/paymentService.js";
 import { buildCheckoutPricingSnapshot } from "../services/checkoutPricingService.js";
+import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
 import { validateBody as validateWithJoi } from "../middleware/validate.js";
 
 export const previewCheckoutFinance = async (req, res) => {
@@ -251,9 +253,25 @@ export const markOrderDeliveredAndSettle = async (req, res) => {
         deliveryPartnerId,
         actorId: req.user?.id || null,
       });
+      
+    const returnData = updatedWithCod || updated;
+    emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_DELIVERED, {
+      orderId: returnData.orderId,
+      customerId: returnData.customer,
+      userId: returnData.customer,
+      sellerId: returnData.seller,
+    });
       return handleResponse(res, 200, "Order delivered and COD cash collected", updatedWithCod);
     }
 
+    
+    const returnData = updatedWithCod || updated;
+    emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_DELIVERED, {
+      orderId: returnData.orderId,
+      customerId: returnData.customer,
+      userId: returnData.customer,
+      sellerId: returnData.seller,
+    });
     return handleResponse(res, 200, "Order delivered and settlement queued", updated);
   } catch (error) {
     return handleResponse(res, error.statusCode || 500, error.message);

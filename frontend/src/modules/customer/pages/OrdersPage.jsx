@@ -42,7 +42,7 @@ const OrdersPage = () => {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white shadow-sm border border-slate-100">
-                    <Loader2 className="animate-spin text-brand-600" size={22} />
+                    <Loader2 className="animate-spin text-[#1A4516]" size={22} />
                     <span className="text-sm font-medium text-slate-600">Loading your orders…</span>
                 </div>
             </div>
@@ -56,20 +56,20 @@ const OrdersPage = () => {
                     onClick={() => navigate(-1)}
                     className="w-10 h-10 flex items-center justify-center hover:bg-slate-200/70 rounded-full transition-colors -ml-1"
                 >
-                    <ChevronLeft size={22} className="text-slate-800" />
+                    <ChevronLeft size={22} className="text-[#1A4516]" />
                 </button>
-                <h1 className="text-xl font-semibold text-slate-900 tracking-tight">My Orders</h1>
+                <h1 className="text-xl font-semibold text-[#1A4516] tracking-tight">My Orders</h1>
             </div>
 
             <div className="space-y-4 px-4 pb-2">
                 {orders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <Package size={56} className="text-slate-300 mb-4" />
-                        <h3 className="text-base font-semibold text-slate-900 mb-1">No orders yet</h3>
+                        <h3 className="text-base font-semibold text-[#1A4516] mb-1">No orders yet</h3>
                         <p className="text-slate-500 text-sm mb-6 max-w-[260px]">
                             When you place an order, it will appear here so you can track it easily.
                         </p>
-                        <Link to="/" className="bg-primary hover:bg-[#0a6d19] text-white px-7 py-2.5 rounded-full font-semibold text-sm shadow-sm transition-colors">
+                        <Link to="/" className="bg-[#1A4516] hover:bg-[#0a3000] text-white px-7 py-2.5 rounded-full font-semibold text-sm shadow-sm transition-colors">
                             Start Shopping
                         </Link>
                     </div>
@@ -97,38 +97,45 @@ const OrdersPage = () => {
                                         )}
                                     </div>
                                     <div className="min-w-0">
-                                        <h3 className="font-semibold text-slate-900 text-sm tracking-tight leading-snug">
+                                        <h3 className="font-semibold text-[#1A4516] text-sm tracking-tight leading-snug">
                                             Order #{order.orderId.slice(-6)}
                                         </h3>
-                                        <p className="mt-0.5 text-[11px] text-slate-500 font-medium leading-tight">
-                                            {new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}{' '}
-                                            <span className="mx-1 text-slate-400">•</span>
-                                            {new Date(order.createdAt).toLocaleTimeString('en-IN', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            })}
+                                        <p className="mt-0.5 text-[11px] text-slate-500 font-medium leading-tight flex items-center flex-wrap gap-1">
+                                            <span>
+                                                {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                })}
+                                            </span>
+                                            <span className="text-slate-400">•</span>
+                                            <span className="whitespace-nowrap">
+                                                {new Date(order.createdAt).toLocaleTimeString('en-IN', {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                })}
+                                            </span>
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-1 shrink-0 text-right">
                                     <span
-                                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                                        className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                                             legacy === 'delivered'
-                                                ? 'bg-brand-50 text-brand-700 border-brand-100'
+                                                ? 'bg-[#F5FBF5] text-[#1A4516] border-[#1A4516]/20'
                                                 : legacy === 'cancelled'
                                                     ? 'bg-rose-50 text-rose-700 border-rose-100'
-                                                    : 'bg-brand-50 text-brand-700 border-brand-100'
+                                                    : 'bg-[#F5FBF5] text-[#1A4516] border-[#1A4516]/20'
                                         }`}
                                     >
-                                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/80">
+                                        <span className="flex h-3 w-3 items-center justify-center rounded-full bg-white/80">
                                             <CheckCircle
                                                 size={9}
                                                 className={`${
                                                     legacy === 'delivered'
-                                                        ? 'text-brand-600'
+                                                        ? 'text-[#1A4516]'
                                                         : legacy === 'cancelled'
                                                             ? 'text-rose-500'
-                                                            : 'text-brand-500'
+                                                            : 'text-[#1A4516]'
                                                 }`}
                                             />
                                         </span>
@@ -142,12 +149,12 @@ const OrdersPage = () => {
                             </div>
 
                             <div className="border-t border-slate-100 pt-3 flex justify-between items-center gap-3">
-                                <div className="text-[11px] text-slate-500 font-medium truncate flex-1 min-w-0">
+                                <div className="text-[11px] text-slate-500 font-medium truncate max-w-[230px]">
                                     {order.items.map((i) => i.name).join(', ')}
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                     <span className="text-[11px] font-medium text-slate-400">Total</span>
-                                    <span className="text-sm font-semibold text-slate-900">
+                                    <span className="text-sm font-semibold text-[#1A4516]">
                                     ₹{order.pricing.total}
                                     </span>
                                     <ChevronRight size={16} className="text-slate-300" />

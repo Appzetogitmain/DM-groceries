@@ -107,23 +107,23 @@ const Analytics = () => {
       value: statsData?.overview?.totalSales || "₹0",
       trend: statsData?.overview?.salesTrend || "0%",
       icon: HiOutlineArrowTrendingUp,
-      color: "text-brand-600",
-      bg: "bg-brand-50",
+      color: "text-emerald-700",
+      bg: "bg-emerald-50",
     },
     {
       label: "Total Orders",
       value: statsData?.overview?.totalOrders || "0",
       trend: statsData?.overview?.ordersTrend || "0%",
       icon: HiOutlineShoppingBag,
-      color: "text-brand-600",
-      bg: "bg-brand-50",
+      color: "text-emerald-700",
+      bg: "bg-emerald-50",
     },
     {
       label: "Avg Order Value",
       value: statsData?.overview?.avgOrderValue || "₹0",
-      trend: "0%", // Trend for AOV can be added later
+      trend: "0%",
       icon: HiOutlineUsers,
-      color: "text-amber-600",
+      color: "text-amber-700",
       bg: "bg-amber-50",
     },
     {
@@ -131,7 +131,7 @@ const Analytics = () => {
       value: statsData?.overview?.conversionRate || "0%",
       trend: "0%",
       icon: HiOutlineChartBar,
-      color: "text-rose-600",
+      color: "text-rose-700",
       bg: "bg-rose-50",
     },
   ];
@@ -148,59 +148,35 @@ const Analytics = () => {
         return /[",\n\r]/.test(s) ? `"${s}"` : s;
       };
       const lines = [];
-      lines.push("Analytics Report");
-      lines.push(`Generated,${new Date().toISOString()}`);
-      lines.push("");
+      lines.push(["Overview Stats"]);
+      lines.push(["Stat", "Value"]);
+      lines.push(["Total Sales", statsData?.overview?.totalSales || "₹0"]);
+      lines.push(["Total Orders", statsData?.overview?.totalOrders || "0"]);
+      lines.push(["Avg Order Value", statsData?.overview?.avgOrderValue || "₹0"]);
+      lines.push(["Conversion Rate", statsData?.overview?.conversionRate || "0%"]);
+      lines.push([]);
 
-      const ov = statsData?.overview ?? {};
-      lines.push("Overview");
-      lines.push("Metric,Value");
-      ["Total Sales", "Total Orders", "Avg Order Value", "Conversion Rate"].forEach((label, i) => {
-        const key = ["totalSales", "totalOrders", "avgOrderValue", "conversionRate"][i];
-        lines.push(`${escapeCsv(label)},${escapeCsv(ov[key] ?? "—")}`);
+      lines.push(["Sales Trend"]);
+      lines.push(["Date", "Sales (₹)", "Orders"]);
+      salesTrendArr.forEach((d) => {
+        lines.push([d.name, d.sales, d.orders]);
       });
-      lines.push("");
+      lines.push([]);
 
-      const trend = statsData?.salesTrend ?? [];
-      if (trend.length) {
-        lines.push("Sales Trend");
-        lines.push("Period,Sales,Traffic");
-        trend.forEach((d) => {
-          lines.push(`${escapeCsv(d.name)},${escapeCsv(d.sales)},${escapeCsv(d.traffic)}`);
-        });
-        lines.push("");
-      }
+      lines.push(["Category Mix"]);
+      lines.push(["Category", "Value"]);
+      (statsData?.categoryMix ?? []).forEach((c) => {
+        lines.push([c.subject, c.A]);
+      });
+      lines.push([]);
 
-      const top = statsData?.topProducts ?? [];
-      if (top.length) {
-        lines.push("Top Products");
-        lines.push("Product,Sales,Revenue,Trend %");
-        top.forEach((p) => {
-          lines.push(`${escapeCsv(p.name)},${escapeCsv(p.sales)},${escapeCsv(p.revenue)},${escapeCsv(p.trend)}`);
-        });
-        lines.push("");
-      }
+      lines.push(["Top Products"]);
+      lines.push(["Product Name", "Sales (₹)", "Orders", "Stock"]);
+      (statsData?.topProducts ?? []).forEach((p) => {
+        lines.push([p.name, p.sales, p.orders, p.stock]);
+      });
 
-      const cat = statsData?.categoryMix ?? [];
-      if (cat.length) {
-        lines.push("Category Mix");
-        lines.push("Category,Volume");
-        cat.forEach((c) => {
-          lines.push(`${escapeCsv(c.subject)},${escapeCsv(c.A)}`);
-        });
-        lines.push("");
-      }
-
-      const traffic = statsData?.trafficSources ?? [];
-      if (traffic.length) {
-        lines.push("Traffic Sources");
-        lines.push("Source,Value");
-        traffic.forEach((t) => {
-          lines.push(`${escapeCsv(t.name)},${escapeCsv(t.value)}`);
-        });
-      }
-
-      const csvContent = lines.join("\n");
+      const csvContent = lines.map(row => row.map(escapeCsv).join(",")).join("\n");
       const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -218,7 +194,7 @@ const Analytics = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen font-black text-slate-600">LOADING ANALYTICS...</div>;
+    return <div className="flex items-center justify-center h-screen font-semibold text-slate-500">LOADING ANALYTICS...</div>;
   }
 
   return (
@@ -227,15 +203,15 @@ const Analytics = () => {
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 flex flex-wrap items-center gap-2">
               Advanced Analytics
               <Badge
                 variant="success"
-                className="text-[9px] px-1.5 py-0 font-bold tracking-wider uppercase bg-brand-100 text-brand-700">
+                className="text-[9px] px-1.5 py-0 font-semibold tracking-wider uppercase bg-emerald-50 text-emerald-800">
                 Real-time Insights
               </Badge>
             </h1>
-            <p className="text-slate-600 text-sm sm:text-base mt-0.5 font-medium">
+            <p className="text-slate-500 text-sm sm:text-base mt-0.5 font-medium">
               Detailed breakdown of your business performance and customer
               behavior.
             </p>
@@ -247,9 +223,9 @@ const Analytics = () => {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm sm:text-xs font-bold transition-all whitespace-nowrap shrink-0",
+                    "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0",
                     activeTab === tab
-                      ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                      ? "bg-white text-[#1A4516] shadow-sm border border-slate-200 font-bold"
                       : "text-slate-600 hover:text-slate-700",
                   )}>
                   {tab}
@@ -258,7 +234,8 @@ const Analytics = () => {
             </div>
             <ShimmerButton
               onClick={handleDownloadReport}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 rounded-lg text-xs sm:text-sm sm:text-xs font-bold text-white shadow-lg disabled:opacity-50 shrink-0"
+              background="#1A4516"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 rounded-lg text-xs sm:text-sm font-bold text-white shadow-lg disabled:opacity-50 shrink-0"
               disabled={isExporting}>
               <HiOutlineArrowDownTray className="h-4 w-4 shrink-0" />
               <span>{isExporting ? "DOWNLOADING..." : "DOWNLOAD REPORT"}</span>
@@ -268,7 +245,7 @@ const Analytics = () => {
       </BlurFade>
 
       {/* Quick Stats Grid - show for all tabs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[850px]">
         {stats
           .filter((_, i) => {
             if (activeTab === "Customers") return i === 0 || i === 1; // Total Sales, Total Orders only
@@ -277,49 +254,41 @@ const Analytics = () => {
           .map((stat, i) => (
           <BlurFade key={stat.label} delay={0.1 + i * 0.05}>
             <MagicCard
-              className="border-none shadow-md overflow-hidden group bg-white p-0"
+              className="border-none shadow-sm overflow-hidden group bg-white p-0"
               gradientColor={
                 stat.bg.includes("emerald")
                   ? "#ecfdf5"
-                  : stat.bg.includes("indigo")
-                    ? "#eef2ff"
-                    : stat.bg.includes("amber")
-                      ? "#fffbeb"
-                      : "#fff1f2"
+                  : stat.bg.includes("amber")
+                    ? "#fffbeb"
+                    : "#fff1f2"
               }>
-              <div className="p-6 relative z-10 flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-black text-slate-600 uppercase tracking-widest">
-                    {stat.label}
-                  </p>
-                  <h4 className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
-                    {stat.value}
-                  </h4>
-                  <div
-                    className={cn(
-                      "flex items-center mt-3 text-xs sm:text-sm font-black px-2 py-0.5 rounded-full w-fit",
-                      stat.trend.startsWith("+")
-                        ? "text-brand-600 bg-brand-50"
-                        : "text-rose-600 bg-rose-50",
-                    )}>
-                    {stat.trend.startsWith("+") ? (
-                      <HiOutlineArrowUpRight className="mr-0.5" />
-                    ) : (
-                      <HiOutlineArrowDownRight className="mr-0.5" />
-                    )}
-                    {stat.trend}
-                    <span className="text-slate-600 ml-1 font-medium">
-                      vs prev 7d
-                    </span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-2.5 p-2.5 relative z-10">
                 <div
                   className={cn(
-                    "h-12 w-12 rounded-lg flex items-center justify-center shadow-inner",
+                    "h-9 w-9 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 duration-300",
                     stat.bg,
                     stat.color,
                   )}>
-                  <stat.icon className="h-6 w-6 transition-transform group-hover:scale-125 duration-300" />
+                  <stat.icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+                    {stat.label}
+                  </p>
+                  <h4 className="text-lg font-bold text-slate-800 leading-tight mt-0.5">
+                    {stat.value}
+                  </h4>
+                  <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                    <span
+                      className={cn(
+                        "text-[10px] font-semibold flex items-center gap-0.5",
+                        stat.trend.startsWith("+") ? "text-emerald-700" : "text-rose-700"
+                      )}
+                    >
+                      {stat.trend.startsWith("+") ? "▲" : "▼"} {stat.trend}
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-medium">vs prev 7d</span>
+                  </div>
                 </div>
               </div>
             </MagicCard>

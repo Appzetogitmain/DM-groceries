@@ -8,7 +8,7 @@ export const deliveryApi = {
   getProfile: () => axiosInstance.get("/delivery/profile"),
   updateProfile: (data) => axiosInstance.put("/delivery/profile", data),
   getStats: () => axiosInstance.get("/delivery/stats"),
-  getEarnings: () => axiosInstance.get("/delivery/earnings"),
+  getEarnings: (params) => axiosInstance.get("/delivery/earnings", { params }),
   getCodCashSummary: () => axiosInstance.get("/delivery/cod/summary"),
   payCodCashToAdmin: (data) => axiosInstance.post("/delivery/cod/pay", data),
   getWalletSummary: () => axiosInstance.get("/delivery/wallet/summary"),
@@ -48,6 +48,7 @@ export const deliveryApi = {
   markNotificationRead: (id) => axiosInstance.put(`/notifications/${id}/read`),
   markAllNotificationsRead: () =>
     axiosInstance.put("/notifications/mark-all-read"),
+  getMyReviews: (params) => axiosInstance.get("/delivery-reviews/me", { params }),
   requestWithdrawal: (data) =>
     axiosInstance.post("/delivery/request-withdrawal", data),
   updateStatus: (orderId, data) =>

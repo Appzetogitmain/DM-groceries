@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import Button from '@shared/components/ui/Button';
@@ -27,6 +28,7 @@ import Pagination from "@shared/components/ui/Pagination";
 
 const Withdrawals = () => {
     const { earningsData: data, earningsLoading: loading, refreshEarnings } = useSellerEarnings();
+    const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [amount, setAmount] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -133,86 +135,88 @@ const Withdrawals = () => {
             <BlurFade delay={0.1}>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
                             Money Requests
-                            <div className="p-1.5 bg-brand-100 rounded-lg">
-                                <Wallet className="h-5 w-5 text-brand-600" />
+                            <div className="p-1.5 bg-emerald-50 rounded-lg">
+                                <Wallet className="h-5 w-5 text-emerald-700" />
                             </div>
                         </h1>
-                        <p className="text-slate-600 text-base mt-1 font-medium">Request payouts and track your withdrawal history.</p>
+                        <p className="text-slate-500 text-base mt-1 font-medium">Request payouts and track your withdrawal history.</p>
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 flex items-center gap-2 group"
+                        className="px-6 py-3 bg-[#1A4516] hover:bg-[#133A10] text-white rounded-2xl text-xs font-bold uppercase tracking-wider transition-all shadow-xl active:scale-95 flex items-center gap-2 group"
                     >
                         <ArrowUpRight className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                         New Request
                     </button>
                 </div>
             </BlurFade>
-
+ 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[850px]">
                 {[
-                    { label: 'Available Balance', value: `₹${balances.available.toLocaleString()}`, icon: Wallet, color: 'emerald', sub: 'Ready to withdraw' },
+                    { label: 'Available Balance', value: `₹${balances.available.toLocaleString()}`, icon: Wallet, color: 'emerald', sub: 'Ready to withdraw', path: '/seller/earnings' },
                     { label: 'On Hold', value: `₹${balances.onHold.toLocaleString()}`, icon: Clock, color: 'blue', sub: 'Return window open' },
                     { label: 'Withdrawal Pending', value: `₹${balances.pending.toLocaleString()}`, icon: History, color: 'amber', sub: 'Awaiting approval' },
                     { label: 'Last Withdrawal', value: `₹${balances.lastWithdrawal.toLocaleString()}`, icon: CheckCircle2, color: 'indigo', sub: 'Sent to bank' },
                 ].map((stat, i) => (
                     <BlurFade key={i} delay={0.2 + i * 0.1}>
-                        <Card className="p-6 border-none shadow-sm ring-1 ring-slate-100 hover:ring-brand-200 transition-all bg-white group relative overflow-hidden">
-                            <div className="relative z-10">
+                        <Card 
+                            className={`!p-0 border-none shadow-sm ring-1 ring-slate-100 hover:ring-[#1A4516]/20 transition-all bg-white group relative overflow-hidden ${stat.path ? 'cursor-pointer' : ''}`}
+                            onClick={() => stat.path && navigate(stat.path)}
+                        >
+                            <div className="flex items-center gap-2.5 p-2.5 relative z-10">
                                 <div className={cn(
-                                    "h-10 w-10 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
-                                    stat.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
-                                    stat.color === 'blue' ? 'bg-brand-50 text-brand-600' :
-                                    stat.color === 'indigo' ? 'bg-brand-50 text-brand-600' : 
-                                    'bg-amber-50 text-amber-600'
+                                    "h-9 w-9 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105",
+                                    stat.color === 'emerald' ? 'bg-emerald-50 text-emerald-700' :
+                                    stat.color === 'blue' ? 'bg-emerald-50 text-emerald-700' :
+                                    stat.color === 'indigo' ? 'bg-emerald-50 text-emerald-700' : 
+                                    'bg-amber-50 text-amber-700'
                                 )}>
-                                    <stat.icon className="h-5 w-5" />
+                                    <stat.icon className="h-4 w-4" />
                                 </div>
-                                <p className="text-xs font-black text-slate-600 uppercase tracking-widest mb-1">{stat.label}</p>
-                                <h3 className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
-                                <p className="text-xs font-bold text-slate-600 mt-2 flex items-center gap-1.5 uppercase">
-                                    <span className="w-1 h-3 rounded-full bg-slate-100" />
-                                    {stat.sub}
-                                </p>
-                            </div>
-                            <div className="absolute -bottom-4 -right-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
-                                <stat.icon className="h-24 w-24" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate">{stat.label}</p>
+                                    <h3 className="text-lg font-bold text-slate-800 leading-tight mt-0.5">{stat.value}</h3>
+                                    <p className="text-[9px] font-medium text-slate-400 mt-0.5 flex items-center gap-1 uppercase">
+                                        <span className="w-0.5 h-2 rounded-full bg-slate-200" />
+                                        {stat.sub}
+                                    </p>
+                                </div>
                             </div>
                         </Card>
                     </BlurFade>
                 ))}
             </div>
-
+ 
             {/* History Table */}
             <BlurFade delay={0.5}>
                 <Card className="border-none shadow-xl ring-1 ring-slate-100 overflow-hidden bg-white rounded-3xl">
                     <div className="p-4 sm:p-6 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4">
-                        <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                            <History className="h-5 w-5 text-brand-500" />
+                        <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <History className="h-5 w-5 text-[#1A4516]" />
                             Withdrawal History
                         </h2>
                         <div className="relative w-full md:w-64 group">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-600 group-focus-within:text-brand-500 transition-colors" />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 group-focus-within:text-[#1A4516] transition-colors" />
                             <input
                                 type="text"
                                 placeholder="Search ID or Status..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-[#1A4516]/10 transition-all"
                             />
                         </div>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left min-w-[640px]">
                             <thead>
-                                <tr className="bg-slate-50/50">
-                                    <th className="px-8 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">Request Details</th>
-                                    <th className="px-8 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">Amount</th>
-                                    <th className="px-8 py-4 text-xs font-black text-slate-600 uppercase tracking-widest text-center">Status</th>
-                                    <th className="px-8 py-4 text-xs font-black text-slate-600 uppercase tracking-widest text-right">Method</th>
+                                <tr className="bg-slate-50/50 border-b border-slate-100">
+                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Request Details</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Method</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">

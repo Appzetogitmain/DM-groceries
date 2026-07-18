@@ -25,7 +25,6 @@ import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 
 /** Full-width bottom stroke + tab curve; l/r are 0–100% of column where the inner bump sits. */
 function buildActiveTabPath(l, r) {
@@ -179,108 +178,42 @@ const MainLocationHeader = ({
     }
   };
 
-  // Search placeholder animation
-  const [searchPlaceholder, setSearchPlaceholder] = useState("Search ");
-  const [typingState, setTypingState] = useState({
-    textIndex: 0,
-    charIndex: 0,
-    isDeleting: false,
-    isPaused: false,
-  });
-
-  const staticText = "Search ";
-  const typingPhrases = [
-    '"bread"',
-    '"milk"',
-    '"chocolate"',
-    '"eggs"',
-    '"chips"',
-  ];
-
-  useEffect(() => {
-    const { textIndex, charIndex, isDeleting, isPaused } = typingState;
-    const currentPhrase = typingPhrases[textIndex];
-
-    if (isPaused) {
-      const timeout = setTimeout(() => {
-        setTypingState((prev) => ({
-          ...prev,
-          isPaused: false,
-          isDeleting: true,
-        }));
-      }, 2000); // Pause after full phrase
-      return () => clearTimeout(timeout);
-    }
-
-    const timeout = setTimeout(
-      () => {
-        if (!isDeleting) {
-          // Typing
-          if (charIndex < currentPhrase.length) {
-            setSearchPlaceholder(
-              staticText + currentPhrase.substring(0, charIndex + 1),
-            );
-            setTypingState((prev) => ({
-              ...prev,
-              charIndex: prev.charIndex + 1,
-            }));
-          } else {
-            // Finished typing
-            setTypingState((prev) => ({ ...prev, isPaused: true }));
-          }
-        } else {
-          // Deleting
-          if (charIndex > 0) {
-            setSearchPlaceholder(
-              staticText + currentPhrase.substring(0, charIndex - 1),
-            );
-            setTypingState((prev) => ({
-              ...prev,
-              charIndex: prev.charIndex - 1,
-            }));
-          } else {
-            // Finished deleting
-            setTypingState((prev) => ({
-              ...prev,
-              isDeleting: false,
-              textIndex: (prev.textIndex + 1) % typingPhrases.length,
-            }));
-          }
-        }
-      },
-      isDeleting ? 50 : 100,
-    ); // 50ms deleting speed, 100ms typing speed
-
-    return () => clearTimeout(timeout);
-  }, [typingState]);
+  // Search placeholder animation (removed for static text in new design)
+  const searchPlaceholder = "Search for vegetables, fruits, grocery...";
 
   // Smooth scroll interpolations
-  const headerTopPadding = useTransform(scrollY, [0, 160], [16, 16]);
-  const headerBottomPadding = useTransform(scrollY, [0, 160], [4, 4]);
-  const headerRoundness = useTransform(scrollY, [0, 160], [0, 0]);
-  const bgOpacity = useTransform(scrollY, [0, 160], [1, 1]);
+  const headerTopPadding = useTransform(scrollY, [0, 160], [16, 12]);
+  const headerBottomPadding = useTransform(scrollY, [0, 160], [4, 3]);
+  const headerRoundness = useTransform(scrollY, [0, 160], [24, 24]);
+  const bgOpacity = useTransform(scrollY, [0, 160], [1, 0.98]);
 
   // Content animations
-  const contentHeight = useTransform(scrollY, [0, 160], ["64px", "64px"]);
-  const contentOpacity = useTransform(scrollY, [0, 160], [1, 1]);
-  const navHeight = useTransform(scrollY, [0, 200], ["60px", "60px"]);
-  const navOpacity = useTransform(scrollY, [0, 200], [1, 1]);
-  const navMargin = useTransform(scrollY, [0, 200], [4, 4]);
-  const categorySpacing = useTransform(scrollY, [0, 200], [3, 3]);
-  const cartOpacity = useTransform(scrollY, [0, 110, 150], [1, 1, 1]);
-  const cartScale = useTransform(scrollY, [0, 110, 150], [1, 1, 1]);
+  const contentHeight = useTransform(scrollY, [0, 160], ["64px", "0px"]);
+  const contentOpacity = useTransform(scrollY, [0, 160], [1, 0]);
+  const navHeight = useTransform(scrollY, [0, 200], ["60px", "0px"]);
+  const navOpacity = useTransform(scrollY, [0, 200], [1, 0]);
+  const navMargin = useTransform(scrollY, [0, 200], [4, 0]);
+  const categorySpacing = useTransform(scrollY, [0, 200], [3, 0]);
+  const cartOpacity = useTransform(scrollY, [0, 110, 150], [1, 0.7, 0]);
+  const cartScale = useTransform(scrollY, [0, 110, 150], [1, 0.9, 0.75]);
 
   // Helper to hide elements completely when collapsed to prevent clicks
-  const displayContent = useTransform(scrollY, (value) => "block");
-  const displayNav = useTransform(scrollY, (value) => "flex");
-  const displayCart = useTransform(scrollY, (value) => "block");
+  const displayContent = useTransform(scrollY, (value) =>
+    value > 160 ? "none" : "block",
+  );
+  const displayNav = useTransform(scrollY, (value) =>
+    value > 200 ? "none" : "flex",
+  );
+  const displayCart = useTransform(scrollY, (value) =>
+    value > 150 ? "none" : "block",
+  );
 
-  const baseHeaderColor = activeCategory?.headerColor || "var(--primary)";
-  const headerFontColor = activeCategory?.headerFontColor || "#111827";
-  const headerIconColor = activeCategory?.headerIconColor || "#111111";
+  const baseHeaderColor = "#1A4516";
+  const headerFontColor = "#FFFFFF";
+  const headerIconColor = "#FFFFFF";
   
-  const headerGradient = buildHeaderGradient(baseHeaderColor);
-  const searchBarBg = buildSearchBarBackgroundColor(baseHeaderColor);
+  const headerGradient = "none";
+  const searchBarBg = "#FFFFFF";
   const categoryAccent = headerIconColor;
 
   useEffect(() => {
@@ -297,7 +230,7 @@ const MainLocationHeader = ({
     <>
       <div
         className={cn(
-          "fixed top-0 left-0 right-0 z-[200]",
+          "fixed top-0 left-0 right-0 z-200",
           isProductDetailOpen && "hidden md:block",
         )}>
         <motion.div
@@ -308,7 +241,7 @@ const MainLocationHeader = ({
             borderBottomLeftRadius: headerRoundness,
             borderBottomRightRadius: headerRoundness,
             opacity: bgOpacity,
-            backgroundImage: headerGradient,
+            backgroundColor: baseHeaderColor,
           }}
           className="px-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] overflow-hidden transform-gpu will-change-transform">
           {/* Subtle Glow Overlay */}
@@ -337,17 +270,6 @@ const MainLocationHeader = ({
             ) : (
               <div className="w-full h-full" />
             )}
-          </motion.button>
-
-          {/* Notification Icon (Mobile) */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate("/notifications")}
-            className="absolute top-5 right-20 sm:top-6 sm:right-24 md:hidden z-20 cursor-pointer"
-            style={{ color: headerFontColor }}
-          >
-            <NotificationsNoneOutlinedIcon sx={{ fontSize: 28 }} />
           </motion.button>
 
           {/* Desktop/Tablet Header Layout (md and above) */}
@@ -436,16 +358,6 @@ const MainLocationHeader = ({
               </motion.button>
 
               <motion.button
-                whileHover={{ scale: 1.15, rotate: 5 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => navigate("/notifications")}
-                className="transition-all hover:text-slate-700 relative group"
-                style={{ color: headerFontColor }}
-              >
-                <NotificationsNoneOutlinedIcon sx={{ fontSize: 24 }} />
-              </motion.button>
-
-              <motion.button
                 whileHover={{ scale: 1.15, rotate: -5 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => navigate("/checkout")}
@@ -473,7 +385,14 @@ const MainLocationHeader = ({
           {/* Collapsible Delivery Info & Location (MOBILE ONLY) */}
           <div className="md:hidden">
             <motion.div
-              className="relative z-10 mb-4">
+              style={{
+                height: contentHeight,
+                opacity: contentOpacity,
+                marginBottom: navMargin,
+                display: displayContent,
+                overflow: "hidden",
+              }}
+              className="relative z-10">
               <div className="mb-1">
                 <span 
                   className="inline-flex items-center rounded-full border border-black/10 bg-white/18 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm"
@@ -520,7 +439,7 @@ const MainLocationHeader = ({
           </div>
 
           {/* Search Bar (MOBILE ONLY) */}
-          <div className="relative z-10 mt-[1.5px] flex items-center gap-2 md:hidden">
+          <div className="relative z-10 mt-[1.5px] mb-3 flex items-center gap-2 md:hidden">
             <motion.div
               onClick={handleSearchClick}
               whileTap={{ scale: 0.98 }}
@@ -539,35 +458,7 @@ const MainLocationHeader = ({
             </motion.div>
           </div>
 
-          {/* Categories Navigation - Smooth Collapse */}
-          {categories.length > 0 && (
-            <motion.div
-              layout
-              transition={{
-                layout: {
-                  type: "spring",
-                  stiffness: 420,
-                  damping: 34,
-                  mass: 0.6,
-                },
-              }}
-              className="relative flex items-end md:justify-center gap-0 overflow-x-auto no-scrollbar -mx-2 px-2 md:mx-0 md:px-0 z-10 snap-x pt-1 min-h-[68px] md:min-h-[76px] pb-0.5 mt-3">
-              {categories.map((cat) => {
-                const isActive = activeCategory?.id === cat.id;
-                return (
-                  <CategoryNavColumn
-                    key={cat.id}
-                    cat={cat}
-                    isActive={isActive}
-                    categoryAccent={categoryAccent}
-                    onCategorySelect={onCategorySelect}
-                    headerFontColor={headerFontColor}
-                    headerIconColor={headerIconColor}
-                  />
-                );
-              })}
-            </motion.div>
-          )}
+
 
           {/* Background Decorative patterns */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none" />

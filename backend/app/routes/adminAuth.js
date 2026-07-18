@@ -45,6 +45,7 @@ import {
     processAdminFinancePayoutsController,
     updateDeliverySettingsController,
 } from "../controller/adminFinanceController.js";
+import { getTodayBirthdays, sendReward, getBirthdayAnalytics } from "../controller/admin/adminBirthdayController.js";
 
 import { verifyToken, allowRoles } from "../middleware/authMiddleware.js";
 import {
@@ -207,5 +208,9 @@ router.get(
         });
     }
 );
+
+router.get("/birthdays/today", verifyToken, allowRoles("admin"), getTodayBirthdays);
+router.post("/birthdays/reward", verifyToken, allowRoles("admin"), sendReward);
+router.get("/birthdays/analytics", verifyToken, allowRoles("admin"), getBirthdayAnalytics);
 
 export default router;

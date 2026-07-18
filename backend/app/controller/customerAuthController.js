@@ -107,7 +107,7 @@ export const getCustomerProfile = async (req, res) => {
 ================================ */
 export const updateCustomerProfile = async (req, res) => {
     try {
-        const { name, email, addresses } = req.body;
+        const { name, email, addresses, dob } = req.body;
 
         const customer = await Customer.findById(req.user.id);
         if (!customer) {
@@ -117,6 +117,7 @@ export const updateCustomerProfile = async (req, res) => {
         if (name) customer.name = name;
         if (email) customer.email = email;
         if (addresses) customer.addresses = addresses;
+        if (dob) customer.dob = dob;
 
         await customer.save();
 

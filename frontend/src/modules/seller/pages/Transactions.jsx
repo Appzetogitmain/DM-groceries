@@ -42,22 +42,22 @@ const Transactions = () => {
       label: "Settled Balance",
       value: `₹${(data?.balances?.settledBalance || 0).toLocaleString()}`,
       icon: HiOutlineBanknotes,
-      color: "text-brand-600",
-      bg: "bg-brand-50",
+      color: "text-emerald-700",
+      bg: "bg-emerald-50",
     },
     {
       label: "Pending Payouts",
       value: `₹${(data?.balances?.pendingPayouts || 0).toLocaleString()}`,
       icon: HiOutlineClock,
-      color: "text-amber-600",
+      color: "text-amber-700",
       bg: "bg-amber-50",
     },
     {
       label: "Total Revenue",
       value: `₹${(data?.balances?.totalRevenue || 0).toLocaleString()}`,
       icon: HiOutlineCreditCard,
-      color: "text-brand-600",
-      bg: "bg-brand-50",
+      color: "text-emerald-700",
+      bg: "bg-emerald-50",
     },
   ];
 
@@ -107,7 +107,7 @@ const Transactions = () => {
         date:
           txn.date ??
           (txn.createdAt
-            ? new Date(txn.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            ? new Date(txn.createdAt).toLocaleDateString()
             : ""),
         time:
           txn.time ??
@@ -138,7 +138,7 @@ const Transactions = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen font-black text-slate-600">LOADING TRANSACTIONS...</div>;
+    return <div className="flex items-center justify-center h-screen font-semibold text-slate-500">LOADING TRANSACTIONS...</div>;
   }
 
   return (
@@ -147,15 +147,15 @@ const Transactions = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
               Transaction Ledger
               <Badge
                 variant="primary"
-                className="text-[10px] sm:text-xs px-1.5 py-0 font-bold tracking-wider uppercase bg-brand-100 text-brand-700">
+                className="text-[10px] sm:text-xs px-1.5 py-0 font-semibold tracking-wider uppercase bg-emerald-50 text-emerald-800">
                 Audit Trail
               </Badge>
             </h1>
-            <p className="text-slate-600 text-sm mt-0.5 font-medium">
+            <p className="text-slate-500 text-sm mt-0.5 font-medium">
               Keep track of all financial movements, payouts, and settlements.
             </p>
           </div>
@@ -169,7 +169,7 @@ const Transactions = () => {
                     type: txn.type ?? "",
                     amount: `₹${Number(txn.amount ?? 0).toLocaleString()}`,
                     status: txn.status ?? "",
-                    date: txn.date ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ""),
+                    date: txn.date ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : ""),
                     time: txn.time ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""),
                     customer: txn.customer ?? "",
                     ref: txn.ref ?? "",
@@ -193,7 +193,7 @@ const Transactions = () => {
                   setIsDownloading(false);
                 }
               }}
-              className="rounded-lg px-4 py-2 shadow-lg shadow-primary/20 disabled:opacity-50"
+              className="rounded-lg px-4 py-2 bg-[#1A4516] hover:bg-[#133A10] text-white text-xs font-bold shadow-lg shadow-[#1A4516]/10 disabled:opacity-50 flex items-center transition-all"
               disabled={isDownloading || filteredTransactions.length === 0}>
               <HiOutlineDocumentText className="h-4 w-4 mr-2" />
               {isDownloading ? "DOWNLOADING..." : "DOWNLOAD STATEMENTS"}
@@ -203,26 +203,26 @@ const Transactions = () => {
       </BlurFade>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-[650px]">
         {stats.map((stat, i) => (
           <BlurFade key={i} delay={0.1 + i * 0.05}>
             <MagicCard
-              className="border-none shadow-md overflow-hidden bg-white p-0"
-              gradientColor="#f8fafc">
-              <div className="p-6 relative z-10 flex items-center gap-4">
+              className="border-none shadow-sm overflow-hidden bg-white p-0"
+              gradientColor={stat.bg.includes("emerald") ? "#ecfdf5" : "#fffbeb"}>
+              <div className="flex items-center gap-2.5 p-2.5 relative z-10">
                 <div
                   className={cn(
-                    "h-14 w-14 rounded-lg flex items-center justify-center shadow-lg shadow-black/5",
+                    "h-9 w-9 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 duration-300",
                     stat.bg,
                     stat.color,
                   )}>
-                  <stat.icon className="h-7 w-7" />
+                  <stat.icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-slate-600 uppercase tracking-widest">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                     {stat.label}
                   </p>
-                  <h4 className="text-3xl font-black text-slate-900 tracking-tight">
+                  <h4 className="text-lg font-bold text-slate-800 leading-tight mt-0.5">
                     {stat.value}
                   </h4>
                 </div>
@@ -242,9 +242,9 @@ const Transactions = () => {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                    "px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap",
                     activeTab === tab
-                      ? "bg-white text-slate-900 shadow-sm"
+                      ? "bg-white text-[#1A4516] shadow-sm font-bold"
                       : "text-slate-600 hover:text-slate-700",
                   )}>
                   {tab === "Order Payment" ? "Payments" : tab}
@@ -252,10 +252,10 @@ const Transactions = () => {
               ))}
             </div>
             <div className="relative w-full md:w-80">
-              <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
+              <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <Input
                 placeholder="Search by customer..."
-                className="pl-10 pr-4 py-2.5 rounded-lg border-none ring-1 ring-slate-100 bg-slate-50/50 focus:ring-2 focus:ring-primary/20 transition-all text-xs font-semibold"
+                className="pl-10 pr-4 py-2.5 rounded-lg border-none ring-1 ring-slate-100 bg-slate-50/50 focus:ring-2 focus:ring-[#1A4516]/10 transition-all text-xs font-semibold"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -267,19 +267,19 @@ const Transactions = () => {
             <table className="w-full text-left min-w-[720px]">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Transaction Details
                   </th>
-                  <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Reference
                   </th>
-                  <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Amount
                   </th>
-                  <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest text-right">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
                     Actions
                   </th>
                 </tr>
@@ -307,22 +307,22 @@ const Transactions = () => {
                         <div className="flex items-center gap-4">
                           <div
                             className={cn(
-                              "h-10 w-10 rounded-lg flex items-center justify-center font-black transition-all group-hover:scale-110",
+                              "h-9 w-9 rounded-full flex items-center justify-center font-bold transition-all group-hover:scale-105",
                               txn.amount > 0
-                                ? "bg-brand-50 text-brand-600"
-                                : "bg-rose-50 text-rose-600",
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-rose-50 text-rose-700",
                             )}>
                             {txn.amount > 0 ? (
-                              <HiOutlineArrowDownLeft className="h-5 w-5" />
+                              <HiOutlineArrowDownLeft className="h-4 w-4" />
                             ) : (
-                              <HiOutlineArrowUpRight className="h-5 w-5" />
+                              <HiOutlineArrowUpRight className="h-4 w-4" />
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors">
+                            <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1A4516] transition-colors">
                               {txn.id ?? txn.ref ?? "—"}
                             </p>
-                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
                               {txn.type ?? "—"}
                             </p>
                           </div>
@@ -337,7 +337,7 @@ const Transactions = () => {
                             {txn.ref ?? "—"}
                           </Badge>
                           <span className="text-[10px] sm:text-xs text-slate-600 font-bold uppercase tracking-tighter">
-                            {txn.date ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : "—")} • {txn.time ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—")}
+                            {txn.date ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : "—")} • {txn.time ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—")}
                           </span>
                         </div>
                       </td>
@@ -467,7 +467,7 @@ const Transactions = () => {
                   {selectedTxn.date && selectedTxn.time
                     ? `${selectedTxn.date} at ${selectedTxn.time}`
                     : selectedTxn.createdAt
-                      ? `${new Date(selectedTxn.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} at ${new Date(selectedTxn.createdAt).toLocaleTimeString()}`
+                      ? `${new Date(selectedTxn.createdAt).toLocaleDateString()} at ${new Date(selectedTxn.createdAt).toLocaleTimeString()}`
                       : "—"}
                 </span>
               </div>

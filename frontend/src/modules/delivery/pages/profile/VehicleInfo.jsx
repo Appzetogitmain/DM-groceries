@@ -36,83 +36,83 @@ const VehicleInfo = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="flex items-center p-4">
+    <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+      
+      {/* Deep Green Header Banner */}
+      <div className="bg-[#1A4516] text-white pt-4 pb-12 px-6 relative">
+        <div className="flex items-center">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
+            className="p-2 rounded-full hover:bg-white/10 transition-colors mr-2 cursor-pointer"
+            aria-label="Go Back"
           >
-            <ArrowLeft size={20} className="text-gray-600" />
+            <ArrowLeft size={18} className="text-white" />
           </button>
-          <h1 className="ds-h3 text-gray-900">Vehicle Information</h1>
+          <h1 className="text-lg font-black leading-tight tracking-tight">Vehicle Information</h1>
         </div>
       </div>
 
-      <div className="p-4 max-w-lg mx-auto space-y-6">
+      {/* Main Content Area overlapping with rounded corners */}
+      <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-5 space-y-4 relative z-10">
+        
         {/* Vehicle Card */}
-        <Card className="p-5 bg-gradient-to-br from-gray-900 to-gray-800 text-white border-none shadow-xl">
-          <div className="flex justify-between items-start mb-6">
+        <Card className="p-4 bg-gradient-to-br from-gray-900 to-[#123610] text-white border-none shadow-md rounded-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-6 -mt-6 blur-xl" />
+          <div className="flex justify-between items-start mb-4 relative z-10">
             <div>
-              <p className="text-gray-400 text-xs uppercase tracking-wider font-bold mb-1">Vehicle Details</p>
-              <h3 className="text-2xl font-bold">{vehicleDetails.plateNumber}</h3>
-              <p className="text-gray-300">{vehicleDetails.model}</p>
+              <p className="text-white/50 text-[9px] uppercase tracking-wider font-bold mb-0.5">Vehicle Plate Number</p>
+              <h3 className="text-xl font-black tracking-wide">{vehicleDetails.plateNumber}</h3>
+              <p className="text-xs text-white/70 mt-0.5">{vehicleDetails.type.toUpperCase()}</p>
             </div>
             <div className="bg-white/10 p-2 rounded-full backdrop-blur-sm">
-              <Truck size={24} className="text-white" />
+              <Truck size={18} className="text-white" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/10 relative z-10">
             <div>
-              <p className="text-gray-400 text-xs">Color</p>
-              <p className="font-medium">{vehicleDetails.color}</p>
+              <p className="text-white/40 text-[9px] uppercase font-bold tracking-wider">Color</p>
+              <p className="text-xs font-semibold mt-0.5">{vehicleDetails.color}</p>
             </div>
             <div>
-              <p className="text-gray-400 text-xs">Fuel Type</p>
-              <p className="font-medium">{vehicleDetails.fuelType}</p>
+              <p className="text-white/40 text-[9px] uppercase font-bold tracking-wider">Fuel Type</p>
+              <p className="text-xs font-semibold mt-0.5">{vehicleDetails.fuelType}</p>
             </div>
           </div>
         </Card>
 
         {/* Documents List */}
-        <div>
-          <h3 className="ds-h4 text-gray-900 mb-3 px-1">Vehicle Documents</h3>
-          <div className="space-y-3">
+        <div className="space-y-2.5">
+          <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider px-1">Vehicle Documents</h3>
+          <div className="space-y-2.5">
             {documents.map((doc, index) => (
-              <Card key={index} className="p-4 border border-gray-100">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-start">
-                    <div className={`p-2 rounded-lg mr-3 ${doc.alert ? 'bg-orange-50 text-orange-600' : 'bg-brand-50 text-brand-600'}`}>
-                      <FileText size={20} />
+              <Card key={index} className="p-3 border border-gray-100 bg-white rounded-xl shadow-sm">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center min-w-0">
+                    <div className="p-2 rounded-lg mr-2.5 bg-[#1A4516]/5 text-[#1A4516] shrink-0">
+                      <FileText size={16} />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-gray-800 text-sm">{doc.title}</h4>
-                      <p className="text-xs text-gray-500 mt-0.5">{doc.number}</p>
-                      <p className={`text-xs mt-1 ${doc.alert ? 'text-orange-600 font-medium' : 'text-gray-400'}`}>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-gray-800 text-xs truncate">{doc.title}</h4>
+                      <p className="text-[10px] text-gray-500 mt-0.5 truncate">{doc.number}</p>
+                      <p className="text-[9px] text-gray-400 mt-0.5 font-medium">
                         Expires: {doc.expiry}
                       </p>
                     </div>
                   </div>
-                  {doc.alert ? (
-                    <Button size="sm" variant="outline" className="h-7 text-xs border-orange-200 text-orange-600 bg-orange-50 hover:bg-orange-100">
-                      Renew
-                    </Button>
-                  ) : (
-                    <div className="flex items-center text-brand-600 bg-brand-50 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                      <ShieldCheck size={12} className="mr-1" /> Verified
-                    </div>
-                  )}
+                  <div className="flex items-center text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 border border-emerald-100/30">
+                    <ShieldCheck size={11} className="mr-0.5" /> Verified
+                  </div>
                 </div>
               </Card>
             ))}
           </div>
         </div>
 
-        <div className="bg-brand-50 p-4 rounded-xl flex items-start">
-          <AlertCircle size={20} className="text-brand-600 mr-3 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-brand-800">
+        {/* Info Box */}
+        <div className="bg-[#1A4516]/5 border border-[#1A4516]/10 p-3.5 rounded-xl flex items-start">
+          <AlertCircle size={16} className="text-[#1A4516] mr-2.5 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-[#1A4516] font-medium leading-relaxed">
             To change your vehicle details, please visit the nearest {appName} Partner Center with your original documents.
           </p>
         </div>

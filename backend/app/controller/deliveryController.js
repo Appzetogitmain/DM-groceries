@@ -1,4 +1,4 @@
-﻿import Order from "../models/order.js";
+import Order from "../models/order.js";
 import { orderMatchQueryFromRouteParam } from "../utils/orderLookup.js";
 import Transaction from "../models/transaction.js";
 import Delivery from "../models/delivery.js";
@@ -40,7 +40,8 @@ export const getDeliveryStats = async (req, res) => {
 ================================ */
 export const getDeliveryEarnings = async (req, res) => {
     try {
-        const result = await getDeliveryEarningsFromService(req.user.id);
+        const { timeframe } = req.query;
+        const result = await getDeliveryEarningsFromService(req.user.id, timeframe);
         return handleResponse(res, 200, "Earnings fetched", result);
     } catch (error) {
         return handleResponse(res, error.statusCode || 500, error.message);
@@ -297,18 +298,13 @@ export const requestWithdrawal = async (req, res) => {
             return handleResponse(res, 400, "Please enter a valid amount");
         }
 
-        // 1. Calculate current available balance
-        const transactions = await Transaction.find({ user: deliveryBoyId, userModel: 'Delivery' });
+        // 1. Calculate current available balance from Wallet
+        const wallet = await Wallet.findOne({ ownerId: deliveryBoyId, ownerType: "DELIVERY_PARTNER" });
+        if (!wallet) {
+            return handleResponse(res, 404, "Wallet not found");
+        }
 
-        const settledBalance = transactions
-            .filter(t => t.status === 'Settled')
-            .reduce((acc, t) => acc + t.amount, 0);
-
-        const pendingPayouts = transactions
-            .filter(t => (t.status === 'Pending' || t.status === 'Processing') && t.type === 'Withdrawal')
-            .reduce((acc, t) => acc + Math.abs(t.amount), 0);
-
-        const availableBalance = settledBalance - pendingPayouts;
+        const availableBalance = wallet.availableBalance;
 
         if (amount > availableBalance) {
             return handleResponse(res, 400, `Insufficient balance. Available: ₹${availableBalance}`);
@@ -323,6 +319,11 @@ export const requestWithdrawal = async (req, res) => {
             status: "Pending",
             reference: `WDR-DL-${Date.now()}`
         });
+
+        // 3. Update Wallet balances
+        wallet.availableBalance -= Math.abs(amount);
+        wallet.pendingBalance += Math.abs(amount);
+        await wallet.save();
 
         return handleResponse(res, 201, "Withdrawal request submitted successfully", withdrawal);
     } catch (error) {

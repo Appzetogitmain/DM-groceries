@@ -36,10 +36,9 @@ import { Loader2 } from 'lucide-react';
 import Pagination from '@shared/components/ui/Pagination';
 import { DatePicker } from "@/components/ui/date-picker";
 import { getOrderStatusVariant } from '../components/orders';
-import { useSellerOrders } from '../context/SellerOrdersContext';
+
 
 const Orders = () => {
-    const { orders: ordersFromContext } = useSellerOrders();
     const [orders, setOrders] = useState([]);
     const [summary, setSummary] = useState({
         totalOrders: 0,
@@ -82,13 +81,6 @@ const Orders = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, startDate, endDate]);
 
-    // Real-time updates: when global context detects new orders, refresh current page silently
-    useEffect(() => {
-        if (!hasMountedRef.current) return;
-        fetchOrders(page, false);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ordersFromContext?.length, ordersFromContext?.[0]?.orderId]);
-
     const fetchOrders = async (requestedPage = 1, showPageLoader = false) => {
         try {
             if (showPageLoader) {
@@ -125,7 +117,7 @@ const Orders = () => {
                 workflowStatus: order.workflowStatus,
                 workflowVersion: order.workflowVersion,
                 date: order.createdAt
-                    ? new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                    ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
                     : '',
                 time: order.createdAt
                     ? new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
@@ -190,29 +182,29 @@ const Orders = () => {
             label: 'Total Orders',
             value: summary.totalOrders,
             icon: HiOutlineArchiveBoxXMark,
-            color: 'text-brand-600',
-            bg: 'bg-brand-50'
+            color: 'text-emerald-700',
+            bg: 'bg-emerald-50'
         },
         {
             label: 'Pending',
             value: summary.pending,
             icon: HiOutlineClock,
-            color: 'text-amber-600',
+            color: 'text-amber-700',
             bg: 'bg-amber-50'
         },
         {
             label: 'Confirmed',
             value: summary.confirmed,
             icon: HiOutlineCheck,
-            color: 'text-brand-600',
-            bg: 'bg-brand-50'
+            color: 'text-emerald-700',
+            bg: 'bg-emerald-50'
         },
         {
             label: 'Delivered',
             value: summary.delivered,
             icon: HiOutlineCheck,
-            color: 'text-brand-600',
-            bg: 'bg-brand-50'
+            color: 'text-emerald-700',
+            bg: 'bg-emerald-50'
         }
     ], [summary]);
 
@@ -227,7 +219,7 @@ const Orders = () => {
         try {
             await sellerApi.updateOrderStatus(orderId, { status: newStatus.toLowerCase() });
             showToast(`Order status updated to ${newStatus}`, "success");
-            fetchOrders(page, false); // Refresh orders without resetting page
+            fetchOrders(); // Refresh orders
             if (selectedOrder && selectedOrder.id === orderId) {
                 setSelectedOrder({ ...selectedOrder, status: newStatus });
             }
@@ -279,7 +271,7 @@ const Orders = () => {
                 {/* Page Header */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
                     <div className="min-w-0">
-                        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex flex-wrap items-center gap-2">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 flex flex-wrap items-center gap-2">
                             Order Management
                             <Badge variant="primary" className="text-[10px] px-1.5 py-0 font-bold tracking-wider uppercase bg-brand-100 text-brand-700">Real-time</Badge>
                         </h1>
@@ -313,20 +305,20 @@ const Orders = () => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-[850px]">
                         {stats.map((stat, i) => (
                             <BlurFade key={i} delay={0.1 + (i * 0.05)}>
                                 <MagicCard
                                     className="border-none shadow-sm ring-1 ring-slate-100 p-0 overflow-hidden group bg-white"
-                                    gradientColor={stat.bg.includes('indigo') ? "#eef2ff" : stat.bg.includes('amber') ? "#fffbeb" : stat.bg.includes('emerald') ? "#ecfdf5" : "#fff1f2"}
+                                    gradientColor={stat.bg.includes('emerald') ? "#ecfdf5" : stat.bg.includes('amber') ? "#fffbeb" : "#f8fafc"}
                                 >
-                                    <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 relative z-10">
-                                        <div className={cn("h-10 w-10 sm:h-12 sm:w-12 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110 duration-300 shadow-sm shrink-0", stat.bg, stat.color)}>
-                                            <stat.icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                                    <div className="flex items-center gap-2.5 p-2.5 relative z-10">
+                                        <div className={cn("h-9 w-9 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 duration-300", stat.bg, stat.color)}>
+                                            <stat.icon className="h-4 w-4" />
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest truncate">{stat.label}</p>
-                                            <h4 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">{stat.value}</h4>
+                                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate">{stat.label}</p>
+                                            <h4 className="text-lg font-bold text-slate-800 leading-tight mt-0.5">{stat.value}</h4>
                                         </div>
                                     </div>
                                 </MagicCard>
@@ -345,9 +337,9 @@ const Orders = () => {
                                             key={tab}
                                             onClick={() => setActiveTab(tab)}
                                             className={cn(
-                                                "relative py-3 sm:py-4 px-2.5 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-300",
+                                                "relative py-3 px-2.5 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-300",
                                                 activeTab === tab
-                                                    ? "text-primary scale-105"
+                                                    ? "text-[#1A4516] scale-105 font-bold"
                                                     : "text-slate-600 hover:text-slate-700"
                                             )}
                                         >
@@ -355,7 +347,7 @@ const Orders = () => {
                                             {activeTab === tab && (
                                                 <motion.div
                                                     layoutId="tab-underline"
-                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full mx-2 sm:mx-4"
+                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1A4516] rounded-full mx-2"
                                                 />
                                             )}
                                         </button>
@@ -366,13 +358,13 @@ const Orders = () => {
                             {/* Toolbox */}
                             <div className="p-3 sm:p-4 border-b border-slate-100 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
                                 <div className="relative flex-1 group w-full">
-                                    <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 group-focus-within:text-primary transition-all" />
+                                    <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#1A4516] transition-all" />
                                     <input
                                         type="text"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         placeholder="Search by Order ID or Customer Name..."
-                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border-none rounded-lg text-sm font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-primary/5 transition-all outline-none"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border-none rounded-lg text-sm font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-[#1A4516]/5 transition-all outline-none"
                                     />
                                 </div>
                                 <div className="flex gap-3 shrink-0 w-full lg:w-auto items-center justify-end flex-wrap">
@@ -460,6 +452,7 @@ const Orders = () => {
                                 ) : (
                                 <AnimatePresence mode="popLayout">
                                     {filteredOrders
+                                        .slice((page - 1) * pageSize, page * pageSize)
                                         .map((order) => (
                                         <motion.div
                                             key={order.id}
@@ -521,19 +514,20 @@ const Orders = () => {
 
                             {/* Desktop: Table */}
                             <div className="hidden md:block overflow-x-auto">
-                                <table className="w-full text-left border-collapse min-w-[640px] relative">
-                                    <thead className="sticky top-0 z-20 bg-slate-50 shadow-sm">
-                                        <tr className="border-b border-slate-200">
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-700 uppercase tracking-widest">Order Details</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Customer</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Total</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Status</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest text-right">Actions</th>
+                                <table className="w-full text-left border-collapse min-w-[640px]">
+                                    <thead>
+                                        <tr className="bg-slate-50/50 border-b border-slate-100">
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Order Details</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Total</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
                                         <AnimatePresence mode="popLayout">
                                             {filteredOrders
+                                                .slice((page - 1) * pageSize, page * pageSize)
                                                 .map((order) => (
                                                 <motion.tr
                                                     layout
@@ -545,10 +539,10 @@ const Orders = () => {
                                                 >
                                                     <td className="px-4 lg:px-6 py-3 lg:py-4">
                                                         <div>
-                                                            <span className="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors cursor-pointer" onClick={() => handleViewDetails(order)}>
+                                                            <span className="text-xs font-semibold text-slate-800 group-hover:text-[#1A4516] transition-colors cursor-pointer" onClick={() => handleViewDetails(order)}>
                                                                 #{order.id}
                                                             </span>
-                                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mt-1">
+                                                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mt-1">
                                                                 <HiOutlineCalendarDays className="h-3 w-3" />
                                                                 {order.date} • {order.time}
                                                             </div>
@@ -556,19 +550,19 @@ const Orders = () => {
                                                     </td>
                                                     <td className="px-4 lg:px-6 py-3 lg:py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="h-8 w-8 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white shadow-sm ring-2 ring-white">
+                                                            <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
                                                                 {order.customer.avatar}
                                                             </div>
                                                             <div>
-                                                                <p className="text-xs font-bold text-slate-900">{order.customer.name}</p>
-                                                                <p className="text-xs font-semibold text-slate-600">{order.customer.phone}</p>
+                                                                <p className="text-xs font-semibold text-slate-800">{order.customer.name}</p>
+                                                                <p className="text-xs font-medium text-slate-500">{order.customer.phone}</p>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-4 lg:px-6 py-3 lg:py-4">
                                                         <div className="flex flex-col">
-                                                            <span className="text-xs font-bold text-slate-900">₹{order.total.toLocaleString()}</span>
-                                                            <span className="text-xs font-semibold text-slate-600">{order.items.length} items</span>
+                                                            <span className="text-xs font-semibold text-slate-800">₹{order.total.toLocaleString()}</span>
+                                                            <span className="text-xs font-medium text-slate-500">{order.items.length} items</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-4 lg:px-6 py-3 lg:py-4">
@@ -577,21 +571,21 @@ const Orders = () => {
                                                                 value={order.status}
                                                                 onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
                                                                 className={cn(
-                                                                    "w-full text-[10px] pl-2.5 pr-8 py-1.5 rounded-full font-black uppercase tracking-widest cursor-pointer appearance-none focus:ring-2 focus:ring-offset-1 transition-all border-none outline-none shadow-sm",
+                                                                    "w-full text-[10px] pl-2.5 pr-8 py-1.5 rounded-full font-semibold uppercase tracking-wider cursor-pointer appearance-none focus:ring-2 focus:ring-offset-1 transition-all border-none outline-none shadow-sm",
                                                                     order.status === 'pending' ? "bg-amber-100 text-amber-700 focus:ring-amber-200" :
-                                                                        order.status === 'confirmed' ? "bg-brand-100 text-brand-700 focus:ring-brand-200" :
-                                                                            order.status === 'packed' ? "bg-brand-100 text-brand-700 focus:ring-brand-200" :
+                                                                        order.status === 'confirmed' ? "bg-emerald-100 text-emerald-800 focus:ring-emerald-200" :
+                                                                            order.status === 'packed' ? "bg-emerald-100 text-emerald-800 focus:ring-emerald-200" :
                                                                                 order.status === 'out_for_delivery' ? "bg-purple-100 text-purple-700 focus:ring-purple-200" :
-                                                                                    order.status === 'delivered' ? "bg-brand-100 text-brand-700 focus:ring-brand-200" :
+                                                                                    order.status === 'delivered' ? "bg-emerald-100 text-emerald-800 focus:ring-emerald-200" :
                                                                                         order.status === 'cancelled' ? "bg-rose-100 text-rose-700 focus:ring-rose-200" :
                                                                                             "bg-slate-100 text-slate-700 focus:ring-slate-200"
                                                                 )}
                                                             >
-                                                                <option value="pending" disabled={['confirmed','packed','out_for_delivery','delivered','cancelled'].includes(order.status)}>Pending</option>
-                                                                <option value="confirmed" disabled={['packed','out_for_delivery','delivered','cancelled'].includes(order.status)}>Confirmed</option>
-                                                                <option value="packed" disabled={['out_for_delivery','delivered','cancelled'].includes(order.status)}>Packed</option>
-                                                                <option value="out_for_delivery" disabled={['delivered','cancelled'].includes(order.status)}>Out for Delivery</option>
-                                                                <option value="delivered" disabled={order.status === 'cancelled'}>Delivered</option>
+                                                                <option value="pending">Pending</option>
+                                                                <option value="confirmed">Confirmed</option>
+                                                                <option value="packed">Packed</option>
+                                                                <option value="out_for_delivery">Out for Delivery</option>
+                                                                <option value="delivered">Delivered</option>
                                                                 <option value="cancelled">Cancelled</option>
                                                             </select>
                                                             <HiOutlineChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-60" />
@@ -696,43 +690,43 @@ const Orders = () => {
                                 >
                                     <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className="h-9 w-9 sm:h-10 sm:w-10 bg-primary text-primary-foreground rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-                                                <HiOutlineChartBar className="h-4 w-4 sm:h-5 sm:w-5" />
+                                            <div className="h-9 w-9 bg-[#1A4516] text-white rounded-full flex items-center justify-center shadow-lg shadow-[#1A4516]/10 shrink-0">
+                                                <HiOutlineChartBar className="h-4.5 w-4.5" />
                                             </div>
                                             <div className="min-w-0">
-                                                <h3 className="text-sm sm:text-base font-black text-slate-900 truncate">Quick Snapshot</h3>
-                                                <p className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">Today's Performance</p>
+                                                <h3 className="text-sm sm:text-base font-bold text-slate-800 truncate">Quick Snapshot</h3>
+                                                <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Today's Performance</p>
                                             </div>
                                         </div>
-                                        <button onClick={() => setIsQuickViewModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-600 shrink-0">
+                                        <button onClick={() => setIsQuickViewModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500 shrink-0">
                                             <HiOutlineXMark className="h-5 w-5" />
                                         </button>
                                     </div>
-
+ 
                                     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                                         {/* Summary Grid */}
                                         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                            <div className="p-3 sm:p-4 rounded-2xl bg-brand-50 border border-brand-100">
-                                                <p className="text-[10px] sm:text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Total Revenue</p>
-                                                <p className="text-base sm:text-xl font-black text-brand-700 truncate">₹{summary.totalAmount.toLocaleString('en-IN')}</p>
+                                            <div className="p-3 sm:p-4 rounded-2xl bg-emerald-50/40 border border-emerald-100/50">
+                                                <p className="text-[10px] sm:text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">Total Revenue</p>
+                                                <p className="text-base sm:text-lg font-bold text-slate-800 truncate">₹{summary.totalAmount.toLocaleString('en-IN')}</p>
                                             </div>
-                                            <div className="p-3 sm:p-4 rounded-2xl bg-brand-50 border border-brand-100">
-                                                <p className="text-[10px] sm:text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Avg. Order Value</p>
-                                                <p className="text-base sm:text-xl font-black text-brand-700">₹{summary.totalOrders ? (summary.totalAmount / summary.totalOrders).toFixed(0) : '0'}</p>
+                                            <div className="p-3 sm:p-4 rounded-2xl bg-emerald-50/40 border border-emerald-100/50">
+                                                <p className="text-[10px] sm:text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">Avg. Order Value</p>
+                                                <p className="text-base sm:text-lg font-bold text-slate-800">₹{summary.totalOrders ? (summary.totalAmount / summary.totalOrders).toFixed(0) : '0'}</p>
                                             </div>
                                         </div>
                                     </div>
-
+ 
                                     <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-100">
-                                        <Button
+                                        <button
                                             onClick={() => {
                                                 setIsQuickViewModalOpen(false);
                                                 setActiveTab('Pending');
                                             }}
-                                            className="w-full py-2.5 sm:py-3 text-[10px] sm:text-xs font-bold"
+                                            className="w-full py-2.5 sm:py-3 text-[10px] sm:text-xs font-bold bg-[#1A4516] hover:bg-[#133A10] text-white rounded-xl shadow-lg shadow-[#1A4516]/10 transition-all uppercase tracking-wider"
                                         >
                                             VIEW ALL PENDING ORDERS
-                                        </Button>
+                                        </button>
                                     </div>
                                 </motion.div>
                             </div>
@@ -895,11 +889,11 @@ const Orders = () => {
                                                                                 "bg-slate-100 text-slate-700 focus:ring-slate-200"
                                                     )}
                                                 >
-                                                    <option value="pending" disabled={['confirmed','packed','out_for_delivery','delivered','cancelled'].includes(selectedOrder.status.toLowerCase())}>Pending</option>
-                                                    <option value="confirmed" disabled={['packed','out_for_delivery','delivered','cancelled'].includes(selectedOrder.status.toLowerCase())}>Confirmed</option>
-                                                    <option value="packed" disabled={['out_for_delivery','delivered','cancelled'].includes(selectedOrder.status.toLowerCase())}>Packed</option>
-                                                    <option value="out_for_delivery" disabled={['delivered','cancelled'].includes(selectedOrder.status.toLowerCase())}>Out for Delivery</option>
-                                                    <option value="delivered" disabled={selectedOrder.status.toLowerCase() === 'cancelled'}>Delivered</option>
+                                                    <option value="pending">Pending</option>
+                                                    <option value="confirmed">Confirmed</option>
+                                                    <option value="packed">Packed</option>
+                                                    <option value="out_for_delivery">Out for Delivery</option>
+                                                    <option value="delivered">Delivered</option>
                                                     <option value="cancelled">Cancelled</option>
                                                 </select>
                                                 <HiOutlineChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-60" />

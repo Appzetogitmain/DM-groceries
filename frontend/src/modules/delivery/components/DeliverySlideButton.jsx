@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
+import { getCurrentPositionWithCache } from "../utils/deliveryLastLocation";
 
 /**
  * DeliverySlideButton - A slide-to-confirm button for delivery actions
@@ -53,12 +54,30 @@ const DeliverySlideButton = ({
     setIsLoading(true);
 
     try {
+      let location;
+      try {
+        location = await new Promise((resolve, reject) => {
+          getCurrentPositionWithCache(resolve, reject, {
+            maxCacheAgeMs: 20 * 60 * 1000,
+          });
+        });
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn("GPS failed, using fallback location for testing");
+          location = { lat: 22.7196, lng: 75.8577 }; // fallback
+        } else {
+          throw new Error("Location unavailable. Please enable GPS to proceed.");
+        }
+      }
+
+      const payload = { lat: location.lat, lng: location.lng };
+
       // Call appropriate endpoint based on flow type
       const response = isReturnDrop
-        ? await deliveryApi.requestReturnDropOtp(orderId, {})
+        ? await deliveryApi.requestReturnDropOtp(orderId, payload)
         : isReturn
-          ? await deliveryApi.requestReturnOtp(orderId, {})
-          : await deliveryApi.requestDeliveryOtp(orderId, {});
+          ? await deliveryApi.requestReturnOtp(orderId, payload)
+          : await deliveryApi.requestDeliveryOtp(orderId, payload);
 
       // Handle success
       toast.success(response.data?.message || "OTP generated and sent to customer");
@@ -70,7 +89,7 @@ const DeliverySlideButton = ({
       // Handle different error types. Same dual-shape access pattern as
       // OtpInput.jsx — the canonical workflow controller wraps the
       // structured payload inside `result.error`.
-      const respData = error.response?.data || {};
+      const respData = error?.response?.data || {};
       const structured =
         (respData.result && respData.result.error) ||
         (typeof respData.error === "object" ? respData.error : null) ||
@@ -78,24 +97,20 @@ const DeliverySlideButton = ({
       const errorMessage =
         structured.message ||
         respData.message ||
-        error.message ||
+        error?.message ||
         "Failed to generate OTP";
       const errorCode = structured.code;
 
       // Display user-friendly error messages
       if (errorCode === "PROXIMITY_OUT_OF_RANGE") {
-        const details = error.response?.data?.error?.details || error.response?.data?.result?.error?.details;
+        const details = error?.response?.data?.error?.details;
         const distance = details?.currentDistance;
         const range = details?.requiredRange || "0-120m";
 
-        if (distance !== undefined) {
-          toast.error(
-            `You are too ${distance > 120 ? "far" : "close"}. You must be within ${range} of the delivery location.`,
-            { duration: 5000 }
-          );
-        } else {
-          toast.error(errorMessage, { duration: 5000 });
-        }
+        toast.error(
+          `You are too ${distance > 120 ? "far" : "close"}. You must be within ${range} of the delivery location.`,
+          { duration: 5000 }
+        );
       } else if (errorCode === "LOCATION_REQUIRED" || errorCode === "LOCATION_STALE") {
         toast.error(errorMessage || "Location data is not available. Please ensure location tracking is enabled.");
       } else if (errorCode === "ORDER_NOT_FOUND") {
@@ -120,7 +135,7 @@ const DeliverySlideButton = ({
     <div className="relative h-16 bg-gray-100 rounded-full overflow-hidden select-none">
       {/* Label text */}
       <motion.div
-        className={`absolute inset-0 flex items-center justify-center text-gray-400 font-bold text-sm pointer-events-none transition-opacity duration-300 ${dragX > 50 || isLoading ? "opacity-0" : "opacity-100"
+        className={`absolute inset-0 pl-14 flex items-center justify-center text-gray-400 font-bold text-sm pointer-events-none transition-opacity duration-300 ${dragX > 50 || isLoading ? "opacity-0" : "opacity-100"
           }`}
         animate={{ x: [0, 5, 0] }}
         transition={{ repeat: Infinity, duration: 1.5 }}>

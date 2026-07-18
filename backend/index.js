@@ -45,6 +45,11 @@ import {
   getFirebaseTrackingCleanupJobInterval,
   isFirebaseTrackingCleanupJobEnabled,
 } from "./app/jobs/firebaseTrackingCleanupJob.js";
+import {
+  getBirthdayRewardJobHandler,
+  getBirthdayRewardJobInterval,
+  isBirthdayRewardJobEnabled,
+} from "./app/jobs/birthdayRewardJob.js";
 import logger from "./app/services/logger.js";
 import { stopScheduledJobs } from "./app/services/distributedScheduler.js";
 
@@ -350,6 +355,14 @@ async function startScheduler() {
     );
   }
 
+  if (isBirthdayRewardJobEnabled()) {
+    registerScheduledJob(
+      'birthdayRewardJob',
+      getBirthdayRewardJobInterval(),
+      getBirthdayRewardJobHandler()
+    );
+  }
+
   // Start all registered jobs
   await startScheduledJobs();
   registerSchedulerStopper(stopScheduledJobs);
@@ -358,6 +371,7 @@ async function startScheduler() {
   if (isPayoutBatchJobEnabled()) scheduledJobs.push('payoutBatchJob');
   if (isWalletLedgerVerifierEnabled()) scheduledJobs.push('walletLedgerVerifierJob');
   if (isFirebaseTrackingCleanupJobEnabled()) scheduledJobs.push('firebaseTrackingCleanupJob');
+  if (isBirthdayRewardJobEnabled()) scheduledJobs.push('birthdayRewardJob');
   logger.info('Scheduler started', {
     jobs: scheduledJobs,
     role: getProcessRole()

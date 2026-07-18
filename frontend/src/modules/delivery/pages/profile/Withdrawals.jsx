@@ -88,70 +88,72 @@ const Withdrawals = () => {
     };
 
     return (
-        <div className="bg-gray-50/50 min-h-screen pb-24">
-            {/* Top Header */}
-            <div className="bg-white px-6 py-4 flex items-center shadow-sm sticky top-0 z-50">
+        <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+            
+            {/* Sticky Deep Green Header Banner */}
+            <div className="bg-[#1A4516] text-white py-3 px-5 sticky top-0 z-40 shadow-sm flex items-center">
                 <button
                     onClick={() => navigate(-1)}
-                    className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
+                    className="p-1.5 rounded-full hover:bg-white/10 transition-colors mr-2 cursor-pointer"
+                    aria-label="Go Back"
                 >
-                    <ArrowLeft className="text-gray-900" size={24} />
+                    <ArrowLeft className="text-white" size={18} />
                 </button>
-                <h1 className="text-xl font-bold text-gray-900">Money Request</h1>
+                <h1 className="text-sm font-black leading-tight tracking-tight">Money Request</h1>
             </div>
 
-            <div className="p-6 space-y-6 max-w-lg mx-auto">
+            <div className="p-4 max-w-lg mx-auto space-y-4 relative z-10">
                 {/* Balance Card */}
-                <div className="bg-[#0066FF] p-6 rounded-2xl text-white shadow-xl shadow-brand-500/20 relative overflow-hidden border border-brand-400/20">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-12 -mb-12 blur-2xl"></div>
+                <div className="bg-gradient-to-br from-[#1A4516] to-[#123610] p-4.5 rounded-2xl text-white shadow-md shadow-[#1A4516]/10 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-6 -mt-6 blur-xl" />
+                    <div className="absolute bottom-0 left-0 w-20 h-20 bg-black/5 rounded-full -ml-6 -mb-6 blur-lg" />
 
                     <div className="relative z-10">
-                        <p className="text-brand-100 text-xs font-bold uppercase tracking-wider mb-2 opacity-90">Available for Withdrawal</p>
-                        <h2 className="text-4xl font-extrabold flex items-baseline leading-none tracking-tight">
-                            <span className="text-2xl mr-1 font-bold">₹</span>
+                        <p className="text-white/60 text-[9px] font-bold uppercase tracking-wider mb-1 opacity-90">Available for Withdrawal</p>
+                        <h2 className="text-3xl font-black flex items-baseline leading-none tracking-tight">
+                            <span className="text-xl mr-0.5 font-bold">₹</span>
                             {stats.availableBalance.toLocaleString()}
                         </h2>
 
-                        <div className="mt-6 flex items-center justify-between text-white bg-white/10 p-3 rounded-xl backdrop-blur-md border border-white/10">
+                        <div className="mt-4 flex items-center justify-between text-white bg-white/10 p-2.5 rounded-xl backdrop-blur-md border border-white/10">
                             <div className="flex items-center">
-                                <Clock size={16} className="mr-2 opacity-80" />
-                                <span className="text-[11px] font-bold">Pending: ₹{stats.pendingWithdrawals.toLocaleString()}</span>
+                                <Clock size={14} className="mr-1.5 opacity-80" />
+                                <span className="text-[10px] font-bold">Pending: ₹{stats.pendingWithdrawals.toLocaleString()}</span>
                             </div>
-                            <ArrowUpRight size={16} className="opacity-80" />
+                            <ArrowUpRight size={14} className="opacity-80" />
                         </div>
                     </div>
                 </div>
 
                 {/* Withdrawal Form */}
-                <Card className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
-                            <Wallet size={20} />
+                <Card className="p-4 border border-gray-100 bg-white rounded-xl shadow-sm">
+                    <div className="flex items-center gap-2 mb-3.5">
+                        <div className="p-1.5 bg-[#1A4516]/5 text-[#1A4516] rounded-lg">
+                            <Wallet size={16} />
                         </div>
-                        <h3 className="font-bold text-gray-800">Request Fund Transfer</h3>
+                        <h3 className="font-bold text-gray-800 text-xs">Request Fund Transfer</h3>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3.5">
                         <div>
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
                                 Amount to Withdraw
                             </label>
                             <div className="relative">
-                                <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                 <input
                                     type="number"
                                     placeholder="0.00"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
-                                    className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-4 font-bold text-xl outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-primary/20 transition-all"
+                                    className="w-full bg-gray-50/60 border border-gray-100 rounded-xl py-2.5 pl-10 pr-4 font-extrabold text-lg outline-none focus:ring-2 focus:ring-[#1A4516]/10 focus:border-[#1A4516] transition-all"
                                 />
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl">
-                            <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={16} />
-                            <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
+                        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100/50 rounded-xl">
+                            <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={14} />
+                            <p className="text-[10px] text-amber-700 font-medium leading-normal">
                                 Processing may take 24-48 business hours. Funds will be transferred to your primary bank account.
                             </p>
                         </div>
@@ -159,10 +161,10 @@ const Withdrawals = () => {
                         <Button
                             onClick={handleRequest}
                             disabled={loading || !amount || Number(amount) <= 0}
-                            className="w-full py-4 rounded-2xl font-bold text-sm shadow-lg shadow-primary/20"
+                            className="w-full py-2.5 bg-[#1A4516] hover:bg-[#153b12] text-white border-none rounded-xl font-bold text-xs shadow-md shadow-[#1A4516]/10 flex justify-center items-center"
                         >
                             {loading ? (
-                                <RotateCw className="animate-spin mr-2" size={18} />
+                                <RotateCw className="animate-spin mr-1.5 text-white" size={14} />
                             ) : null}
                             {loading ? "PROCESSING..." : "SUBMIT REQUEST"}
                         </Button>
@@ -170,21 +172,21 @@ const Withdrawals = () => {
                 </Card>
 
                 {/* History */}
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between px-1">
-                        <h3 className="font-bold text-gray-800 flex items-center gap-2 uppercase tracking-widest text-[10px]">
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1 pt-1">
+                        <h3 className="font-bold text-gray-400 flex items-center gap-2 uppercase tracking-wider text-[10px]">
                             Transfer History
                         </h3>
                         <button
                             onClick={fetchData}
-                            className="text-primary text-[10px] font-bold flex items-center gap-1 uppercase"
+                            className="text-[#1A4516] text-[10px] font-bold flex items-center gap-1 uppercase hover:underline cursor-pointer"
                         >
-                            <RotateCw size={12} className={fetching ? "animate-spin" : ""} />
+                            <RotateCw size={10} className={fetching ? "animate-spin" : ""} />
                             Refresh
                         </button>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         {stats.history.length > 0 ? (
                             stats.history.map((item, idx) => (
                                 <motion.div
@@ -192,23 +194,23 @@ const Withdrawals = () => {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: idx * 0.05 }}
                                     key={item.id}
-                                    className="bg-white p-4 rounded-2xl shadow-sm border border-gray-50 flex items-center justify-between"
+                                    className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"
                                 >
                                     <div className="flex items-center">
                                         <div className={cn(
-                                            "p-3 rounded-full mr-4",
-                                            item.status === 'Settled' ? "bg-brand-50 text-brand-600" :
-                                                item.status === 'Failed' ? "bg-red-50 text-red-600" :
+                                            "p-2 rounded-full mr-3",
+                                            item.status === 'Settled' ? "bg-emerald-50 text-emerald-600" :
+                                                item.status === 'Failed' ? "bg-rose-50 text-rose-600" :
                                                     "bg-amber-50 text-amber-600"
                                         )}>
-                                            {item.status === 'Settled' ? <CheckCircle2 size={18} /> :
-                                                item.status === 'Failed' ? <XCircle size={18} /> :
-                                                    <Clock size={18} />}
+                                            {item.status === 'Settled' ? <CheckCircle2 size={14} /> :
+                                                item.status === 'Failed' ? <XCircle size={14} /> :
+                                                    <Clock size={14} />}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-gray-900">₹{Math.abs(item.amount).toLocaleString()}</p>
-                                            <p className="text-[10px] font-medium text-gray-400 mt-0.5">
-                                                {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} • {item.id}
+                                            <p className="font-extrabold text-xs text-gray-900">₹{Math.abs(item.amount).toLocaleString()}</p>
+                                            <p className="text-[9px] font-bold text-gray-400 mt-0.5">
+                                                {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} • {item.id}
                                             </p>
                                         </div>
                                     </div>
@@ -218,9 +220,9 @@ const Withdrawals = () => {
                                 </motion.div>
                             ))
                         ) : (
-                            <div className="bg-white p-12 rounded-2xl border border-dashed border-gray-200 text-center">
-                                <Clock className="mx-auto text-gray-200 mb-2" size={32} />
-                                <p className="text-xs text-gray-400 font-medium tracking-tight">No history found</p>
+                            <div className="bg-white p-8 rounded-xl border border-dashed border-gray-200 text-center">
+                                <Clock className="mx-auto text-gray-300 mb-1.5" size={24} />
+                                <p className="text-[10px] text-gray-400 font-bold tracking-tight">No history found</p>
                             </div>
                         )}
                     </div>

@@ -30,6 +30,7 @@ import Lottie from "lottie-react";
 import sellerAnimation from "../../../assets/INSTANT_6.json";
 import { sellerApi } from "../services/sellerApi";
 import MapPicker from "../../../shared/components/MapPicker";
+import sellerLoginImg from "../../../assets/SellerLogin.png";
 
 const createInitialVerificationState = () => ({
   status: "idle",
@@ -39,7 +40,6 @@ const createInitialVerificationState = () => ({
   isSending: false,
   isVerifying: false,
   verifiedValue: "",
-  exists: false,
 });
 
 const REQUIRED_DOCUMENT_CONFIG = [
@@ -57,32 +57,12 @@ const Auth = () => {
   const { login } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
-
-  React.useEffect(() => {
-    import('@core/auth/activeRoleStore').then(({ setActiveRole, ROLES }) => {
-        setActiveRole(ROLES.SELLER);
-    });
-  }, []);
-
   const appName = settings?.appName || "App";
   const logoUrl = settings?.logoUrl || "";
   const [verifications, setVerifications] = useState({
     email: createInitialVerificationState(),
     phone: createInitialVerificationState(),
   });
-  const [forgotPasswordStep, setForgotPasswordStep] = useState(0);
-  const [resetData, setResetData] = useState({
-    channel: "email",
-    rawValue: "",
-    otp: "",
-    newPassword: "",
-    confirmPassword: "",
-    token: "",
-    isSending: false,
-    isVerifying: false,
-    isResetting: false,
-  });
-
 
   const [formData, setFormData] = useState({
     email: "",
@@ -184,26 +164,6 @@ const Auth = () => {
     }
   };
 
-  const handleBlur = async (e) => {
-    if (isLogin) return;
-    const { name, value } = e.target;
-    
-    if ((name === "email" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) || 
-        (name === "phone" && /^\d{10}$/.test(value))) {
-      try {
-        const res = await sellerApi.checkExists({ [name]: value });
-        if (res.data?.result?.exists) {
-          updateVerificationState(name, { exists: true });
-          toast.error(`A seller with this ${name} already exists.`);
-        } else {
-          updateVerificationState(name, { exists: false });
-        }
-      } catch (err) {
-        // ignore errors on blur
-      }
-    }
-  };
-
   const handleDocumentChange = (e, docName) => {
     setDocuments({ ...documents, [docName]: e.target.files[0] });
   };
@@ -248,7 +208,6 @@ const Auth = () => {
     } catch (error) {
       updateVerificationState(field, {
         isSending: false,
-        isOtpVisible: false,
         status: "idle",
       });
       toast.error(error.response?.data?.message || "Failed to send OTP");
@@ -303,68 +262,6 @@ const Auth = () => {
 
     e.preventDefault();
     panel.scrollTop += e.deltaY;
-  };
-
-
-  // --- Forgot Password Handlers ---
-  const handleSendResetOtp = async (e) => {
-    e.preventDefault();
-    if (!resetData.rawValue) return;
-    setResetData(prev => ({ ...prev, isSending: true }));
-    try {
-      await sellerApi.sendResetOtp({ channel: resetData.channel, rawValue: resetData.rawValue });
-      toast.success(`OTP sent to ${resetData.rawValue}`);
-      setForgotPasswordStep(2);
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send OTP");
-    } finally {
-      setResetData(prev => ({ ...prev, isSending: false }));
-    }
-  };
-
-  const handleVerifyResetOtp = async (e) => {
-    e.preventDefault();
-    if (resetData.otp.length !== 4) return;
-    setResetData(prev => ({ ...prev, isVerifying: true }));
-    try {
-      const payload = {
-        channel: resetData.channel,
-        rawValue: resetData.rawValue,
-        otp: resetData.otp
-      };
-      const response = await sellerApi.verifyResetOtp(payload);
-      setResetData(prev => ({ ...prev, token: response.data?.result?.verificationToken || response.data?.result?.token || response.data?.verificationToken }));
-      toast.success("OTP verified successfully");
-      setForgotPasswordStep(3);
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Invalid OTP");
-    } finally {
-      setResetData(prev => ({ ...prev, isVerifying: false }));
-    }
-  };
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    if (resetData.newPassword !== resetData.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    setResetData(prev => ({ ...prev, isResetting: true }));
-    try {
-      await sellerApi.resetPassword({
-        channel: resetData.channel,
-        rawValue: resetData.rawValue,
-        token: resetData.token,
-        newPassword: resetData.newPassword
-      });
-      toast.success("Password reset successfully. Please login.");
-      setForgotPasswordStep(0);
-      setResetData({ channel: "email", rawValue: "", otp: "", newPassword: "", confirmPassword: "", token: "", isSending: false, isVerifying: false, isResetting: false });
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to reset password");
-    } finally {
-      setResetData(prev => ({ ...prev, isResetting: false }));
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -434,7 +331,7 @@ const Auth = () => {
 
       const response = isLogin
         ? await sellerApi.login({
-          emailOrPhone: formData.email,
+          email: formData.email,
           password: formData.password,
         })
         : await (() => {
@@ -524,78 +421,66 @@ const Auth = () => {
     <div className="flex min-h-screen items-center justify-center bg-[#fcfaff] p-6 font-['Outfit'] overflow-hidden relative">
       {/* Elegant Ambient Background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-5%] w-[60%] h-[60%] bg-slate-100/50 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-5%] w-[60%] h-[60%] bg-[#1A4516]/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-5%] right-[-5%] w-[40%] h-[40%] bg-slate-50/50 rounded-full blur-[100px]" />
       </div>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative z-10 w-full max-w-[1000px] min-h-[600px] max-h-[90vh] bg-white rounded-lg shadow-[0_50px_120px_rgba(0,0,0,0.04)] border border-white flex flex-col md:flex-row overflow-hidden">
-        {/* Visual Side Panel */}
-        <div className="hidden md:flex w-[45%] bg-linear-to-br from-slate-900 via-slate-950 to-black relative flex-col items-center justify-center p-10 overflow-hidden">
-          {/* Abstract Decorative Circles */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-slate-500/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+        className="relative z-10 w-full max-w-[950px] min-h-[580px] max-h-[90vh] bg-white rounded-2xl shadow-[0_50px_120px_rgba(0,0,0,0.06)] border border-slate-100 flex flex-col md:flex-row overflow-hidden">
+        
+        {/* Visual Side Panel - Deep Green & Logo & Grocery Basket */}
+        <div className="hidden md:flex w-[45%] bg-[#0B3B24] relative flex-col items-center justify-between p-8 pt-10 pb-6 overflow-hidden">
+          {/* Subtle leaves light shape in background */}
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
           </div>
 
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="relative z-10 w-full flex flex-col items-center">
-            {/* Lottie Animation for Seller */}
-            <div className="w-full max-w-[350px] drop-shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-              <Lottie
-                animationData={sellerAnimation}
-                loop={true}
-                className="w-full h-auto"
+            className="relative z-10 w-full flex flex-col items-center text-center">
+            
+            {/* Circular Logo Outer Line */}
+            <div className="w-22 h-22 rounded-full p-2 flex items-center justify-center mb-4 bg-white shadow-sm">
+              <img
+                src="/Logo.png"
+                alt="DM Groceries Logo"
+                className="w-16 h-16 object-contain filter brightness-100"
               />
             </div>
 
-            <div className="mt-8 text-center space-y-4">
-              <h2 className="text-2xl font-black text-white tracking-tight leading-tight uppercase underline decoration-white/20 underline-offset-8">
-                Seller <span className="text-slate-600">Expansion.</span>
-              </h2>
-            </div>
+            <h2 className="text-white text-xl font-extrabold tracking-wide uppercase">
+              DM Groceries
+            </h2>
+            <p className="text-white/60 text-[10px] font-black tracking-widest mt-1 uppercase font-mono">
+              → And Vegetables ←
+            </p>
           </motion.div>
 
-          {/* Partner Badges */}
-          <div className="absolute bottom-12 left-0 right-0 px-12 flex justify-between items-center opacity-60">
-            <div className="flex items-center gap-2 text-white/80">
-              <Rocket size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">
-                Growth First
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-white/80">
-              <Globe size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">
-                Pan India
-              </span>
-            </div>
-          </div>
+          {/* Grocery Basket Image */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="relative z-10 w-full flex justify-center mt-auto">
+            <img
+              src={sellerLoginImg}
+              alt="Fresh Farm Vegetables Basket"
+              className="w-full max-w-[270px] h-auto object-contain rounded-xl drop-shadow-[0_15px_30px_rgba(0,0,0,0.4)]"
+            />
+          </motion.div>
         </div>
 
         {/* Form Content Side */}
         <div
-          className="w-full md:w-[55%] min-h-0 p-8 pt-12 md:p-12 md:pt-16 flex flex-col justify-center bg-white overflow-y-auto overscroll-contain touch-pan-y custom-scrollbar relative"
+          className="w-full md:w-[55%] min-h-0 p-8 md:p-10 flex flex-col justify-center bg-white overflow-y-auto overscroll-contain touch-pan-y custom-scrollbar relative"
           onWheelCapture={handlePanelWheel}
           style={{ WebkitOverflowScrolling: "touch" }}>
-          <div className="hidden md:flex absolute top-8 right-8 z-20">
-            <div className="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt={`${appName} logo`}
-                  className="w-14 h-14 object-contain"
-                />
-              ) : (
-                <Store size={30} className="text-slate-700" />
-              )}
-            </div>
-          </div>
+          
           <AnimatePresence mode="wait">
             <motion.div
               key={isLogin ? "login" : `signup-step-${signupStep}`}
@@ -603,231 +488,99 @@ const Auth = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              className="space-y-8 py-4 md:py-6">
-              <div className="space-y-4">
-                <span className="inline-block px-4 py-1 bg-slate-100 text-slate-800 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-200">
-                  {isLogin
-                    ? "Welcome Back"
-                    : `New Partnership - Step ${signupStep} of 3`}
-                </span>
-                <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
-                  Seller{" "}
-                  <span className="text-slate-900">
-                    {isLogin ? "Login" : "Signup"}
-                  </span>
+              className="space-y-6 py-2">
+              
+              <div className="space-y-2">
+                <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+                  {isLogin ? "Welcome Back!" : "Seller Register"}
                 </h1>
-                <p className="text-slate-600 font-medium text-base leading-relaxed">
+                <p className="text-slate-500 font-medium text-xs">
                   {isLogin
-                    ? "Access your unified seller dashboard and manage orders."
-                    : signupStep === 1
-                      ? "Register your store and start selling instantly."
-                      : signupStep === 2
-                        ? "Set your shop address and service area precisely."
-                        : "Upload verification documents to complete your application."}
+                    ? "Seller Login"
+                    : `Step ${signupStep} of 3: ${signupStep === 1 ? "Store Information" : signupStep === 2 ? "Location Setup" : "Verify Documents"}`}
                 </p>
               </div>
 
-                            {forgotPasswordStep > 0 ? (
-                <div className="space-y-4">
-                  {forgotPasswordStep === 1 && (
-                    <form onSubmit={handleSendResetOtp} className="space-y-4">
-                      <div className="relative group">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                          <User size={18} />
-                        </div>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Email or Phone Number"
-                          className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
-                          value={resetData.rawValue}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const isPhone = /^\d/.test(val);
-                            setResetData({ ...resetData, rawValue: val, channel: isPhone ? 'phone' : 'email' });
-                          }}
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={resetData.isSending || !resetData.rawValue}
-                        className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white p-4 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {resetData.isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send OTP"}
-                        <ArrowRight size={18} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setForgotPasswordStep(0)}
-                        className="w-full flex items-center justify-center bg-slate-100 text-slate-700 p-4 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-slate-200 transition-colors"
-                      >
-                        Back to Login
-                      </button>
-                    </form>
-                  )}
-                  {forgotPasswordStep === 2 && (
-                    <form onSubmit={handleVerifyResetOtp} className="space-y-4">
-                      <div className="relative group">
-                        <input
-                          type="text"
-                          required
-                          maxLength={4}
-                          placeholder="Enter 4-digit OTP"
-                          className="w-full px-6 py-4 text-center tracking-[0.5em] bg-slate-50 border-2 border-transparent rounded-lg text-xl font-black text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300 placeholder:tracking-normal placeholder:font-bold placeholder:text-sm"
-                          value={resetData.otp}
-                          onChange={(e) => setResetData({ ...resetData, otp: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={resetData.isVerifying || resetData.otp.length !== 4}
-                        className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white p-4 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {resetData.isVerifying ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify OTP"}
-                        <ArrowRight size={18} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setForgotPasswordStep(1)}
-                        className="w-full flex items-center justify-center bg-slate-100 text-slate-700 p-4 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-slate-200 transition-colors"
-                      >
-                        Change Contact Info
-                      </button>
-                    </form>
-                  )}
-                  {forgotPasswordStep === 3 && (
-                    <form onSubmit={handleResetPassword} className="space-y-4">
-                      <div className="relative group">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                          <Lock size={18} />
-                        </div>
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          required
-                          placeholder="New Password"
-                          className="w-full pl-12 pr-14 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
-                          value={resetData.newPassword}
-                          onChange={(e) => setResetData({ ...resetData, newPassword: e.target.value })}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors px-2"
-                        >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                      <div className="relative group">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                          <Lock size={18} />
-                        </div>
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          required
-                          placeholder="Confirm New Password"
-                          className="w-full pl-12 pr-14 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
-                          value={resetData.confirmPassword}
-                          onChange={(e) => setResetData({ ...resetData, confirmPassword: e.target.value })}
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={resetData.isResetting}
-                        className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white p-4 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {resetData.isResetting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Reset Password"}
-                        <ArrowRight size={18} />
-                      </button>
-                    </form>
-                  )}
-                </div>
-              ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* LOGIN OR SIGNUP STEP 1 */}
                 {(isLogin || signupStep === 1) && (
                   <>
                     {!isLogin && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="relative group">
-                          <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                            <User size={18} />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Owner Name</label>
+                          <div className="relative group">
+                            <input
+                              type="text"
+                              name="name"
+                              required
+                              placeholder="Owner Name"
+                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                              value={formData.name}
+                              onChange={handleChange}
+                            />
                           </div>
-                          <input
-                            type="text"
-                            name="name"
-                            required
-                            maxLength={50}
-                            pattern="[a-zA-Z\s]*"
-                            placeholder="Owner Name"
-                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
-                            value={formData.name}
-                            onChange={(e) => {
-                                e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-                                handleChange(e);
-                            }}
-                          />
                         </div>
-                        <div className="relative group">
-                          <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                            <Store size={18} />
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Shop Name</label>
+                          <div className="relative group">
+                            <input
+                              type="text"
+                              name="shopName"
+                              required
+                              placeholder="Shop Name"
+                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                              value={formData.shopName}
+                              onChange={handleChange}
+                            />
                           </div>
-                          <input
-                            type="text"
-                            name="shopName"
-                            required
-                            placeholder="Shop / Business Name"
-                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
-                            value={formData.shopName}
-                            onChange={handleChange}
-                          />
                         </div>
                       </div>
                     )}
 
-                    <div className="relative group">
-                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                        <Mail size={18} />
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Email</label>
+                      <div className="relative group flex items-center">
+                        <input
+                          type="email"
+                          name="email"
+                          required
+                          inputMode="email"
+                          autoComplete="email"
+                          placeholder="Enter your email"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-20"
+                          value={formData.email}
+                          onChange={handleChange}
+                        />
+                        {!isLogin && (
+                          <button
+                            type="button"
+                            onClick={() => handleSendVerificationOtp("email")}
+                            disabled={
+                              verifications.email.isSending ||
+                              verifications.email.status === "verified" ||
+                              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email || "")
+                            }
+                            className={`absolute right-2 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${verifications.email.status === "verified"
+                              ? "bg-emerald-100 text-emerald-700 cursor-default"
+                              : "bg-[#1A4516] text-white hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed"
+                              }`}>
+                            {verifications.email.isSending ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : verifications.email.status === "verified" ? (
+                              "Verified"
+                            ) : verifications.email.isOtpVisible ? (
+                              "Resend"
+                            ) : (
+                              "Verify"
+                            )}
+                          </button>
+                        )}
                       </div>
-                      <input
-                        type={isLogin ? "text" : "email"}
-                        name="email"
-                        required
-                        inputMode={isLogin ? "text" : "email"}
-                        autoComplete="email"
-                        placeholder={isLogin ? "Email or Phone Number" : "Business Email"}
-                        className="w-full pl-12 pr-28 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
-                        value={formData.email}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                      />
-                      {!isLogin && (
-                        <button
-                          type="button"
-                          onClick={() => handleSendVerificationOtp("email")}
-                          disabled={
-                            verifications.email.isSending ||
-                            verifications.email.status === "verified" ||
-                            verifications.email.exists ||
-                            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email || "")
-                          }
-                          className={`absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${verifications.email.status === "verified"
-                            ? "bg-brand-100 text-brand-700 cursor-default"
-                            : "bg-slate-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
-                            }`}>
-                          {verifications.email.isSending ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : verifications.email.status === "verified" ? (
-                            "Verified"
-                          ) : verifications.email.isOtpVisible ? (
-                            "Resend"
-                          ) : (
-                            "Verify"
-                          )}
-                        </button>
-                      )}
                     </div>
+
                     {!isLogin && verifications.email.isOtpVisible && verifications.email.status !== "verified" && (
-                      <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <div className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2">
                         <input
                           type="text"
                           inputMode="numeric"
@@ -839,67 +592,65 @@ const Auth = () => {
                               otp: e.target.value.replace(/\D/g, "").slice(0, 4),
                             })
                           }
-                          className="flex-1 bg-transparent text-sm font-bold text-slate-700 outline-none placeholder:text-slate-400"
+                          className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
                         />
                         <button
                           type="button"
                           onClick={() => handleVerifyOtp("email")}
                           disabled={verifications.email.isVerifying || verifications.email.otp.length !== 4}
-                          className="rounded-md bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-100 disabled:opacity-50"
+                          className="rounded-md bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
                         >
                           {verifications.email.isVerifying ? "Checking..." : "Confirm OTP"}
                         </button>
                       </div>
                     )}
                     {!isLogin && verifications.email.status === "verified" && (
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-brand-600">
-                        <CheckCircle className="h-4 w-4" />
+                      <div className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 px-1">
+                        <CheckCircle className="h-3.5 w-3.5" />
                         <span>Email verified successfully.</span>
                       </div>
                     )}
 
                     {!isLogin && (
                       <>
-                        <div className="relative group">
-                          <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                            <Phone size={18} />
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Contact Number</label>
+                          <div className="relative group flex items-center">
+                            <input
+                              type="tel"
+                              name="phone"
+                              required
+                              placeholder="Contact Number"
+                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-20"
+                              value={formData.phone}
+                              onChange={handleChange}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSendVerificationOtp("phone")}
+                              disabled={
+                                verifications.phone.isSending ||
+                                verifications.phone.status === "verified" ||
+                                !/^[0-9]{10}$/.test(formData.phone || "")
+                              }
+                              className={`absolute right-2 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${verifications.phone.status === "verified"
+                                ? "bg-emerald-100 text-emerald-700 cursor-default"
+                                : "bg-[#1A4516] text-white hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed"
+                                }`}>
+                              {verifications.phone.isSending ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : verifications.phone.status === "verified" ? (
+                                "Verified"
+                              ) : verifications.phone.isOtpVisible ? (
+                                "Resend"
+                              ) : (
+                                "Verify"
+                              )}
+                            </button>
                           </div>
-                          <input
-                            type="tel"
-                            name="phone"
-                            required
-                            placeholder="Contact Number"
-                            className="w-full pl-12 pr-28 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleSendVerificationOtp("phone")}
-                            disabled={
-                              verifications.phone.isSending ||
-                              verifications.phone.status === "verified" ||
-                              verifications.phone.exists ||
-                              !/^\d{10}$/.test(formData.phone || "")
-                            }
-                            className={`absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${verifications.phone.status === "verified"
-                              ? "bg-brand-100 text-brand-700 cursor-default"
-                              : "bg-slate-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
-                              }`}>
-                            {verifications.phone.isSending ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : verifications.phone.status === "verified" ? (
-                              "Verified"
-                            ) : verifications.phone.isOtpVisible ? (
-                              "Resend"
-                            ) : (
-                              "Verify"
-                            )}
-                          </button>
                         </div>
                         {verifications.phone.isOtpVisible && verifications.phone.status !== "verified" && (
-                          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                          <div className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2">
                             <input
                               type="text"
                               inputMode="numeric"
@@ -911,96 +662,84 @@ const Auth = () => {
                                   otp: e.target.value.replace(/\D/g, "").slice(0, 4),
                                 })
                               }
-                              className="flex-1 bg-transparent text-sm font-bold text-slate-700 outline-none placeholder:text-slate-400"
+                              className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
                             />
                             <button
                               type="button"
                               onClick={() => handleVerifyOtp("phone")}
                               disabled={verifications.phone.isVerifying || verifications.phone.otp.length !== 4}
-                              className="rounded-md bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-100 disabled:opacity-50"
+                              className="rounded-md bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
                             >
                               {verifications.phone.isVerifying ? "Checking..." : "Confirm OTP"}
                             </button>
                           </div>
                         )}
                         {verifications.phone.status === "verified" && (
-                          <div className="flex items-center gap-2 text-[11px] font-bold text-brand-600">
-                            <CheckCircle className="h-4 w-4" />
+                          <div className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 px-1">
+                            <CheckCircle className="h-3.5 w-3.5" />
                             <span>Phone number verified successfully.</span>
                           </div>
                         )}
                       </>
                     )}
 
-                    <div className="relative group">
-                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                        <Lock size={18} />
-                      </div>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        name="password"
-                        required
-                        minLength={6}
-                        autoComplete="current-password"
-                        placeholder="Enter your password"
-                        className="w-full pl-12 pr-14 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
-                        value={formData.password}
-                        onChange={handleChange}
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors px-2"
-                        tabIndex="-1">
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                    {isLogin && (
-                      <div className="flex justify-end mt-1">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Password</label>
+                      <div className="relative group">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          required
+                          minLength={6}
+                          autoComplete="current-password"
+                          placeholder="Enter your password"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-12"
+                          value={formData.password}
+                          onChange={handleChange}
+                        />
                         <button
                           type="button"
-                          onClick={() => setForgotPasswordStep(1)}
-                          className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
-                        >
-                          Forgot Password?
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors px-2"
+                          tabIndex="-1">
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
-                    )}
+                    </div>
                   </>
                 )}
 
                 {/* SIGNUP STEP 2 (Shop address and service area) */}
                 {!isLogin && signupStep === 2 && (
-                  <div className="space-y-4">
-                    <div className="pt-2">
-                      <p className="text-sm font-black text-slate-600 uppercase tracking-widest mb-3">
+                  <div className="space-y-3">
+                    <div className="pt-1">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-0.5">
                         Shop Location & Service Area
                       </p>
                       <button
                         type="button"
                         onClick={() => setIsMapOpen(true)}
-                        className={`w-full flex items-center justify-between p-4 rounded-lg border-2 border-dashed transition-all cursor-pointer ${formData.lat
-                          ? "border-brand-200 bg-brand-50/50"
+                        className={`w-full flex items-center justify-between p-3 rounded-lg border border-dashed transition-all cursor-pointer ${formData.lat
+                          ? "border-emerald-200 bg-emerald-50/20"
                           : "border-slate-200 bg-slate-50 hover:border-slate-300"
                           }`}>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5">
                           <div
-                            className={`p-2 rounded-md ${formData.lat ? "bg-brand-100 text-brand-600" : "bg-white text-slate-600 shadow-sm"}`}>
+                            className={`p-1.5 rounded-md ${formData.lat ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-600 shadow-xs"}`}>
                             {formData.lat ? (
-                              <CheckCircle className="w-4 h-4" />
+                              <CheckCircle className="w-3.5 h-3.5" />
                             ) : (
-                              <MapPin className="w-4 h-4" />
+                              <MapPin className="w-3.5 h-3.5" />
                             )}
                           </div>
                           <div className="text-left">
                             <p
-                              className={`text-xs font-bold ${formData.lat ? "text-brand-700" : "text-slate-600"}`}>
+                              className={`text-[11px] font-extrabold ${formData.lat ? "text-emerald-800" : "text-slate-600"}`}>
                               {formData.lat
                                 ? "Location Selected"
                                 : "Pin Shop on Map"}
                             </p>
-                            <p className="text-xs text-slate-600 font-medium truncate max-w-[250px]">
+                            <p className="text-[10px] text-slate-400 font-medium truncate max-w-[200px]">
                               {formData.lat
                                 ? `${formData.address} (${formData.radius}km)`
                                 : "Precisely mark your shop location"}
@@ -1008,82 +747,72 @@ const Auth = () => {
                           </div>
                         </div>
                         {formData.lat && (
-                          <span className="text-[10px] font-black text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                          <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
                             Verified
                           </span>
                         )}
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="relative group">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                          <MapPin size={18} />
-                        </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Locality</label>
                         <input
                           type="text"
                           name="locality"
                           required
                           placeholder="Locality / Area"
-                          className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.locality}
                           onChange={handleChange}
                         />
                       </div>
-                      <div className="relative group">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                          <MapPin size={18} />
-                        </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Pincode</label>
                         <input
                           type="text"
                           name="pincode"
                           required
                           placeholder="Pincode"
-                          className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.pincode}
                           onChange={handleChange}
                         />
                       </div>
-                      <div className="relative group">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                          <MapPin size={18} />
-                        </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">City</label>
                         <input
                           type="text"
                           name="city"
                           required
                           placeholder="City"
-                          className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.city}
                           onChange={handleChange}
                         />
                       </div>
-                      <div className="relative group">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                          <MapPin size={18} />
-                        </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">State</label>
                         <input
                           type="text"
                           name="state"
                           required
                           placeholder="State"
-                          className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.state}
                           onChange={handleChange}
                         />
                       </div>
                     </div>
 
-                    <div className="relative group">
-                      <div className="absolute left-5 top-5 text-slate-300 group-focus-within:text-violet-600 transition-colors">
-                        <MapPin size={18} />
-                      </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Full Address</label>
                       <textarea
                         name="address"
-                        rows={3}
+                        rows={2}
                         required
-                        placeholder="Full address"
-                        className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-200 transition-all placeholder:text-slate-300 resize-none"
+                        placeholder="Full address details"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 resize-none"
                         value={formData.address}
                         onChange={handleChange}
                       />
@@ -1093,12 +822,12 @@ const Auth = () => {
 
                 {/* SIGNUP STEP 3 (Verification documents) */}
                 {!isLogin && signupStep === 3 && (
-                  <div className="space-y-4">
-                    <div className="pt-2">
-                      <p className="text-sm font-black text-slate-600 uppercase tracking-widest mb-3">
+                  <div className="space-y-3">
+                    <div className="pt-1">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3 ml-0.5">
                         Verification Documents
                       </p>
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         {REQUIRED_DOCUMENT_CONFIG.map((doc) => (
                           <div key={doc.id} className="relative">
                             <input
@@ -1110,25 +839,25 @@ const Auth = () => {
                             />
                             <label
                               htmlFor={doc.id}
-                              className={`flex items-center justify-between p-3.5 rounded-lg border-2 border-dashed transition-all cursor-pointer ${documents[doc.id]
-                                ? "border-brand-200 bg-brand-50/50"
+                              className={`flex items-center justify-between p-3 rounded-lg border border-dashed transition-all cursor-pointer ${documents[doc.id]
+                                ? "border-emerald-200 bg-emerald-50/20"
                                 : "border-slate-200 bg-slate-50 hover:border-slate-300"
                                 }`}>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2.5">
                                 <div
-                                  className={`p-2 rounded-md ${documents[doc.id] ? "bg-brand-100 text-brand-600" : "bg-white text-slate-600 shadow-sm"}`}>
+                                  className={`p-1.5 rounded-md ${documents[doc.id] ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-600 shadow-xs"}`}>
                                   {documents[doc.id] ? (
-                                    <CheckCircle className="w-4 h-4" />
+                                    <CheckCircle className="w-3.5 h-3.5" />
                                   ) : (
-                                    <Upload className="w-4 h-4" />
+                                    <Upload className="w-3.5 h-3.5" />
                                   )}
                                 </div>
                                 <div className="text-left">
                                   <p
-                                    className={`text-xs font-bold ${documents[doc.id] ? "text-brand-700" : "text-slate-600"}`}>
+                                    className={`text-[11px] font-extrabold ${documents[doc.id] ? "text-emerald-800" : "text-slate-600"}`}>
                                     {doc.label}
                                   </p>
-                                  <p className="text-xs text-slate-600 font-medium truncate max-w-[150px]">
+                                  <p className="text-[10px] text-slate-400 font-medium truncate max-w-[150px]">
                                     {documents[doc.id]
                                       ? documents[doc.id].name
                                       : "Upload secure PDF or image"}
@@ -1143,51 +872,89 @@ const Auth = () => {
                   </div>
                 )}
 
+                {/* Remember Me checkbox & Forgot password */}
+                {isLogin && (
+                  <div className="flex items-center justify-between px-1 text-xs">
+                    <label className="flex items-center gap-1.5 font-semibold text-slate-500 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-[#1A4516] focus:ring-[#1A4516]"
+                      />
+                      Remember me
+                    </label>
+                    <button
+                      type="button"
+                      className="font-bold text-[#1A4516] hover:text-[#133A10] transition-colors"
+                      onClick={() => toast.info("Please contact admin to reset your password.")}
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-2">
                   {!isLogin && signupStep > 1 && (
                     <button
                       type="button"
                       onClick={() => setSignupStep((prev) => Math.max(1, prev - 1))}
-                      className="w-1/3 bg-slate-100 text-slate-600 rounded-lg py-4 text-sm font-black tracking-[2px] transition-all hover:bg-slate-200">
+                      className="w-1/3 bg-slate-100 text-slate-600 rounded-lg py-3 text-xs font-black tracking-wider transition-all hover:bg-slate-200">
                       BACK
                     </button>
                   )}
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className={`${!isLogin && signupStep > 1 ? "w-2/3" : "w-full"} bg-slate-900 text-white rounded-lg py-4 text-sm font-black tracking-[2px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.3)] hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group`}>
+                    className={`${!isLogin && signupStep > 1 ? "w-2/3" : "w-full"} bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer`}>
                     {isLoading
                       ? "WORKING..."
                       : isLogin
-                        ? "ENTER DASHBOARD"
+                        ? "Login"
                         : signupStep < 3
                           ? "NEXT STEP"
                           : "SUBMIT APPLICATION"}
                     <ArrowRight
-                      className="group-hover:translate-x-2 transition-transform"
-                      size={20}
+                      className="group-hover:translate-x-1 transition-transform"
+                      size={16}
                     />
                   </button>
                 </div>
               </form>
-              )}
 
-              <div className="pt-1 border-t border-slate-50 flex flex-col items-center gap-1">
-                <p className="text-slate-600 font-bold text-sm">
-                  {isLogin ? "New to the platform?" : "Already part of us?"}{" "}
-                  <button
-                    onClick={() => {
-                      setIsLogin(!isLogin);
-                      setSignupStep(1);
-                      setVerifications({
-                        email: createInitialVerificationState(),
-                        phone: createInitialVerificationState(),
-                      });
-                    }}
-                    className="text-slate-900 hover:text-black transition-colors px-2">
-                    {isLogin ? "Register Store" : "Sign In"}
-                  </button>
-                </p>
+              <div className="pt-2.5 border-t border-slate-100 flex flex-col items-center gap-2.5 text-center">
+                {!isLogin && (
+                  <p className="text-slate-500 font-bold text-xs">
+                    Already part of us?{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLogin(true);
+                        setSignupStep(1);
+                        setVerifications({
+                          email: createInitialVerificationState(),
+                          phone: createInitialVerificationState(),
+                        });
+                      }}
+                      className="text-[#1A4516] hover:text-[#133A10] font-extrabold transition-colors px-1">
+                      Sign In
+                    </button>
+                  </p>
+                )}
+                
+                {isLogin && (
+                  <p className="text-slate-400 font-medium text-[10px]">
+                    Want to register your store?{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLogin(false);
+                        setSignupStep(1);
+                      }}
+                      className="text-[#1A4516] hover:underline font-bold"
+                    >
+                      Register here
+                    </button>
+                  </p>
+                )}
               </div>
             </motion.div>
           </AnimatePresence>
@@ -1195,7 +962,7 @@ const Auth = () => {
       </motion.div>
 
       {/* Bottom Tagline */}
-      <div className="absolute bottom-6 flex items-center gap-4 text-slate-300 text-[10px] font-black uppercase tracking-[6px]">
+      <div className="absolute bottom-6 flex items-center gap-4 text-slate-300 text-[10px] font-black uppercase tracking-[6px] pointer-events-none">
         Empowering Business Digitalization
       </div>
 

@@ -122,7 +122,7 @@ const SupportPage = () => {
 
                 {/* FAQ Section */}
                 <div>
-                    <h2 className="text-base font-semibold text-slate-800 mb-3 px-1">Frequently Asked Questions</h2>
+                    <h2 className="text-base font-semibold text-[#1A4516] mb-3 px-1">Frequently Asked Questions</h2>
                     <div className="space-y-3">
                         {faqs.length > 0 ? (
                             faqs.map((faq) => (
@@ -142,12 +142,12 @@ const SupportPage = () => {
 
                 {/* Legal Links */}
                 <div className="bg-white rounded-xl p-4 border border-slate-200">
-                    <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-3">Legal</h3>
+                    <h3 className="text-[11px] font-semibold text-[#1A4516]/70 uppercase tracking-wide mb-3">Legal</h3>
                     <div className="space-y-3">
-                        <Link to="/terms" className="flex items-center gap-2.5 text-slate-700 hover:text-slate-900 font-medium">
+                        <Link to="/terms" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
                             <FileText size={18} /> Terms & Conditions
                         </Link>
-                        <Link to="/privacy" className="flex items-center gap-2.5 text-slate-700 hover:text-slate-900 font-medium">
+                        <Link to="/privacy" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
                             <FileText size={18} /> Privacy Policy
                         </Link>
                     </div>
@@ -260,12 +260,12 @@ const ContactCard = ({ icon: Icon, label, sub, to, onClick }) => {
             onClick={onClick}
             className="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-center gap-2 hover:bg-slate-50 transition-colors cursor-pointer group h-full"
         >
-            <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 group-hover:text-slate-800 transition-colors">
+            <div className="h-10 w-10 rounded-lg bg-[#F5FBF5] flex items-center justify-center text-[#1A4516] transition-colors">
                 <Icon size={20} />
             </div>
             <div>
-                <h3 className="font-semibold text-slate-800 text-sm whitespace-nowrap">{label}</h3>
-                <p className="text-[10px] text-slate-500 font-medium">{sub}</p>
+                <h3 className="font-semibold text-[#1A4516] text-sm whitespace-nowrap">{label}</h3>
+                <p className="text-[10px] text-[#1A4516]/60 font-medium">{sub}</p>
             </div>
         </div>
     );
@@ -280,13 +280,13 @@ const FAQItem = ({ question, answer }) => {
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-[#F5FBF5] transition-colors"
             >
-                <span className="font-semibold text-slate-800 text-sm">{question}</span>
-                {isOpen ? <ChevronUp size={18} className="text-slate-700" /> : <ChevronDown size={18} className="text-slate-400" />}
+                <span className="font-semibold text-[#1A4516] text-sm">{question}</span>
+                {isOpen ? <ChevronUp size={18} className="text-[#1A4516]" /> : <ChevronDown size={18} className="text-[#1A4516]/60" />}
             </button>
             {isOpen && (
-                <div className="px-5 pb-4 text-sm text-slate-500 font-medium leading-relaxed bg-slate-50/50">
+                <div className="px-5 pb-4 text-sm text-[#1A4516]/80 font-medium leading-relaxed bg-[#F5FBF5]/30">
                     {answer}
                 </div>
             )}
