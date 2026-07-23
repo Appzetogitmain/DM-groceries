@@ -17,12 +17,14 @@ import {
 } from "lucide-react";
 import Modal from "@/shared/components/ui/Modal";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { deliveryApi } from "../services/deliveryApi";
 
 const Earnings = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("weekly");
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -247,8 +249,17 @@ const Earnings = () => {
                   Net cash to remit (gross âˆ’ your commission)
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-orange-50 text-orange-600">
-                <IndianRupee size={22} />
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => navigate("/delivery/cod-cash")}
+                  className="bg-orange-100 text-orange-700 hover:bg-orange-200"
+                  size="sm"
+                >
+                  Manage Cash
+                </Button>
+                <div className="p-3 rounded-xl bg-orange-50 text-orange-600">
+                  <IndianRupee size={22} />
+                </div>
               </div>
             </div>
 

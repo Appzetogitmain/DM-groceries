@@ -94,6 +94,8 @@ export async function issueCustomerOtp({
   rawPhone,
   flow,
   ipAddress = "unknown",
+  dob,
+  bloodGroup,
 }) {
   const phone = normalizeAndValidatePhone(rawPhone);
   const now = new Date();
@@ -128,6 +130,8 @@ export async function issueCustomerOtp({
         name: name || "Customer",
         phone,
         isVerified: false,
+        dob,
+        bloodGroup,
       });
       customer = await Customer.findById(customer._id).select(
         "+otpHash +otpExpiresAt +otpFailedAttempts +otpLockedUntil +otpLastSentAt +otpSessionVersion +otp +otpExpiry",
@@ -140,6 +144,8 @@ export async function issueCustomerOtp({
       name: name || "Customer",
       phone,
       isVerified: false,
+      dob,
+      bloodGroup,
     });
     customer = await Customer.findById(customer._id).select(
       "+otpHash +otpExpiresAt +otpFailedAttempts +otpLockedUntil +otpLastSentAt +otpSessionVersion +otp +otpExpiry",

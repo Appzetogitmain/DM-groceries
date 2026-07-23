@@ -79,6 +79,18 @@ const settingSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        returnWindowMinutes: {
+            // Total duration for which a return can be initiated after an order is delivered
+            type: Number,
+            default: 2880, // 2 days
+            min: 0,
+        },
+        returnEligibilityDelayMinutes: {
+            // Delay before the return window officially opens after delivery
+            type: Number,
+            default: 2,
+            min: 0,
+        },
 
         /**
          * Finance / delivery pricing rules (single source of truth).

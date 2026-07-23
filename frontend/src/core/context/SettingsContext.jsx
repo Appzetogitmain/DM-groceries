@@ -30,8 +30,9 @@ export const SettingsProvider = ({ children }) => {
       const data = res.data?.result || res.data;
       const merged = { ...DEFAULT_SETTINGS, ...data };
       
-      // Force theme colors to the new green theme globally
+      // Force theme colors and app name globally
       merged.primaryColor = "#1A4516";
+      merged.appName = "DM Groceries";
       
       setSettings(merged);
       applyThemeVariables(merged);

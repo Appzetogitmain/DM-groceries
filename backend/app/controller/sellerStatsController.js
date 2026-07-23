@@ -3,6 +3,7 @@ import Transaction from "../models/transaction.js";
 import handleResponse from "../utils/helper.js";
 import mongoose from "mongoose";
 import Wallet from "../models/wallet.js";
+import Seller from "../models/seller.js";
 import { getSellerStats as getSellerStatsFromService } from "../services/seller/sellerStatsService.js";
 import { roundCurrency } from "../utils/money.js";
 
@@ -29,10 +30,11 @@ export const getSellerEarnings = async (req, res) => {
     try {
         const sellerId = req.user.id;
         const sellerOid = new mongoose.Types.ObjectId(sellerId);
+        const seller = await Seller.findById(sellerId).select("bankDetails").lean();
 
         const transactions = await Transaction.find({ user: sellerId, userModel: 'Seller' })
             .sort({ createdAt: -1 })
-            .populate("order", "orderId");
+            .populate("order", "orderId returnWindowExpiresAt");
 
         const settledBalance = roundCurrency(transactions
             .filter(t => t.status === 'Settled')
@@ -59,7 +61,7 @@ export const getSellerEarnings = async (req, res) => {
             {
                 $group: {
                     _id: null,
-                    totalRevenue: { $sum: { $ifNull: ["$pricing.total", 0] } },
+                    totalRevenue: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", 0] } },
                 },
             },
         ]);
@@ -113,16 +115,20 @@ export const getSellerEarnings = async (req, res) => {
                 totalRevenue: totalRevenue,
                 totalWithdrawn: totalWithdrawn
             },
+            bankDetails: seller?.bankDetails || null,
             monthlyChart: chartData,
             ledger: transactions.map(t => ({
                 id: (t.reference || t._id).toString(),
                 type: t.type,
-                amount: t.amount,
+                amount: (t.type === 'Order Payment' && t.order?.paymentBreakdown?.sellerPayoutTotal != null) ? t.order.paymentBreakdown.sellerPayoutTotal : t.amount,
                 status: t.status,
                 date: t.createdAt.toISOString().split('T')[0],
                 time: t.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 customer: t.type === 'Withdrawal' ? 'Bank Transfer' : 'Customer',
-                ref: t.order ? `#${t.order.orderId}` : t.reference || t._id
+                ref: t.order ? `#${t.order.orderId}` : t.reference || t._id,
+                releaseTime: (t.status === 'Pending' && t.order?.returnWindowExpiresAt) ? t.order.returnWindowExpiresAt : null,
+                productSubtotal: t.order?.paymentBreakdown?.productSubtotal || 0,
+                commission: t.order?.paymentBreakdown?.adminProductCommissionTotal || 0
             }))
         });
     } catch (error) {

@@ -222,7 +222,7 @@ export const getDeliveryProfile = async (req, res) => {
 ================================ */
 export const updateDeliveryProfile = async (req, res) => {
     try {
-        const { name, vehicleType, vehicleNumber, drivingLicenseNumber, currentArea, isOnline, accountHolder, accountNumber, ifsc, dob } = req.body;
+        const { name, vehicleType, vehicleNumber, drivingLicenseNumber, currentArea, isOnline, accountHolder, accountNumber, ifsc, dob, email, bloodGroup, address } = req.body;
 
         const delivery = await Delivery.findById(req.user.id);
         if (!delivery) {
@@ -238,6 +238,9 @@ export const updateDeliveryProfile = async (req, res) => {
         if (accountNumber) delivery.accountNumber = accountNumber;
         if (ifsc) delivery.ifsc = ifsc;
         if (dob) delivery.dob = dob;
+        if (email) delivery.email = email;
+        if (bloodGroup) delivery.bloodGroup = bloodGroup;
+        if (address) delivery.address = address;
 
         // Capture going-offline transition before the save so we know whether
         // to drop the rider's realtime presence nodes after the write.

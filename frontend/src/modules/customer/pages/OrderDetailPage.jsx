@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { customerApi } from "../services/customerApi";
 import { toast } from "sonner";
+import { useSettings } from "@/core/context/SettingsContext";
 import { subscribeToOrderLocation, subscribeToOrderTrail, subscribeToOrderRoute } from "@/core/services/trackingClient";
 import {
   useOrderIdentifiers,
@@ -138,6 +139,7 @@ const matchesOrderIdentifier = (payloadOrderId, identifiers = []) => {
 
 const OrderDetailPage = () => {
   const { orderId } = useParams();
+  const { settings } = useSettings();
   const [showInvoice, setShowInvoice] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [order, setOrder] = useState(null);
@@ -157,14 +159,11 @@ const OrderDetailPage = () => {
   const [routePolyline, setRoutePolyline] = useState(null);
   const [handoffOtp, setHandoffOtp] = useState(null);
   const [clockTick, setClockTick] = useState(Date.now());
-  const parsedReturnWindowMinutes = parseInt(
-    import.meta.env.VITE_RETURN_WINDOW_MINUTES || "2",
-    10,
-  );
-  const returnWindowMinutes =
-    Number.isFinite(parsedReturnWindowMinutes) && parsedReturnWindowMinutes > 0
-      ? parsedReturnWindowMinutes
-      : 2;
+  const returnWindowMinutes = useMemo(() => {
+    const fromSettings = Number(settings?.returnWindowMinutes);
+    if (Number.isFinite(fromSettings) && fromSettings > 0) return fromSettings;
+    return 2880; // 2 days default, matches backend Setting model default
+  }, [settings]);
   const routeOriginRef = useRef(null);
   const routeRequestRef = useRef({ phase: "", startedAt: 0 });
   const [returnCountdown, setReturnCountdown] = useState(null);
@@ -1181,7 +1180,7 @@ const OrderDetailPage = () => {
               </div>
             ) : (
               <p className="text-sm text-slate-500 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                You can request a return within the first {returnWindowMinutes} minutes after delivery.
+                You can request a return within {returnWindowMinutes >= 1440 ? `${Math.round(returnWindowMinutes / 1440)} day(s)` : returnWindowMinutes >= 60 ? `${Math.round(returnWindowMinutes / 60)} hour(s)` : `${returnWindowMinutes} minute(s)`} after delivery.
               </p>
             )}
 

@@ -82,8 +82,27 @@ export class OrderReturnService {
     }
 
     const now = new Date();
-    // Timer validations removed as per request
 
+    // Enforce return window: must be after eligibility delay and before expiry
+    const { eligibleAt, windowExpiresAt, eligibleDelay, windowMinutes } =
+      await computeReturnWindowForOrder(order);
+
+    if (now < eligibleAt) {
+      throw err(
+        `Returns are available ${eligibleDelay} minute(s) after delivery. Please try again shortly.`,
+        400,
+      );
+    }
+    if (now > windowExpiresAt) {
+      const windowHours = Math.round(windowMinutes / 60);
+      const windowLabel = windowHours >= 24
+        ? `${Math.round(windowHours / 24)} day(s)`
+        : `${windowHours} hour(s)`;
+      throw err(
+        `Return window has expired. Returns must be requested within ${windowLabel} of delivery.`,
+        400,
+      );
+    }
     const selectedItems = [];
     for (const entry of items) {
       const { itemIndex, quantity } = entry || {};

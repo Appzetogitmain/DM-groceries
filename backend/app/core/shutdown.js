@@ -217,9 +217,10 @@ async function closeMongoDB() {
 /**
  * Execute graceful shutdown sequence
  * @param {string} signal - Signal that triggered shutdown (SIGTERM, SIGINT, etc.)
+ * @param {number} exitCode - The process exit code (default 0)
  * @returns {Promise<void>}
  */
-async function gracefulShutdown(signal) {
+async function gracefulShutdown(signal, exitCode = 0) {
   if (_isShuttingDown) {
     console.log('[Shutdown] Shutdown already in progress, ignoring signal:', signal);
     return;
@@ -240,7 +241,7 @@ async function gracefulShutdown(signal) {
     console.error(`[Shutdown] Graceful shutdown timeout exceeded (${elapsed}ms)`);
     console.error('[Shutdown] Forcing exit...');
     console.error('='.repeat(60));
-    process.exit(1);
+    process.exit(exitCode !== 0 ? exitCode : 1);
   }, shutdownTimeout);
   
   try {
@@ -285,11 +286,11 @@ async function gracefulShutdown(signal) {
     console.log(`[Shutdown] Graceful shutdown completed successfully in ${elapsed}ms`);
     console.log('='.repeat(60));
     
-    process.exit(0);
+    process.exit(exitCode);
   } catch (error) {
     clearTimeout(forceExitTimeout);
     console.error('[Shutdown] Error during graceful shutdown:', error);
-    process.exit(1);
+    process.exit(exitCode !== 0 ? exitCode : 1);
   }
 }
 
@@ -310,7 +311,7 @@ function registerShutdownHandlers() {
   // Handle uncaught exceptions
   process.on('uncaughtException', (error) => {
     console.error('[Shutdown] Uncaught Exception:', error);
-    gracefulShutdown('uncaughtException');
+    gracefulShutdown('uncaughtException', 1);
   });
   
   // Handle unhandled promise rejections (log but don't exit)

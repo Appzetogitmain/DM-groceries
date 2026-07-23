@@ -42,9 +42,39 @@ const AdminWallet = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('all'); // all, earnings, payouts, seller_requests
     const [selectedTransaction, setSelectedTransaction] = useState(null);
+    const [selectedStat, setSelectedStat] = useState(null);
+    const [drilldownData, setDrilldownData] = useState(null);
+    const [isDrilldownLoading, setIsDrilldownLoading] = useState(false);
+    const [drilldownPage, setDrilldownPage] = useState(1);
     const [isExporting, setIsExporting] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [loadingId, setLoadingId] = useState(null);
+
+    useEffect(() => {
+        if (!selectedStat) {
+            setDrilldownData(null);
+            setDrilldownPage(1);
+            return;
+        }
+        const fetchDrilldown = async () => {
+            setIsDrilldownLoading(true);
+            try {
+                const res = await adminApi.getFinanceDrilldown({
+                    metricType: selectedStat.label,
+                    page: drilldownPage,
+                    limit: 10
+                });
+                if (res?.data?.success) {
+                    setDrilldownData(res.data.result);
+                }
+            } catch (error) {
+                toast.error("Failed to fetch drill-down details");
+            } finally {
+                setIsDrilldownLoading(false);
+            }
+        };
+        fetchDrilldown();
+    }, [selectedStat, drilldownPage]);
 
     const fetchData = async (page = 1) => {
         try {
@@ -62,6 +92,7 @@ const AdminWallet = () => {
                 const summary = summaryRes.data.result || {};
                 const ledger = ledgerRes.data.result || {};
                 const mappedTransactions = (ledger.items || []).map((entry) => ({
+                    rawId: entry._id,
                     id: (entry.transactionId || entry.reference || entry._id || '').toString().substring(0, 10).toUpperCase(),
                     type: entry.type || "UNKNOWN",
                     amount: entry.direction === "DEBIT" ? -Math.abs(entry.amount || 0) : Math.abs(entry.amount || 0),
@@ -82,6 +113,10 @@ const AdminWallet = () => {
                         systemFloat: summary.systemFloatCOD || 0,
                         sellerPendingPayouts: summary.sellerPendingPayouts || 0,
                         deliveryPendingPayouts: summary.deliveryPendingPayouts || 0,
+                        totalHandlingFees: summary.totalHandlingFees || 0,
+                        totalDeliveryCharges: summary.totalDeliveryCharges || 0,
+                        totalProductCommission: summary.totalProductCommission || 0,
+                        totalRefunds: summary.totalRefunds || 0,
                     },
                     transactions: {
                         items: mappedTransactions,
@@ -144,15 +179,6 @@ const AdminWallet = () => {
 
     const stats = [
         {
-            label: 'Total Platform Earning',
-            value: `₹${(walletData.stats?.totalPlatformEarning || 0).toLocaleString()}`,
-            description: 'Total money collected',
-            icon: TrendingUp,
-            color: 'blue',
-            bg: 'bg-brand-50',
-            iconColor: 'text-brand-500'
-        },
-        {
             label: 'Total Admin Earning',
             value: `₹${(walletData.stats?.totalAdminEarning || 0).toLocaleString()}`,
             description: 'Net profit for platform',
@@ -196,6 +222,42 @@ const AdminWallet = () => {
             color: 'purple',
             bg: 'bg-purple-50',
             iconColor: 'text-purple-500'
+        },
+        {
+            label: 'Product Commission',
+            value: `₹${(walletData.stats?.totalProductCommission || 0).toLocaleString()}`,
+            description: 'Platform commissions',
+            icon: TrendingUp,
+            color: 'indigo',
+            bg: 'bg-indigo-50',
+            iconColor: 'text-indigo-500'
+        },
+        {
+            label: 'Handling Fees',
+            value: `₹${(walletData.stats?.totalHandlingFees || 0).toLocaleString()}`,
+            description: 'Handling fees collected',
+            icon: DollarSign,
+            color: 'blue',
+            bg: 'bg-blue-50',
+            iconColor: 'text-blue-500'
+        },
+        {
+            label: 'Delivery Fees',
+            value: `₹${(walletData.stats?.totalDeliveryCharges || 0).toLocaleString()}`,
+            description: 'Delivery revenue',
+            icon: Building2,
+            color: 'emerald',
+            bg: 'bg-emerald-50',
+            iconColor: 'text-emerald-500'
+        },
+        {
+            label: 'Total Refunds',
+            value: `₹${(walletData.stats?.totalRefunds || 0).toLocaleString()}`,
+            description: 'Refunds processed',
+            icon: RotateCw,
+            color: 'rose',
+            bg: 'bg-rose-50',
+            iconColor: 'text-rose-500'
         }
     ];
 
@@ -323,7 +385,7 @@ const AdminWallet = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 {stats.map((stat, idx) => (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -331,7 +393,10 @@ const AdminWallet = () => {
                         transition={{ delay: idx * 0.05 }}
                         key={idx}
                     >
-                        <Card className="px-5 py-3 border-none shadow-sm ring-1 ring-slate-100 hover:ring-primary/20 transition-all hover:shadow-xl bg-white group relative overflow-hidden">
+                        <Card 
+                            className="px-5 py-3 border-none shadow-sm ring-1 ring-slate-100 hover:ring-primary/20 transition-all hover:shadow-xl bg-white group relative overflow-hidden cursor-pointer active:scale-[0.98]"
+                            onClick={() => setSelectedStat(stat)}
+                        >
                             <div className="flex flex-col h-full relative z-10">
                                 {/* Top Row: Icon and Live Status */}
                                 <div className="flex justify-between items-center mb-2">
@@ -484,7 +549,7 @@ const AdminWallet = () => {
                                         <tbody className="divide-y divide-slate-50">
                                             {filteredTransactions.map((txn, i) => (
                                                 <tr
-                                                    key={txn.id}
+                                                    key={txn.rawId || txn.id || i}
                                                     onClick={() => setSelectedTransaction(txn)}
                                                     className="group hover:bg-slate-50/50 transition-all cursor-pointer"
                                                 >
@@ -705,6 +770,132 @@ const AdminWallet = () => {
                             <button
                                 onClick={() => setSelectedTransaction(null)}
                                 className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                            >
+                                CLOSE
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Stat Detail Modal */}
+            <Modal
+                isOpen={!!selectedStat}
+                onClose={() => setSelectedStat(null)}
+                title="Metric Drill Down"
+                size="4xl"
+            >
+                {selectedStat && (
+                    <div className="space-y-6">
+                        <div className="text-center pb-6 border-b border-slate-100 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 text-left">
+                                <div className={cn("h-16 w-16 rounded-2xl flex items-center justify-center", selectedStat.bg)}>
+                                    <selectedStat.icon className={cn("h-8 w-8", selectedStat.iconColor)} />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{selectedStat.label}</p>
+                                    <h4 className="text-3xl font-black text-slate-900">{selectedStat.value}</h4>
+                                </div>
+                            </div>
+                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 max-w-sm text-right">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Context</p>
+                                <p className="text-xs font-medium text-slate-600">
+                                    {selectedStat.description}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                            {isDrilldownLoading ? (
+                                <div className="p-12 flex flex-col items-center justify-center space-y-4">
+                                    <RotateCw className="h-8 w-8 text-slate-300 animate-spin" />
+                                    <p className="text-sm font-medium text-slate-400">Loading details...</p>
+                                </div>
+                            ) : drilldownData?.unsupported ? (
+                                <div className="p-12 flex flex-col items-center justify-center space-y-4 text-center">
+                                    <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center">
+                                        <History className="h-6 w-6 text-slate-300" />
+                                    </div>
+                                    <h3 className="text-sm font-bold text-slate-900">Breakdown Not Available</h3>
+                                    <p className="text-xs text-slate-500 max-w-xs">
+                                        This metric is an aggregated total. Granular drill-down is not currently supported for {selectedStat.label}.
+                                    </p>
+                                </div>
+                            ) : drilldownData?.items?.length > 0 ? (
+                                <>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr>
+                                                    {drilldownData.columns.map((col) => (
+                                                        <th key={col.key} className="p-4 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                                                            {col.label}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {drilldownData.items.map((item, idx) => (
+                                                    <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                                                        {drilldownData.columns.map((col) => (
+                                                            <td key={col.key} className="p-4 text-sm whitespace-nowrap">
+                                                                {col.key === 'id' ? (
+                                                                    <span className="font-mono font-bold text-slate-900 text-xs bg-slate-100 px-2 py-1 rounded-md">{item[col.key]}</span>
+                                                                ) : col.key === 'amount' ? (
+                                                                    <span className="font-black text-slate-900">₹{item[col.key]}</span>
+                                                                ) : col.key === 'status' ? (
+                                                                    <span className={cn(
+                                                                        "px-2 py-1 rounded-md text-[10px] font-bold tracking-wider",
+                                                                        item[col.key] === 'COMPLETED' || item[col.key] === 'PAID' ? "bg-emerald-50 text-emerald-600" :
+                                                                        item[col.key] === 'PENDING' || item[col.key] === 'PROCESSING' ? "bg-amber-50 text-amber-600" :
+                                                                        "bg-slate-100 text-slate-600"
+                                                                    )}>
+                                                                        {item[col.key]}
+                                                                    </span>
+                                                                ) : col.key === 'vendor' ? (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="h-6 w-6 rounded bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-[10px]">
+                                                                            {item[col.key]?.charAt(0)}
+                                                                        </div>
+                                                                        <span className="font-bold text-slate-700">{item[col.key]}</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="font-medium text-slate-600">{item[col.key]}</span>
+                                                                )}
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {drilldownData.totalPages > 1 && (
+                                        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+                                            <Pagination 
+                                                currentPage={drilldownPage} 
+                                                totalPages={drilldownData.totalPages} 
+                                                onPageChange={setDrilldownPage} 
+                                            />
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="p-12 flex flex-col items-center justify-center space-y-4 text-center">
+                                    <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center">
+                                        <History className="h-6 w-6 text-slate-300" />
+                                    </div>
+                                    <h3 className="text-sm font-bold text-slate-900">No Records Found</h3>
+                                    <p className="text-xs text-slate-500 max-w-xs">
+                                        There are no individual records associated with {selectedStat.label} at this time.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="pt-2 flex justify-end">
+                            <button
+                                onClick={() => setSelectedStat(null)}
+                                className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
                             >
                                 CLOSE
                             </button>

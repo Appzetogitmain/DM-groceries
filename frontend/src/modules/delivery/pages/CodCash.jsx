@@ -74,6 +74,20 @@ const CodCash = () => {
   );
   const enteredPayAmount = safeMoney(payAmount);
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePayNow = async () => {
     if (paying) return;
     if (enteredPayAmount <= 0) {
@@ -87,17 +101,65 @@ const CodCash = () => {
 
     try {
       setPaying(true);
-      const res = await deliveryApi.payCodCashToAdmin({
-        amount: enteredPayAmount,
+      
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        toast.error("Failed to load payment gateway. Please check your connection.");
+        setPaying(false);
+        return;
+      }
+
+      const initRes = await deliveryApi.initiateCodDeposit({ amount: enteredPayAmount });
+      const { orderId, amount, key } = initRes.data?.result || {};
+
+      if (!orderId || !key) {
+        toast.error("Failed to initialize payment");
+        setPaying(false);
+        return;
+      }
+
+      const options = {
+        key: key,
+        amount: amount * 100, // Amount in paise
+        currency: "INR",
+        name: "DM Groceries",
+        description: "COD Cash Deposit",
+        order_id: orderId,
+        handler: async function (response) {
+          try {
+            setPaying(true);
+            const verifyRes = await deliveryApi.verifyCodDeposit({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              amount: enteredPayAmount
+            });
+            const result = verifyRes.data?.result || {};
+            toast.success(
+              `Deposited ${RUPEE}${safeMoney(result.totalSubmitted).toLocaleString()} successfully`
+            );
+            await fetchSummary();
+          } catch (verifyError) {
+            toast.error(verifyError?.response?.data?.message || "Payment verification failed");
+          } finally {
+            setPaying(false);
+            setPayAmount("");
+          }
+        },
+        theme: {
+          color: "#f97316" // Tailwind orange-500
+        }
+      };
+
+      const razorpayInstance = new window.Razorpay(options);
+      razorpayInstance.on('payment.failed', function (response) {
+        toast.error(response.error.description || "Payment failed");
+        setPaying(false);
       });
-      const result = res.data?.result || {};
-      toast.success(
-        `Submitted ${RUPEE}${safeMoney(result.totalSubmitted).toLocaleString()} to admin`,
-      );
-      await fetchSummary();
+      
+      razorpayInstance.open();
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to submit COD cash");
-    } finally {
+      toast.error(error?.response?.data?.message || "Failed to initiate COD deposit");
       setPaying(false);
     }
   };

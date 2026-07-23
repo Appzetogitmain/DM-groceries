@@ -7,6 +7,8 @@ import { getAdminFinanceSummary } from "../services/finance/walletService.js";
 import { getLedgerEntries } from "../services/finance/ledgerService.js";
 import { bulkProcessPayouts } from "../services/finance/payoutService.js";
 import { exportFinanceStatement } from "../services/finance/statementService.js";
+import { getProfitAnalytics } from "../services/finance/analyticsService.js";
+import { getFinanceDrilldown } from "../services/finance/drilldownService.js";
 import {
   FINANCE_AUDIT_ACTION,
   OWNER_TYPE,
@@ -27,6 +29,26 @@ export const getAdminFinanceSummaryController = async (req, res) => {
   try {
     const summary = await getAdminFinanceSummary();
     return handleResponse(res, 200, "Admin finance summary fetched", summary);
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+export const getAdminFinanceAnalyticsController = async (req, res) => {
+  try {
+    const { timeRange } = req.query;
+    const analytics = await getProfitAnalytics(timeRange);
+    return handleResponse(res, 200, "Admin finance analytics fetched", analytics);
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+export const getAdminFinanceDrilldownController = async (req, res) => {
+  try {
+    const { metricType, page, limit } = req.query;
+    const drilldown = await getFinanceDrilldown({ metricType, page, limit });
+    return handleResponse(res, 200, "Admin finance drilldown fetched", drilldown);
   } catch (error) {
     return handleResponse(res, 500, error.message);
   }

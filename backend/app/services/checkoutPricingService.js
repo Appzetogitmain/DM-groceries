@@ -81,6 +81,7 @@ async function computeDistanceKmForSeller({ sellerId, addressLocation, session =
   }
 
   const distanceKm = Number((distanceInMeters / 1000).toFixed(3));
+  const durationSeconds = route && route.duration != null && !route.degraded ? route.duration : null;
   
   const radius = Number(seller.serviceRadius || 5);
   if (distanceKm > radius) {
@@ -89,7 +90,7 @@ async function computeDistanceKmForSeller({ sellerId, addressLocation, session =
     throw err;
   }
 
-  return { distanceKm, distanceSource };
+  return { distanceKm, distanceSource, durationSeconds };
 }
 
 function sumField(rows, field) {
@@ -456,7 +457,7 @@ export async function buildCheckoutPricingSnapshot({
 
   for (const sellerId of sellerIds) {
     const sellerItems = itemsBySeller.get(sellerId) || [];
-    const { distanceKm, distanceSource } = await computeDistanceKmForSeller({
+    const { distanceKm, distanceSource, durationSeconds } = await computeDistanceKmForSeller({
       sellerId,
       addressLocation: address?.location,
       session,
@@ -479,6 +480,8 @@ export async function buildCheckoutPricingSnapshot({
     sellerBreakdownEntries.push({
       sellerId,
       distanceKm,
+      distanceSource,
+      durationSeconds,
       items: sellerItems,
       breakdown: {
         ...breakdown,
@@ -515,6 +518,12 @@ export async function buildCheckoutPricingSnapshot({
   const aggregateBreakdown = buildAggregateBreakdown(
     sellerBreakdownEntries.map((entry) => entry.breakdown),
   );
+
+  const maxDurationSeconds = sellerBreakdownEntries.reduce((max, entry) => {
+    return Math.max(max, entry.durationSeconds || 0);
+  }, 0);
+  const estimatedTimeMins = maxDurationSeconds > 0 ? Math.ceil(maxDurationSeconds / 60) + 15 : 15;
+  aggregateBreakdown.estimatedTimeMins = estimatedTimeMins;
 
   return {
     hydratedItems,

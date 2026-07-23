@@ -1,16 +1,7 @@
+import Setting from "../models/setting.js";
+
 /**
  * Single source of truth for return-window business rules.
- *
- * Replaces previously-duplicated copies of:
- *   - parsePositiveInt()
- *   - getReturnEligibilityDelayMinutes()
- *   - getReturnWindowMinutes()
- *   - computeReturnWindowForOrder()   (controller variant)
- *   - computeReturnWindowDates()      (finance-service variant)
- *
- * Both variants are preserved here under their original names so existing
- * callers can be migrated with a one-line import change, with zero behavior
- * difference.
  */
 
 export function parsePositiveInt(value, fallback) {
@@ -19,26 +10,36 @@ export function parsePositiveInt(value, fallback) {
   return fallback;
 }
 
-export function getReturnEligibilityDelayMinutes() {
-  return parsePositiveInt(process.env.RETURN_ELIGIBILITY_DELAY_MINUTES, 2);
+export async function getReturnSettings() {
+  const setting = await Setting.findOne().select("returnWindowMinutes returnEligibilityDelayMinutes").lean();
+  
+  return {
+    eligibleDelay: parsePositiveInt(setting?.returnEligibilityDelayMinutes ?? process.env.RETURN_ELIGIBILITY_DELAY_MINUTES, 2),
+    windowMinutes: parsePositiveInt(setting?.returnWindowMinutes ?? process.env.RETURN_WINDOW_MINUTES, 2880)
+  };
 }
 
-export function getReturnWindowMinutes() {
-  return parsePositiveInt(process.env.RETURN_WINDOW_MINUTES, 2);
+export async function getReturnEligibilityDelayMinutes() {
+  const settings = await getReturnSettings();
+  return settings.eligibleDelay;
+}
+
+export async function getReturnWindowMinutes() {
+  const settings = await getReturnSettings();
+  return settings.windowMinutes;
 }
 
 /**
  * Order-aware variant: prefers persisted timestamps on the order and falls
  * back to deliveredAt → createdAt → now. Returns the configured delay/window
  * values alongside the computed dates for use in user-facing error messages.
- *
- * Matches the previous `computeReturnWindowForOrder` in orderController.js.
  */
-export function computeReturnWindowForOrder(order) {
+export async function computeReturnWindowForOrder(order) {
   const base = order?.deliveredAt || order?.createdAt || new Date();
   const deliveredAt = base instanceof Date ? base : new Date(base);
-  const eligibleDelay = getReturnEligibilityDelayMinutes();
-  const windowMinutes = getReturnWindowMinutes();
+  
+  const { eligibleDelay, windowMinutes } = await getReturnSettings();
+
   const eligibleAt =
     order?.returnEligibleAt ||
     new Date(deliveredAt.getTime() + eligibleDelay * 60 * 1000);
@@ -61,12 +62,9 @@ export function computeReturnWindowForOrder(order) {
  * Date-only variant: derives the window strictly from a deliveredAt input,
  * ignoring any persisted order-level overrides. Used by the finance service
  * when stamping a freshly-delivered order.
- *
- * Matches the previous `computeReturnWindowDates` in orderFinanceService.js.
  */
-export function computeReturnWindowDates(deliveredAt) {
-  const eligibleDelay = getReturnEligibilityDelayMinutes();
-  const windowMinutes = getReturnWindowMinutes();
+export async function computeReturnWindowDates(deliveredAt) {
+  const { eligibleDelay, windowMinutes } = await getReturnSettings();
   const start = deliveredAt instanceof Date ? deliveredAt : new Date();
   const eligibleAt = new Date(start.getTime() + eligibleDelay * 60 * 1000);
   const windowExpiresAt = new Date(start.getTime() + windowMinutes * 60 * 1000);

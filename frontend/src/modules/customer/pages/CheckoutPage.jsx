@@ -143,6 +143,7 @@ const CheckoutPage = () => {
   const [selectedTip, setSelectedTip] = useState(0);
   const [showAllCartItems, setShowAllCartItems] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isResolvingAddressCoords, setIsResolvingAddressCoords] = useState(false);
@@ -152,6 +153,7 @@ const CheckoutPage = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [pricingPreview, setPricingPreview] = useState(null);
+  const [previewError, setPreviewError] = useState(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const postOrderNavigateRef = useRef(null);
   const previewDebounceRef = useRef(null);
@@ -505,6 +507,20 @@ const CheckoutPage = () => {
           "error",
         );
       }
+    } else if (location) {
+      // If we already had location (e.g., from Autocomplete), we still need to persist the updated text to LocationContext
+      updateLocation(
+        {
+          name: formattedAddress || editAddressForm.address,
+          time: currentLocation?.time || "12-15 mins",
+          city: editAddressForm.city || currentLocation?.city,
+          state: currentLocation?.state,
+          pincode: currentLocation?.pincode,
+          latitude: location.lat,
+          longitude: location.lng,
+        },
+        { persist: true, updateSavedHome: false },
+      );
     }
 
     setCurrentAddress({
@@ -662,7 +678,7 @@ const CheckoutPage = () => {
 
     const fetchCoupons = async () => {
       try {
-        const res = await customerApi.getActiveCoupons();
+        const res = await customerApi.getActiveCoupons(user?._id);
         if (res.data.success) {
           const list = res.data.result || res.data.results || [];
           setCoupons(list);
@@ -701,11 +717,17 @@ const CheckoutPage = () => {
     const fetchPreview = async () => {
       try {
         setIsPreviewLoading(true);
+        setPreviewError(null);
         const res = await customerApi.checkoutPreview(buildPreviewPayload());
         if (res.data?.success) {
           setPricingPreview(res.data.result?.breakdown ?? null);
+        } else {
+          setPricingPreview(null);
+          setPreviewError(res.data?.message || "Could not preview checkout");
         }
       } catch (error) {
+        setPricingPreview(null);
+        setPreviewError(error.response?.data?.message || "Could not preview checkout");
         console.error("Checkout preview failed", error);
       } finally {
         setIsPreviewLoading(false);
@@ -748,7 +770,7 @@ const CheckoutPage = () => {
       .then((res) => {
         if (res.data?.success) {
           const items = (res.data.result?.items || [])
-            .map((p) => ({ ...p, id: p._id }))
+            .map((p) => ({ ...p, id: p._id, image: p.image || p.mainImage }))
             .filter((p) => !cartIds.has(p.id));
           setRecommendedProducts(items.slice(0, 8));
         }
@@ -806,6 +828,7 @@ const CheckoutPage = () => {
               orderId: mainOrderId,
             });
             if (paymentRes.data.success && paymentRes.data.result?.redirectUrl) {
+              setIsRedirecting(true);
               clearCart();
               window.location.href = paymentRes.data.result.redirectUrl;
               return;
@@ -891,6 +914,20 @@ const CheckoutPage = () => {
       leaveOrderRoom(orderId, getToken);
     };
   }, [orderId, showSuccess]);
+
+  // ─── Payment Redirect State ───────────────────────────────────────────────────
+  if (isRedirecting || (isPlacingOrder && cart.length === 0 && !showSuccess)) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-50/50 via-transparent to-transparent pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center text-center max-w-sm mx-auto">
+          <div className="w-16 h-16 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mb-6"></div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Redirecting...</h2>
+          <p className="text-slate-600">Please wait while we take you to the payment gateway.</p>
+        </div>
+      </div>
+    );
+  }
 
   // ─── Empty cart state ────────────────────────────────────────────────────────
   if (cart.length === 0 && !showSuccess && !isPlacingOrder) {
@@ -997,7 +1034,9 @@ const CheckoutPage = () => {
                   <Clock size={24} className="text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-800 text-lg">Delivery in 12-15 mins</h3>
+                  <h3 className="font-black text-slate-800 text-lg">
+                    Delivery in {pricingPreview?.estimatedTimeMins ? `${pricingPreview.estimatedTimeMins}-${pricingPreview.estimatedTimeMins + 5}` : "12-15"} mins
+                  </h3>
                   <p className="text-sm text-slate-500">Shipment of {cartCount} items</p>
                 </div>
               </div>
@@ -1067,6 +1106,7 @@ const CheckoutPage = () => {
             <CheckoutPricingBreakdown
               pricingPreview={pricingPreview}
               isPreviewLoading={isPreviewLoading}
+              previewError={previewError}
               selectedTip={selectedTip}
               onSelectTip={setSelectedTip}
               tipAmounts={tipAmounts}
@@ -1093,8 +1133,9 @@ const CheckoutPage = () => {
               <SlideToPay
                 amount={finalAmountToPay}
                 onSuccess={handlePlaceOrder}
-                isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview}
-                text={finalAmountToPay === 0 ? "Place Free Order" : "Order Now"}
+                isLoading={isPlacingOrder || isPreviewLoading}
+                disabled={!pricingPreview || !!previewError}
+                text={finalAmountToPay === 0 && !previewError ? "Place Free Order" : "Order Now"}
               />
               <p className="text-center text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-[0.1em]">
                 🔒 SSL encrypted secure checkout
@@ -1110,8 +1151,9 @@ const CheckoutPage = () => {
           <SlideToPay
             amount={finalAmountToPay}
             onSuccess={handlePlaceOrder}
-            isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview}
-            text={finalAmountToPay === 0 ? "Place Free Order" : "Slide to Pay"}
+            isLoading={isPlacingOrder || isPreviewLoading}
+            disabled={!pricingPreview || !!previewError}
+            text={finalAmountToPay === 0 && !previewError ? "Place Free Order" : "Slide to Pay"}
           />
         </div>
       </div>
@@ -1223,7 +1265,12 @@ const CheckoutPage = () => {
                     <Input
                       id="edit-address"
                       value={editAddressForm.address}
-                      onChange={(e) => setEditAddressForm((prev) => ({ ...prev, address: e.target.value }))}
+                      onChange={(e) => setEditAddressForm((prev) => ({ 
+                        ...prev, 
+                        address: e.target.value,
+                        location: null,
+                        placeId: null
+                      }))}
                       className="h-10"
                       placeholder="Search for your address..."
                     />
@@ -1232,7 +1279,12 @@ const CheckoutPage = () => {
                   <Input
                     id="edit-address"
                     value={editAddressForm.address}
-                    onChange={(e) => setEditAddressForm((prev) => ({ ...prev, address: e.target.value }))}
+                    onChange={(e) => setEditAddressForm((prev) => ({ 
+                        ...prev, 
+                        address: e.target.value,
+                        location: null,
+                        placeId: null
+                    }))}
                     className="h-10"
                     placeholder="House, street, area"
                   />
@@ -1253,7 +1305,11 @@ const CheckoutPage = () => {
                 <Input
                   id="edit-city"
                   value={editAddressForm.city}
-                  onChange={(e) => setEditAddressForm((prev) => ({ ...prev, city: e.target.value }))}
+                  onChange={(e) => setEditAddressForm((prev) => ({ 
+                    ...prev, 
+                    city: e.target.value,
+                    location: null 
+                  }))}
                   className="h-10"
                   placeholder="City - Pincode"
                 />

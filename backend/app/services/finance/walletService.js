@@ -2,6 +2,7 @@ import Wallet from "../../models/wallet.js";
 import Payout from "../../models/payout.js";
 import Order from "../../models/order.js";
 import User from "../../models/customer.js";
+import LedgerEntry from "../../models/ledgerEntry.js";
 import {
   LEDGER_DIRECTION,
   ORDER_PAYMENT_STATUS,
@@ -479,6 +480,8 @@ export async function getAdminFinanceSummary() {
     pendingPayouts,
     systemFloatCOD,
     platformGross,
+    additionalMetrics,
+    totalRefundsQuery
   ] =
     await Promise.all([
       Order.aggregate([
@@ -495,8 +498,15 @@ export async function getAdminFinanceSummary() {
         { $group: { _id: null, amount: { $sum: "$paymentBreakdown.codRemittedAmount" } } },
       ]),
       Order.aggregate([
-        // Requirement: Total Admin Earning should not include COD orders.
-        { $match: { status: "delivered", paymentMode: "ONLINE" } },
+        { 
+          $match: { 
+            status: "delivered", 
+            $or: [
+              { paymentMode: "ONLINE" },
+              { paymentMode: "COD", "financeFlags.codMarkedCollected": true }
+            ]
+          } 
+        },
         { $group: { _id: null, amount: { $sum: "$paymentBreakdown.platformTotalEarning" } } },
       ]),
       Payout.aggregate([
@@ -512,8 +522,7 @@ export async function getAdminFinanceSummary() {
         {
           $match: {
             paymentMode: "COD",
-            status: { $ne: "cancelled" },
-            orderStatus: { $ne: "cancelled" },
+            status: "delivered",
           },
         },
         {
@@ -553,8 +562,7 @@ export async function getAdminFinanceSummary() {
       Order.aggregate([
         {
           $match: {
-            status: { $ne: "cancelled" },
-            orderStatus: { $ne: "cancelled" },
+            status: "delivered",
           },
         },
         {
@@ -568,6 +576,25 @@ export async function getAdminFinanceSummary() {
           },
         },
       ]),
+      Order.aggregate([
+        {
+          $match: {
+            status: "delivered",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            handlingFees: { $sum: "$paymentBreakdown.handlingFeeCharged" },
+            deliveryCharges: { $sum: "$paymentBreakdown.deliveryFeeCharged" },
+            productCommission: { $sum: "$paymentBreakdown.adminProductCommissionTotal" }
+          },
+        },
+      ]),
+      LedgerEntry.aggregate([
+        { $match: { type: "REFUND", direction: "CREDIT" } },
+        { $group: { _id: null, amount: { $sum: "$amount" } } }
+      ])
     ]);
 
   const sellerPendingPayouts =
@@ -597,6 +624,10 @@ export async function getAdminFinanceSummary() {
     deliveryPendingPayouts: roundCurrency(riderPendingPayouts),
     reconciledOnlineInflows: roundCurrency(onlineCollection[0]?.amount || 0),
     reconciledCODInflows: roundCurrency(codReconciled[0]?.amount || 0),
+    totalHandlingFees: roundCurrency(additionalMetrics[0]?.handlingFees || 0),
+    totalDeliveryCharges: roundCurrency(additionalMetrics[0]?.deliveryCharges || 0),
+    totalProductCommission: roundCurrency(additionalMetrics[0]?.productCommission || 0),
+    totalRefunds: roundCurrency(totalRefundsQuery[0]?.amount || 0),
   };
 }
 

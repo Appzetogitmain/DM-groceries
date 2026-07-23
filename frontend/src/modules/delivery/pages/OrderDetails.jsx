@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/core/context/AuthContext";
 import {
@@ -172,6 +172,7 @@ const OrderDetails = () => {
   const [isSlideComplete, setIsSlideComplete] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [showOtpInput, setShowOtpInput] = useState(false);
+  const [showSellerOtpInput, setShowSellerOtpInput] = useState(false);
   const [showDropOtpInput, setShowDropOtpInput] = useState(false);
   const [pickupProofSubmitted, setPickupProofSubmitted] = useState(false);
   const [routeStats, setRouteStats] = useState(null);
@@ -179,26 +180,24 @@ const OrderDetails = () => {
 
   const isReturn = order?.returnStatus && order.returnStatus !== "none";
 
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
-      try {
-        const response = await deliveryApi.getOrderDetails(orderId);
-        const ord = response.data.result;
-        setOrder(ord);
-
-        setStep(getPersistedRiderStep(ord));
-      } catch (error) {
-        toast.error("Failed to fetch order details");
-        navigate("/delivery/dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (orderId) {
-      fetchOrderDetails();
+  const fetchOrderDetails = useCallback(async () => {
+    if (!orderId) return;
+    try {
+      const response = await deliveryApi.getOrderDetails(orderId);
+      const ord = response.data.result;
+      setOrder(ord);
+      setStep(getPersistedRiderStep(ord));
+    } catch (error) {
+      toast.error("Failed to fetch order details");
+      navigate("/delivery/dashboard");
+    } finally {
+      setLoading(false);
     }
   }, [orderId, navigate]);
+
+  useEffect(() => {
+    fetchOrderDetails();
+  }, [fetchOrderDetails]);
 
   useEffect(() => {
     const iv = setInterval(() => setClockTick(Date.now()), 30000);
@@ -444,19 +443,16 @@ const OrderDetails = () => {
             lat: location.lat,
             lng: location.lng,
           });
-          const updated = res.data.result;
-          setOrder((prev) => ({ ...(prev || {}), ...updated }));
           setStep(2);
+          await fetchOrderDetails();
           toast.success(`${currentStep.action} Confirmed!`);
         } else if (step === 2) {
-          const res = await deliveryApi.confirmPickup(order.orderId, {
+          await deliveryApi.requestSellerPickupOtp(order.orderId, {
             lat: location.lat,
             lng: location.lng,
           });
-          const updated = res.data.result;
-          setOrder((prev) => ({ ...(prev || {}), ...updated }));
-          setStep(3);
-          toast.success(`${currentStep.action} Confirmed!`);
+          setShowSellerOtpInput(true);
+          toast.success("OTP sent to seller! Please enter it to confirm pickup.");
         } else if (step === 3) {
           setStep(4);
           toast.success(`${currentStep.action} Confirmed!`);
@@ -524,7 +520,7 @@ const OrderDetails = () => {
     console.error("Failed to generate OTP:", error);
   };
 
-  const handleOtpValidationSuccess = (data) => {
+  const handleOtpValidationSuccess = async (data) => {
     const responsePayload = data?.result || data?.data?.result;
     const updatedOrder = responsePayload?.order || responsePayload;
 
@@ -536,17 +532,13 @@ const OrderDetails = () => {
     if (isReturn) {
       // Return pickup OTP → navigate to seller for drop-off
       setStep(3);
-      if (updatedOrder) setOrder(updatedOrder);
+      await fetchOrderDetails();
       window.scrollTo({ top: 0, behavior: "smooth" });
       toast.success("✅ Pickup verified! Navigate to seller for drop-off.");
     } else {
       // Standard delivery OTP → order is delivered, hide map immediately
       setStep(4);
-      if (updatedOrder) {
-        setOrder({ ...updatedOrder, status: "delivered", workflowStatus: "DELIVERED" });
-      } else {
-        setOrder((prev) => prev ? { ...prev, status: "delivered", workflowStatus: "DELIVERED" } : prev);
-      }
+      await fetchOrderDetails();
       window.scrollTo({ top: 0, behavior: "smooth" });
       toast.success("✅ Order delivered successfully!");
     }
@@ -556,12 +548,24 @@ const OrderDetails = () => {
     console.error("OTP validation error:", error);
   };
 
+  const handleSellerOtpSuccess = async (data) => {
+    const responsePayload = data?.result || data?.data?.result;
+    const updatedOrder = responsePayload?.order || responsePayload;
+
+    setShowSellerOtpInput(false);
+    setIsSlideComplete(false);
+    setDragX(0);
+    setStep(3);
+    await fetchOrderDetails();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.success("✅ Pickup verified! Navigate to customer for drop-off.");
+  };
+
   const handleAcceptReturn = async () => {
     try {
       setAccepting(true);
       const res = await deliveryApi.acceptReturnPickup(order.orderId);
-      const updated = res.data.result;
-      setOrder(updated);
+      await fetchOrderDetails();
       toast.success("Return pickup task accepted!");
       setStep(1);
     } catch (error) {
@@ -1200,6 +1204,23 @@ const OrderDetails = () => {
                 onSuccess={handleOtpValidationSuccess}
                 onError={handleOtpValidationError}
                 onCancel={() => setShowOtpInput(false)}
+              />
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Seller Pickup OTP input */}
+        {showSellerOtpInput && !isReturn && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Card className="p-6 rounded-3xl shadow-sm border border-slate-100">
+              <OtpInput
+                orderId={orderId}
+                isReturn={false}
+                isReturnDrop={false}
+                isSellerPickup={true}
+                onSuccess={handleSellerOtpSuccess}
+                onError={handleOtpValidationError}
+                onCancel={() => setShowSellerOtpInput(false)}
               />
             </Card>
           </motion.div>

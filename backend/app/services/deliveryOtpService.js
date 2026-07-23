@@ -551,3 +551,100 @@ export async function validateReturnDropOtp(orderId, enteredOtp) {
     return { valid: false, error: 'VALIDATION_FAILED', message: 'Internal error.' };
   }
 }
+
+/**
+ * Generate OTP for seller pickup
+ * @param {string} orderId 
+ * @returns {Promise<Object>} { success: boolean, otp?: string, expiresAt?: Date, error?: string }
+ */
+export async function generateSellerPickupOtp(orderId) {
+  try {
+    const order = await Order.findOne({ orderId }).select('_id status workflowStatus');
+    if (!order) {
+      return { success: false, error: 'Order not found' };
+    }
+
+    const otp = String(crypto.randomInt(0, 10000)).padStart(4, '0');
+    const codeHash = OrderOtp.hashCode(otp);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await OrderOtp.updateMany(
+      { orderId, type: 'seller_pickup', consumedAt: null },
+      { consumedAt: new Date() }
+    );
+
+    await OrderOtp.create({
+      orderId,
+      orderMongoId: order._id,
+      type: 'seller_pickup',
+      codeHash,
+      code: otp,
+      expiresAt,
+      attempts: 0,
+      maxAttempts: 3,
+      lastGeneratedAt: new Date()
+    });
+
+    return { success: true, otp, expiresAt };
+  } catch (error) {
+    console.error('Error generating seller pickup OTP:', error);
+    return { success: false, error: 'Failed to generate OTP.' };
+  }
+}
+
+/**
+ * Validate OTP entered by delivery person for seller pickup
+ * @param {string} orderId 
+ * @param {string} enteredOtp 
+ * @returns {Promise<Object>}
+ */
+export async function validateSellerPickupOtp(orderId, enteredOtp) {
+  try {
+    if (!orderId || !enteredOtp) {
+      return { valid: false, error: 'INVALID_FORMAT', message: 'orderId and OTP are required' };
+    }
+
+    const otpRecord = await OrderOtp.findOne({ orderId, type: 'seller_pickup' }).sort({
+      lastGeneratedAt: -1,
+      createdAt: -1,
+    });
+
+    if (!otpRecord) {
+      return { valid: false, error: 'OTP_NOT_FOUND', message: 'No seller pickup OTP found. Please request a new one.' };
+    }
+
+    if (otpRecord.consumedAt) {
+      return { valid: false, error: 'OTP_CONSUMED', message: 'OTP already consumed.' };
+    }
+
+    if (otpRecord.attempts >= otpRecord.maxAttempts) {
+      return { valid: false, error: 'MAX_ATTEMPTS_EXCEEDED', message: 'Max attempts exceeded.' };
+    }
+
+    if (isOtpExpired(otpRecord.expiresAt)) {
+      return { valid: false, error: 'OTP_EXPIRED', message: 'OTP expired. Please request a new one.' };
+    }
+
+    const enteredHash = OrderOtp.hashCode(enteredOtp);
+    const isMatch = enteredHash === otpRecord.codeHash;
+
+    if (!isMatch) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return {
+        valid: false,
+        error: 'OTP_MISMATCH',
+        message: 'Invalid OTP.',
+        attemptsRemaining: otpRecord.maxAttempts - otpRecord.attempts,
+      };
+    }
+
+    otpRecord.consumedAt = new Date();
+    await otpRecord.save();
+
+    return { valid: true, message: 'Seller pickup OTP validated successfully' };
+  } catch (error) {
+    console.error('Error validating seller pickup OTP:', error);
+    return { valid: false, error: 'VALIDATION_FAILED', message: 'Internal error.' };
+  }
+}

@@ -11,6 +11,7 @@ import {
 import { TrendingUp, ArrowUpRight, Download, Info, Building2, ArrowRight } from "lucide-react";
 import Modal from "@/shared/components/ui/Modal";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
@@ -27,7 +28,8 @@ const resolveTipAmount = (txn) =>
   );
 
 const EarningsPage = () => {
-  const [activeTab, setActiveTab] = useState("weekly");
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("today");
   const [loading, setLoading] = useState(true);
   const [earningsData, setEarningsData] = useState({
     totalEarnings: 0,
@@ -148,6 +150,12 @@ const EarningsPage = () => {
             <p className="text-[11px] text-white/70 font-medium mt-0.5">Track your commission & tips</p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/delivery/cod-cash")}
+              className="px-3 py-2 bg-orange-500 text-white font-bold text-xs rounded-full shadow-sm hover:bg-orange-600 transition-colors"
+            >
+              COD Cash
+            </button>
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2.5 bg-white text-[#1A4516] font-bold text-xs rounded-full shadow-sm hover:bg-gray-100 transition-colors"

@@ -11,6 +11,8 @@ export const deliveryApi = {
   getEarnings: (params) => axiosInstance.get("/delivery/earnings", { params }),
   getCodCashSummary: () => axiosInstance.get("/delivery/cod/summary"),
   payCodCashToAdmin: (data) => axiosInstance.post("/delivery/cod/pay", data),
+  initiateCodDeposit: (data) => axiosInstance.post("/delivery/cod/deposit/initiate", data),
+  verifyCodDeposit: (data) => axiosInstance.post("/delivery/cod/deposit/verify", data),
   getWalletSummary: () => axiosInstance.get("/delivery/wallet/summary"),
   getOrderHistory: (params, config = {}) =>
     axiosInstance.get("/delivery/order-history", { params, ...config }),
@@ -38,6 +40,10 @@ export const deliveryApi = {
     axiosInstance.post(`/orders/workflow/${orderId}/otp/request`, body),
   verifyDeliveryOtp: (orderId, body) =>
     axiosInstance.post(`/orders/workflow/${orderId}/otp/verify`, body),
+  requestSellerPickupOtp: (orderId, body) =>
+    axiosInstance.post(`/orders/workflow/${orderId}/seller-pickup-otp/request`, body),
+  verifySellerPickupOtp: (orderId, body) =>
+    axiosInstance.post(`/orders/workflow/${orderId}/seller-pickup-otp/verify`, body),
   getOrderRoute: (orderId, params, config = {}) =>
     axiosInstance.get(`/orders/workflow/${orderId}/route`, { params, ...config }),
   getOrderDetails: (orderId) =>

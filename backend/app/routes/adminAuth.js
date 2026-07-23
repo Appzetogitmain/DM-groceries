@@ -44,6 +44,8 @@ import {
     getDeliverySettingsController,
     processAdminFinancePayoutsController,
     updateDeliverySettingsController,
+    getAdminFinanceAnalyticsController,
+    getAdminFinanceDrilldownController,
 } from "../controller/adminFinanceController.js";
 import { getTodayBirthdays, sendReward, getBirthdayAnalytics } from "../controller/admin/adminBirthdayController.js";
 
@@ -99,10 +101,22 @@ router.get(
     getAdminFinanceSummaryController,
 );
 router.get(
+    "/finance/analytics",
+    verifyToken,
+    allowRoles("admin"),
+    getAdminFinanceAnalyticsController,
+);
+router.get(
     "/finance/ledger",
     verifyToken,
     allowRoles("admin"),
     getAdminFinanceLedgerController,
+);
+router.get(
+    "/finance/drilldown",
+    verifyToken,
+    allowRoles("admin"),
+    getAdminFinanceDrilldownController,
 );
 router.get(
     "/finance/payouts",

@@ -19,9 +19,10 @@ export async function applyDeliveredSettlement(order, orderIdString) {
   }
 
   // Legacy transaction compatibility for existing seller/rider dashboards.
+  const isHeld = settled.financeFlags?.sellerPayoutHeld;
   await Transaction.findOneAndUpdate(
     { reference: orderIdString, userModel: "Seller" },
-    { status: "Settled" },
+    { status: isHeld ? "Pending" : "Settled" },
   );
 
   if (settled.deliveryBoy) {

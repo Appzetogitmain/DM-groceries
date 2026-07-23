@@ -1,7 +1,10 @@
 import Transaction from "../../models/transaction.js";
 import Notification from "../../models/notification.js";
+import Delivery from "../../models/delivery.js";
+import Seller from "../../models/seller.js";
 import { getAdminFinanceSummary } from "../finance/walletService.js";
 import { getLedgerEntries } from "../finance/ledgerService.js";
+import Wallet from "../../models/wallet.js";
 
 export async function getAdminWalletOverview({ page, limit }) {
   const stats = await getAdminFinanceSummary();
@@ -69,7 +72,7 @@ export async function getSellerWithdrawalsData({ page, limit, skip }) {
 
   const [transactions, total] = await Promise.all([
     Transaction.find(query)
-      .populate("user", "name shopName phone")
+      .populate("user", "name shopName phone bankDetails")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -146,6 +149,7 @@ export async function updateWithdrawalStatusById({ id, status, reason, paymentPr
     return null;
   }
 
+  const previousStatus = transaction.status;
   transaction.status = status;
   if (reason) {
     transaction.notes = reason;
@@ -157,6 +161,21 @@ export async function updateWithdrawalStatusById({ id, status, reason, paymentPr
   }
 
   await transaction.save();
+
+  if (previousStatus !== status) {
+    const ownerType = transaction.userModel === 'Seller' ? 'SELLER' : 'DELIVERY_PARTNER';
+    const wallet = await Wallet.findOne({ ownerId: transaction.user._id, ownerType });
+    if (wallet) {
+      if (status === 'Settled' && (previousStatus === 'Pending' || previousStatus === 'Processing')) {
+        wallet.pendingBalance = Math.max(0, (wallet.pendingBalance || 0) - Math.abs(transaction.amount));
+      } else if (status === 'Failed' && (previousStatus === 'Pending' || previousStatus === 'Processing')) {
+        wallet.pendingBalance = Math.max(0, (wallet.pendingBalance || 0) - Math.abs(transaction.amount));
+        wallet.availableBalance = (wallet.availableBalance || 0) + Math.abs(transaction.amount);
+      }
+      await wallet.save();
+    }
+  }
+
   return transaction;
 }
 

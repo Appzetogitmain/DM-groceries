@@ -3,13 +3,14 @@ import handleResponse from "../utils/helper.js";
 import Order from "../models/order.js";
 import Cart from "../models/cart.js";
 import { buildSearchRegex } from "../utils/regex.js";
+import mongoose from "mongoose";
 import { isServerSideCouponEngineEnabled } from "../constants/finance.js";
 import { computeOrderDiscount } from "../services/finance/couponService.js";
 import { hydrateOrderItems } from "../services/finance/pricingService.js";
 
 export const listCoupons = async (req, res) => {
     try {
-        const { status, search } = req.query;
+        const { status, search, customerId } = req.query;
         const query = {};
 
         if (status === "active") {
@@ -25,14 +26,71 @@ export const listCoupons = async (req, res) => {
             const term = search.trim();
             // P3-5: substring search preserved; user input is regex-escaped.
             const safe = buildSearchRegex(term, { anchored: false });
-            query.$or = [
+            
+            // Need to merge with existing $or if any, but since status uses $or, use $and
+            const searchOr = [
                 { code: safe },
                 { title: safe },
                 { description: safe },
             ];
+            
+            if (query.$or) {
+                query.$and = [{ $or: query.$or }, { $or: searchOr }];
+                delete query.$or;
+            } else {
+                query.$or = searchOr;
+            }
         }
 
-        const coupons = await Coupon.find(query).sort({ createdAt: -1 }).lean();
+        // Handle customer-specific coupons
+        const customerOr = customerId ? [
+            { "metadata.customerId": { $exists: false } },
+            { "metadata.customerId": customerId }
+        ] : [
+            { "metadata.customerId": { $exists: false } }
+        ];
+        
+        if (query.$and) {
+            query.$and.push({ $or: customerOr });
+        } else if (query.$or) {
+            query.$and = [{ $or: query.$or }, { $or: customerOr }];
+            delete query.$or;
+        } else {
+            query.$or = customerOr;
+        }
+
+        let coupons = await Coupon.find(query).sort({ createdAt: -1 }).lean();
+
+        if (customerId && coupons.length > 0) {
+            const usedCouponsCounts = {};
+            const couponIds = coupons.map(c => c._id);
+            
+            const usageAgg = await Order.aggregate([
+                { 
+                    $match: { 
+                        customer: new mongoose.Types.ObjectId(customerId), 
+                        status: { $nin: ["Cancelled", "Returned", "Refunded", "Failed"] }, 
+                        coupon: { $in: couponIds } 
+                    } 
+                },
+                { 
+                    $group: { 
+                        _id: "$coupon", 
+                        count: { $sum: 1 } 
+                    } 
+                }
+            ]);
+            
+            usageAgg.forEach(u => {
+                usedCouponsCounts[u._id.toString()] = u.count;
+            });
+
+            coupons = coupons.filter(c => {
+                const used = usedCouponsCounts[c._id.toString()] || 0;
+                return !(c.perUserLimit && used >= c.perUserLimit);
+            });
+        }
+
         return handleResponse(res, 200, "Coupons fetched successfully", coupons);
     } catch (error) {
         return handleResponse(res, 500, error.message);

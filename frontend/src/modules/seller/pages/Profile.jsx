@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
+import { useSellerEarnings } from "../context/SellerEarningsContext";
 import Card from "@shared/components/ui/Card";
 import Button from "@shared/components/ui/Button";
 import MapPicker from "../../../shared/components/MapPicker";
@@ -45,6 +46,7 @@ import {
 } from "recharts";
 
 const SellerProfile = () => {
+  const { refreshEarnings } = useSellerEarnings();
   const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,6 +62,12 @@ const SellerProfile = () => {
     radius: 5,
     address: "",
     dob: "",
+    bankDetails: {
+      bankName: "",
+      accountNumber: "",
+      ifscCode: "",
+      accountHolderName: "",
+    }
   });
 
   // Simulated metrics & data to fulfill requirements
@@ -91,6 +99,12 @@ const SellerProfile = () => {
         radius: data.serviceRadius || 5,
         address: data.address || "",
         dob: data.dob || "",
+        bankDetails: data.bankDetails || {
+          bankName: "",
+          accountNumber: "",
+          ifscCode: "",
+          accountHolderName: "",
+        },
       });
     } catch (error) {
       toast.error("Failed to fetch profile");
@@ -124,6 +138,17 @@ const SellerProfile = () => {
     }
   };
 
+  const handleBankDetailsChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      bankDetails: {
+        ...prev.bankDetails,
+        [name]: value
+      }
+    }));
+  };
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!/^[0-9]{10}$/.test(formData.phone)) {
@@ -146,6 +171,7 @@ const SellerProfile = () => {
       toast.success("Profile updated successfully");
       setIsEditing(false);
       fetchProfile();
+      refreshEarnings();
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update profile");
     } finally {
@@ -535,6 +561,78 @@ const SellerProfile = () => {
           </div>
         </Card>
       </div>
+
+      {/* ==================== BANK DETAILS ROW ==================== */}
+      <Card className="p-6 md:p-8 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[20px] bg-white transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.05)] mb-8">
+        <div className="flex justify-between items-center mb-6 border-b border-slate-50 pb-3">
+          <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+            <Wallet size={18} className="text-[#154D1A]" />
+            Bank Details
+          </h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5 group">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Bank Name</label>
+            <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
+              <input
+                type="text"
+                name="bankName"
+                value={formData.bankDetails.bankName}
+                onChange={handleBankDetailsChange}
+                disabled={!isEditing}
+                placeholder="e.g. HDFC Bank"
+                className="w-full bg-transparent border-none outline-none text-xs font-semibold text-slate-700 disabled:opacity-85"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-1.5 group">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Account Number</label>
+            <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
+              <input
+                type="text"
+                name="accountNumber"
+                value={formData.bankDetails.accountNumber}
+                onChange={handleBankDetailsChange}
+                disabled={!isEditing}
+                placeholder="Account Number"
+                className="w-full bg-transparent border-none outline-none text-xs font-semibold text-slate-700 disabled:opacity-85"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-1.5 group">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">IFSC Code</label>
+            <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
+              <input
+                type="text"
+                name="ifscCode"
+                value={formData.bankDetails.ifscCode}
+                onChange={handleBankDetailsChange}
+                disabled={!isEditing}
+                placeholder="IFSC Code"
+                className="w-full bg-transparent border-none outline-none text-xs font-semibold text-slate-700 disabled:opacity-85 uppercase"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-1.5 group">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Account Holder Name</label>
+            <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
+              <input
+                type="text"
+                name="accountHolderName"
+                value={formData.bankDetails.accountHolderName}
+                onChange={handleBankDetailsChange}
+                disabled={!isEditing}
+                placeholder="Full Name as per Bank"
+                className="w-full bg-transparent border-none outline-none text-xs font-semibold text-slate-700 disabled:opacity-85"
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* ==================== THIRD ROW ==================== */}
       <Card className="p-6 md:p-8 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[20px] bg-white transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.05)]">

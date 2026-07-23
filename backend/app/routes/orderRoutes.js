@@ -39,6 +39,8 @@ import {
   verifyReturnPickupOtp,
   requestReturnDropOtp,
   verifyReturnDropOtp,
+  requestSellerPickupOtp,
+  verifySellerPickupOtp,
   getOrderRoute,
 } from "../controller/orderWorkflowController.js";
 import {
@@ -219,6 +221,20 @@ router.post(
   verifyToken,
   allowRoles("delivery", "admin"),
   verifyDeliveryOtp,
+);
+
+// Workflow routes — seller pickup OTP (forward)
+router.post(
+  "/workflow/:orderId/seller-pickup-otp/request",
+  verifyToken,
+  allowRoles("delivery", "admin"),
+  requestSellerPickupOtp,
+);
+router.post(
+  "/workflow/:orderId/seller-pickup-otp/verify",
+  verifyToken,
+  allowRoles("delivery", "admin"),
+  verifySellerPickupOtp,
 );
 
 // Workflow routes — return pickup OTP (customer)

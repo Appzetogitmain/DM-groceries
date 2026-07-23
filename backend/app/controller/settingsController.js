@@ -35,6 +35,8 @@ const ALLOWED_KEYS = [
   "metaKeywords",
   "keywords",
   "returnDeliveryCommission",
+  "returnWindowMinutes",
+  "returnEligibilityDelayMinutes",
   "deliveryPricingMode",
   "pricingMode",
   "customerBaseDeliveryFee",
@@ -101,10 +103,12 @@ const updateSettingsSchema = Joi.object({
   appStoreLink: Joi.string().allow("").max(500),
   metaTitle: Joi.string().allow("").max(200),
   metaDescription: Joi.string().allow("").max(500),
-  metaKeywords: Joi.string().allow("").max(1000),
-  keywords: Joi.array().items(Joi.string().max(200)),
-  returnDeliveryCommission: Joi.number().min(0),
-  deliveryPricingMode: Joi.string().valid("fixed_price", "distance_based"),
+  metaKeywords: Joi.string().allow("").max(500),
+  keywords: Joi.array().items(Joi.string().max(100)).max(50).default([]),
+  returnDeliveryCommission: Joi.number().min(0).default(0),
+  returnWindowMinutes: Joi.number().min(0).default(2880),
+  returnEligibilityDelayMinutes: Joi.number().min(0).default(2),
+  deliveryPricingMode: Joi.string().valid("fixed_price", "distance_based").default("distance_based"),
   pricingMode: Joi.string().valid("fixed_price", "distance_based"),
   customerBaseDeliveryFee: Joi.number().min(0),
   riderBasePayout: Joi.number().min(0),
@@ -147,7 +151,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval createdAt",
+            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval createdAt",
           )
           .lean();
         return existing || null;

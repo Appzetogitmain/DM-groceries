@@ -4,22 +4,62 @@ import { ArrowLeft, Save, User, Mail, Phone, MapPin, Calendar, Droplet } from "l
 import Button from "@/shared/components/ui/Button";
 import Input from "@/shared/components/ui/Input";
 import { toast } from "sonner";
+import { deliveryApi } from "../../services/deliveryApi";
 
 const PersonalDetails = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    fullName: "Rahul Kumar",
-    phone: "+91 98765 43210",
-    email: "rahul.kumar@example.com",
-    address: "Flat 302, Green Apts, MG Road, Bangalore - 560001",
-    dob: "1995-08-15",
-    bloodGroup: "O+",
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    dob: "",
+    bloodGroup: "",
+    id: "",
   });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    toast.success("Personal details updated successfully!");
+  React.useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await deliveryApi.getProfile();
+      if (res.data.success || res.data.result) {
+        const user = res.data.result || {};
+        setFormData({
+          name: user.name || "",
+          phone: user.phone || "",
+          email: user.email || "",
+          address: user.address || "",
+          dob: user.dob || "",
+          bloodGroup: user.bloodGroup || "",
+          id: user._id || "",
+        });
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to fetch profile");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      await deliveryApi.updateProfile({
+        name: formData.name,
+        email: formData.email,
+        address: formData.address,
+        dob: formData.dob,
+        bloodGroup: formData.bloodGroup,
+      });
+      setIsEditing(false);
+      toast.success("Personal details updated successfully!");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to update profile");
+    }
   };
 
   return (
@@ -75,14 +115,15 @@ const PersonalDetails = () => {
               </button>
             )}
           </div>
-          <p className="mt-2.5 text-[11px] font-bold text-gray-400">Delivery Partner ID: 882190</p>
+          <p className="mt-2.5 text-[11px] font-bold text-gray-400">Delivery Partner ID: {formData.id ? formData.id.substring(0, 6).toUpperCase() : ""}</p>
         </div>
 
         {/* Form Fields */}
         <div className="space-y-3.5 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
           <Input
             label="Full Name"
-            value={formData.fullName}
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
             readOnly={!isEditing} 
             icon={User}
             className={!isEditing ? "bg-gray-50/60 border-transparent text-gray-700" : "focus:ring-[#1A4516]/10 focus:border-[#1A4516]"}

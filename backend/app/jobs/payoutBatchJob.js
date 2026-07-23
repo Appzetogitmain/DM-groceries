@@ -13,6 +13,7 @@ const payoutBatchJobHandler = async () => {
   
   try {
     const result = await bulkProcessPayouts({
+      payoutType: "DELIVERY_PARTNER",
       limit: parseInt(process.env.PAYOUT_BATCH_LIMIT || "25", 10),
       remarks: "Auto-batch payout job",
     });

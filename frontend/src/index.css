@@ -413,3 +413,9 @@ body {
     -webkit-touch-callout: none;
   }
 }
+
+/* Fix for Google Places Autocomplete inside Radix Dialog */
+.pac-container {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}

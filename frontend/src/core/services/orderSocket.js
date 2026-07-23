@@ -221,6 +221,13 @@ export function onReturnDropOtp(getToken, handler) {
   return () => s.off("return:drop:otp", handler);
 }
 
+export function onSellerPickupOtp(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("seller:pickup:otp", handler);
+  return () => s.off("seller:pickup:otp", handler);
+}
+
 export function onDeliveryOtpGenerated(getToken, handler) {
   const s = getOrderSocket(getToken);
   if (!s || typeof handler !== "function") {

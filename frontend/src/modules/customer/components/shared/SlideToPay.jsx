@@ -113,7 +113,7 @@ const SlideToPay = ({
             {/* Draggable Circle */}
             <motion.div
                 className="absolute left-1 top-1 bottom-1 w-14 h-14 bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing z-20 shadow-[0_6px_18px_rgba(15,118,110,0.35)] border border-[#1A4516]/10"
-                drag={!isCompleted && !isLoading ? "x" : false}
+                drag={!isCompleted && !isLoading && !disabled ? "x" : false}
                 dragConstraints={{ left: 0, right: maxDrag }}
                 dragElastic={0.05}
                 dragMomentum={false}

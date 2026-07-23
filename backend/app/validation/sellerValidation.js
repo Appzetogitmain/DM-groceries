@@ -14,6 +14,8 @@ export const sellerSignupSchema = Joi.object({
   phone: phone.required(),
   shopName: trimmedString.min(2).max(200).required(),
   address: trimmedString.max(500).optional(),
+  dob: trimmedString.optional(),
+  bloodGroup: trimmedString.optional(),
 });
 
 export const sellerLoginSchema = Joi.object({

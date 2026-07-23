@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import {
@@ -15,6 +15,7 @@ import {
     HiOutlineBolt
 } from 'react-icons/hi2';
 import { useToast } from '@shared/components/ui/Toast';
+import { adminApi } from '../services/adminApi';
 import {
     AreaChart,
     Area,
@@ -36,8 +37,36 @@ import { cn } from '@/lib/utils';
 const AdvancedAnalytics = () => {
     const { showToast } = useToast();
     const [timeRange, setTimeRange] = useState('7d');
+    const [isLoading, setIsLoading] = useState(true);
+    const [data, setData] = useState({
+        salesData: [],
+        categoryData: [],
+        hourlyHeatmap: [],
+        stats: {
+            totalRevenue: 0,
+            totalOrders: 0,
+            activeSellers: 0,
+            avgOrderValue: 0
+        }
+    });
 
-    // Mock functions
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            setIsLoading(true);
+            try {
+                const response = await adminApi.getFinanceAnalytics({ timeRange });
+                if (response.data?.success) {
+                    setData(response.data.result);
+                }
+            } catch (error) {
+                showToast("Failed to fetch analytics", "error");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchAnalytics();
+    }, [timeRange]);
+
     const handleDownloadReport = () => {
         showToast(`Preparing ${timeRange} performance report...`, 'info');
         setTimeout(() => {
@@ -49,33 +78,7 @@ const AdvancedAnalytics = () => {
         showToast('Loading detailed customer segmentation data...', 'info');
     };
 
-    // Mock Data
-    const salesData = [
-        { name: 'Mon', revenue: 45000, orders: 120 },
-        { name: 'Tue', revenue: 52000, orders: 145 },
-        { name: 'Wed', revenue: 48000, orders: 132 },
-        { name: 'Thu', revenue: 61000, orders: 168 },
-        { name: 'Fri', revenue: 55000, orders: 154 },
-        { name: 'Sat', revenue: 82000, orders: 210 },
-        { name: 'Sun', revenue: 95000, orders: 245 },
-    ];
-
-    const categoryData = [
-        { name: 'Grocery', value: 45, color: '#6366f1' },
-        { name: 'Electronics', value: 25, color: '#f59e0b' },
-        { name: 'Daily Needs', value: 20, color: '#10b981' },
-        { name: 'Bakery', value: 10, color: '#f43f5e' },
-    ];
-
-    const hourlyHeatmap = [
-        { hour: '08:00', load: 30 },
-        { hour: '10:00', load: 65 },
-        { hour: '12:00', load: 85 },
-        { hour: '14:00', load: 45 },
-        { hour: '16:00', load: 55 },
-        { hour: '18:00', load: 95 },
-        { hour: '20:00', load: 75 },
-    ];
+    const { salesData, categoryData, hourlyHeatmap, stats } = data;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
@@ -118,10 +121,10 @@ const AdvancedAnalytics = () => {
             {/* Goals Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { label: 'Gross Revenue', value: '₹5,42,000', trend: '+12.5%', icon: HiOutlineBanknotes, color: 'indigo' },
-                    { label: 'Total Orders', value: '1,248', trend: '+8.2%', icon: HiOutlineShoppingBag, color: 'emerald' },
-                    { label: 'Active Sellers', value: '84', trend: '+2', icon: HiOutlineUsers, color: 'amber' },
-                    { label: 'Avg Order Value', value: '₹434', trend: '-2.1%', icon: HiOutlineBolt, color: 'rose' },
+                    { label: 'Gross Revenue', value: `₹${stats.totalRevenue.toLocaleString()}`, trend: '+12.5%', icon: HiOutlineBanknotes, color: 'indigo' },
+                    { label: 'Total Orders', value: stats.totalOrders.toLocaleString(), trend: '+8.2%', icon: HiOutlineShoppingBag, color: 'emerald' },
+                    { label: 'Active Sellers', value: stats.activeSellers.toString(), trend: '+2', icon: HiOutlineUsers, color: 'amber' },
+                    { label: 'Avg Order Value', value: `₹${stats.avgOrderValue.toLocaleString()}`, trend: '-2.1%', icon: HiOutlineBolt, color: 'rose' },
                 ].map((goal, i) => (
                     <Card key={i} className="p-6 border-none shadow-xl ring-1 ring-slate-100 bg-white group hover:scale-[1.02] transition-all">
                         <div className="flex items-center justify-between mb-4">
@@ -238,7 +241,7 @@ const AdvancedAnalytics = () => {
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <span className="text-[10px] font-black text-slate-400 uppercase">Top category</span>
-                            <span className="text-xl font-black text-slate-900">Grocery</span>
+                            <span className="text-xl font-black text-slate-900">{categoryData?.[0]?.name || 'N/A'}</span>
                         </div>
                     </div>
                     <div className="mt-8 space-y-4">

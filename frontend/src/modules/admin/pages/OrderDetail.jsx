@@ -466,6 +466,56 @@ const OrderDetail = () => {
                         </div>
                     </Card>
 
+                    {/* Financial Breakdown Vector */}
+                    <Card className="border-none shadow-xl ring-1 ring-slate-100 bg-white rounded-2xl overflow-hidden text-left">
+                        <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-white">
+                                <CreditCard className="h-4 w-4 text-emerald-400" />
+                                Financial Breakdown
+                            </h4>
+                            <Badge className={cn("border-none text-[8px] font-black uppercase", order.settlementStatus?.overall === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300')}>
+                                {order.settlementStatus?.overall || 'PENDING'}
+                            </Badge>
+                        </div>
+                        <div className="p-4 space-y-3">
+                            <div className="flex items-center justify-between px-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer Paid</span>
+                                <span className="text-sm font-black text-slate-900">₹{order.paymentBreakdown?.grandTotal || 0}</span>
+                            </div>
+                            
+                            <div className="h-px w-full bg-slate-100 my-1" />
+                            
+                            <div className="flex items-center justify-between px-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seller Share</span>
+                                <span className="text-xs font-bold text-slate-700">₹{order.paymentBreakdown?.sellerPayoutTotal || 0}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Delivery Share</span>
+                                <span className="text-xs font-bold text-slate-700">₹{order.paymentBreakdown?.riderPayoutTotal || 0}</span>
+                            </div>
+
+                            <div className="h-px w-full bg-slate-100 my-1" />
+                            
+                            <div className="flex items-center justify-between px-2">
+                                <span className="text-[10px] font-black text-brand-600 uppercase tracking-widest">Platform Commission</span>
+                                <span className="text-xs font-black text-brand-700">₹{order.paymentBreakdown?.adminProductCommissionTotal || 0}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-2">
+                                <span className="text-[10px] font-black text-brand-600 uppercase tracking-widest">Handling Fee</span>
+                                <span className="text-xs font-black text-brand-700">₹{order.paymentBreakdown?.handlingFeeCharged || 0}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-2">
+                                <span className="text-[10px] font-black text-brand-600 uppercase tracking-widest">Platform Logistics Margin</span>
+                                <span className="text-xs font-black text-brand-700">₹{order.paymentBreakdown?.platformLogisticsMargin || 0}</span>
+                            </div>
+                            
+                            <div className="bg-brand-50 p-3 rounded-xl mt-3 border border-brand-100 flex items-center justify-between">
+                                <span className="text-[11px] font-black text-brand-800 uppercase tracking-widest">Net Platform Earning</span>
+                                <span className="text-sm font-black text-brand-700">₹{order.paymentBreakdown?.platformTotalEarning || 0}</span>
+                            </div>
+                        </div>
+                    </Card>
+
                     {/* Intelligence Notes */}
                     <Card className="border-none shadow-xl ring-1 ring-amber-100 bg-amber-50/30 rounded-xl p-6 text-left">
                         <h4 className="text-[10px] font-black text-amber-900 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -500,8 +550,8 @@ const OrderDetail = () => {
                     }}>
                         {/* Header: Centered Brand */}
                         <div style={{ textAlign: "center", marginBottom: "50px" }}>
-                            {settings?.logoUrl ? (
-                                <img src={settings.logoUrl} alt="Logo" width="130" style={{ display: "inline-block", marginBottom: "16px" }} crossOrigin="anonymous" />
+                            {true ? (
+                                <img src="/Logo.png" alt="Logo" width="130" style={{ display: "inline-block", marginBottom: "16px" }} crossOrigin="anonymous" />
                             ) : (
                                 <div style={{ fontSize: "26px", fontWeight: "900", color: "#0f172a", marginBottom: "4px" }}>{settings?.appName || 'NOYO KART'}</div>
                             )}

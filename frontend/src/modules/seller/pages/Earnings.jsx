@@ -94,7 +94,7 @@ const Earnings = () => {
                   type: txn.type ?? "",
                   amount: `₹${Number(txn.amount ?? 0).toLocaleString()}`,
                   status: txn.status ?? "",
-                  date: txn.date ?? (txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : ""),
+                  date: txn.time ? `${txn.date} • ${txn.time}` : (txn.date || ""),
                   customer: txn.customer ?? "",
                   ref: txn.ref ?? "",
                 }));
@@ -254,7 +254,7 @@ const Earnings = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date & Time</th>
                     <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Order / Ref</th>
                     <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
                     <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
@@ -268,8 +268,8 @@ const Earnings = () => {
                       className="hover:bg-slate-50/50 transition-colors cursor-pointer"
                       onClick={() => setSelectedTxn(txn)}
                     >
-                      <td className="py-4 text-sm text-slate-700 font-medium">
-                        {txn.date || (txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : "-")}
+                      <td className="py-4 text-sm text-slate-700 font-medium whitespace-nowrap">
+                        {txn.time ? `${txn.date} • ${txn.time}` : (txn.date || "-")}
                       </td>
                       <td className="py-4 text-sm text-slate-700">
                         {txn.ref || txn.id || "-"}
@@ -354,11 +354,29 @@ const Earnings = () => {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-slate-800">
-                        HDFC Bank **** 4589
+                        {data?.bankDetails?.bankName || 'No Bank Added'}
                       </p>
-                      <p className="text-xs text-slate-500 font-medium">
-                        Primary Account
-                      </p>
+                      <div className="flex flex-col gap-0.5 mt-1">
+                        {data?.bankDetails?.accountNumber ? (
+                          <>
+                            <p className="text-xs text-slate-500 font-medium">
+                              A/C: {data.bankDetails.accountNumber}
+                            </p>
+                            <p className="text-xs text-slate-500 font-medium">
+                              IFSC: {data.bankDetails.ifscCode || 'N/A'}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-slate-500 font-medium">
+                            Add bank details in profile
+                          </p>
+                        )}
+                        {data?.bankDetails?.accountHolderName && (
+                          <p className="text-[10px] text-slate-400 font-medium uppercase">
+                            NAME: {data.bankDetails.accountHolderName}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="h-5 w-5 rounded-full border-2 border-slate-200 group-hover:border-[#1A4516] group-hover:bg-[#1A4516] transition-all"></div>
                   </div>
@@ -406,9 +424,23 @@ const Earnings = () => {
               </div>
               
               <div className="space-y-4">
-                 <div className="flex justify-between items-center bg-slate-50 p-4 rounded-lg">
-                    <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Amount</span>
-                    <span className="text-2xl font-bold text-[#1A4516]">₹{Number(selectedTxn.amount || 0).toLocaleString()}</span>
+                 <div className="flex flex-col gap-2 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <div className="flex justify-between items-center">
+                       <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Amount</span>
+                       <span className="text-2xl font-bold text-[#1A4516]">₹{Number(selectedTxn.amount || 0).toLocaleString()}</span>
+                    </div>
+                    {selectedTxn.type === 'Order Payment' && selectedTxn.productSubtotal > 0 && (
+                       <div className="mt-2 pt-2 border-t border-slate-200 space-y-1">
+                          <div className="flex justify-between items-center">
+                             <span className="text-xs font-medium text-slate-500">Gross Product Sales</span>
+                             <span className="text-sm font-semibold text-slate-700">₹{Number(selectedTxn.productSubtotal || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                             <span className="text-xs font-medium text-rose-500">Platform Commission</span>
+                             <span className="text-sm font-semibold text-rose-600">- ₹{Number(selectedTxn.commission || 0).toLocaleString()}</span>
+                          </div>
+                       </div>
+                    )}
                  </div>
                  
                  <div className="grid grid-cols-2 gap-4">

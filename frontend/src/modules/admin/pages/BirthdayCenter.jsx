@@ -72,6 +72,7 @@ const BirthdayCenter = () => {
                         <tr className="bg-gray-50 border-b border-gray-100">
                             <th className="p-4 font-medium text-gray-600">Name</th>
                             <th className="p-4 font-medium text-gray-600">Email/Phone</th>
+                            <th className="p-4 font-medium text-gray-600">Address</th>
                             <th className="p-4 font-medium text-gray-600">DOB</th>
                             <th className="p-4 font-medium text-gray-600">Status</th>
                             <th className="p-4 font-medium text-gray-600 text-right">Action</th>
@@ -83,6 +84,9 @@ const BirthdayCenter = () => {
                                 <td className="p-4 text-sm font-medium">{user.name}</td>
                                 <td className="p-4 text-sm text-gray-600">
                                     {user.email || user.phone}
+                                </td>
+                                <td className="p-4 text-sm text-gray-600 max-w-[200px] truncate" title={user.address}>
+                                    {user.address}
                                 </td>
                                 <td className="p-4 text-sm text-gray-600">
                                     {user.dob}

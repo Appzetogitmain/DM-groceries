@@ -46,6 +46,7 @@ const PaymentStatusPage = lazy(() => import('../../modules/customer/pages/Paymen
 const SearchPage = lazy(() => import('../../modules/customer/pages/SearchPage'));
 const WalletPage = lazy(() => import('../../modules/customer/pages/WalletPage'));
 const NotificationsPage = lazy(() => import('../../modules/customer/pages/NotificationsPage'));
+const MilestoneRewards = lazy(() => import('../../modules/customer/pages/MilestoneRewards'));
 
 // Lazy load heavy modules
 const SellerModule = lazy(() => import('../../modules/seller/routes/index'));
@@ -111,6 +112,10 @@ const AppRouter = () => {
                     element: <DeliveryAuth />,
                 },
                 {
+                    path: 'delivery/login',
+                    element: <Navigate to="/delivery/auth" replace />,
+                },
+                {
                     path: 'seller/*',
                     element: (
                         <ProtectedRoute>
@@ -171,6 +176,7 @@ const AppRouter = () => {
                         { path: 'wallet', element: <ProtectedRoute><WalletPage /></ProtectedRoute> },
                         { path: 'notifications', element: <ProtectedRoute><NotificationsPage /></ProtectedRoute> },
                         { path: 'search', element: <SearchPage /> },
+                        { path: 'rewards', element: <ProtectedRoute><MilestoneRewards /></ProtectedRoute> },
                     ]
                 },
                 {

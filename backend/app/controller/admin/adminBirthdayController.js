@@ -4,7 +4,7 @@ import Delivery from "../../models/delivery.js";
 import BirthdayRewardHistory from "../../models/birthdayRewardHistory.js";
 import handleResponse from "../../utils/helper.js";
 import { creditWallet } from "../../services/finance/walletService.js";
-import { emitCustomerNotification, emitSellerNotification, emitDeliveryNotification } from "../../modules/notifications/notification.service.js";
+import { emitNotificationEvent } from "../../modules/notifications/notification.service.js";
 import { NOTIFICATION_EVENTS } from "../../modules/notifications/notification.constants.js";
 import { OWNER_TYPE } from "../../constants/finance.js";
 
@@ -23,9 +23,9 @@ export const getTodayBirthdays = async (req, res) => {
         const regex = new RegExp(`${suffix}$`);
 
         const [customers, sellers, deliveries, histories] = await Promise.all([
-            Customer.find({ dob: { $regex: regex } }, 'name email phone dob createdAt').lean(),
-            Seller.find({ dob: { $regex: regex } }, 'name email phone dob createdAt').lean(),
-            Delivery.find({ dob: { $regex: regex } }, 'name email phone dob createdAt').lean(),
+            Customer.find({ dob: { $regex: regex } }, 'name email phone dob createdAt address').lean(),
+            Seller.find({ dob: { $regex: regex } }, 'name email phone dob createdAt address').lean(),
+            Delivery.find({ dob: { $regex: regex } }, 'name email phone dob createdAt address').lean(),
             BirthdayRewardHistory.find({ year }).lean()
         ]);
 
@@ -39,6 +39,7 @@ export const getTodayBirthdays = async (req, res) => {
                 email: u.email,
                 phone: u.phone,
                 dob: u.dob,
+                address: u.address || 'N/A',
                 registrationDate: u.createdAt,
                 role: role,
                 rewardStatus: h ? 'sent' : 'pending',
@@ -109,13 +110,14 @@ export const sendReward = async (req, res) => {
             userId: recipientId
         };
 
-        if (role === 'Customer') {
-            emitCustomerNotification(NOTIFICATION_EVENTS.GENERIC_ALERT, notificationPayload);
-        } else if (role === 'Seller') {
-            emitSellerNotification(NOTIFICATION_EVENTS.GENERIC_ALERT, notificationPayload);
-        } else if (role === 'Delivery') {
-            emitDeliveryNotification(NOTIFICATION_EVENTS.GENERIC_ALERT, notificationPayload);
-        }
+        let recipientRole = NOTIFICATION_ROLES.CUSTOMER;
+        if (role === 'Seller') recipientRole = NOTIFICATION_ROLES.SELLER;
+        if (role === 'Delivery') recipientRole = NOTIFICATION_ROLES.DELIVERY;
+
+        emitNotificationEvent(NOTIFICATION_EVENTS.BIRTHDAY_REWARD, {
+            ...notificationPayload,
+            role: recipientRole
+        });
 
         return handleResponse(res, 200, "Reward sent successfully", history);
     } catch (error) {

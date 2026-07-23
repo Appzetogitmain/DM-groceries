@@ -44,13 +44,13 @@ async function findOrderForUpdate(orderOrId, session) {
   // Mongoose will throw a cast error on save if `paymentBreakdown.snapshots` is undefined.
   if (order.paymentBreakdown) {
     const snapshots = order.paymentBreakdown.snapshots;
-    if (!snapshots || typeof snapshots !== "object") {
-      order.paymentBreakdown.snapshots = {
+    if (!snapshots || typeof snapshots !== "object" || Object.keys(snapshots).length === 0) {
+      order.set("paymentBreakdown.snapshots", {
         deliverySettings: {},
         categoryCommissionSettings: [],
         handlingFeeStrategy: null,
         handlingCategoryUsed: {},
-      };
+      });
     }
   }
   return order;
@@ -92,13 +92,23 @@ function syncLegacyPricing(order) {
 function ensurePaymentBreakdownSnapshots(order) {
   if (!order?.paymentBreakdown) return;
   const snapshots = order.paymentBreakdown.snapshots;
-  if (snapshots && typeof snapshots === "object") return;
-  order.paymentBreakdown.snapshots = {
-    deliverySettings: {},
-    categoryCommissionSettings: [],
-    handlingFeeStrategy: null,
-    handlingCategoryUsed: {},
-  };
+  if (snapshots && typeof snapshots === "object" && Object.keys(snapshots).length > 0) return;
+  
+  if (typeof order.set === "function") {
+    order.set("paymentBreakdown.snapshots", {
+      deliverySettings: {},
+      categoryCommissionSettings: [],
+      handlingFeeStrategy: null,
+      handlingCategoryUsed: {},
+    });
+  } else {
+    order.paymentBreakdown.snapshots = {
+      deliverySettings: {},
+      categoryCommissionSettings: [],
+      handlingFeeStrategy: null,
+      handlingCategoryUsed: {},
+    };
+  }
 }
 
 export function freezeFinancialSnapshot(order, breakdown) {
@@ -473,15 +483,16 @@ export async function handleCodOrderFinance(
       session,
     });
 
-    const pb = order.paymentBreakdown?.toObject?.() || order.paymentBreakdown || {};
-    order.paymentBreakdown = {
-      ...pb,
-      codCollectedAmount: roundCurrency((pb.codCollectedAmount || 0) + codAmountNet),
-      codRemittedAmount: roundCurrency(pb.codRemittedAmount || 0),
-      codPendingAmount: roundCurrency(
-        (pb.codCollectedAmount || 0) + codAmountNet - (pb.codRemittedAmount || 0),
-      ),
-    };
+    if (!order.paymentBreakdown) {
+      order.paymentBreakdown = {};
+    }
+    const codCollectedAmount = roundCurrency((order.paymentBreakdown.codCollectedAmount || 0) + codAmountNet);
+    const codRemittedAmount = roundCurrency(order.paymentBreakdown.codRemittedAmount || 0);
+    const codPendingAmount = roundCurrency(codCollectedAmount - codRemittedAmount);
+    
+    order.paymentBreakdown.codCollectedAmount = codCollectedAmount;
+    order.paymentBreakdown.codRemittedAmount = codRemittedAmount;
+    order.paymentBreakdown.codPendingAmount = codPendingAmount;
 
     order.paymentStatus = ORDER_PAYMENT_STATUS.CASH_COLLECTED;
     order.payment = {
@@ -557,7 +568,7 @@ export async function settleDeliveredOrder(orderOrId, { actorId = null } = {}) {
     }
 
     if (!order.returnEligibleAt || !order.returnWindowExpiresAt) {
-      const { eligibleAt, windowExpiresAt } = computeReturnWindowDates(order.deliveredAt);
+      const { eligibleAt, windowExpiresAt } = await computeReturnWindowDates(order.deliveredAt);
       order.returnEligibleAt = order.returnEligibleAt || eligibleAt;
       order.returnWindowExpiresAt = order.returnWindowExpiresAt || windowExpiresAt;
       order.returnDeadline = order.returnDeadline || windowExpiresAt;
@@ -702,12 +713,12 @@ export async function reconcileCodCash(
     const nextRemitted = addMoney(codRemitted, requested);
     const nextPending = roundCurrency(codCollected - nextRemitted);
 
-    order.paymentBreakdown = {
-      ...(order.paymentBreakdown || {}),
-      codCollectedAmount: codCollected,
-      codRemittedAmount: nextRemitted,
-      codPendingAmount: nextPending,
-    };
+    if (!order.paymentBreakdown) {
+      order.paymentBreakdown = {};
+    }
+    order.paymentBreakdown.codCollectedAmount = codCollected;
+    order.paymentBreakdown.codRemittedAmount = nextRemitted;
+    order.paymentBreakdown.codPendingAmount = nextPending;
 
     order.paymentStatus =
       nextPending <= 0

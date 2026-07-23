@@ -40,6 +40,7 @@ import {
 } from "../services/orderQueryService.js";
 import { orderMatchQueryFromRouteParam } from "../utils/orderLookup.js";
 import { createFinanceOrderSchema } from "../validation/financeValidation.js";
+import { evaluateCustomerMilestones } from "../services/milestoneEvaluatorService.js";
 import { placeOrderAtomic } from "../services/orderPlacementService.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
@@ -524,6 +525,11 @@ export const updateOrderStatus = async (req, res) => {
         userId: order.customer,
         sellerId: order.seller,
         deliveryId: order.deliveryBoy,
+      });
+
+      // Evaluate milestones asynchronously
+      evaluateCustomerMilestones(order.customer, canonicalOrderId).catch(err => {
+        logger.error("Milestone evaluation failed in orderController", { orderId: canonicalOrderId, error: err.message });
       });
 
       const refreshed = await Order.findById(order._id);

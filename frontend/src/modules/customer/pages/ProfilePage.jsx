@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     User, MapPin, Package, Wallet, ChevronRight,
-    LogOut, Heart, HelpCircle, Bell, Users, Settings, Edit2
+    LogOut, Heart, HelpCircle, Bell, Users, Settings, Edit2, Gift
 } from 'lucide-react';
 import { useAuth } from '@core/context/AuthContext';
 import { useSettings } from '@core/context/SettingsContext';
@@ -55,6 +55,7 @@ const ProfilePage = () => {
                         <MenuItem icon={Package} label="My Orders" path="/orders" />
                         <MenuItem icon={MapPin} label="My Addresses" path="/addresses" />
                         <MenuItem icon={Wallet} label="My Wallet" rightText={`₹${user?.walletBalance || 0}`} path="/wallet" />
+                        <MenuItem icon={Gift} label="My Rewards" path="/rewards" />
                         <MenuItem icon={Heart} label="My Wishlist" path="/wishlist" />
                         <MenuItem icon={Users} label="Refer & Earn" />
                         <MenuItem icon={Bell} label="Notifications" />

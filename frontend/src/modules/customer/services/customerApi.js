@@ -137,7 +137,7 @@ export const customerApi = {
 
   // Coupons
   validateCoupon: (data) => axiosInstance.post("/coupons/validate", data),
-  getActiveCoupons: () => getWithDedupe("/coupons", { status: "active" }),
+  getActiveCoupons: (customerId) => getWithDedupe("/coupons", { status: "active", ...(customerId && { customerId }) }),
 
   // Maps (server-side geocoding)
   geocodeAddress: (address, params = {}) =>

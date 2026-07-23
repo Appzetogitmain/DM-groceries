@@ -17,6 +17,8 @@ import {
   validateReturnPickupOtp,
   generateReturnDropOtp,
   validateReturnDropOtp,
+  generateSellerPickupOtp,
+  validateSellerPickupOtp,
 } from "../services/deliveryOtpService.js";
 import { emitToCustomer, emitToSeller } from "../services/orderSocketEmitter.js";
 import { sendSmsIndiaHubOtp } from "../services/smsIndiaHubService.js";
@@ -80,6 +82,35 @@ export const requestDeliveryOtp = async (req, res) => {
           ? location.lng
           : undefined;
     const result = await requestHandoffOtpAtomic(req.user.id, orderId, lat, lng);
+    
+    // ── Send SMS to customer (BACKGROUND) ──
+    try {
+      const order = await Order.findOne({ orderId }).lean();
+      if (order && result.otp) {
+        const customerId = order.customer?.toString();
+        let phone = order.address?.phone;
+        if (!phone && customerId) {
+          const customerObj = await Customer.findById(customerId).lean();
+          phone = customerObj?.phone;
+        }
+        if (phone) {
+          setImmediate(async () => {
+            try {
+              await sendSmsIndiaHubOtp({
+                phone,
+                otp: result.otp,
+                message: `Your delivery OTP for order #${orderId} is ${result.otp}. Noyo-kart.`,
+              });
+            } catch (smsErr) {
+              console.warn("[requestDeliveryOtp] SMS failed:", smsErr.message);
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[requestDeliveryOtp] Failed to fetch order for SMS:", err.message);
+    }
+
     return handleResponse(
       res,
       200,
@@ -534,6 +565,92 @@ export const verifyReturnDropOtp = async (req, res) => {
     });
 
     return handleResponse(res, 200, "Return delivery complete! Admin will review the product.", order);
+  } catch (e) {
+    return handleResponse(res, e.statusCode || 500, e.message);
+  }
+};
+
+/**
+ * Rider is at seller — request OTP for forward order pickup.
+ */
+export const requestSellerPickupOtp = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const result = await generateSellerPickupOtp(orderId);
+    if (!result.success) {
+      return handleResponse(res, 400, result.error);
+    }
+
+    const order = await Order.findOne(orderMatchQueryFromRouteParam(orderId))
+      .select("seller orderId")
+      .populate("seller", "phone user")
+      .lean();
+
+    if (!order) {
+      return handleResponse(res, 404, "Order not found");
+    }
+
+    // Emit OTP to seller via Socket.IO
+    try {
+      const sellerUserId = order.seller?.user?.toString();
+      if (sellerUserId) {
+        emitToSeller(sellerUserId, {
+          event: "seller:pickup:otp",
+          payload: {
+            orderId,
+            otp: result.otp,
+            expiresAt: result.expiresAt,
+            message: `Your pickup verification OTP is ${result.otp}. Share this with the delivery partner.`,
+          },
+        });
+      }
+    } catch (socketErr) {
+      console.warn("[requestSellerPickupOtp] Socket emit failed:", socketErr.message);
+    }
+
+    // Trigger Notification Event
+    try {
+      emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_PICKUP_OTP, {
+        sellerId: order.seller?._id?.toString(),
+        orderId: order.orderId,
+        data: { otp: result.otp }
+      });
+    } catch (notifErr) {
+      console.warn("[requestSellerPickupOtp] Notification failed:", notifErr.message);
+    }
+
+    return handleResponse(res, 200, "Seller pickup OTP sent successfully", {
+      expiresAt: result.expiresAt,
+    });
+  } catch (e) {
+    return handleResponse(res, 500, e.message);
+  }
+};
+
+/**
+ * Rider enters seller's OTP — verifies pickup for forward order.
+ */
+export const verifySellerPickupOtp = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { enteredCode, lat, lng } = req.body;
+
+    if (!enteredCode) {
+      return handleResponse(res, 400, "OTP is required");
+    }
+
+    const validation = await validateSellerPickupOtp(orderId, enteredCode);
+    if (!validation.valid) {
+      return handleResponse(res, 400, validation.message, {
+        error: validation.error,
+        attemptsRemaining: validation.attemptsRemaining,
+      });
+    }
+
+    // OTP is valid! Proceed to mark order as picked up (Out for Delivery)
+    const result = await confirmPickupAtomic(req.user.id, orderId, lat, lng);
+    
+    return handleResponse(res, 200, "Pickup confirmed", result);
   } catch (e) {
     return handleResponse(res, e.statusCode || 500, e.message);
   }

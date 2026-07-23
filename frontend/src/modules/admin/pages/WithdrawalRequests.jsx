@@ -28,7 +28,7 @@ import Pagination from '@shared/components/ui/Pagination';
 import { adminApi } from "../services/adminApi";
 import { toast } from "sonner";
 import axiosInstance from '@core/api/axios';
-import { Upload, FileImage } from 'lucide-react';
+import { Upload, FileImage, X } from 'lucide-react';
 
 const WithdrawalRequests = () => {
     const [activeTab, setActiveTab] = useState('sellers');
@@ -527,21 +527,27 @@ const WithdrawalRequests = () => {
                             </p>
                         </div>
                         
-                        {actionModal.type === 'approve' && actionModal.request.user?.accountNumber && (
+                        {actionModal.type === 'approve' && (actionModal.request.user?.accountNumber || actionModal.request.user?.bankDetails?.accountNumber) && (
                             <div className="mt-4 p-4 bg-slate-50 rounded-xl text-left space-y-2 border border-slate-100">
                                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Bank Details</h4>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-500">Account Name:</span>
-                                    <span className="font-medium text-slate-900">{actionModal.request.user.accountHolder || 'N/A'}</span>
+                                    <span className="font-medium text-slate-900">{actionModal.request.user.accountHolder || actionModal.request.user.bankDetails?.accountHolderName || 'N/A'}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-500">Account No:</span>
-                                    <span className="font-medium text-slate-900">{actionModal.request.user.accountNumber}</span>
+                                    <span className="font-medium text-slate-900">{actionModal.request.user.accountNumber || actionModal.request.user.bankDetails?.accountNumber}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-500">IFSC:</span>
-                                    <span className="font-medium text-slate-900">{actionModal.request.user.ifsc}</span>
+                                    <span className="font-medium text-slate-900">{actionModal.request.user.ifsc || actionModal.request.user.bankDetails?.ifscCode}</span>
                                 </div>
+                                {actionModal.request.user.bankDetails?.bankName && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-500">Bank:</span>
+                                        <span className="font-medium text-slate-900">{actionModal.request.user.bankDetails.bankName}</span>
+                                    </div>
+                                )}
                             </div>
                         )}
                         
@@ -549,29 +555,44 @@ const WithdrawalRequests = () => {
                             <div className="mt-4">
                                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider text-left mb-2">Payment Proof (Optional)</label>
                                 <div className="relative">
-                                    <input 
-                                        type="file" 
-                                        accept="image/*"
-                                        onChange={(e) => setPaymentProofFile(e.target.files[0])}
-                                        className="hidden" 
-                                        id="payment-proof"
-                                    />
-                                    <label 
-                                        htmlFor="payment-proof"
-                                        className="flex items-center justify-center w-full py-3 px-4 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
-                                    >
-                                        {paymentProofFile ? (
-                                            <div className="flex items-center gap-2 text-brand-600">
-                                                <FileImage size={16} />
-                                                <span className="text-sm font-medium truncate max-w-[200px]">{paymentProofFile.name}</span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center gap-2 text-slate-400">
-                                                <Upload size={16} />
-                                                <span className="text-sm font-medium">Upload Screenshot</span>
-                                            </div>
-                                        )}
-                                    </label>
+                                    {paymentProofFile ? (
+                                        <div className="relative rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-50">
+                                            <img 
+                                                src={URL.createObjectURL(paymentProofFile)} 
+                                                alt="Payment Proof" 
+                                                className="w-full h-32 object-contain" 
+                                            />
+                                            <button 
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setPaymentProofFile(null);
+                                                }}
+                                                className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black text-white rounded-lg backdrop-blur-sm transition-colors"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <input 
+                                                type="file" 
+                                                accept="image/*"
+                                                onChange={(e) => setPaymentProofFile(e.target.files[0])}
+                                                className="hidden" 
+                                                id="payment-proof"
+                                            />
+                                            <label 
+                                                htmlFor="payment-proof"
+                                                className="flex items-center justify-center w-full py-3 px-4 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2 text-slate-400">
+                                                    <Upload size={16} />
+                                                    <span className="text-sm font-medium">Upload Screenshot</span>
+                                                </div>
+                                            </label>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )}

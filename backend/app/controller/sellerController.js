@@ -4,6 +4,7 @@ import { handleResponse, calculateDistance } from "../utils/helper.js";
 import { roundCurrency } from "../utils/money.js";
 import mongoose from "mongoose";
 import { invalidateSellerName } from "../services/entityNameCache.js";
+import Wallet from "../models/wallet.js";
 
 /* ===============================
    GET NEARBY SELLERS
@@ -76,28 +77,12 @@ export const requestWithdrawal = async (req, res) => {
       return handleResponse(res, 400, "Please enter a valid amount");
     }
 
-    // 1. Calculate current available balance
-    // Consistent with getSellerEarnings logic in sellerStatsController.js
-    const transactions = await Transaction.find({
-      user: sellerId,
-      userModel: "Seller",
-    })
-      .select("status amount type")
-      .lean();
+    const wallet = await Wallet.findOne({ ownerId: sellerId, ownerType: "SELLER" });
+    if (!wallet) {
+      return handleResponse(res, 404, "Wallet not found");
+    }
 
-    const settledBalance = transactions
-      .filter((t) => t.status === "Settled")
-      .reduce((acc, t) => acc + (t.amount || 0), 0);
-
-    const pendingPayouts = transactions
-      .filter(
-        (t) =>
-          t.type === "Withdrawal" &&
-          (t.status === "Pending" || t.status === "Processing"),
-      )
-      .reduce((acc, t) => acc + Math.abs(t.amount || 0), 0);
-
-    const availableBalance = roundCurrency(settledBalance - pendingPayouts);
+    const availableBalance = wallet.availableBalance;
 
     if (roundCurrency(amount) > availableBalance) {
       return handleResponse(
@@ -117,6 +102,11 @@ export const requestWithdrawal = async (req, res) => {
       status: "Pending",
       reference: `WDR-${Date.now()}`,
     });
+
+    // 3. Update Wallet balances
+    wallet.availableBalance -= Math.abs(amount);
+    wallet.pendingBalance += Math.abs(amount);
+    await wallet.save();
 
     return handleResponse(
       res,
@@ -154,7 +144,7 @@ export const getSellerProfile = async (req, res) => {
 ================================ */
 export const updateSellerProfile = async (req, res) => {
   try {
-    const { name, shopName, phone, address, locality, pincode, city, state, lat, lng, radius, dob } = req.body;
+    const { name, shopName, phone, address, locality, pincode, city, state, lat, lng, radius, dob, bankDetails } = req.body;
 
     // Find seller
     const seller = await Seller.findById(req.user.id);
@@ -172,6 +162,15 @@ export const updateSellerProfile = async (req, res) => {
     if (city !== undefined) seller.city = city;
     if (state !== undefined) seller.state = state;
     if (dob) seller.dob = dob;
+    
+    if (bankDetails) {
+      if (!seller.bankDetails) seller.bankDetails = {};
+      if (bankDetails.bankName !== undefined) seller.bankDetails.bankName = bankDetails.bankName;
+      if (bankDetails.accountNumber !== undefined) seller.bankDetails.accountNumber = bankDetails.accountNumber;
+      if (bankDetails.ifscCode !== undefined) seller.bankDetails.ifscCode = bankDetails.ifscCode;
+      if (bankDetails.accountHolderName !== undefined) seller.bankDetails.accountHolderName = bankDetails.accountHolderName;
+      seller.markModified('bankDetails');
+    }
 
     // Validate and update geo data
     if (lat !== undefined && lng !== undefined) {

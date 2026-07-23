@@ -32,6 +32,7 @@ const Dashboard = () => {
     deliveries: 0,
     incentives: 0,
     cashCollected: 0,
+    ongoingCount: 0,
   });
 
   // Sync isOnline with user profile from context
@@ -271,7 +272,11 @@ const Dashboard = () => {
           {/* Ongoing Orders Item */}
           <button
             onClick={() => {
-              toast.info("No ongoing order currently");
+              if (earnings.ongoingCount > 0) {
+                navigate("/delivery/history");
+              } else {
+                toast.info("No ongoing order currently");
+              }
             }}
             className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-gray-50/50 transition-colors"
           >
@@ -282,7 +287,7 @@ const Dashboard = () => {
               <span className="text-xs font-bold text-gray-700">Ongoing Orders</span>
             </div>
             <span className="h-5 w-5 rounded-full bg-[#1A4516] text-white text-[9px] font-black flex items-center justify-center">
-              {0}
+              {earnings.ongoingCount || 0}
             </span>
           </button>
 

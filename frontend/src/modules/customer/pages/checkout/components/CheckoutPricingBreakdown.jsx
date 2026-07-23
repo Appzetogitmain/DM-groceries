@@ -20,6 +20,7 @@ import { motion } from "framer-motion";
 const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
   pricingPreview,
   isPreviewLoading,
+  previewError,
   selectedTip,
   onSelectTip,
   tipAmounts,
@@ -155,19 +156,30 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
             <div className="flex justify-between items-center">
               <div className="flex flex-col">
                 <span className="font-[1000] text-slate-800 text-lg uppercase tracking-tight">
-                  {finalAmountToPay === 0 ? "Fully Covered" : "Total Payable"}
+                  {previewError ? "Location Error" : (finalAmountToPay === 0 ? "Fully Covered" : "Total Payable")}
                 </span>
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
-                  {finalAmountToPay === 0 ? "Paid via Wallet" : "Safe & Secure Payment"}
+                <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${previewError ? "text-red-500" : "text-slate-400"}`}>
+                  {previewError ? "Cannot Place Order" : (finalAmountToPay === 0 ? "Paid via Wallet" : "Safe & Secure Payment")}
                 </span>
               </div>
-              <span className="font-[1000] text-[#1A4516] text-3xl tracking-tighter italic">
-                {isPreviewLoading ? "Calculating..." : `₹${Math.ceil(finalAmountToPay)}`}
+              <span className={`font-[1000] text-3xl tracking-tighter italic ${previewError ? "text-red-500" : "text-[#1A4516]"}`}>
+                {isPreviewLoading ? "Calculating..." : (previewError ? "N/A" : `₹${Math.ceil(finalAmountToPay)}`)}
               </span>
             </div>
           </div>
         </div>
       </motion.div>
+      
+      {previewError && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 p-4 bg-red-50 rounded-2xl border border-red-200">
+          <p className="text-red-700 font-bold text-sm leading-tight text-center">
+            {previewError}
+          </p>
+        </motion.div>
+      )}
     </>
   );
 });

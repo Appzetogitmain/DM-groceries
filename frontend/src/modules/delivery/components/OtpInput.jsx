@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
+import { getCurrentPositionWithCache } from "../utils/deliveryLastLocation";
 
 /**
  * OtpInput Component
@@ -18,7 +19,7 @@ import { deliveryApi } from "../services/deliveryApi";
  * @param {Function} props.onError - Callback when validation fails
  * @param {Function} props.onCancel - Optional callback for cancel action
  */
-const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, onSuccess, onError, onCancel }) => {
+const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPickup = false, onSuccess, onError, onCancel }) => {
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -149,21 +150,44 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, onSuccess, 
     setLastErrorCode(null);
 
     try {
+      let locationData = {};
+      if (isSellerPickup) {
+        try {
+          const loc = await new Promise((resolve, reject) => {
+            getCurrentPositionWithCache(resolve, reject, {
+              maxCacheAgeMs: 5 * 60 * 1000,
+            });
+          });
+          locationData = { lat: loc.lat, lng: loc.lng };
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.warn("GPS failed, using fallback location for testing");
+            locationData = { lat: 22.7196, lng: 75.8577 }; // fallback
+          } else {
+            throw new Error("Location unavailable. Please enable GPS to proceed.");
+          }
+        }
+      }
+
       // Call appropriate validation endpoint
-      const response = isReturnDrop
-        ? await deliveryApi.verifyReturnDropOtp(orderId, { code: otpString })
-        : isReturn
-          ? await deliveryApi.verifyReturnOtp(orderId, { otp: otpString })
-          : await deliveryApi.verifyDeliveryOtp(orderId, { code: otpString });
+      const response = isSellerPickup
+        ? await deliveryApi.verifySellerPickupOtp(orderId, { enteredCode: otpString, ...locationData })
+        : isReturnDrop
+          ? await deliveryApi.verifyReturnDropOtp(orderId, { code: otpString })
+          : isReturn
+            ? await deliveryApi.verifyReturnOtp(orderId, { otp: otpString })
+            : await deliveryApi.verifyDeliveryOtp(orderId, { code: otpString });
 
       // Success
       toast.success(
         response.data?.message ||
-        (isReturnDrop
-          ? "Seller confirmed! Return complete."
-          : isReturn
-            ? "Return pickup verified!"
-            : "Order delivered successfully!")
+        (isSellerPickup
+          ? "Seller confirmed! Order picked up."
+          : isReturnDrop
+            ? "Seller confirmed! Return complete."
+            : isReturn
+              ? "Return pickup verified!"
+              : "Order delivered successfully!")
       );
 
       if (onSuccess) {
@@ -238,11 +262,11 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, onSuccess, 
       {/* Header */}
       <div className="text-center">
         <h3 className="text-lg font-bold text-gray-900 mb-1">
-          {isReturnDrop ? "Enter Seller OTP" : isReturn ? "Enter Return OTP" : "Enter Delivery OTP"}
+          {isSellerPickup ? "Enter Seller OTP" : isReturnDrop ? "Enter Seller OTP" : isReturn ? "Enter Return OTP" : "Enter Delivery OTP"}
         </h3>
         <p className="text-sm text-gray-600">
-          {isReturnDrop
-            ? "Ask the seller for the 4-digit return confirmation code"
+          {isSellerPickup || isReturnDrop
+            ? "Ask the seller for the 4-digit confirmation code"
             : "Ask the customer for the 4-digit code"}
         </p>
       </div>

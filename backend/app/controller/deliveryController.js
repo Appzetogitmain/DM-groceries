@@ -22,7 +22,9 @@ import {
   getDeliveryEarnings as getDeliveryEarningsFromService,
   getDeliveryCodCashSummary as getDeliveryCodCashSummaryFromService,
 } from "../services/delivery/deliveryEarningsService.js";
-
+import { reconcileCodCash } from "../services/finance/orderFinanceService.js";
+import crypto from "crypto";
+import Razorpay from "razorpay";
 /* ===============================
    GET DELIVERY DASHBOARD STATS
 ================================ */
@@ -442,12 +444,170 @@ export const updateDeliveryLocation = async (req, res) => {
             appendTrailPoint(activeOrderId, { lat, lng, t: Date.now() }).catch(() => {});
         }
 
-        return handleResponse(res, 200, "Location updated", {
+        return handleResponse(res, 200, "Location updated successfully", {
             location: delivery.location,
-            activeOrderId,
+            isOnline: delivery.isOnline
         });
     } catch (error) {
-        return handleResponse(res, 500, error.message);
+        return handleResponse(res, error.statusCode || 500, error.message);
+    }
+};
+
+/* ===============================
+   INITIATE COD DEPOSIT VIA RAZORPAY
+================================ */
+export const initiateCodDeposit = async (req, res) => {
+    try {
+        const rawId = req.user?.id ?? req.user?._id;
+        if (!rawId) {
+            return handleResponse(res, 401, "Unauthorized");
+        }
+        
+        const requestedRaw = req.body?.amount;
+        const requestedAmount =
+            requestedRaw == null || requestedRaw === ""
+                ? null
+                : roundCurrency(requestedRaw);
+
+        if (requestedAmount == null || (!Number.isFinite(Number(requestedRaw)) || requestedAmount <= 0)) {
+            return handleResponse(res, 400, "Enter a valid amount to deposit");
+        }
+
+        const keyId = String(process.env.RAZORPAY_KEY_ID || "").trim();
+        const keySecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+      
+        if (!keyId || !keySecret) {
+            return handleResponse(res, 500, "Razorpay credentials not configured");
+        }
+
+        const razorpay = new Razorpay({
+            key_id: keyId,
+            key_secret: keySecret,
+        });
+
+        const order = await razorpay.orders.create({
+            amount: Math.round(requestedAmount * 100), // Amount in paise, rounded to avoid float issues
+            currency: 'INR',
+            receipt: `cd_${String(rawId).slice(-6)}_${Date.now()}`
+        });
+
+        return handleResponse(res, 200, "Razorpay order created", {
+            orderId: order.id,
+            amount: requestedAmount,
+            key: keyId
+        });
+    } catch (error) {
+        console.error("[initiateCodDeposit] Razorpay error:", error);
+        const errorMessage = error.error?.description || error.message || "Failed to initialize payment";
+        return handleResponse(res, error.statusCode || 500, errorMessage);
+    }
+};
+
+/* ===============================
+   VERIFY COD DEPOSIT VIA RAZORPAY
+================================ */
+export const verifyCodDeposit = async (req, res) => {
+    try {
+        const rawId = req.user?.id ?? req.user?._id;
+        if (!rawId) {
+            return handleResponse(res, 401, "Unauthorized");
+        }
+
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = req.body;
+        
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !amount) {
+            return handleResponse(res, 400, "Invalid payment details");
+        }
+
+        const keySecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+        const generatedSignature = crypto
+            .createHmac('sha256', keySecret)
+            .update(razorpay_order_id + '|' + razorpay_payment_id)
+            .digest('hex');
+
+        if (generatedSignature !== razorpay_signature) {
+            return handleResponse(res, 400, "Payment verification failed");
+        }
+
+        // Signature verified, now run the same logic as submitDeliveryCodCashToAdmin
+        const deliveryBoyId = new mongoose.Types.ObjectId(String(rawId));
+        const orders = await Order.find({
+            deliveryBoy: deliveryBoyId,
+            paymentMode: "COD",
+            status: { $ne: "cancelled" },
+            orderStatus: { $ne: "cancelled" },
+            "financeFlags.codMarkedCollected": true,
+            "paymentBreakdown.codPendingAmount": { $gt: 0 },
+        })
+            .select("orderId paymentBreakdown.codPendingAmount")
+            .sort({ createdAt: 1 })
+            .lean();
+
+        if (!orders.length) {
+            return handleResponse(
+                res,
+                400,
+                "No collected COD cash is ready to submit. Payment will be recorded manually.",
+            );
+        }
+
+        const amountToSubmit = roundCurrency(amount);
+        let totalSubmitted = 0;
+        let remaining = amountToSubmit;
+        const settledOrders = [];
+
+        for (const order of orders) {
+            const pendingAmount = roundCurrency(order?.paymentBreakdown?.codPendingAmount || 0);
+            if (pendingAmount <= 0 || remaining <= 0) continue;
+            const settleAmount = roundCurrency(Math.min(pendingAmount, remaining));
+
+            await reconcileCodCash(
+                order._id,
+                settleAmount,
+                deliveryBoyId,
+                {
+                    actorId: req.user?.id || null,
+                    metadata: {
+                        source: "delivery_cod_cash_page",
+                        initiatedBy: "delivery_partner",
+                        razorpay_payment_id,
+                        razorpay_order_id
+                    },
+                },
+            );
+
+            totalSubmitted = roundCurrency(totalSubmitted + settleAmount);
+            remaining = roundCurrency(remaining - settleAmount);
+            settledOrders.push({
+                orderId: order.orderId,
+                amount: settleAmount,
+            });
+        }
+
+        if (totalSubmitted > 0) {
+            await Transaction.create({
+                user: deliveryBoyId,
+                userModel: "Delivery",
+                type: "Cash Settlement",
+                amount: -Math.abs(totalSubmitted),
+                status: "Settled",
+                reference: `CSH-SET-${deliveryBoyId}-${Date.now()}`,
+                meta: {
+                    source: "delivery_cod_cash_page",
+                    payment_method: "razorpay",
+                    razorpay_payment_id,
+                    razorpay_order_id,
+                    orders: settledOrders.map((item) => item.orderId),
+                },
+            });
+        }
+
+        return handleResponse(res, 200, "COD Cash deposit successful", {
+            totalSubmitted,
+            settledOrders,
+        });
+    } catch (error) {
+        return handleResponse(res, error.statusCode || 500, error.message);
     }
 };
 /*

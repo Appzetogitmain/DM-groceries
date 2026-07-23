@@ -70,6 +70,8 @@ const AdminSettings = () => {
         metaDescription: '',
         metaKeywords: '',
         keywords: [],
+        returnWindowMinutes: 2880,
+        returnEligibilityDelayMinutes: 2,
         returnDeliveryCommission: 0,
         lowStockAlertsEnabled: true,
         productApproval: {
@@ -89,6 +91,8 @@ const AdminSettings = () => {
                         ...data,
                         productApproval: normalizeProductApprovalConfig(data || {}),
                         keywords: Array.isArray(data.keywords) ? data.keywords : (data.metaKeywords ? data.metaKeywords.split(',').map(k => k.trim()).filter(Boolean) : []),
+                        returnWindowMinutes: data.returnWindowMinutes ?? 2880,
+                        returnEligibilityDelayMinutes: data.returnEligibilityDelayMinutes ?? 2,
                         returnDeliveryCommission: data.returnDeliveryCommission ?? 0,
                     }));
                 }
@@ -320,6 +324,24 @@ const AdminSettings = () => {
                                         type="text"
                                         value={settings.currencySymbol}
                                         onChange={(e) => handleInputChange('currencySymbol', e.target.value)}
+                                        className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Return Window (Minutes)</label>
+                                    <input
+                                        type="number"
+                                        value={settings.returnWindowMinutes}
+                                        onChange={(e) => handleInputChange('returnWindowMinutes', parseInt(e.target.value) || 0)}
+                                        className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Return Eligibility Delay (Minutes)</label>
+                                    <input
+                                        type="number"
+                                        value={settings.returnEligibilityDelayMinutes}
+                                        onChange={(e) => handleInputChange('returnEligibilityDelayMinutes', parseInt(e.target.value) || 0)}
                                         className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
                                     />
                                 </div>

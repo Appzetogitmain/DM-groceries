@@ -96,6 +96,8 @@ const AdminSettings = React.lazy(() => import("../pages/AdminSettings"));
 const EnvSettings = React.lazy(() => import("../pages/EnvSettings"));
 const AdminProfile = React.lazy(() => import("../pages/AdminProfile"));
 const BirthdayCenter = React.lazy(() => import("../pages/BirthdayCenter"));
+const MilestoneCampaigns = React.lazy(() => import("../pages/marketing/MilestoneCampaigns"));
+const CreateMilestoneCampaign = React.lazy(() => import("../pages/marketing/CreateMilestoneCampaign"));
 
 const navItems = [
   {
@@ -128,6 +130,7 @@ const navItems = [
       { label: "Coupons & Promos", path: "/admin/coupons" },
       { label: "Offer Sections", path: "/admin/offer-sections" },
       { label: "Shop by Store", path: "/admin/shop-by-store" },
+      { label: "Milestone Coupons", path: "/admin/marketing/milestones" },
     ],
   },
   {
@@ -266,6 +269,8 @@ const AdminRoutes = () => {
         <Route path="/offer-sections" element={<OfferSectionsManagement />} />
         <Route path="/shop-by-store" element={<ShopByStoreManagement />} />
         <Route path="/coupons" element={<CouponManagement />} />
+        <Route path="/marketing/milestones" element={<MilestoneCampaigns />} />
+        <Route path="/marketing/milestones/create" element={<CreateMilestoneCampaign />} />
         <Route path="/sellers/pending" element={<PendingSellers />} />
         <Route path="/seller-locations" element={<SellerLocations />} />
         <Route path="/delivery-boys/active" element={<ActiveDeliveryBoys />} />

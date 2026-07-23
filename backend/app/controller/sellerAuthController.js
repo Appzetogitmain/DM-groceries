@@ -99,7 +99,9 @@ export const signupSeller = async (req, res) => {
             documents,
             lat,
             lng,
-            radius
+            radius,
+            dob,
+            bloodGroup
         } = req.body || {};
 
         // 1. Handle file uploads if they exist in req.files (multipart form)
@@ -200,6 +202,8 @@ export const signupSeller = async (req, res) => {
             emailVerified: true,
             phoneVerified: true,
             isActive: false,
+            dob,
+            bloodGroup,
         };
 
         if (parsedLat !== undefined && parsedLng !== undefined) {

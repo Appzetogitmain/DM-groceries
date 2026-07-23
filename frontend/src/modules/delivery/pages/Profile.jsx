@@ -24,13 +24,15 @@ import { useAuth } from "@core/context/AuthContext";
 import { useSettings } from "@core/context/SettingsContext";
 import axiosInstance from '@core/api/axios';
 import { useEffect } from 'react';
+import { deliveryApi } from "../services/deliveryApi";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
   const [faqs, setFaqs] = useState([]);
+  const [stats, setStats] = useState({ totalDeliveries: 0 });
 
   useEffect(() => {
     const fetchFaqs = async () => {
@@ -41,7 +43,18 @@ const Profile = () => {
         console.error("Error fetching FAQs:", error);
       }
     };
+    const fetchStats = async () => {
+      try {
+        const res = await deliveryApi.getStats();
+        if (res.data.success || res.data.result) {
+          setStats(res.data.result || { totalDeliveries: 0 });
+        }
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+      }
+    };
     fetchFaqs();
+    fetchStats();
   }, []);
 
   const menuItems = [
@@ -150,16 +163,16 @@ const Profile = () => {
             <div className="absolute bottom-0 right-0 w-4.5 h-4.5 bg-brand-500 border-2 border-white rounded-full"></div>
           </div>
           <div className="text-white">
-            <h2 className="font-extrabold text-base leading-snug">Rahul Kumar</h2>
+            <h2 className="font-extrabold text-base leading-snug">{user?.name || "Delivery Partner"}</h2>
             <p className="text-white/80 text-xs flex items-center mb-1">
-              <Phone size={12} className="mr-1 shrink-0" /> +91 98765 43210
+              <Phone size={12} className="mr-1 shrink-0" /> {user?.phone || ""}
             </p>
             <div className="flex items-center space-x-1.5">
               <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-sm">
-                ID: 882190
+                ID: {user?._id ? user._id.substring(0, 6).toUpperCase() : ""}
               </span>
-              <span className="bg-brand-500 text-primary-foreground px-1.5 py-0.5 rounded text-[9px] font-black shadow-sm tracking-wide">
-                VERIFIED
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black shadow-sm tracking-wide ${user?.isVerified ? "bg-brand-500 text-primary-foreground" : "bg-red-500 text-white"}`}>
+                {user?.isVerified ? "VERIFIED" : "UNVERIFIED"}
               </span>
             </div>
           </div>
@@ -176,14 +189,16 @@ const Profile = () => {
           <p className="text-gray-400 text-[9px] uppercase font-bold tracking-wider">
             Joined
           </p>
-          <p className="font-bold text-gray-900 text-sm">Jan '24</p>
+          <p className="font-bold text-gray-900 text-sm">
+            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) : "New"}
+          </p>
         </div>
         <div className="w-px bg-gray-100"></div>
         <div className="flex-1">
           <p className="text-gray-400 text-[9px] uppercase font-bold tracking-wider">
             Trips
           </p>
-          <p className="font-bold text-gray-900 text-sm">1,240</p>
+          <p className="font-bold text-gray-900 text-sm">{stats?.totalDeliveries || 0}</p>
         </div>
         <div className="w-px bg-gray-100"></div>
         <div className="flex-1">
@@ -191,7 +206,7 @@ const Profile = () => {
             Rating
           </p>
           <p className="font-bold text-gray-900 text-lg flex justify-center items-center">
-            4.8 <span className="text-yellow-400 text-sm ml-1">★</span>
+            {user?.rating ? Number(user.rating).toFixed(1) : "N/A"} <span className="text-yellow-400 text-sm ml-1">★</span>
           </p>
         </div>
       </motion.div>

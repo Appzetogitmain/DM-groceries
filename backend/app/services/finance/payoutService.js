@@ -135,8 +135,16 @@ export async function processPayout(payoutId, { remarks = "", adminId = null } =
       if (!order) continue;
 
       if (payout.payoutType === PAYOUT_TYPE.SELLER) {
+        if (order.financeFlags?.sellerPayoutHeld && order.returnWindowExpiresAt instanceof Date && order.returnWindowExpiresAt > new Date()) {
+          throw new Error(`Payout for order ${order.orderId} is on hold until return window expires`);
+        }
         order.settlementStatus = { ...(order.settlementStatus || {}), sellerPayout: "COMPLETED" };
-        order.financeFlags = { ...(order.financeFlags || {}), sellerPayoutQueued: true };
+        order.financeFlags = { ...(order.financeFlags || {}), sellerPayoutQueued: true, sellerPayoutHeld: false };
+        await Transaction.updateMany(
+          { order: order._id, userModel: "Seller", type: "Order Payment" },
+          { $set: { status: "Settled" } },
+          { session }
+        );
       } else if (payout.payoutType === PAYOUT_TYPE.DELIVERY_PARTNER) {
         order.settlementStatus = { ...(order.settlementStatus || {}), riderPayout: "COMPLETED" };
         order.financeFlags = { ...(order.financeFlags || {}), riderPayoutQueued: true };

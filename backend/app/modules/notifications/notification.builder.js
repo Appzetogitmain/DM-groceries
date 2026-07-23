@@ -178,6 +178,16 @@ function eventDefinition(eventType) {
             ? `New order #${payload.orderId} received.`
             : "You have received a new order.",
       };
+    case NOTIFICATION_EVENTS.SELLER_PICKUP_OTP:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: () => "Pickup Verification OTP 🔐",
+        body: (payload) =>
+          payload.data?.otp
+            ? `Your pickup verification OTP is ${payload.data.otp}. Share this with the delivery partner.`
+            : "Your pickup verification OTP has been sent.",
+      };
     case NOTIFICATION_EVENTS.DELIVERY_ASSIGNED:
       return {
         role: NOTIFICATION_ROLES.DELIVERY,
@@ -366,6 +376,33 @@ function eventDefinition(eventType) {
           return `Only ${currentStock} left for ${itemLabel}. Restock soon.`;
         },
       };
+    case NOTIFICATION_EVENTS.GENERIC_ALERT:
+      return {
+        role: payload.role || NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => {
+            const ids = normalizeIdList(payload.userId || payload.customerId || payload.adminId);
+            if (ids.length === 0 && payload.role === NOTIFICATION_ROLES.ADMIN) {
+                return ['admin_broadcast'];
+            }
+            return ids;
+        },
+        title: (payload) => payload.title || "Alert",
+        body: (payload) => payload.message || payload.body || "You have a new alert.",
+      };
+    case NOTIFICATION_EVENTS.BIRTHDAY_REWARD:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId || payload.recipientId),
+        title: (payload) => payload.title || "Happy Birthday! 🎉",
+        body: (payload) => payload.message || "We have a special birthday gift for you!",
+      };
+    case NOTIFICATION_EVENTS.MILESTONE_UNLOCKED:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Congratulations! Milestone Reached 🎉",
+        body: (payload) => payload.message || "You have unlocked a new milestone reward!",
+      };
     default:
       return null;
   }
@@ -401,6 +438,8 @@ function eventData(eventType, payload = {}, role) {
       ...(payload.data || {}),
     };
   }
+
+
 
   const orderId = String(payload.orderId || "").trim() || undefined;
   const checkoutGroupId = String(payload.checkoutGroupId || "").trim() || undefined;

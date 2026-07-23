@@ -62,6 +62,14 @@ async function computeDeliveryStats(deliveryBoyId) {
     .lean();
   const totalDeliveries = orders.length;
 
+  const ongoingCount = await Order.countDocuments({
+    $or: [
+      { deliveryBoy: deliveryBoyId },
+      { returnDeliveryBoy: deliveryBoyId }
+    ],
+    status: { $nin: ["delivered", "cancelled"] },
+  });
+
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
@@ -102,6 +110,7 @@ async function computeDeliveryStats(deliveryBoyId) {
     deliveries: totalDeliveries,
     incentives,
     cashCollected,
+    ongoingCount,
   };
 }
 
@@ -274,7 +283,7 @@ async function computeDeliveryCodCashSummary(deliveryBoyId) {
     const pendingNet = roundCurrency(
       order.paymentBreakdown?.codPendingAmount ?? 0,
     );
-    const contribution = codMarkedCollected ? pendingNet : estimatedNet;
+    const contribution = codMarkedCollected ? pendingNet : 0;
 
     return {
       orderId: order.orderId,

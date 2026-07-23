@@ -30,6 +30,7 @@ const Withdrawals = () => {
     const { earningsData: data, earningsLoading: loading, refreshEarnings } = useSellerEarnings();
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isOnHoldModalOpen, setIsOnHoldModalOpen] = useState(false);
     const [amount, setAmount] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -127,7 +128,7 @@ const Withdrawals = () => {
         available: Number(data.balances?.availableBalance ?? 0),
         onHold: Number(data.balances?.onHoldBalance ?? 0),
         pending: Math.abs(Number(data.balances?.pendingPayouts ?? 0)),
-        lastWithdrawal: Math.abs(withdrawalHistory[0]?.amount ?? 0),
+        lastWithdrawal: Math.abs(withdrawalHistory.find(w => w.status?.toUpperCase() === 'SETTLED')?.amount ?? 0),
     };
 
     return (
@@ -157,14 +158,14 @@ const Withdrawals = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[850px]">
                 {[
                     { label: 'Available Balance', value: `₹${balances.available.toLocaleString()}`, icon: Wallet, color: 'emerald', sub: 'Ready to withdraw', path: '/seller/earnings' },
-                    { label: 'On Hold', value: `₹${balances.onHold.toLocaleString()}`, icon: Clock, color: 'blue', sub: 'Return window open' },
+                    { label: 'On Hold', value: `₹${balances.onHold.toLocaleString()}`, icon: Clock, color: 'blue', sub: 'Return window open', onClick: () => setIsOnHoldModalOpen(true) },
                     { label: 'Withdrawal Pending', value: `₹${balances.pending.toLocaleString()}`, icon: History, color: 'amber', sub: 'Awaiting approval' },
                     { label: 'Last Withdrawal', value: `₹${balances.lastWithdrawal.toLocaleString()}`, icon: CheckCircle2, color: 'indigo', sub: 'Sent to bank' },
                 ].map((stat, i) => (
                     <BlurFade key={i} delay={0.2 + i * 0.1}>
                         <Card 
-                            className={`!p-0 border-none shadow-sm ring-1 ring-slate-100 hover:ring-[#1A4516]/20 transition-all bg-white group relative overflow-hidden ${stat.path ? 'cursor-pointer' : ''}`}
-                            onClick={() => stat.path && navigate(stat.path)}
+                            className={`!p-0 border-none shadow-sm ring-1 ring-slate-100 hover:ring-[#1A4516]/20 transition-all bg-white group relative overflow-hidden ${(stat.path || stat.onClick) ? 'cursor-pointer' : ''}`}
+                            onClick={() => stat.onClick ? stat.onClick() : (stat.path && navigate(stat.path))}
                         >
                             <div className="flex items-center gap-2.5 p-2.5 relative z-10">
                                 <div className={cn(
@@ -319,8 +320,28 @@ const Withdrawals = () => {
                                     <Building2 className="h-5 w-5 text-brand-400" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-xs font-black text-slate-900 uppercase">HDFC Bank Limited</p>
-                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">Acct Ending in **** 4589</p>
+                                    <p className="text-xs font-black text-slate-900 uppercase">{data?.bankDetails?.bankName || 'No Bank Added'}</p>
+                                    <div className="flex flex-col gap-0.5 mt-1">
+                                        {data?.bankDetails?.accountNumber ? (
+                                            <>
+                                                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                                                    A/C: {data.bankDetails.accountNumber}
+                                                </p>
+                                                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                                                    IFSC: {data.bankDetails.ifscCode || 'N/A'}
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                                                Add bank details in profile
+                                            </p>
+                                        )}
+                                        {data?.bankDetails?.accountHolderName && (
+                                            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-tighter mt-0.5">
+                                                NAME: {data.bankDetails.accountHolderName}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                                 <ArrowRight className="h-4 w-4 text-slate-300" />
                             </div>
@@ -330,7 +351,7 @@ const Withdrawals = () => {
                     <div className="flex flex-col gap-3 pt-4">
                         <button
                             type="submit"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !data?.bankDetails?.accountNumber}
                             className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-slate-800 disabled:opacity-50 transition-all active:scale-95"
                         >
                             {isSubmitting ? <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'SUBMIT REQUEST'}
@@ -344,6 +365,85 @@ const Withdrawals = () => {
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* On Hold Details Modal */}
+            <Modal
+                isOpen={isOnHoldModalOpen}
+                onClose={() => setIsOnHoldModalOpen(false)}
+                title="On Hold Details"
+                className="max-w-2xl"
+            >
+                <div className="p-1">
+                    <p className="text-sm text-slate-500 mb-4">
+                        These amounts are currently on hold because their return window has not yet expired.
+                    </p>
+                    <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
+                        <table className="w-full text-left min-w-[500px]">
+                            <thead className="sticky top-0 bg-white">
+                                <tr className="bg-slate-50 border-b border-slate-100">
+                                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Order Ref</th>
+                                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Release Time</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {ledger.filter(t => t.type === 'Order Payment' && t.status === 'Pending').length === 0 ? (
+                                    <tr>
+                                        <td colSpan={3} className="px-4 py-8 text-center text-slate-600 text-sm font-medium">
+                                            No funds currently on hold.
+                                        </td>
+                                    </tr>
+                                ) : ledger.filter(t => t.type === 'Order Payment' && t.status === 'Pending').map((item, idx) => {
+                                    let releaseText = 'Pending';
+                                    if (item.releaseTime) {
+                                        const releaseDate = new Date(item.releaseTime);
+                                        if (releaseDate > new Date()) {
+                                            const diffMs = releaseDate - new Date();
+                                            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                                            const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                            releaseText = `in ${hours}h ${mins}m`;
+                                        } else {
+                                            releaseText = 'Releasing soon';
+                                        }
+                                    }
+
+                                    return (
+                                        <tr key={item.id || idx} className="hover:bg-slate-50/50 transition-all">
+                                            <td className="px-4 py-4">
+                                                <p className="text-sm font-black text-slate-900">{item.ref}</p>
+                                                <p className="text-[10px] font-bold text-slate-500 mt-0.5 uppercase">{item.date}</p>
+                                            </td>
+                                            <td className="px-4 py-4 text-sm font-black text-brand-600">
+                                                ₹{item.amount.toLocaleString()}
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                <Badge variant="warning" className="text-[10px] px-2 py-0.5 rounded-lg whitespace-nowrap inline-flex items-center">
+                                                    <Clock className="h-3 w-3 mr-1" />
+                                                    {releaseText}
+                                                </Badge>
+                                                {item.releaseTime && (
+                                                    <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase">
+                                                        {new Date(item.releaseTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                                                    </p>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => setIsOnHoldModalOpen(false)}
+                            className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

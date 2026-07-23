@@ -16,7 +16,9 @@ import {
     ShoppingBasket,
     Heart,
     Star,
-    ChevronLeft
+    ChevronLeft,
+    Calendar,
+    Droplets
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { customerApi } from '../services/customerApi';
@@ -74,13 +76,15 @@ const CustomerAuth = () => {
     const { login } = useAuth();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
-    const logoUrl = settings?.logoUrl || '';
+    const logoUrl = "/Logo.png";
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
         phone: '',
         otp: '',
-        name: ''
+        name: '',
+        dob: '',
+        bloodGroup: ''
     });
 
     const activeCategory = CATEGORIES[carouselIndex];
@@ -111,13 +115,23 @@ const CustomerAuth = () => {
             if (isLogin) {
                 await customerApi.sendLoginOtp({ phone: formData.phone });
             } else {
-                await customerApi.sendSignupOtp({ name: formData.name, phone: formData.phone });
+                await customerApi.sendSignupOtp({ 
+                    name: formData.name, 
+                    phone: formData.phone,
+                    dob: formData.dob,
+                    bloodGroup: formData.bloodGroup 
+                });
             }
             setShowOtp(true);
             setTimer(30);
             toast.success('OTP sent!');
         } catch (error) {
-            toast.error('Failed to send OTP');
+            const apiMessage = error?.response?.data?.message || '';
+            const match = apiMessage.match(/wait (\d+)s/);
+            if (match && match[1]) {
+                setTimer(parseInt(match[1], 10));
+            }
+            toast.error(apiMessage || 'Failed to send OTP');
         } finally {
             setIsLoading(false);
         }
@@ -328,28 +342,80 @@ const CustomerAuth = () => {
 
                                     <form onSubmit={handleSendOtp} className="space-y-4">
                                         {!isLogin && (
-                                            <div className="relative group">
-                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 transition-colors" style={{ color: 'inherit' }}>
-                                                    <User size={18} className="group-focus-within:text-[var(--theme-color)]" style={{ color: 'inherit' }} />
+                                            <>
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 transition-colors" style={{ color: 'inherit' }}>
+                                                        <User size={18} className="group-focus-within:text-[var(--theme-color)]" style={{ color: 'inherit' }} />
+                                                    </div>
+                                                    <input
+                                                        required
+                                                        name="name"
+                                                        value={formData.name || ''}
+                                                        maxLength={50}
+                                                        pattern="[a-zA-Z\s]*"
+                                                        placeholder="Full Name"
+                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-800 outline-none focus:bg-white transition-all"
+                                                        style={{ '--theme-color': activeCategory.theme }}
+                                                        onChange={(e) => setFormData({ ...formData, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
+                                                        onFocus={(e) => {
+                                                            e.target.style.borderColor = activeCategory.theme;
+                                                            const target = e.target;
+                                                            setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                                        }}
+                                                        onBlur={(e) => e.target.style.borderColor = '#F3F4F6'}
+                                                    />
                                                 </div>
-                                                <input
-                                                    required
-                                                    name="name"
-                                                    value={formData.name || ''}
-                                                    maxLength={50}
-                                                    pattern="[a-zA-Z\s]*"
-                                                    placeholder="Full Name"
-                                                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-800 outline-none focus:bg-white transition-all"
-                                                    style={{ '--theme-color': activeCategory.theme }}
-                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
-                                                    onFocus={(e) => {
-                                                        e.target.style.borderColor = activeCategory.theme;
-                                                        const target = e.target;
-                                                        setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
-                                                    }}
-                                                    onBlur={(e) => e.target.style.borderColor = '#F3F4F6'}
-                                                />
-                                            </div>
+
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 transition-colors" style={{ color: 'inherit' }}>
+                                                        <Calendar size={18} className="group-focus-within:text-[var(--theme-color)]" style={{ color: 'inherit' }} />
+                                                    </div>
+                                                    <input
+                                                        type="date"
+                                                        name="dob"
+                                                        value={formData.dob || ''}
+                                                        placeholder="Date of Birth (Optional)"
+                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-800 outline-none focus:bg-white transition-all"
+                                                        style={{ '--theme-color': activeCategory.theme }}
+                                                        onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                                                        onFocus={(e) => {
+                                                            e.target.style.borderColor = activeCategory.theme;
+                                                            const target = e.target;
+                                                            setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                                        }}
+                                                        onBlur={(e) => e.target.style.borderColor = '#F3F4F6'}
+                                                    />
+                                                </div>
+
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 transition-colors" style={{ color: 'inherit' }}>
+                                                        <Droplets size={18} className="group-focus-within:text-[var(--theme-color)]" style={{ color: 'inherit' }} />
+                                                    </div>
+                                                    <select
+                                                        name="bloodGroup"
+                                                        value={formData.bloodGroup || ''}
+                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-800 outline-none focus:bg-white transition-all appearance-none"
+                                                        style={{ '--theme-color': activeCategory.theme }}
+                                                        onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+                                                        onFocus={(e) => {
+                                                            e.target.style.borderColor = activeCategory.theme;
+                                                            const target = e.target;
+                                                            setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                                        }}
+                                                        onBlur={(e) => e.target.style.borderColor = '#F3F4F6'}
+                                                    >
+                                                        <option value="" disabled>Select Blood Group (Optional)</option>
+                                                        <option value="A+">A+</option>
+                                                        <option value="A-">A-</option>
+                                                        <option value="B+">B+</option>
+                                                        <option value="B-">B-</option>
+                                                        <option value="O+">O+</option>
+                                                        <option value="O-">O-</option>
+                                                        <option value="AB+">AB+</option>
+                                                        <option value="AB-">AB-</option>
+                                                    </select>
+                                                </div>
+                                            </>
                                         )}
                                         <div className="relative group">
                                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 transition-colors">
@@ -381,12 +447,12 @@ const CustomerAuth = () => {
 
                                         <button
                                             type="submit"
-                                            disabled={isLoading}
-                                            className="w-full text-white py-5 rounded-[24px] text-xs font-black tracking-[4px] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase"
+                                            disabled={isLoading || timer > 0}
+                                            className={`w-full text-white py-5 rounded-[24px] text-xs font-black tracking-[4px] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase ${timer > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             style={{ backgroundColor: activeCategory.theme, boxShadow: `0 20px 40px ${activeCategory.shadow}` }}
                                         >
-                                            {isLoading ? 'Verifying...' : 'Continue'}
-                                            <ChevronRight size={18} />
+                                            {isLoading ? 'Verifying...' : timer > 0 ? `Wait ${timer}s` : 'Continue'}
+                                            {timer === 0 && !isLoading && <ChevronRight size={18} />}
                                         </button>
                                     </form>
 

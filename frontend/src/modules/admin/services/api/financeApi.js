@@ -9,6 +9,10 @@ export const adminFinanceApi = {
         axiosInstance.get('/admin/wallet-data', { params }),
 
     getFinanceSummary: () => axiosInstance.get('/admin/finance/summary'),
+    getFinanceAnalytics: (params) =>
+        axiosInstance.get('/admin/finance/analytics', { params }),
+    getFinanceDrilldown: (params) =>
+        axiosInstance.get('/admin/finance/drilldown', { params }),
     getFinanceLedger: (params) =>
         axiosInstance.get('/admin/finance/ledger', { params }),
     getFinancePayouts: (params) =>

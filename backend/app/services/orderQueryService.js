@@ -2,6 +2,7 @@ import Order from "../models/order.js";
 import Delivery from "../models/delivery.js";
 import Seller from "../models/seller.js";
 import CheckoutGroup from "../models/checkoutGroup.js";
+import OrderOtp from "../models/orderOtp.js";
 import { WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
 import { distanceMeters } from "../utils/geoUtils.js";
 import {
@@ -177,9 +178,33 @@ export async function fetchSellerOrdersPage({
     summary.packed +
     summary.outForDelivery;
 
+  // Append active OTPs for the seller UI
+  const orderIds = orders.map((o) => o.orderId);
+  const activeOtps = await OrderOtp.find({
+    orderId: { $in: orderIds },
+    type: { $in: ["seller_pickup", "return_drop"] },
+    consumedAt: null,
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const otpMap = {};
+  for (const otpDoc of activeOtps) {
+    // only save the first one (most recent) per order since we sorted desc
+    if (!otpMap[otpDoc.orderId]) {
+      otpMap[otpDoc.orderId] = otpDoc.code;
+    }
+  }
+
+  const enrichedOrders = orders.map((o) => {
+    if (otpMap[o.orderId]) {
+      return { ...o, activeSellerOtp: otpMap[o.orderId] };
+    }
+    return o;
+  });
+
   return {
-    query,
-    orders,
+    orders: enrichedOrders,
     total,
     summary,
   };

@@ -19,7 +19,8 @@ import {
     HiOutlineInboxStack,
     HiOutlineMapPin,
     HiOutlinePhone,
-    HiOutlineCalendarDays
+    HiOutlineCalendarDays,
+    HiOutlineShieldCheck
 } from 'react-icons/hi2';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -128,7 +129,8 @@ const Orders = () => {
                 location: order.address?.location || null,
                 payment: order.payment?.method === 'cash' || order.payment?.method === 'cod'
                     ? 'Cash on Delivery'
-                    : 'Online Paid'
+                    : 'Online Paid',
+                activeSellerOtp: order.activeSellerOtp,
             }));
 
             setOrders(formattedOrders);
@@ -468,6 +470,17 @@ const Orders = () => {
                                                         <HiOutlineCalendarDays className="h-3 w-3 shrink-0" />
                                                         {order.date} • {order.time}
                                                     </p>
+                                                    {order.activeSellerOtp && (
+                                                        <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-800 px-2 py-1.5 rounded-lg flex items-center justify-between shadow-sm max-w-fit">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <HiOutlineShieldCheck className="h-4 w-4 text-amber-600" />
+                                                                <span className="text-[10px] font-bold uppercase tracking-wider">Pickup OTP:</span>
+                                                            </div>
+                                                            <span className="text-sm font-black tracking-widest ml-3 bg-white px-2 py-0.5 rounded shadow-sm">
+                                                                {order.activeSellerOtp}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                     <div className="flex items-center gap-2 mt-2">
                                                         <div className="h-7 w-7 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white shrink-0">
                                                             {order.customer.avatar}
@@ -546,6 +559,17 @@ const Orders = () => {
                                                                 <HiOutlineCalendarDays className="h-3 w-3" />
                                                                 {order.date} • {order.time}
                                                             </div>
+                                                            {order.activeSellerOtp && (
+                                                                <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1.5 rounded-xl flex items-center justify-between shadow-sm inline-flex">
+                                                                    <div className="flex items-center gap-1.5 mr-3">
+                                                                        <HiOutlineShieldCheck className="h-4 w-4 text-amber-600" />
+                                                                        <span className="text-[10px] font-bold uppercase tracking-wider">Pickup OTP:</span>
+                                                                    </div>
+                                                                    <span className="text-sm font-black tracking-widest bg-white px-2 py-0.5 rounded-md shadow-sm">
+                                                                        {order.activeSellerOtp}
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 lg:px-6 py-3 lg:py-4">

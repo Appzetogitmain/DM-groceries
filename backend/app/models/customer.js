@@ -54,6 +54,11 @@ const userSchema = new mongoose.Schema(
             trim: true,
         },
 
+        bloodGroup: {
+            type: String,
+            trim: true,
+        },
+
         role: {
             type: String,
             enum: ["user", "admin", "delivery", "seller"],
