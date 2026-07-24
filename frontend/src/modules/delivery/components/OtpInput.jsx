@@ -112,10 +112,14 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
 
     setIsGenerating(true);
     try {
-      const response = isReturn
-        ? await deliveryApi.requestReturnOtp(orderId, {})
-        : await deliveryApi.requestDeliveryOtp(orderId, {});
-      toast.success(response.data?.message || "OTP generated and sent to customer");
+      const response = isSellerPickup
+        ? await deliveryApi.requestSellerPickupOtp(orderId, {})
+        : isReturnDrop
+          ? await deliveryApi.requestReturnDropOtp(orderId, {})
+          : isReturn
+            ? await deliveryApi.requestReturnOtp(orderId, {})
+            : await deliveryApi.requestDeliveryOtp(orderId, {});
+      toast.success(response.data?.message || "OTP generated successfully");
       setError(null);
       setLastErrorCode(null);
       clearInputs();
@@ -364,6 +368,22 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
         Clear
       </button>
 
+      {/* Resend OTP Button */}
+      <button
+        onClick={handleGenerateOtp}
+        disabled={isLoading || isGenerating}
+        className="w-full h-10 rounded-xl font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 active:scale-95 transition-all duration-200 outline-none focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+      >
+        {isGenerating ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Sending...</span>
+          </>
+        ) : (
+          <span>Resend OTP</span>
+        )}
+      </button>
+
       {/* Cancel Button (Optional) */}
       {onCancel && (
         <button
@@ -378,7 +398,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
       {/* Help Text */}
       <div className="bg-brand-50 border border-brand-200 rounded-xl p-3">
         <p className="text-xs text-brand-800 text-center">
-          💡 The customer will see this OTP on their app when you're nearby
+          💡 The {isSellerPickup || isReturnDrop ? "seller" : "customer"} will see this OTP on their app when you're nearby
         </p>
       </div>
     </div>

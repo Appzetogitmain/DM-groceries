@@ -9,9 +9,10 @@ import { useProductDetail } from '../../context/ProductDetailContext';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@core/context/AuthContext';
-import { onReturnPickupOtp, onReturnDropOtp } from '@core/services/orderSocket';
+import { onReturnPickupOtp, onReturnDropOtp, onNotificationNew } from '@core/services/orderSocket';
 import { toast } from 'sonner';
 import { ShieldCheck, Package } from 'lucide-react';
+import { playNotificationSound } from '@/lib/soundUtils';
 
 const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = false, showCart: showCartProp, showBottomNav: showBottomNavProp }) => {
     const location = useLocation();
@@ -24,6 +25,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
 
         const cleanupPickup = onReturnPickupOtp(() => token, (payload) => {
             console.log('[CustomerLayout] Return Pickup OTP Received:', payload);
+            playNotificationSound();
             toast.custom((t) => (
                 <div className="bg-white border-2 border-brand-600 rounded-3xl p-5 shadow-2xl animate-in slide-in-from-bottom-full duration-500 max-w-md w-full">
                     <div className="flex items-start gap-4">
@@ -48,6 +50,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
 
         const cleanupDrop = onReturnDropOtp(() => token, (payload) => {
             console.log('[CustomerLayout] Return Drop OTP Received:', payload);
+            playNotificationSound();
             toast.custom((t) => (
                 <div className="bg-white border-2 border-green-600 rounded-3xl p-5 shadow-2xl animate-in slide-in-from-bottom-full duration-500 max-w-md w-full">
                     <div className="flex items-start gap-4">
@@ -70,9 +73,14 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
             ), { duration: 15000, position: 'top-center' });
         });
 
+        const cleanupGeneralNotification = onNotificationNew(() => token, () => {
+            playNotificationSound();
+        });
+
         return () => {
             cleanupPickup();
             cleanupDrop();
+            cleanupGeneralNotification();
         };
     }, [token, user]);
 

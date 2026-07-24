@@ -31,6 +31,8 @@ const CashCollection = () => {
     const [selectedRider, setSelectedRider] = useState(null);
     const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
     const [settlementData, setSettlementData] = useState({ rider: null, amount: 0 });
+    const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+    const [messageData, setMessageData] = useState({ rider: null, message: 'Please deposit the collected COD cash at your earliest convenience to avoid any account holds. Thank you!' });
     const [isProcessing, setIsProcessing] = useState(false);
 
     const [ridersCashData, setRidersCashData] = useState([]);
@@ -165,6 +167,30 @@ const CashCollection = () => {
             }
         } catch (error) {
             toast.error(error.response?.data?.message || "Settlement failed");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleSendMessage = async () => {
+        if (!messageData.message.trim()) {
+            toast.error("Message cannot be empty");
+            return;
+        }
+        try {
+            setIsProcessing(true);
+            const res = await adminApi.sendDirectNotification({
+                userId: messageData.rider.rawId || messageData.rider.id,
+                userRole: 'delivery',
+                title: 'COD Remittance Reminder',
+                message: messageData.message
+            });
+            if (res.data?.success) {
+                toast.success('Message sent to rider');
+                setIsMessageModalOpen(false);
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to send message');
         } finally {
             setIsProcessing(false);
         }
@@ -337,7 +363,13 @@ const CashCollection = () => {
                                                 >
                                                     Settle
                                                 </button>
-                                                <button className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-200 transition-all active:scale-95">
+                                                <button 
+                                                    onClick={() => {
+                                                        setMessageData({ rider, message: 'Please deposit the collected COD cash at your earliest convenience to avoid any account holds. Thank you!' });
+                                                        setIsMessageModalOpen(true);
+                                                    }}
+                                                    className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-200 transition-all active:scale-95"
+                                                >
                                                     <Bell className="h-4 w-4" />
                                                 </button>
                                                 <button
@@ -555,6 +587,43 @@ const CashCollection = () => {
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* Message Rider Modal */}
+            <Modal
+                isOpen={isMessageModalOpen}
+                onClose={() => !isProcessing && setIsMessageModalOpen(false)}
+                title={`Message ${messageData.rider?.name || 'Rider'}`}
+                size="md"
+            >
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Message</label>
+                        <textarea
+                            value={messageData.message}
+                            onChange={(e) => setMessageData({ ...messageData, message: e.target.value })}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 min-h-[100px] resize-none"
+                            placeholder="Type your message here..."
+                        />
+                    </div>
+                    <div className="pt-4 flex gap-3">
+                        <button
+                            onClick={() => setIsMessageModalOpen(false)}
+                            disabled={isProcessing}
+                            className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSendMessage}
+                            disabled={isProcessing}
+                            className="flex-1 py-3 bg-brand-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-xl shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                            {isProcessing && <RotateCw className="h-4 w-4 animate-spin" />}
+                            {isProcessing ? 'Sending...' : 'Send Message'}
+                        </button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

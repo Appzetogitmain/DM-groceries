@@ -178,6 +178,16 @@ function eventDefinition(eventType) {
             ? `New order #${payload.orderId} received.`
             : "You have received a new order.",
       };
+    case NOTIFICATION_EVENTS.SELLER_DELIVERY_ARRIVED:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: () => "Delivery Partner Arrived 🚚",
+        body: (payload) =>
+          payload.orderId
+            ? `The delivery partner has arrived at your store to pickup order #${payload.orderId}.`
+            : "The delivery partner has arrived at your store for pickup.",
+      };
     case NOTIFICATION_EVENTS.SELLER_PICKUP_OTP:
       return {
         role: NOTIFICATION_ROLES.SELLER,
@@ -187,6 +197,36 @@ function eventDefinition(eventType) {
           payload.data?.otp
             ? `Your pickup verification OTP is ${payload.data.otp}. Share this with the delivery partner.`
             : "Your pickup verification OTP has been sent.",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_DELIVERY_OTP:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: () => "Delivery OTP 🔐",
+        body: (payload) =>
+          payload.data?.otp
+            ? `Your delivery OTP for order #${payload.orderId || ''} is ${payload.data.otp}. Share this with the delivery partner.`
+            : "Your delivery OTP has been sent.",
+      };
+    case NOTIFICATION_EVENTS.RETURN_PICKUP_OTP:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: () => "Return Pickup OTP 🔐",
+        body: (payload) =>
+          payload.data?.otp
+            ? `Your return pickup OTP for order #${payload.orderId || ''} is ${payload.data.otp}. Share this with the delivery partner.`
+            : "Your return pickup OTP has been sent.",
+      };
+    case NOTIFICATION_EVENTS.RETURN_DROP_OTP:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: () => "Return Drop OTP 🔐",
+        body: (payload) =>
+          payload.data?.otp
+            ? `Return drop OTP for order #${payload.orderId || ''} is ${payload.data.otp}. Share with delivery partner to confirm receipt.`
+            : "Your return drop OTP has been sent.",
       };
     case NOTIFICATION_EVENTS.DELIVERY_ASSIGNED:
       return {
@@ -403,7 +443,130 @@ function eventDefinition(eventType) {
         title: (payload) => payload.title || "Congratulations! Milestone Reached 🎉",
         body: (payload) => payload.message || "You have unlocked a new milestone reward!",
       };
+    case NOTIFICATION_EVENTS.CUSTOMER_REGISTRATION:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Welcome to Noyo-kart!",
+        body: (payload) => payload.message || "Thank you for registering. Start shopping today!",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_LOGIN:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "New Login Alert",
+        body: (payload) => payload.message || "A new login to your account was detected.",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_OTP_VERIFIED:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "OTP Verified",
+        body: (payload) => payload.message || "Your OTP has been successfully verified.",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_WALLET_CREDIT:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Wallet Credited 💸",
+        body: (payload) => payload.message || (payload.data?.amount ? `₹${payload.data.amount} has been added to your wallet.` : "Your wallet has been credited."),
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_WALLET_DEBIT:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Wallet Debited",
+        body: (payload) => payload.message || (payload.data?.amount ? `₹${payload.data.amount} has been deducted from your wallet.` : "Funds have been deducted from your wallet."),
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_COUPON_EARNED:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "New Coupon Earned! 🎫",
+        body: (payload) => payload.message || "You've earned a new coupon. Check your rewards!",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_OFFER_NOTIFICATION:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Special Offer for You! 🎁",
+        body: (payload) => payload.message || "Check out our latest offers tailored just for you.",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_SUBSCRIPTION_UPDATE:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Subscription Update",
+        body: (payload) => payload.message || "There has been an update to your subscription plan.",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_PAYMENT_FAILED:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Payment Failed ❌",
+        body: (payload) => payload.message || "Your recent payment attempt failed. Please try again.",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_WITHDRAWAL_UPDATE:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Withdrawal Update",
+        body: (payload) => payload.message || "There is an update regarding your withdrawal request.",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_REVIEW_REMINDER:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Rate your recent purchase ⭐",
+        body: (payload) => payload.message || "How was your recent order? Leave a review and let us know!",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_LOW_WALLET_BALANCE:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Low Wallet Balance",
+        body: (payload) => payload.message || "Your wallet balance is running low. Recharge now!",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_ADDRESS_VERIFIED:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Address Verified",
+        body: (payload) => payload.message || "Your new delivery address has been verified successfully.",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_PRODUCT_BACK_IN_STOCK:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Back in Stock! 📦",
+        body: (payload) => payload.message || "An item you wishlisted is now back in stock. Grab it fast!",
+      };
+    case NOTIFICATION_EVENTS.CUSTOMER_PRICE_DROP:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Price Drop Alert! 📉",
+        body: (payload) => payload.message || "Great news! A product you've been watching just got cheaper.",
+      };
     default:
+      if (eventType && typeof eventType === 'string') {
+        const roleStr = roleFromEvent(eventType) || NOTIFICATION_ROLES.CUSTOMER;
+        return {
+          role: roleStr,
+          recipientIds: (payload) => {
+             if (roleStr === NOTIFICATION_ROLES.CUSTOMER) return normalizeIdList(payload.userId || payload.customerId);
+             if (roleStr === NOTIFICATION_ROLES.SELLER) return normalizeIdList(payload.sellerId || payload.sellerIds);
+             if (roleStr === NOTIFICATION_ROLES.DELIVERY) return normalizeIdList(payload.deliveryId || payload.deliveryIds);
+             if (roleStr === NOTIFICATION_ROLES.ADMIN) {
+                 if (payload.adminIds) return normalizeIdList(payload.adminIds);
+                 return ['admin_broadcast'];
+             }
+             return normalizeIdList(payload.userId);
+          },
+          title: (payload) => payload.title || eventType.replace(/_/g, ' '),
+          body: (payload) => payload.message || payload.body || `New event: ${eventType.replace(/_/g, ' ')}`,
+        };
+      }
       return null;
   }
 }

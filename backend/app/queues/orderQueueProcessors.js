@@ -12,6 +12,8 @@ import {
 import { isRedisEnabled } from "../config/redis.js";
 import logger from "../services/logger.js";
 import { incrementCounter, recordHistogram } from "../services/metrics.js";
+import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
 
 export function registerOrderQueueProcessors() {
   if (!isRedisEnabled()) {
@@ -189,6 +191,11 @@ export function registerOrderQueueProcessors() {
       orderId: job?.data?.orderId,
       error: err?.message
     });
+    emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_QUEUE_FAILURE, {
+      title: "Queue Job Failed",
+      message: `Seller timeout job ${job?.id} failed for order ${job?.data?.orderId}: ${err?.message}`,
+      queueName: "sellerTimeoutQueue"
+    });
   });
   
   deliveryTimeoutQueue.on("failed", (job, err) => {
@@ -197,6 +204,11 @@ export function registerOrderQueueProcessors() {
       jobType: JOB_NAMES.DELIVERY_TIMEOUT,
       orderId: job?.data?.orderId,
       error: err?.message
+    });
+    emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_QUEUE_FAILURE, {
+      title: "Queue Job Failed",
+      message: `Delivery timeout job ${job?.id} failed for order ${job?.data?.orderId}: ${err?.message}`,
+      queueName: "deliveryTimeoutQueue"
     });
   });
   
@@ -220,6 +232,11 @@ export function registerOrderQueueProcessors() {
       jobType: JOB_NAMES.RETURN_PICKUP_TIMEOUT,
       orderId: job?.data?.orderId,
       error: err?.message,
+    });
+    emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_QUEUE_FAILURE, {
+      title: "Queue Job Failed",
+      message: `Return-pickup timeout job ${job?.id} failed for order ${job?.data?.orderId}: ${err?.message}`,
+      queueName: "returnPickupTimeoutQueue"
     });
   });
 

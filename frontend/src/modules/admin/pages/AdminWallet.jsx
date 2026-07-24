@@ -31,6 +31,8 @@ import Modal from '@shared/components/ui/Modal';
 import Pagination from '@shared/components/ui/Pagination';
 import { adminApi } from "../services/adminApi";
 import { toast } from "sonner";
+import { onNotificationNew } from '@core/services/orderSocket';
+import { useAuth } from '@core/context/AuthContext';
 
 const AdminWallet = () => {
     const navigate = useNavigate();
@@ -49,6 +51,7 @@ const AdminWallet = () => {
     const [isExporting, setIsExporting] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [loadingId, setLoadingId] = useState(null);
+    const { getToken } = useAuth();
 
     useEffect(() => {
         if (!selectedStat) {
@@ -154,6 +157,22 @@ const AdminWallet = () => {
         fetchData(txnPage);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [txnPage]);
+
+    useEffect(() => {
+        const cleanupSocket = onNotificationNew(getToken, (data) => {
+            if (
+                data?.eventType?.includes('WALLET_CREDIT') || 
+                data?.eventType?.includes('WALLET_DEBIT') || 
+                data?.eventType === 'ORDER_PLACED'
+            ) {
+                fetchData(txnPage);
+            }
+        });
+
+        return () => {
+            cleanupSocket();
+        };
+    }, [getToken, txnPage]);
 
     const handleUpdateStatus = async (id, status, reason = "") => {
         try {

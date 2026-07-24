@@ -11,6 +11,8 @@ import {
 import { buildKey, getOrSet, getTTL } from "./cacheService.js";
 import { resolveWorkflowStatus } from "./orderWorkflowService.js";
 import logger from "./logger.js";
+import Setting from "../models/setting.js";
+import { calculateRiderPayout } from "./finance/pricingService.js";
 
 function svcErr(message, statusCode) {
   const error = new Error(message);
@@ -390,18 +392,54 @@ export async function fetchAvailableOrdersForDelivery({
         {
           returnDeliveryBoy: userId,
         },
+        // Active broadcast or manual reassign queue.
+        // We do NOT filter by sellerIds here, because the rider needs to be near the CUSTOMER,
+        // not near the SELLER. We'll filter by haversine distance in JS.
+        {
+          returnStatus: { $in: ["return_approved", "return_pickup_assigned"] },
+          returnDeliveryBoy: null,
+          skippedBy: { $nin: [userId] },
+          $or: [
+            { returnSearchExpiresAt: { $exists: false } },
+            { returnSearchExpiresAt: null },
+            { returnSearchExpiresAt: { $gt: now } },
+            { returnStatus: "return_approved" }, // approved can stay until picked
+          ],
+        },
       ],
     })
       .sort({ createdAt: -1, _id: -1 })
-      .limit(limit)
+      // fetching a bit more to allow for filtering, then slice to limit later
+      .limit(limit * 2) 
       .populate("customer", "name phone")
       .populate("seller", "shopName address name location")
       .lean();
 
-    returnPickups = returnPickupsRaw.map((rp) => ({
-      ...rp,
-      isReturnPickup: true,
-    }));
+    // Filter unassigned return pickups by distance to the customer's location
+    const dpCoords = deliveryPartner.location?.coordinates;
+    const dpLat = dpCoords?.[1];
+    const dpLng = dpCoords?.[0];
+
+    returnPickups = returnPickupsRaw
+      .filter((rp) => {
+        if (rp.returnDeliveryBoy === userId) return true; // always keep mine
+        if (!dpLat || !dpLng) return false;
+
+        const custLat = rp.address?.location?.lat;
+        const custLng = rp.address?.location?.lng;
+        
+        if (!custLat || !custLng) return false;
+
+        // Default radius is 5000m unless specified in meta
+        const radiusM = rp.returnSearchMeta?.radiusMeters || 5000;
+        const dist = distanceMeters(dpLat, dpLng, custLat, custLng);
+        return dist <= radiusM;
+      })
+      .slice(0, limit)
+      .map((rp) => ({
+        ...rp,
+        isReturnPickup: true,
+      }));
   }
 
   const orders = mergeAvailableOrders(
@@ -486,17 +524,19 @@ export async function getOrderWithAccess(orderId, userId, role) {
         checkoutGroupId: orderId,
       }).lean();
       if (group) {
+        const groupOrders = await Order.find({ checkoutGroupId: orderId }).select('status workflowStatus paymentStatus').lean();
+        const primaryOrder = groupOrders[0];
         return {
           isGroupSummary: true,
           payload: {
             orderId: group.checkoutGroupId,
-            status: group.status?.toLowerCase() || "pending",
-            orderStatus: group.status?.toLowerCase() || "pending",
+            status: primaryOrder?.status?.toLowerCase() || group.status?.toLowerCase() || "pending",
+            orderStatus: primaryOrder?.status?.toLowerCase() || group.status?.toLowerCase() || "pending",
             paymentStatus:
-              group.paymentStatus === "CAPTURED"
+              primaryOrder?.paymentStatus === "CAPTURED" || group.paymentStatus === "CAPTURED"
                 ? "PAID"
-                : group.paymentStatus || "CREATED",
-            workflowStatus: group.status || "CREATED",
+                : primaryOrder?.paymentStatus || group.paymentStatus || "CREATED",
+            workflowStatus: primaryOrder?.workflowStatus || group.status || "CREATED",
             pricing: {
               subtotal: group.pricingSummary?.subtotal || 0,
               deliveryFee: group.pricingSummary?.deliveryFee || 0,
@@ -546,6 +586,21 @@ export async function getOrderWithAccess(orderId, userId, role) {
 
   if (!order.workflowStatus) {
     order.workflowStatus = resolveWorkflowStatus(order);
+  }
+
+  if (
+    order.returnStatus &&
+    order.returnStatus !== "none" &&
+    (!order.returnDeliveryCommission || order.returnDeliveryCommission === 0)
+  ) {
+    try {
+      const settings = await Setting.findOne({}).lean();
+      let distanceKm = order.distanceSnapshot?.distanceKmActual || order.paymentBreakdown?.distanceKmActual || 0;
+      const payout = calculateRiderPayout(distanceKm, settings || {});
+      order.returnDeliveryCommission = payout.riderPayoutTotal || 0;
+    } catch (e) {
+      logger.warn("Failed to calculate fallback return delivery commission", { error: e.message });
+    }
   }
 
   const uid = userId != null ? String(userId).trim() : "";

@@ -19,6 +19,7 @@ const roundCurrency = (num) => Math.round((num + Number.EPSILON) * 100) / 100;
 function payoutTypeToOwnerType(payoutType) {
   if (payoutType === PAYOUT_TYPE.SELLER) return OWNER_TYPE.SELLER;
   if (payoutType === PAYOUT_TYPE.DELIVERY_PARTNER) return OWNER_TYPE.DELIVERY_PARTNER;
+  if (payoutType === PAYOUT_TYPE.ADMIN) return OWNER_TYPE.ADMIN;
   throw new Error(`Unsupported payout type: ${payoutType}`);
 }
 
@@ -83,7 +84,7 @@ export async function createPendingPayoutForOrder({
         walletId: wallet._id,
         actorType: ownerType,
         actorId: beneficiaryId,
-        type: payoutType === PAYOUT_TYPE.SELLER ? LEDGER_TRANSACTION_TYPE.SELLER_PAYOUT_PENDING : LEDGER_TRANSACTION_TYPE.RIDER_PAYOUT_PENDING,
+        type: payoutType === PAYOUT_TYPE.SELLER ? LEDGER_TRANSACTION_TYPE.SELLER_PAYOUT_PENDING : payoutType === PAYOUT_TYPE.ADMIN ? LEDGER_TRANSACTION_TYPE.ADMIN_EARNING_CREDITED : LEDGER_TRANSACTION_TYPE.RIDER_PAYOUT_PENDING,
         direction: LEDGER_DIRECTION.CREDIT,
         amount: roundCurrency(amount),
         description: `${payoutType} payout queued for order ${order.orderId}`,
@@ -148,6 +149,8 @@ export async function processPayout(payoutId, { remarks = "", adminId = null } =
       } else if (payout.payoutType === PAYOUT_TYPE.DELIVERY_PARTNER) {
         order.settlementStatus = { ...(order.settlementStatus || {}), riderPayout: "COMPLETED" };
         order.financeFlags = { ...(order.financeFlags || {}), riderPayoutQueued: true };
+      } else if (payout.payoutType === PAYOUT_TYPE.ADMIN) {
+        order.financeFlags = { ...(order.financeFlags || {}), adminEarningCredited: true };
       }
       await order.save({ session });
     }

@@ -804,14 +804,16 @@ const OrderDetails = () => {
             </div>
           </div>
           <div className="text-right flex flex-col items-end gap-2">
-            <div>
-              <p className="text-[11px] font-bold text-[#C85D00] uppercase tracking-wider">
-                Arriving in
-              </p>
-              <p className="text-xl font-black text-[#8B3F00] leading-none">
-                {summary.arrivingInText}
-              </p>
-            </div>
+            {!(publicStatusStage === 3 || step >= 4) && (
+              <div>
+                <p className="text-[11px] font-bold text-[#C85D00] uppercase tracking-wider">
+                  Arriving in
+                </p>
+                <p className="text-xl font-black text-[#8B3F00] leading-none">
+                  {summary.arrivingInText}
+                </p>
+              </div>
+            )}
             <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-bold text-[#C87400] ring-1 ring-[#F4D98B]">
               Total distance: {summary.totalDistanceText}
             </div>

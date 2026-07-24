@@ -5,6 +5,8 @@ import PageHeader from '@shared/components/ui/PageHeader';
 import StatCard from '@shared/components/ui/StatCard';
 import Badge from '@shared/components/ui/Badge';
 import { adminApi } from '../services/adminApi';
+import { onNotificationNew } from '@core/services/orderSocket';
+import { useAuth } from '@core/context/AuthContext';
 import {
     Users,
     Store,
@@ -36,23 +38,46 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const res = await adminApi.getStats();
-                if (res.data.success) {
-                    setStatsData(res.data.result);
-                    setLastUpdatedAt(new Date());
-                }
-            } catch (error) {
-                console.error("Dashboard Stats Error:", error);
-                toast.error("Failed to fetch dashboard data");
-            } finally {
-                setLoading(false);
+    const { getToken } = useAuth();
+
+    const fetchStats = async () => {
+        try {
+            const res = await adminApi.getStats();
+            if (res.data.success) {
+                setStatsData(res.data.result);
+                setLastUpdatedAt(new Date());
             }
-        };
+        } catch (error) {
+            console.error("Dashboard Stats Error:", error);
+            toast.error("Failed to fetch dashboard data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchStats();
     }, []);
+
+    useEffect(() => {
+        let timeoutId;
+        const cleanupSocket = onNotificationNew(getToken, (data) => {
+            if (
+                data?.eventType?.includes('ORDER') || 
+                data?.eventType?.includes('WALLET') ||
+                data?.eventType?.includes('ADMIN_')
+            ) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    fetchStats();
+                }, 3000);
+            }
+        });
+        return () => {
+            cleanupSocket();
+            clearTimeout(timeoutId);
+        };
+    }, [getToken]);
 
     if (loading) {
         return (

@@ -12,9 +12,10 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import SellerOrdersContext from '@/modules/seller/context/SellerOrdersContext';
 import SellerEarningsContext, { defaultEarnings } from '@/modules/seller/context/SellerEarningsContext';
-import { getOrderSocket, onSellerOrderNew, onReturnDropOtp, onSellerPickupOtp } from '@/core/services/orderSocket';
+import { getOrderSocket, onSellerOrderNew, onReturnDropOtp, onSellerPickupOtp, onSellerDeliveryArrived } from '@/core/services/orderSocket';
 import { createSocketTokenReader } from '@core/utils/authStorage';
 import { STORAGE_KEYS } from '@core/utils/storage';
+import { showSystemNotification } from '@/core/firebase/pushClient';
 import orderAlertSound from '@/assets/sounds/order_alert.mp3';
 
 const POLL_INTERVAL_MS = 15000;
@@ -55,6 +56,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [returnDropOtpAlert, setReturnDropOtpAlert] = useState(null); // { orderId, otp, expiresAt }
     const [sellerPickupOtpAlert, setSellerPickupOtpAlert] = useState(null); // { orderId, otp, expiresAt }
+    const [deliveryArrivedAlert, setDeliveryArrivedAlert] = useState(null); // { orderId, deliveryId }
     const { user, logout, role } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
@@ -141,6 +143,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
     useEffect(() => {
         shownOrderIdsRef.current = shownOrderIds;
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+            Notification.requestPermission().catch(() => {});
+        }
     }, [shownOrderIds]);
     useEffect(() => {
         shownReturnOrderIdsRef.current = shownReturnOrderIds;
@@ -191,6 +196,13 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 setShownOrderIds((prev) => new Set(prev).add(newOrder.orderId));
                 shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(newOrder.orderId);
                 newOrderAlertRef.current = newOrder;
+
+                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                    showSystemNotification({
+                        title: "New Order Received!",
+                        body: `You have a new order #${newOrder.orderId} for ₹${newOrder.pricing?.total || newOrder.total}`
+                    });
+                }
             } catch (error) {
                 console.error("Polling Error:", error);
             } finally {
@@ -263,6 +275,12 @@ const DashboardLayout = ({ children, navItems, title }) => {
             setReturnDropOtpAlert(payload);
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(() => { });
+            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                showSystemNotification({
+                    title: "Rider at Store!",
+                    body: `A rider is at your store for Return #${payload.orderId}. OTP: ${payload.otp}`
+                });
+            }
         });
 
         const unsubscribeSellerPickup = onSellerPickupOtp(getToken, (payload) => {
@@ -270,12 +288,32 @@ const DashboardLayout = ({ children, navItems, title }) => {
             setSellerPickupOtpAlert(payload);
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(() => { });
+            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                showSystemNotification({
+                    title: "Rider at Store!",
+                    body: `A rider is at your store for Pickup #${payload.orderId}. OTP: ${payload.otp}`
+                });
+            }
+        });
+
+        const unsubscribeDeliveryArrived = onSellerDeliveryArrived(getToken, (payload) => {
+            console.log("[DashboardLayout] Received delivery arrived event:", payload);
+            setDeliveryArrivedAlert(payload);
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(() => { });
+            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                showSystemNotification({
+                    title: "Delivery Partner Arrived",
+                    body: `Delivery partner for order #${payload.orderId} has arrived at your store.`
+                });
+            }
         });
 
         return () => {
             unsubscribeSellerNew();
             unsubscribeDrop();
             unsubscribeSellerPickup();
+            unsubscribeDeliveryArrived();
         };
     }, [role]);
 
@@ -573,6 +611,40 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
                                 <button
                                     onClick={() => setSellerPickupOtpAlert(null)}
+                                    className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-black hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs"
+                                >
+                                    Dismiss Alert
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* Global Delivery Arrived Alert Modal */}
+                {deliveryArrivedAlert && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-brand-100"
+                        >
+                            <div className="flex flex-col items-center text-center">
+                                <div className="h-20 w-20 bg-brand-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                    <Truck className="h-10 w-10 text-brand-600" />
+                                </div>
+
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">Rider at Store!</h2>
+                                <p className="text-slate-600 font-medium mb-6">
+                                    A delivery partner has arrived at your store to pick up <span className="text-brand-600 font-bold">Order #{deliveryArrivedAlert.orderId}</span>.
+                                </p>
+
+                                <p className="text-xs font-bold text-slate-500 italic mb-8">
+                                    Please ensure the order is packed and ready for dispatch.
+                                </p>
+
+                                <button
+                                    onClick={() => setDeliveryArrivedAlert(null)}
                                     className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-black hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs"
                                 >
                                     Dismiss Alert

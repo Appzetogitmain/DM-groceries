@@ -82,6 +82,7 @@ export const LEDGER_TRANSACTION_TYPE = {
 export const PAYOUT_TYPE = {
   SELLER: "SELLER",
   DELIVERY_PARTNER: "DELIVERY_PARTNER",
+  ADMIN: "ADMIN",
 };
 
 export const PAYOUT_STATUS = {

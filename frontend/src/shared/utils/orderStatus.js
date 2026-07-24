@@ -72,6 +72,11 @@ export function getLegacyStatusFromOrder(order) {
     return legacyFromWorkflow(workflowStatus);
   }
 
+  const s = String(order.status ?? "pending").toLowerCase();
+  if (s === "delivered" || s === "cancelled") {
+    return s;
+  }
+
   const riderStep = Number(order.deliveryRiderStep) || 0;
   if (riderStep >= 3 || order.outForDeliveryAt || order.pickupConfirmedAt) {
     return "out_for_delivery";
@@ -80,7 +85,6 @@ export function getLegacyStatusFromOrder(order) {
     return "confirmed";
   }
 
-  const s = String(order.status ?? "pending").toLowerCase();
   if (LEGACY_ENUM.has(s)) return s;
   return "pending";
 }

@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@core/context/AuthContext';
 import { useSettings } from '@core/context/SettingsContext';
+import { customerApi } from '../services/customerApi';
+import { toast } from 'sonner';
 
 const ProfilePage = () => {
     const navigate = useNavigate();
@@ -19,6 +21,16 @@ const ProfilePage = () => {
         if (raw.startsWith('+91')) return raw.replace(/^\+91[\s-]*/, '');
         if (raw.startsWith('91') && raw.length >= 12) return raw.replace(/^91[\s-]*/, '');
         return raw;
+    };
+
+    const handleTestPushNotification = async () => {
+        try {
+            await customerApi.testPushNotification();
+            toast.success("Test push notification sent!");
+        } catch (error) {
+            toast.error("Failed to send test push notification.");
+            console.error("Test push notification error:", error);
+        }
     };
 
     return (
@@ -61,6 +73,7 @@ const ProfilePage = () => {
                         <MenuItem icon={Bell} label="Notifications" />
                         <MenuItem icon={HelpCircle} label="Help & Support" path="/support" />
                         <MenuItem icon={Settings} label="Settings" path="/settings" />
+                        <MenuItem icon={Bell} label="Test Push Notification" onClick={handleTestPushNotification} />
                         <MenuItem icon={LogOut} label="Logout" onClick={logout} />
                     </div>
                 

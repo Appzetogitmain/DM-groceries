@@ -267,7 +267,11 @@ const ProductDetailPage = () => {
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-                        {quantity > 0 ? (
+                        {product.stock <= 0 ? (
+                            <div className="flex-1 bg-gray-100 text-gray-400 h-16 w-full sm:w-64 rounded-2xl font-black text-lg flex items-center justify-center gap-2 border border-gray-200 uppercase tracking-widest">
+                                OUT OF STOCK
+                            </div>
+                        ) : quantity > 0 ? (
                             <div className="flex items-center bg-primary text-primary-foreground rounded-2xl h-16 w-full sm:w-auto px-2 shadow-xl shadow-brand-100">
                                 <button
                                     onClick={() => updateQuantity(product.id, -1, "")}
@@ -277,8 +281,15 @@ const ProductDetailPage = () => {
                                 </button>
                                 <span className="w-16 text-center font-black text-xl">{quantity}</span>
                                 <button
-                                    onClick={() => updateQuantity(product.id, 1, "")}
-                                    className="w-12 h-12 flex items-center justify-center hover:bg-white/20 rounded-xl transition-all"
+                                    disabled={quantity >= product.stock}
+                                    onClick={() => {
+                                        if (quantity >= product.stock) {
+                                            showToast(`Only ${product.stock} units available in stock.`, "error");
+                                            return;
+                                        }
+                                        updateQuantity(product.id, 1, "");
+                                    }}
+                                    className="w-12 h-12 flex items-center justify-center hover:bg-white/20 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Plus size={24} strokeWidth={3} />
                                 </button>
@@ -286,6 +297,10 @@ const ProductDetailPage = () => {
                         ) : (
                             <Button
                                 onClick={() => {
+                                    if (product.stock <= 0) {
+                                        showToast("This item is currently out of stock", "error");
+                                        return;
+                                    }
                                     addToCart(product);
                                     showToast(`${product.name} added to cart`, 'success');
                                 }}
@@ -312,7 +327,9 @@ const ProductDetailPage = () => {
                         </div>
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-sm">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Stock</p>
-                            <p className="text-sm font-black text-slate-800">{product.stock > 0 ? 'In Stock' : 'Out of Stock'}</p>
+                            <p className={`text-sm font-black ${product.stock <= 0 ? "text-red-500" : product.stock <= (product.lowStockAlert || 5) ? "text-orange-500" : "text-slate-800"}`}>
+                                {product.stock <= 0 ? 'Out of Stock' : product.stock <= (product.lowStockAlert || 5) ? `Only ${product.stock} left!` : 'In Stock'}
+                            </p>
                         </div>
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-sm">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Brand</p>

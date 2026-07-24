@@ -2,6 +2,7 @@ import Cart from "../models/cart.js";
 import Product from "../models/product.js";
 import handleResponse from "../utils/helper.js";
 import { getApprovedOrLegacyFilter } from "../services/productModerationService.js";
+import { getIO } from "../socket/socketManager.js";
 
 const CART_POPULATE_FIELDS =
   "name slug price salePrice mainImage stock status headerId categoryId subcategoryId sellerId variants";
@@ -98,6 +99,13 @@ export const addToCart = async (req, res) => {
     await cart.save();
     const updatedCart = await fetchPopulatedCart(cart._id);
 
+    try {
+      const io = getIO();
+      if (io) io.to(`customer:${customerId}`).emit("cart:update", updatedCart);
+    } catch (err) {
+      console.warn("Socket emission failed for cart update:", err.message);
+    }
+
     return handleResponse(res, 200, "Item added to cart", updatedCart);
   } catch (error) {
     return handleResponse(res, 500, error.message);
@@ -140,6 +148,13 @@ export const updateQuantity = async (req, res) => {
     cart.markModified("items");
     await cart.save();
     const updatedCart = await fetchPopulatedCart(cart._id);
+
+    try {
+      const io = getIO();
+      if (io) io.to(`customer:${customerId}`).emit("cart:update", updatedCart);
+    } catch (err) {
+      console.warn("Socket emission failed for cart update:", err.message);
+    }
 
     return handleResponse(res, 200, "Cart updated successfully", updatedCart);
   } catch (error) {
@@ -195,6 +210,13 @@ export const removeFromCart = async (req, res) => {
     cart.markModified("items");
     await cart.save();
     const updatedCart = await fetchPopulatedCart(cart._id);
+
+    try {
+      const io = getIO();
+      if (io) io.to(`customer:${customerId}`).emit("cart:update", updatedCart);
+    } catch (err) {
+      console.warn("Socket emission failed for cart update:", err.message);
+    }
 
     return handleResponse(res, 200, "Item removed from cart", updatedCart);
   } catch (error) {

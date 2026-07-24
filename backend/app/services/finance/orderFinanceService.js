@@ -298,20 +298,16 @@ export async function creditAdminEarning(order, { session, actorId } = {}) {
   }
 
   const adminWallet = await getOrCreateWallet(OWNER_TYPE.ADMIN, null, { session });
-  await createLedgerEntry(
+  const payout = await createPendingPayoutForOrder(
     {
-      orderId: order._id,
-      walletId: adminWallet._id,
-      actorType: OWNER_TYPE.ADMIN,
-      actorId: null,
-      type: LEDGER_TRANSACTION_TYPE.ADMIN_EARNING_CREDITED,
-      direction: LEDGER_DIRECTION.CREDIT,
+      order,
+      payoutType: PAYOUT_TYPE.ADMIN,
+      beneficiaryId: adminWallet.ownerId, // this is typically 'null' or the admin's actual ID string
       amount: adminEarning,
-      paymentMode: order.paymentMode,
-      description: "Platform earning recognized on delivery",
-      reference: order.orderId,
+      createdBy: actorId || null,
+      metadata: { flow: "order_delivered", trigger: "admin_earning" },
     },
-    { session },
+    { session }
   );
 
   order.settlementStatus = {
@@ -321,6 +317,7 @@ export async function creditAdminEarning(order, { session, actorId } = {}) {
   order.financeFlags = {
     ...(order.financeFlags || {}),
     adminEarningCredited: true,
+    adminPayoutHeld: true,
   };
 
   await createFinanceAuditLog(

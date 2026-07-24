@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 
 import { useSettings } from '@core/context/SettingsContext';
 import { onNotificationNew } from '@core/services/orderSocket';
+import { playNotificationSound } from '@/lib/soundUtils';
+import { showSystemNotification } from '@/core/firebase/pushClient';
 
 const Topbar = ({ onMenuClick }) => {
     const { user, logout, role, token } = useAuth();
@@ -81,13 +83,19 @@ const Topbar = ({ onMenuClick }) => {
 
         const getToken = () => token;
         let scheduled = null;
-        const refresh = () => {
+        const refresh = (payload) => {
+            if (payload && payload.title) {
+                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                    showSystemNotification({ title: payload.title, body: payload.body || '' });
+                }
+            }
             if (scheduled) return;
             // Debounce: bursts of notifications (e.g. bulk order accept)
             // shouldn't trigger N concurrent refetches.
             scheduled = setTimeout(() => {
                 scheduled = null;
                 fetchNotifications();
+                playNotificationSound();
             }, 200);
         };
 

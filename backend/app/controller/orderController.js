@@ -49,6 +49,7 @@ import {
   retractDeliveryBroadcastForOrder,
   emitToSeller,
   emitToDelivery,
+  emitOrderStatusUpdate,
 } from "../services/orderSocketEmitter.js";
 import * as walletService from "../services/finance/walletService.js";
 import { OWNER_TYPE } from "../constants/finance.js";
@@ -635,8 +636,8 @@ export const updateReturnQcStatus = async (req, res) => {
     const { qcStatus, note } = req.body || {};
     const { id: userId, role } = req.user;
 
-    if (role !== "admin") {
-      return handleResponse(res, 403, "Access denied. Admins only.");
+    if (role !== "admin" && role !== "seller") {
+      return handleResponse(res, 403, "Access denied. Admins or sellers only.");
     }
 
     if (!["qc_passed", "qc_failed"].includes(qcStatus)) {
@@ -651,6 +652,10 @@ export const updateReturnQcStatus = async (req, res) => {
     const order = await Order.findOne(orderKey);
     if (!order) {
       return handleResponse(res, 404, "Order not found");
+    }
+
+    if (role === "seller" && order.seller.toString() !== userId) {
+      return handleResponse(res, 403, "Access denied. You can only QC your own returns.");
     }
 
     if (order.returnStatus !== "returned") {
@@ -668,6 +673,7 @@ export const updateReturnQcStatus = async (req, res) => {
     order.returnQcNote = note ? String(note).trim().slice(0, 500) : undefined;
 
     await order.save();
+    emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
 
     if (qcStatus === "qc_passed") {
       const updated = await completeReturnAndRefund(order);
@@ -774,6 +780,8 @@ export const assignReturnDelivery = async (req, res) => {
     order.returnStatus = "return_pickup_assigned";
 
     await order.save();
+    emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
+    
     if (riderId) {
       // Manual assignment — no broadcast state machine needed. The rider
       // already has a direct task; UI shows a fixed 60s acceptance window.
@@ -856,6 +864,10 @@ export const acceptReturnPickup = async (req, res) => {
     if (!order.returnDeliveryBoy) {
       order.returnDeliveryBoy = userId;
       order.returnStatus = "return_pickup_assigned";
+      
+      await order.save();
+      emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
+      
       const acceptedAttempt = order.returnSearchMeta?.attempt || 1;
       // Clear the assignment expiry now that a rider owns this pickup —
       // prevents the orderQueryService stale-filter from accidentally
@@ -1129,18 +1141,24 @@ const completeReturnAndRefundLegacy = async (order) => {
   }
 
   await order.save();
-  emitNotificationEvent(NOTIFICATION_EVENTS.REFUND_COMPLETED, {
-    orderId: order.orderId,
-    customerId: order.customer,
-    userId: order.customer,
-    sellerId: order.seller,
-    deliveryId: order.returnDeliveryBoy,
-    data: {
-      refundAmount,
-      returnDeliveryCommission: commission,
-      isCOD: order.paymentMode === "COD"
-    },
-  });
+  emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
+
+  try {
+    emitNotificationEvent(NOTIFICATION_EVENTS.REFUND_COMPLETED, {
+      orderId: order.orderId,
+      customerId: order.customer,
+      userId: order.customer,
+      sellerId: order.seller,
+      deliveryId: order.returnDeliveryBoy,
+      data: {
+        refundAmount,
+        returnDeliveryCommission: commission,
+        isCOD: order.paymentMode === "COD"
+      },
+    });
+  } catch (error) {
+    console.error("Error emitting refund completed notification:", error);
+  }
   return order;
 };
 
@@ -1213,6 +1231,7 @@ export const updateReturnStatus = async (req, res) => {
         order.returnPickedAt = now;
       }
       await order.save();
+      emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
       return handleResponse(res, 200, "Return status updated", order);
     }
 
@@ -1222,11 +1241,13 @@ export const updateReturnStatus = async (req, res) => {
         order.returnDeliveredBackAt = now;
       }
       await order.save();
+      emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
       return handleResponse(res, 200, "Return received", order);
     }
 
     order.returnStatus = returnStatus;
     await order.save();
+    emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
 
     return handleResponse(res, 200, "Return status updated", order);
   } catch (error) {

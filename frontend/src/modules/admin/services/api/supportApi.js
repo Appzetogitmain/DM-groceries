@@ -30,6 +30,8 @@ export const adminSupportApi = {
         axiosInstance.post('/notifications/broadcast', data),
     getBroadcastAudienceStats: () =>
         axiosInstance.get('/notifications/broadcast/audience-stats'),
+    sendDirectNotification: (data) =>
+        axiosInstance.post('/notifications/send', data),
 
     // Reviews moderation
     getPendingReviews: (params) =>

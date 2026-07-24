@@ -193,6 +193,13 @@ export function onSellerOrderNew(getToken, handler) {
   return () => s.off("order:new", handler);
 }
 
+export function onSellerDeliveryArrived(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("seller:delivery:arrived", handler);
+  return () => s.off("seller:delivery:arrived", handler);
+}
+
 export function onSellerReturnRequested(getToken, handler) {
   const s = getOrderSocket(getToken);
   if (!s || typeof handler !== "function") return () => {};

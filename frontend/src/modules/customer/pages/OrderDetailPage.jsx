@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import InvoiceModal from "../components/order/InvoiceModal";
 import HelpModal from "../components/order/HelpModal";
 import LiveTrackingMap from "../components/order/LiveTrackingMap";
+import { showSystemNotification } from "@/core/firebase/pushClient";
 import DeliveryOtpDisplay from "../components/DeliveryOtpDisplay";
 import OrderProgressTracker from "../components/order/OrderProgressTracker";
 import ReturnProgressTracker from "../components/order/ReturnProgressTracker";
@@ -43,6 +44,7 @@ import {
   leaveOrderRoom,
   onOrderStatusUpdate,
   onCustomerOtp,
+  onDeliveryOtpGenerated,
   onReturnPickupOtp,
   onReturnDropOtp,
 } from "@/core/services/orderSocket";
@@ -281,40 +283,89 @@ const OrderDetailPage = () => {
     };
 
     const offStatus = onOrderStatusUpdate(getToken, (payload) => {
-      // Immediately update order state from socket payload — no waiting for API re-fetch
-      const ws = String(payload?.workflowStatus || "").toUpperCase();
-      if (ws) {
-        setOrder((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            workflowStatus: ws,
-            // Keep legacy status in sync for components that read order.status
-            ...(ws === "DELIVERED" && { status: "delivered" }),
-            ...(ws === "DELIVERY_SEARCH" && { status: "confirmed" }),
-            ...(ws === "OUT_FOR_DELIVERY" && { status: "out_for_delivery" }),
-            ...(ws === "CANCELLED" && { status: "cancelled" }),
-          };
+      const isMatched = matchesOrderIdentifier(payload?.orderId, identifiersRef.current) || matchesOrderIdentifier(payload?.checkoutGroupId, identifiersRef.current);
+      const isGroupSummaryActive = identifiersRef.current.some(id => String(id).startsWith("CHK-"));
+      
+      // If it doesn't match our specific order AND we aren't looking at a group summary, ignore it
+      if (!isMatched && !isGroupSummaryActive) return;
+
+      // If it explicitly matches the currently known identifiers, apply optimistic update
+      if (isMatched) {
+        // Immediately update order state from socket payload — no waiting for API re-fetch
+        const ws = String(payload?.workflowStatus || "").toUpperCase();
+        if (ws) {
+          setOrder((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              workflowStatus: ws,
+              // Keep legacy status in sync for components that read order.status
+              ...(ws === "DELIVERED" && { status: "delivered" }),
+              ...(ws === "DELIVERY_SEARCH" && { status: "confirmed" }),
+              ...(ws === "OUT_FOR_DELIVERY" && { status: "out_for_delivery" }),
+              ...(ws === "CANCELLED" && { status: "cancelled" }),
+            };
+          });
+        }
+      }
+      
+      // If the payload contains returnStatus, update return details immediately
+      if (payload?.returnStatus) {
+        setReturnDetails((prev) => {
+          if (!prev) return { returnStatus: payload.returnStatus };
+          return { ...prev, returnStatus: payload.returnStatus };
         });
       }
+
       refresh();
     });
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
     const offOtp = onCustomerOtp(getToken, (payload) => {
       if (matchesOrderIdentifier(payload?.orderId, identifiersRef.current) && (payload?.code || payload?.otp)) {
-        setHandoffOtp(payload.code || payload.otp);
+        const otpValue = payload.code || payload.otp;
+        setHandoffOtp(otpValue);
         toast.info("Delivery OTP received — share with rider if asked.");
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          showSystemNotification({
+            title: "Delivery OTP",
+            body: `Your delivery OTP is ${otpValue}. Share this with the delivery partner.`
+          });
+        }
       }
     });
+
+    const offDeliveryOtpGen = onDeliveryOtpGenerated(getToken, (payload) => {
+      if (matchesOrderIdentifier(payload?.orderId, identifiersRef.current) && payload?.otp) {
+        toast.info("Delivery OTP generated.");
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          showSystemNotification({
+            title: "Delivery OTP Generated",
+            body: `Your delivery OTP is ${payload.otp}. Share this with the rider when they arrive.`
+          });
+        }
+      }
+    });
+
     const offReturnOtp = onReturnPickupOtp(getToken, (payload) => {
       if (matchesOrderIdentifier(payload?.orderId, identifiersRef.current) && payload?.otp) {
         setHandoffOtp(payload.otp);
         toast.info("Return pickup OTP received — share with rider.");
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          showSystemNotification({
+            title: "Return Pickup OTP",
+            body: `Your return pickup OTP is ${payload.otp}. Share this with the delivery partner.`
+          });
+        }
       }
     });
 
     return () => {
       offStatus();
       offOtp();
+      offDeliveryOtpGen();
       offReturnOtp();
       leaveOrderRoom(orderId, getToken);
     };
@@ -831,8 +882,16 @@ const OrderDetailPage = () => {
             <LiveTrackingMap
               status={order.workflowStatus || order.status}
               eta={estimatedArrival.arrivingInText}
-              riderName={order.deliveryBoy?.name || "Delivery Partner"}
-              riderPlate={order.deliveryBoy?.vehicle?.plateNumber}
+              riderName={
+                (status?.startsWith("return_")
+                  ? order.returnDeliveryBoy?.name
+                  : order.deliveryBoy?.name) || "Delivery Partner"
+              }
+              riderPlate={
+                status?.startsWith("return_")
+                  ? order.returnDeliveryBoy?.vehicle?.plateNumber
+                  : order.deliveryBoy?.vehicle?.plateNumber
+              }
               riderLocation={liveLocation}
               sellerLocation={sellerLocation}
               destinationLocation={
@@ -869,7 +928,7 @@ const OrderDetailPage = () => {
         />
 
         {/* Delivery Partner Card - Redesigned */}
-        {order.deliveryBoy && status !== "delivered" && status !== "cancelled" && (
+        {(status?.startsWith("return_") ? order.returnDeliveryBoy : order.deliveryBoy) && status !== "delivered" && status !== "cancelled" && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -891,9 +950,15 @@ const OrderDetailPage = () => {
               </div>
               <div className="flex-1">
                 <p className="text-xs font-semibold text-white/80 uppercase tracking-wider">Your Courier</p>
-                <h3 className="font-bold text-white text-lg">{order.deliveryBoy?.name || "Delivery Partner"}</h3>
+                <h3 className="font-bold text-white text-lg">
+                  {(status?.startsWith("return_") ? order.returnDeliveryBoy?.name : order.deliveryBoy?.name) || "Delivery Partner"}
+                </h3>
                 <p className="text-xs text-white/90 mt-0.5">
-                  On the way to you{order.deliveryBoy?.vehicle?.plateNumber ? ` • ${order.deliveryBoy.vehicle.plateNumber}` : ""}
+                  On the way to you{
+                    (status?.startsWith("return_") ? order.returnDeliveryBoy?.vehicle?.plateNumber : order.deliveryBoy?.vehicle?.plateNumber) 
+                      ? ` • ${status?.startsWith("return_") ? order.returnDeliveryBoy.vehicle.plateNumber : order.deliveryBoy.vehicle.plateNumber}` 
+                      : ""
+                  }
                 </p>
               </div>
               <div className="flex items-center gap-2">

@@ -572,6 +572,35 @@ export const getBroadcastAudienceStats = async (req, res) => {
   }
 };
 
+export const sendDirectNotification = async (req, res) => {
+  try {
+    const role = resolveRole(req);
+    const adminId = String(req?.user?.id || "").trim();
+    if (!adminId || role !== NOTIFICATION_ROLES.ADMIN) {
+      return handleResponse(res, 403, "Only admin can send direct notifications");
+    }
+
+    const userId = String(req.body?.userId || "").trim();
+    const userRole = String(req.body?.userRole || "").trim().toLowerCase();
+    const title = String(req.body?.title || "").trim();
+    const message = String(req.body?.message || "").trim();
+
+    if (!userId || !userRole || !title || !message) {
+      return handleResponse(res, 400, "userId, userRole, title, and message are required");
+    }
+
+    await notify(NOTIFICATION_EVENTS.GENERIC_ALERT, {
+      userId,
+      role: userRole,
+      title,
+      message,
+    });
+
+    return handleResponse(res, 200, "Notification queued successfully");
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
 export default {
   registerPushToken,
   removePushToken,
@@ -583,4 +612,5 @@ export default {
   getTestPushNotificationStatus,
   broadcastNotification,
   getBroadcastAudienceStats,
+  sendDirectNotification,
 };

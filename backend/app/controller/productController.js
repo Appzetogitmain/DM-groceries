@@ -1306,6 +1306,15 @@ export const approveProduct = async (req, res) => {
     await invalidate(buildKey("catalog", "productList", "*"));
     await invalidate("cache:offersections:public:*");
 
+    if (updated.sellerId) {
+      emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_PRODUCT_APPROVED, {
+        sellerId: updated.sellerId._id || updated.sellerId,
+        title: "Product Approved ✅",
+        message: `Your product '${updated.name}' has been approved.`,
+        productId: updated._id
+      });
+    }
+
     return handleResponse(
       res,
       200,
@@ -1345,6 +1354,15 @@ export const rejectProduct = async (req, res) => {
     await invalidate(`cache:catalog:product:${id}`);
     await invalidate(buildKey("catalog", "productList", "*"));
     await invalidate("cache:offersections:public:*");
+
+    if (updated.sellerId) {
+      emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_PRODUCT_REJECTED, {
+        sellerId: updated.sellerId._id || updated.sellerId,
+        title: "Product Rejected ❌",
+        message: `Your product '${updated.name}' was rejected.${note ? " Reason: " + note : ""}`,
+        productId: updated._id
+      });
+    }
 
     return handleResponse(
       res,

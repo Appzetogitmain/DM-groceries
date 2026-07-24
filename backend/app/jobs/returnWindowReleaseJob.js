@@ -23,40 +23,64 @@ const releaseExpiredSellerHolds = async () => {
       status: "delivered",
       returnStatus: "none",
       returnWindowExpiresAt: { $lte: now },
-      "settlementStatus.sellerPayout": "HOLD",
+      $or: [
+        { "settlementStatus.sellerPayout": "HOLD" },
+        { "financeFlags.adminPayoutHeld": true },
+      ],
     })
-      .select("_id orderId")
+      .select("_id orderId settlementStatus financeFlags")
       .lean();
 
     for (const row of candidates) {
       try {
-        const payout = await Payout.findOne({
-          payoutType: "SELLER",
+        const payouts = await Payout.find({
+          payoutType: { $in: ["SELLER", "ADMIN"] },
           relatedOrderIds: row._id,
           status: { $in: ["PENDING", "PROCESSING"] },
-        }).select("_id").lean();
+        }).select("_id payoutType").lean();
 
-        if (AUTO_RELEASE_SELLER_PAYOUT && payout?._id) {
-          try {
-            await processPayout(payout._id);
-          } catch (err) {
-            logger.warn("Auto-release seller payout failed", {
-              jobName: "returnWindowReleaseJob",
-              orderId: row.orderId,
-              payoutId: String(payout._id),
-              error: err.message,
-            });
-          }
-        } else if (payout?._id) {
-          await Order.updateOne(
-            { _id: row._id },
-            {
-              $set: {
-                "settlementStatus.sellerPayout": "PENDING",
-                "financeFlags.sellerPayoutHeld": false,
+        for (const payout of payouts) {
+          if (payout.payoutType === "SELLER" && AUTO_RELEASE_SELLER_PAYOUT) {
+            try {
+              await processPayout(payout._id);
+            } catch (err) {
+              logger.warn("Auto-release seller payout failed", {
+                jobName: "returnWindowReleaseJob",
+                orderId: row.orderId,
+                payoutId: String(payout._id),
+                error: err.message,
+              });
+            }
+          } else if (payout.payoutType === "SELLER") {
+            await Order.updateOne(
+              { _id: row._id },
+              {
+                $set: {
+                  "settlementStatus.sellerPayout": "PENDING",
+                  "financeFlags.sellerPayoutHeld": false,
+                },
               },
-            },
-          );
+            );
+          } else if (payout.payoutType === "ADMIN") {
+            try {
+              await processPayout(payout._id);
+              await Order.updateOne(
+                { _id: row._id },
+                {
+                  $set: {
+                    "financeFlags.adminPayoutHeld": false,
+                  },
+                },
+              );
+            } catch (err) {
+              logger.warn("Auto-release admin payout failed", {
+                jobName: "returnWindowReleaseJob",
+                orderId: row.orderId,
+                payoutId: String(payout._id),
+                error: err.message,
+              });
+            }
+          }
         }
       } catch (err) {
         logger.error("Failed to release seller payout hold", {

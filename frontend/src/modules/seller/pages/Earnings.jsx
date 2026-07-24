@@ -30,6 +30,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { exportToCSV } from "@/lib/exportUtils";
 import { useSellerEarnings } from "../context/SellerEarningsContext";
+import { onNotificationNew } from '@core/services/orderSocket';
+import { useAuth } from '@core/context/AuthContext';
 
 const Earnings = () => {
   const navigate = useNavigate();
@@ -39,12 +41,27 @@ const Earnings = () => {
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
   const [selectedTxn, setSelectedTxn] = React.useState(null);
 
+  const { getToken } = useAuth();
+
   React.useEffect(() => {
     if (data?.balances != null && withdrawAmount === "") {
       const settled = Number(data.balances?.availableBalance ?? 0);
       setWithdrawAmount(settled > 0 ? String(settled) : "");
     }
   }, [data?.balances]);
+
+  React.useEffect(() => {
+    const cleanupSocket = onNotificationNew(getToken, (payload) => {
+        if (
+            payload?.eventType?.includes('WALLET_CREDIT') || 
+            payload?.eventType?.includes('WALLET_DEBIT') || 
+            payload?.eventType === 'ORDER_DELIVERED'
+        ) {
+            refreshEarnings();
+        }
+    });
+    return cleanupSocket;
+  }, [getToken, refreshEarnings]);
 
   const handleWithdraw = () => {
     const totalBalance = Number(data?.balances?.availableBalance ?? 0);

@@ -19,6 +19,7 @@ import {
 import { saveDeliveryPartnerLocation } from "../utils/deliveryLastLocation";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
+import { showSystemNotification } from "@/core/firebase/pushClient";
 import orderAlertSound from "@/assets/sounds/order_alert.mp3";
 
 const getDeliveryToken = createSocketTokenReader(STORAGE_KEYS.AUTH_DELIVERY);
@@ -170,6 +171,14 @@ const DeliveryLayout = () => {
       isReturnPickup: payload.type === "RETURN_PICKUP" || payload.isReturnPickup === true,
       items: payload.items || [],
     });
+
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      showSystemNotification({
+        title: "New Order Request!",
+        body: `You have a new delivery request for ₹${earnings} earnings.`
+      });
+    }
+
     return true;
   }, []);
 
@@ -208,6 +217,13 @@ const DeliveryLayout = () => {
       isReturnPickup,
       items: newOrder.items || [],
     });
+
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      showSystemNotification({
+        title: "New Order Request!",
+        body: `You have a new delivery request for ₹${earnings} earnings.`
+      });
+    }
   }, []);
 
   useEffect(() => {

@@ -365,14 +365,21 @@ const Auth = () => {
         })();
 
       if (isLogin) {
-        const { token, seller } = response.data.result;
+        const payload = response.data?.result || response.data;
+        const { token, seller } = payload;
+        
         login({
           ...seller,
           token,
           role: "seller",
         });
         toast.success("Welcome back, Partner!");
-        navigate("/seller");
+        
+        // Use a slight delay and a hard redirect to ensure AuthContext 
+        // state and localStorage are fully persisted and router mounts cleanly.
+        setTimeout(() => {
+          window.location.href = "/seller";
+        }, 100);
       } else {
         setIsLogin(true);
         setSignupStep(1);

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownLeft, ChevronLeft, Wallet } from 'lucide-react';
 import { customerApi } from '../services/customerApi';
+import { onNotificationNew } from '@core/services/orderSocket';
+import { useAuth } from '@core/context/AuthContext';
 
 const formatDate = (d) => {
     if (!d) return '';
@@ -20,42 +22,53 @@ const WalletPage = () => {
     const [balance, setBalance] = useState(0);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { getToken } = useAuth();
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [profileRes, ordersRes] = await Promise.all([
+                customerApi.getProfile(),
+                customerApi.getMyOrders(),
+            ]);
+            const profile = profileRes.data?.result ?? profileRes.data?.data ?? profileRes.data;
+            const rawOrders = ordersRes.data?.results ?? ordersRes.data?.result ?? [];
+            const orders = Array.isArray(rawOrders) ? rawOrders : [];
+            setBalance(profile?.walletBalance ?? 0);
+            const walletOrders = orders.filter(
+                (o) => (o.payment?.method || '').toLowerCase() === 'wallet'
+            );
+            const items = walletOrders.map((o) => ({
+                _id: o._id,
+                type: 'debit',
+                title: 'Order Payment',
+                amount: o.pricing?.total ?? o.payableAmount ?? 0,
+                date: o.createdAt,
+                orderId: o.orderId,
+            }));
+            setTransactions(items);
+        } catch (err) {
+            console.error('Wallet fetch error:', err);
+            setBalance(0);
+            setTransactions([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [profileRes, ordersRes] = await Promise.all([
-                    customerApi.getProfile(),
-                    customerApi.getMyOrders(),
-                ]);
-                const profile = profileRes.data?.result ?? profileRes.data?.data ?? profileRes.data;
-                const rawOrders = ordersRes.data?.results ?? ordersRes.data?.result ?? [];
-                const orders = Array.isArray(rawOrders) ? rawOrders : [];
-                setBalance(profile?.walletBalance ?? 0);
-                // Only orders purchased using wallet
-                const walletOrders = orders.filter(
-                    (o) => (o.payment?.method || '').toLowerCase() === 'wallet'
-                );
-                const items = walletOrders.map((o) => ({
-                    _id: o._id,
-                    type: 'debit',
-                    title: 'Order Payment',
-                    amount: o.pricing?.total ?? o.payableAmount ?? 0,
-                    date: o.createdAt,
-                    orderId: o.orderId,
-                }));
-                setTransactions(items);
-            } catch (err) {
-                console.error('Wallet fetch error:', err);
-                setBalance(0);
-                setTransactions([]);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
-    }, []);
+        
+        const cleanupSocket = onNotificationNew(getToken, (data) => {
+            if (data?.eventType === 'CUSTOMER_WALLET_CREDIT' || data?.eventType === 'CUSTOMER_WALLET_DEBIT') {
+                fetchData();
+            }
+        });
+
+        return () => {
+            cleanupSocket();
+        };
+    }, [getToken]);
 
     return (
         <div className="min-h-screen bg-slate-50 pb-24 font-sans">

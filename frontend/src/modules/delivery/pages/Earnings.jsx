@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { deliveryApi } from "../services/deliveryApi";
+import { onNotificationNew } from '@core/services/orderSocket';
+import { useAuth } from '@core/context/AuthContext';
 
 const Earnings = () => {
   const navigate = useNavigate();
@@ -90,9 +92,24 @@ const Earnings = () => {
     }
   };
 
+  const { getToken } = useAuth();
+
   React.useEffect(() => {
     fetchEarnings(activeTab);
   }, [activeTab]);
+
+  React.useEffect(() => {
+    const cleanupSocket = onNotificationNew(getToken, (payload) => {
+        if (
+            payload?.eventType?.includes('WALLET_CREDIT') || 
+            payload?.eventType?.includes('WALLET_DEBIT') || 
+            payload?.eventType === 'ORDER_DELIVERED'
+        ) {
+            fetchEarnings(activeTab);
+        }
+    });
+    return cleanupSocket;
+  }, [getToken, activeTab]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -353,11 +370,26 @@ const Earnings = () => {
                       className={`p-2 rounded-full mr-3 ${txn.status === "Settled" || txn.status === "Completed" ? "bg-brand-100 text-brand-600" : "bg-yellow-100 text-yellow-600"}`}>
                       <ArrowUpRight size={16} />
                     </div>
-                    <div>
-                      <p className="font-bold text-gray-900">{txn.type}</p>
-                      <p className="text-xs text-gray-500">
-                        {txn.date || new Date(txn.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} • {txn.id || (txn._id ? txn._id.toString().slice(-6).toUpperCase() : 'N/A')}
-                      </p>
+                      <div className="flex-1">
+                        <p className="font-bold text-xs text-gray-900">{txn.type}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          {(() => {
+                            const dateStr = txn.date || txn.createdAt;
+                            if (!dateStr) return "N/A";
+                            const d = new Date(dateStr);
+                            return isNaN(d.getTime()) ? txn.date : d.toLocaleString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true
+                            });
+                          })()}{" "}
+                          {"•"}{" "}
+                          {txn.id ||
+                            (txn._id ? txn._id.toString().slice(-6).toUpperCase() : "N/A")}
+                        </p>
                     </div>
                   </div>
                   <div className="text-right">

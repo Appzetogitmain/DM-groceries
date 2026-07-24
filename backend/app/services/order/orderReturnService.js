@@ -33,6 +33,7 @@ import { NOTIFICATION_EVENTS } from "../../modules/notifications/notification.co
 import {
   emitReturnBroadcastForCustomer,
   emitToSeller,
+  emitOrderStatusUpdate,
 } from "../orderSocketEmitter.js";
 import * as walletService from "../finance/walletService.js";
 import { cancelPendingPayoutForOrder } from "../finance/payoutService.js";
@@ -142,6 +143,7 @@ export class OrderReturnService {
     order.returnDeadline = null;
 
     await order.save();
+    emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
 
     emitNotificationEvent(NOTIFICATION_EVENTS.RETURN_REQUESTED, {
       orderId: order.orderId,
@@ -287,10 +289,18 @@ export class OrderReturnService {
       throw err("No return items found for this order.", 400);
     }
 
-    const refundAmount = order.returnItems.reduce(
+    const productRefundAmount = order.returnItems.reduce(
       (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
       0,
     );
+
+    const totalProductPrice = order.paymentBreakdown?.productSubtotal || order.pricing?.subtotal || productRefundAmount;
+    const proportion = totalProductPrice > 0 ? productRefundAmount / totalProductPrice : 1;
+
+    const deliveryRefund = (order.paymentBreakdown?.deliveryFeeCharged || order.pricing?.deliveryFee || 0) * proportion;
+    const handlingRefund = (order.paymentBreakdown?.handlingFeeCharged || order.pricing?.platformFee || 0) * proportion;
+
+    const refundAmount = productRefundAmount + deliveryRefund + handlingRefund;
 
     const settings = await Setting.findOne({}).lean();
     
@@ -326,6 +336,7 @@ export class OrderReturnService {
     order.skippedBy = [];
 
     await order.save();
+    emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
 
     emitNotificationEvent(NOTIFICATION_EVENTS.RETURN_APPROVED, {
       orderId: order.orderId,
@@ -429,6 +440,7 @@ export class OrderReturnService {
     order.returnRejectedReason = reason.trim();
 
     await order.save();
+    emitOrderStatusUpdate(order.orderId, { returnStatus: order.returnStatus }, order.customer);
 
     emitNotificationEvent(NOTIFICATION_EVENTS.RETURN_REJECTED, {
       orderId: order.orderId,
@@ -569,9 +581,27 @@ export class OrderReturnService {
                     { session },
                   );
                 }
+
+                if (commission > 0) {
+                  await walletService.debitWallet({
+                    ownerType: OWNER_TYPE.SELLER,
+                    ownerId: order.seller,
+                    amount: commission,
+                    bucket: "available",
+                    session,
+                    ledgerType: LEDGER_TRANSACTION_TYPE.ADJUSTMENT,
+                    ledgerReference: `RET-COMM-${order.orderId}`,
+                    ledgerDescription: "Reverse pickup charge for returned order",
+                    orderId: order._id,
+                    idempotencyKey: `RET-SELL-COMM-${order._id}`,
+                    correlationId,
+                    metadata: { commission },
+                  });
+                }
+
               } catch (error) {
                 // Inside withTransaction(): bubble up so the txn aborts.
-                logger.error("Payout cancellation failed for seller", {
+                logger.error("Payout cancellation or commission debit failed for seller", {
                   scope: "ReturnFinance",
                   sellerId: order.seller,
                   error: error.message,
@@ -598,9 +628,6 @@ export class OrderReturnService {
                     metadata: { refundAmount, commission },
                   });
                 } catch (error) {
-                  // Insufficient balance is a legitimate business
-                  // failure — must abort the whole refund flow so the
-                  // customer is not silently over-credited.
                   logger.error("Wallet debit failed for seller", {
                     scope: "ReturnFinance",
                     sellerId: order.seller,
@@ -611,21 +638,55 @@ export class OrderReturnService {
               }
             }
 
-            const adjustment = Math.max(0, refundAmount + commission);
-            await Transaction.create(
-              [
+            const legacyAdjustment = isHeld ? commission : Math.max(0, refundAmount + commission);
+            if (legacyAdjustment > 0) {
+              await Transaction.create(
+                [
+                  {
+                    user: order.seller,
+                    userModel: "Seller",
+                    order: order._id,
+                    type: "Refund",
+                    amount: -legacyAdjustment,
+                    status: "Settled",
+                    reference: `REF-SELL-${order.orderId}`,
+                  },
+                ],
+                { session },
+              );
+            }
+          }
+
+          // 2.5 Admin adjustment (Cancel Admin Hold)
+          if (order.financeFlags?.adminPayoutHeld) {
+            try {
+              const cancelled = await cancelPendingPayoutForOrder(
+                order._id,
+                "ADMIN",
                 {
-                  user: order.seller,
-                  userModel: "Seller",
-                  order: order._id,
-                  type: "Refund",
-                  amount: -adjustment,
-                  status: "Settled",
-                  reference: `REF-SELL-${order.orderId}`,
+                  remarks: "Platform revenue cancelled due to return QC passed.",
+                  session,
                 },
-              ],
-              { session },
-            );
+              );
+
+              if (cancelled) {
+                await Order.updateOne(
+                  { _id: order._id },
+                  {
+                    $set: {
+                      "financeFlags.adminPayoutHeld": false,
+                    },
+                  },
+                  { session },
+                );
+              }
+            } catch (error) {
+              logger.error("Payout cancellation failed for admin", {
+                scope: "ReturnFinance",
+                error: error.message,
+              });
+              throw error;
+            }
           }
 
           // 3. Delivery partner earning for return pickup (idempotent

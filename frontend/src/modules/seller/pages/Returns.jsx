@@ -15,6 +15,7 @@ import { BlurFade } from "@/components/ui/blur-fade";
 import { MagicCard } from "@/components/ui/magic-card";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "react-router-dom";
 import { Loader2, X } from "lucide-react";
 import { onReturnDropOtp } from "@core/services/orderSocket";
 import { createSocketTokenReader } from "@core/utils/authStorage";
@@ -22,6 +23,8 @@ import { STORAGE_KEYS } from "@core/utils/storage";
 
 const Returns = () => {
     const { showToast } = useToast();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const selectedOrderId = searchParams.get('selected');
     const [returns, setReturns] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("All");
@@ -32,6 +35,10 @@ const Returns = () => {
     const [submittingReject, setSubmittingReject] = useState(false);
     const [assigningPickup, setAssigningPickup] = useState(false);
     const [activeOtps, setActiveOtps] = useState({}); // { orderId: { otp, expiresAt } }
+    const [isQcModalOpen, setIsQcModalOpen] = useState(false);
+    const [qcStatus, setQcStatus] = useState("");
+    const [qcNote, setQcNote] = useState("");
+    const [submittingQc, setSubmittingQc] = useState(false);
     const canManageReturns = true;
 
     const tabs = [
@@ -133,7 +140,21 @@ const Returns = () => {
     }, []);
 
     useEffect(() => {
-        if (isDetailsOpen || isRejectModalOpen) {
+        if (!loading && selectedOrderId && returns.length > 0 && !isDetailsOpen) {
+            const ret = returns.find(r => r.orderId === selectedOrderId || r.id === selectedOrderId || r._id === selectedOrderId);
+            if (ret) {
+                setSelectedReturn(ret);
+                setIsDetailsOpen(true);
+                
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete('selected');
+                setSearchParams(newParams, { replace: true });
+            }
+        }
+    }, [loading, selectedOrderId, returns, isDetailsOpen, searchParams, setSearchParams]);
+
+    useEffect(() => {
+        if (isDetailsOpen || isRejectModalOpen || isQcModalOpen) {
             document.body.style.overflow = "hidden";
         } else {
             document.body.style.overflow = "unset";
@@ -141,7 +162,7 @@ const Returns = () => {
         return () => {
             document.body.style.overflow = "unset";
         };
-    }, [isDetailsOpen, isRejectModalOpen]);
+    }, [isDetailsOpen, isRejectModalOpen, isQcModalOpen]);
 
     const filteredReturns = useMemo(() => {
         if (activeTab === "All") return returns;
@@ -188,6 +209,33 @@ const Returns = () => {
             );
         } finally {
             setSubmittingReject(false);
+        }
+    };
+
+    const handleQcSubmit = async () => {
+        if (!qcStatus || !selectedReturn) return;
+        if (qcStatus === "qc_failed" && !qcNote.trim()) {
+            showToast("Please provide a note for failed QC", "error");
+            return;
+        }
+
+        try {
+            setSubmittingQc(true);
+            await sellerApi.updateReturnQcStatus(selectedReturn.orderId, { qcStatus, note: qcNote });
+            showToast(`QC ${qcStatus === "qc_passed" ? "Passed" : "Failed"} successfully`, "success");
+            setIsQcModalOpen(false);
+            setQcNote("");
+            setQcStatus("");
+            await fetchReturns();
+            setIsDetailsOpen(false);
+        } catch (error) {
+            console.error("Failed to update QC", error);
+            showToast(
+                error.response?.data?.message || "Failed to update QC",
+                "error"
+            );
+        } finally {
+            setSubmittingQc(false);
         }
     };
 
@@ -734,6 +782,31 @@ const Returns = () => {
                                             Assign Pickup
                                         </Button>
                                     )}
+
+                                    {/* Action: QC Check */}
+                                    {canManageReturns && (selectedReturn.returnStatus === "returned") && (
+                                        <>
+                                            <Button
+                                                variant="outline"
+                                                className="text-xs font-bold border-rose-200 text-rose-600 hover:bg-rose-50"
+                                                onClick={() => {
+                                                    setQcStatus("qc_failed");
+                                                    setIsQcModalOpen(true);
+                                                }}
+                                            >
+                                                Fail QC
+                                            </Button>
+                                            <Button
+                                                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700"
+                                                onClick={() => {
+                                                    setQcStatus("qc_passed");
+                                                    setIsQcModalOpen(true);
+                                                }}
+                                            >
+                                                Pass QC
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>
@@ -786,6 +859,66 @@ const Returns = () => {
                                     disabled={!rejectReason.trim() || submittingReject}
                                 >
                                     Reject Request
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {canManageReturns && isQcModalOpen && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                            onClick={() => !submittingQc && setIsQcModalOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="w-full max-w-md relative z-10 bg-white rounded-3xl shadow-2xl p-6 space-y-4"
+                        >
+                            <h3 className={`text-xl font-black ${qcStatus === "qc_passed" ? "text-emerald-600" : "text-rose-600"}`}>
+                                {qcStatus === "qc_passed" ? "Mark as QC Passed" : "Mark as QC Failed"}
+                            </h3>
+                            <p className="text-sm text-slate-600 font-medium">
+                                {qcStatus === "qc_passed" 
+                                    ? "Are you sure you want to pass QC? This will initiate the refund to the customer."
+                                    : "Please provide a reason for failing the QC. This is required."}
+                            </p>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                    QC Note {qcStatus === "qc_failed" && "*"}
+                                </label>
+                                <textarea
+                                    className="w-full rounded-2xl border border-slate-200 p-4 text-sm font-medium focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
+                                    rows={4}
+                                    placeholder={qcStatus === "qc_passed" ? "Optional note about the condition..." : "E.g. Item is damaged, missing accessories..."}
+                                    value={qcNote}
+                                    onChange={(e) => setQcNote(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 font-bold"
+                                    onClick={() => setIsQcModalOpen(false)}
+                                    disabled={submittingQc}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    className={`flex-1 font-bold ${qcStatus === "qc_passed" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"}`}
+                                    onClick={handleQcSubmit}
+                                    isLoading={submittingQc}
+                                    disabled={submittingQc || (qcStatus === "qc_failed" && !qcNote.trim())}
+                                >
+                                    Confirm {qcStatus === "qc_passed" ? "Pass" : "Fail"}
                                 </Button>
                             </div>
                         </motion.div>

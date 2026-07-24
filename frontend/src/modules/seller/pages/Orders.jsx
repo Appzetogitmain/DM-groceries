@@ -24,6 +24,7 @@ import {
 } from 'react-icons/hi2';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useSearchParams } from 'react-router-dom';
 
 // Orders Page
 
@@ -62,6 +63,8 @@ const Orders = () => {
     const [isQuickViewModalOpen, setIsQuickViewModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const { showToast } = useToast();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const selectedOrderId = searchParams.get('selected');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
     const [total, setTotal] = useState(0);
@@ -160,6 +163,22 @@ const Orders = () => {
             }
         }
     };
+
+    // Watch for the 'selected' query param and auto-open the modal
+    useEffect(() => {
+        if (!loading && selectedOrderId && orders.length > 0 && !isDetailsModalOpen) {
+            const order = orders.find(o => o.id === selectedOrderId || o._id === selectedOrderId);
+            if (order) {
+                setSelectedOrder(order);
+                setIsDetailsModalOpen(true);
+                
+                // Optional: clear the param from URL without refreshing the page
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete('selected');
+                setSearchParams(newParams, { replace: true });
+            }
+        }
+    }, [loading, selectedOrderId, orders, isDetailsModalOpen, searchParams, setSearchParams]);
 
     const tabs = ['All', 'Pending', 'Confirmed', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled'];
     const todayStr = new Date().toISOString().split('T')[0];

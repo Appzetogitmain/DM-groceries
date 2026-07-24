@@ -276,6 +276,11 @@ const ProductDetailSheet = () => {
     };
 
     const handleAddToCart = () => {
+        const currentStock = selectedVariant?.stock !== undefined ? selectedVariant.stock : selectedProduct?.stock || 0;
+        if (currentStock <= 0) {
+            showToast("This item is currently out of stock", "error");
+            return;
+        }
         addToCart({
             ...selectedProduct,
             variantSku: String(selectedVariant?.sku || selectedVariant?.name || "").trim(),
@@ -290,8 +295,14 @@ const ProductDetailSheet = () => {
         }
     };
 
-    const handleIncrement = () =>
+    const handleIncrement = () => {
+        const currentStock = selectedVariant?.stock !== undefined ? selectedVariant.stock : selectedProduct?.stock || 0;
+        if (quantity >= currentStock) {
+            showToast(`Only ${currentStock} units available in stock.`, "error");
+            return;
+        }
         updateQuantity(selectedProduct.id, 1, String(selectedVariant?.sku || selectedVariant?.name || "").trim());
+    };
 
     const handleDecrement = () => {
         if (quantity === 1) {
@@ -322,6 +333,7 @@ const ProductDetailSheet = () => {
     if (!selectedProduct) return null;
 
     const cleanDesc = cleanDescription(selectedProduct?.description);
+    const currentStock = selectedVariant?.stock !== undefined ? selectedVariant.stock : selectedProduct?.stock || 0;
 
     return (
         <AnimatePresence>
@@ -527,15 +539,24 @@ const ProductDetailSheet = () => {
                                                     )}
                                                 </div>
                                                 <div>
+                                                    {currentStock <= 0 ? (
+                                                        <div className="text-red-500 font-bold text-sm mb-2">Out of stock</div>
+                                                    ) : currentStock <= (selectedProduct.lowStockAlert || 5) ? (
+                                                        <div className="text-orange-500 font-bold text-sm mb-2">Only {currentStock} left!</div>
+                                                    ) : null}
                                                     {quantity > 0 ? (
                                                         <div className="flex items-center gap-1 bg-white border border-brand-200 rounded-xl p-1 shadow-sm">
                                                             <motion.button whileTap={{ scale: 0.85 }} onClick={handleDecrement} className="w-9 h-9 bg-brand-50 rounded-lg flex items-center justify-center text-brand-700 hover:bg-brand-100 transition-colors">
                                                                 <Minus size={16} strokeWidth={2.5} />
                                                             </motion.button>
                                                             <span className="font-[800] text-base text-gray-800 w-8 text-center">{quantity}</span>
-                                                            <motion.button whileTap={{ scale: 0.85 }} onClick={handleIncrement} className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-white hover:bg-[var(--brand-400)] transition-colors shadow-sm">
+                                                            <motion.button disabled={quantity >= currentStock} whileTap={{ scale: 0.85 }} onClick={handleIncrement} className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-white hover:bg-[var(--brand-400)] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                                                                 <Plus size={16} strokeWidth={2.5} />
                                                             </motion.button>
+                                                        </div>
+                                                    ) : currentStock <= 0 ? (
+                                                        <div className="bg-gray-100 text-gray-400 h-12 px-8 rounded-xl font-black text-[13px] flex items-center justify-center gap-2 border border-gray-200 uppercase tracking-widest w-fit">
+                                                            OUT OF STOCK
                                                         </div>
                                                     ) : (
                                                     <motion.button
@@ -1066,6 +1087,11 @@ const ProductDetailSheet = () => {
                                         <div className="text-2xl font-black text-[#1A1A1A] leading-none mt-1">
                                             ₹{selectedVariant?.salePrice || selectedVariant?.price || selectedProduct.price}
                                         </div>
+                                        {currentStock <= 0 ? (
+                                            <div className="text-red-500 font-bold text-xs mt-1">Out of stock</div>
+                                        ) : currentStock <= (selectedProduct.lowStockAlert || 5) ? (
+                                            <div className="text-orange-500 font-bold text-xs mt-1">Only {currentStock} left!</div>
+                                        ) : null}
                                     </div>
 
                                     {quantity > 0 ? (
@@ -1079,12 +1105,17 @@ const ProductDetailSheet = () => {
                                             </motion.button>
                                             <span className="font-black text-xl text-slate-800 w-8 text-center tabular-nums">{quantity}</span>
                                             <motion.button
+                                                disabled={quantity >= currentStock}
                                                 whileTap={{ scale: 0.9 }}
                                                 onClick={handleIncrement}
-                                                className="w-10 h-10 bg-gradient-to-br from-primary to-[var(--brand-400)] rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-100/50 hover:shadow-brand-200 transition-all border border-white/20"
+                                                className="w-10 h-10 bg-gradient-to-br from-primary to-[var(--brand-400)] rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-100/50 hover:shadow-brand-200 transition-all border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <Plus size={18} strokeWidth={3.5} />
                                             </motion.button>
+                                        </div>
+                                    ) : currentStock <= 0 ? (
+                                        <div className="flex-1 bg-gray-100 text-gray-400 h-[56px] rounded-2xl font-black text-sm flex items-center justify-center gap-2 border border-gray-200 uppercase tracking-[0.05em] whitespace-nowrap px-4">
+                                            OUT OF STOCK
                                         </div>
                                     ) : (
                                         <motion.button

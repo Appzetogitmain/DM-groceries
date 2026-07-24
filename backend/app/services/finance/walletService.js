@@ -236,6 +236,30 @@ export async function creditWallet({
     });
   }
 
+  // --- Real-time Socket Notification Injection ---
+  setImmediate(() => {
+    let eventName;
+    if (ownerType === OWNER_TYPE.CUSTOMER) eventName = "CUSTOMER_WALLET_CREDIT";
+    else if (ownerType === OWNER_TYPE.SELLER) eventName = "SELLER_WALLET_CREDITED";
+    else if (ownerType === OWNER_TYPE.DELIVERY) eventName = "DELIVERY_PAYMENT_CREDITED";
+    else if (ownerType === OWNER_TYPE.ADMIN) eventName = "ADMIN_WALLET_ADJUSTMENT";
+
+    if (eventName) {
+      import("../../modules/notifications/notification.emitter.js")
+        .then(({ emitNotificationEvent }) => {
+          emitNotificationEvent(eventName, {
+            userId: ownerId, customerId: ownerId, sellerId: ownerId, deliveryId: ownerId, adminIds: [ownerId],
+            title: "Wallet Credited 💰",
+            message: `Your ${bucket} wallet was credited by ₹${normalizedAmount}. New balance: ₹${afterRounded}.`,
+            amount: normalizedAmount,
+            balanceAfter: afterRounded,
+            bucket
+          });
+        })
+        .catch(console.warn);
+    }
+  });
+
   return {
     wallet,
     amount: normalizedAmount,
@@ -315,6 +339,30 @@ export async function debitWallet({
     });
   }
 
+  // --- Real-time Socket Notification Injection ---
+  setImmediate(() => {
+    let eventName;
+    if (ownerType === OWNER_TYPE.CUSTOMER) eventName = "CUSTOMER_WALLET_DEBIT";
+    else if (ownerType === OWNER_TYPE.SELLER) eventName = "SELLER_WITHDRAWAL_APPROVED";
+    else if (ownerType === OWNER_TYPE.DELIVERY) eventName = "DELIVERY_WALLET_UPDATED";
+    else if (ownerType === OWNER_TYPE.ADMIN) eventName = "ADMIN_WALLET_ADJUSTMENT";
+
+    if (eventName) {
+      import("../../modules/notifications/notification.emitter.js")
+        .then(({ emitNotificationEvent }) => {
+          emitNotificationEvent(eventName, {
+            userId: ownerId, customerId: ownerId, sellerId: ownerId, deliveryId: ownerId, adminIds: [ownerId],
+            title: "Wallet Debited 📉",
+            message: `Your ${bucket} wallet was debited by ₹${normalizedAmount}. New balance: ₹${afterRounded}.`,
+            amount: normalizedAmount,
+            balanceAfter: afterRounded,
+            bucket
+          });
+        })
+        .catch(console.warn);
+    }
+  });
+
   return {
     wallet,
     amount: normalizedAmount,
@@ -393,6 +441,30 @@ export async function movePendingToAvailable({
     idempotencyKey,
     correlationId,
     session,
+  });
+
+  // --- Real-time Socket Notification Injection ---
+  setImmediate(() => {
+    let eventName;
+    if (ownerType === OWNER_TYPE.CUSTOMER) eventName = "CUSTOMER_WALLET_CREDIT";
+    else if (ownerType === OWNER_TYPE.SELLER) eventName = "SELLER_WALLET_CREDITED";
+    else if (ownerType === OWNER_TYPE.DELIVERY) eventName = "DELIVERY_PAYMENT_CREDITED";
+    else if (ownerType === OWNER_TYPE.ADMIN) eventName = "ADMIN_WALLET_ADJUSTMENT";
+
+    if (eventName) {
+      import("../../modules/notifications/notification.emitter.js")
+        .then(({ emitNotificationEvent }) => {
+          emitNotificationEvent(eventName, {
+            userId: ownerId, customerId: ownerId, sellerId: ownerId, deliveryId: ownerId, adminIds: [ownerId],
+            title: "Pending Balance Available 💰",
+            message: `₹${normalizedAmount} has moved from pending to available balance.`,
+            amount: normalizedAmount,
+            balanceAfter: roundCurrency(wallet.availableBalance),
+            bucket: "available"
+          });
+        })
+        .catch(console.warn);
+    }
   });
 
   return {

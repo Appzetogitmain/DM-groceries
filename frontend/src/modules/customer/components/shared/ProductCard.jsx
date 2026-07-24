@@ -64,7 +64,8 @@ const ProductCard = React.memo(
         name: String(picked?.name || "").trim(),
         displayPrice: hasDiscount ? variantSale : (variantMrp || displayed),
         displayOriginalPrice: hasDiscount ? variantMrp : (displayedOriginal > displayed ? displayedOriginal : null),
-        discountPercent: hasDiscount ? Math.round(((variantMrp - variantSale) / variantMrp) * 100) : (displayedOriginal > displayed ? Math.round(((displayedOriginal - displayed) / displayedOriginal) * 100) : 0)
+        discountPercent: hasDiscount ? Math.round(((variantMrp - variantSale) / variantMrp) * 100) : (displayedOriginal > displayed ? Math.round(((displayedOriginal - displayed) / displayedOriginal) * 100) : 0),
+        stock: picked?.stock !== undefined ? picked.stock : product?.stock || 0
       };
     }, [product]);
 
@@ -134,6 +135,12 @@ const ProductCard = React.memo(
             product.image,
           );
         }
+        const currentStock = defaultVariant ? defaultVariant.stock : (product?.stock || 0);
+        if (currentStock <= 0) {
+          showToast("This item is currently out of stock", "error");
+          return;
+        }
+
         addToCart({
           ...product,
           variantSku: variantKey,
@@ -151,9 +158,14 @@ const ProductCard = React.memo(
       (e) => {
         e.preventDefault();
         e.stopPropagation();
+        const currentStock = defaultVariant ? defaultVariant.stock : (product?.stock || 0);
+        if (quantity >= currentStock) {
+           showToast(`Only ${currentStock} units available in stock.`, "error");
+           return;
+        }
         updateQuantity(productId, 1, variantKey);
       },
-      [updateQuantity, productId, variantKey],
+      [updateQuantity, productId, variantKey, quantity, defaultVariant, product?.stock, showToast],
     );
 
     const handleDecrement = React.useCallback(
@@ -300,6 +312,20 @@ const ProductCard = React.memo(
             </h4>
           </div>
 
+          {/* Stock Info */}
+          {(() => {
+            const currentStock = defaultVariant ? defaultVariant.stock : (product?.stock || 0);
+            return currentStock <= 0 ? (
+              <div className="text-red-500 font-bold text-[9px] sm:text-[10px] mt-0.5">
+                Out of stock
+              </div>
+            ) : currentStock <= (product.lowStockAlert || 5) ? (
+              <div className="text-orange-500 font-bold text-[9px] sm:text-[10px] mt-0.5">
+                Only {currentStock} left!
+              </div>
+            ) : null;
+          })()}
+
           {/* Delivery Time & Unit info */}
           <div className="flex items-center gap-1 text-gray-500 mt-0.5 mb-1 sm:gap-1.5 sm:mt-1 sm:mb-2">
             <Clock size={compact ? 9 : 10} className="text-[#1A4516]/80" />
@@ -335,42 +361,56 @@ const ProductCard = React.memo(
 
             {/* ADD Button / Quantity Selector (Always in price row) */}
             <div className="flex">
-              {quantity > 0 ? (
-                <div
-                  className={cn(
-                    "flex items-center bg-white border-[1.5px] border-[#1A4516] rounded-lg p-0.5 justify-between",
-                    compact ? "min-w-[60px]" : "min-w-[68px] sm:min-w-[90px] md:min-w-[100px]",
-                  )}>
-                  <button
-                    onClick={handleDecrement}
-                    className="p-0.5 px-0.5 text-[#1A4516] active:scale-90 transition-transform sm:p-1 sm:px-1">
-                    <Minus size={compact ? 10 : 12} strokeWidth={3.5} />
-                  </button>
-                  <span
+              {(() => {
+                const currentStock = defaultVariant ? defaultVariant.stock : (product?.stock || 0);
+                return quantity > 0 ? (
+                  <div
                     className={cn(
-                      "font-black text-[#1A4516]",
-                      compact ? "text-[10px]" : "text-[11px] sm:text-[13px] md:text-sm",
+                      "flex items-center bg-white border-[1.5px] border-[#1A4516] rounded-lg p-0.5 justify-between",
+                      compact ? "min-w-[60px]" : "min-w-[68px] sm:min-w-[90px] md:min-w-[100px]",
                     )}>
-                    {quantity}
-                  </span>
+                    <button
+                      onClick={handleDecrement}
+                      className="p-0.5 px-0.5 text-[#1A4516] active:scale-90 transition-transform sm:p-1 sm:px-1">
+                      <Minus size={compact ? 10 : 12} strokeWidth={3.5} />
+                    </button>
+                    <span
+                      className={cn(
+                        "font-black text-[#1A4516]",
+                        compact ? "text-[10px]" : "text-[11px] sm:text-[13px] md:text-sm",
+                      )}>
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={handleIncrement}
+                      disabled={quantity >= currentStock}
+                      className="p-0.5 px-0.5 text-[#1A4516] active:scale-90 transition-transform sm:p-1 sm:px-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <Plus size={compact ? 10 : 12} strokeWidth={3.5} />
+                    </button>
+                  </div>
+                ) : currentStock <= 0 ? (
+                  <div
+                    className={cn(
+                      "bg-gray-100 text-gray-400 border-[1.5px] border-gray-200 rounded-lg font-bold text-center flex items-center justify-center uppercase tracking-wide leading-none",
+                      compact
+                        ? "px-1.5 py-1 text-[8px] min-w-[60px]"
+                        : "px-2 py-1.5 text-[9px] sm:px-3 sm:py-2 sm:text-[10px] md:text-[11px] md:px-4 md:py-2.5",
+                    )}>
+                    OUT OF STOCK
+                  </div>
+                ) : (
                   <button
-                    onClick={handleIncrement}
-                    className="p-0.5 px-0.5 text-[#1A4516] active:scale-90 transition-transform sm:p-1 sm:px-1">
-                    <Plus size={compact ? 10 : 12} strokeWidth={3.5} />
+                    onClick={handleAddToCart}
+                    className={cn(
+                      "bg-white border-[1.5px] border-[#1A4516] text-[#1A4516] rounded-lg font-black shadow-sm hover:bg-[#1A4516]/5 mb-0 transition-all uppercase tracking-wide leading-none active:scale-95",
+                      compact
+                        ? "px-2.5 py-1 text-[10px]"
+                        : "px-3.5 py-1.5 text-[11px] sm:px-7 sm:py-2 sm:text-[13px] md:text-sm md:px-8 md:py-2.5",
+                    )}>
+                    ADD
                   </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleAddToCart}
-                  className={cn(
-                    "bg-white border-[1.5px] border-[#1A4516] text-[#1A4516] rounded-lg font-black shadow-sm hover:bg-[#1A4516]/5 mb-0 transition-all uppercase tracking-wide leading-none active:scale-95",
-                    compact
-                      ? "px-2.5 py-1 text-[10px]"
-                      : "px-3.5 py-1.5 text-[11px] sm:px-7 sm:py-2 sm:text-[13px] md:text-sm md:px-8 md:py-2.5",
-                  )}>
-                  ADD
-                </button>
-              )}
+                );
+              })()}
             </div>
           </div>
         </div>

@@ -142,7 +142,7 @@ router.put(
 router.put(
   "/returns/:orderId/qc",
   verifyToken,
-  allowRoles("admin"),
+  allowRoles("admin", "seller"),
   updateReturnQcStatus,
 );
 router.put(

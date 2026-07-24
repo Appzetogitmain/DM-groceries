@@ -19,6 +19,8 @@ import {
   recordHistogram,
   setGauge,
 } from "../../services/metrics.js";
+import { emitNotificationEvent } from "./notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "./notification.constants.js";
 
 function failedCodeOf(responseItem) {
   return String(responseItem?.error?.code || "").trim();
@@ -258,6 +260,11 @@ export function registerNotificationQueueProcessors() {
             removeOnFail: false,
           },
         );
+        emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_WORKER_FAILURE, {
+          title: "Notification Worker Failed",
+          message: `Worker failed for job ${job?.id} after max attempts: ${err?.message}`,
+          queueName: "notificationQueue"
+        });
       } catch (deadError) {
         logger.error("Failed to enqueue dead-letter notification job", {
           message: deadError.message,

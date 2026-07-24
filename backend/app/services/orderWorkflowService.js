@@ -863,6 +863,19 @@ export async function markArrivedAtStoreAtomic(deliveryId, orderId, lat, lng) {
     deliveryId: updated.deliveryBoy,
     sellerId: updated.seller,
   });
+  emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_DELIVERY_ARRIVED, {
+    orderId: updated.orderId,
+    deliveryId: updated.deliveryBoy,
+    sellerId: updated.seller,
+  });
+  emitToSeller(updated.seller?.toString(), {
+    event: "seller:delivery:arrived",
+    payload: {
+      orderId: updated.orderId,
+      deliveryId: updated.deliveryBoy,
+      sellerId: updated.seller,
+    },
+  });
   return updated;
 }
 
@@ -1189,6 +1202,7 @@ export async function requestHandoffOtpAtomic(deliveryId, orderId, lat, lng) {
 
   const otpPayload = {
     orderId,
+    checkoutGroupId: order.checkoutGroupId,
     otp: code,
     code,
     expiresAt,

@@ -82,11 +82,26 @@ export const requestDeliveryOtp = async (req, res) => {
           ? location.lng
           : undefined;
     const result = await requestHandoffOtpAtomic(req.user.id, orderId, lat, lng);
+
+    // Fetch order details for notification and SMS
+    const order = await Order.findOne({ orderId }).lean();
+
+    // ── Emit Push Notification to customer ──
+    if (order && result && result.otp) {
+      try {
+        emitNotificationEvent(NOTIFICATION_EVENTS.CUSTOMER_DELIVERY_OTP, {
+          userId: order.customer?.toString(),
+          orderId,
+          data: { otp: result.otp },
+        });
+      } catch (notifErr) {
+        console.warn('[requestDeliveryOtp] Notification failed:', notifErr.message);
+      }
+    }
     
     // ── Send SMS to customer (BACKGROUND) ──
     try {
-      const order = await Order.findOne({ orderId }).lean();
-      if (order && result.otp) {
+      if (order && result && result.otp) {
         const customerId = order.customer?.toString();
         let phone = order.address?.phone;
         if (!phone && customerId) {
@@ -329,7 +344,17 @@ export const requestReturnPickupOtp = async (req, res) => {
             message: `Your return pickup OTP is ${result.otp}. Show this to the delivery partner.`,
           },
         });
-
+        // Emit Push Notification to customer for return pickup OTP
+        try {
+          emitNotificationEvent(NOTIFICATION_EVENTS.RETURN_PICKUP_OTP, {
+            userId: customerId,
+            orderId,
+            data: { otp: result.otp },
+          });
+        } catch (notifErr) {
+          console.warn('[requestReturnPickupOtp] Notification failed:', notifErr.message);
+        }
+      }
         // ── Send SMS to customer (BACKGROUND) ──
         setImmediate(async () => {
           try {
@@ -346,7 +371,7 @@ export const requestReturnPickupOtp = async (req, res) => {
             console.warn("[requestReturnPickupOtp] SMS failed:", smsErr.message);
           }
         });
-      }
+
     } catch (socketErr) {
       console.warn("[requestReturnPickupOtp] Notification failed:", socketErr.message);
     }
@@ -439,6 +464,17 @@ export const requestReturnDropOtp = async (req, res) => {
     // ── Emit OTP to seller via Socket/SMS ─────────────────────────────────────────
     try {
       if (sellerId) {
+        // Emit Push Notification to seller for return drop OTP
+        try {
+          emitNotificationEvent(NOTIFICATION_EVENTS.RETURN_DROP_OTP, {
+            sellerId,
+            orderId,
+            data: { otp: result.otp },
+          });
+        } catch (notifErr) {
+          console.warn('[requestReturnDropOtp] Notification failed:', notifErr.message);
+        }
+        // Emit OTP to seller via Socket/SMS
         emitToSeller(sellerId, {
           event: "return:drop:otp",
           payload: {
@@ -592,9 +628,9 @@ export const requestSellerPickupOtp = async (req, res) => {
 
     // Emit OTP to seller via Socket.IO
     try {
-      const sellerUserId = order.seller?.user?.toString();
-      if (sellerUserId) {
-        emitToSeller(sellerUserId, {
+      const sellerId = order.seller?._id?.toString();
+      if (sellerId) {
+        emitToSeller(sellerId, {
           event: "seller:pickup:otp",
           payload: {
             orderId,

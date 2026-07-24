@@ -317,11 +317,19 @@ const EarningsPage = () => {
                       <div className="flex-1">
                         <p className="font-bold text-xs text-gray-900">{txn.type}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5">
-                          {txn.date ||
-                            new Date(txn.createdAt).toLocaleDateString("en-IN", {
+                          {(() => {
+                            const dateStr = txn.date || txn.createdAt;
+                            if (!dateStr) return "N/A";
+                            const d = new Date(dateStr);
+                            return isNaN(d.getTime()) ? txn.date : d.toLocaleString("en-IN", {
                               day: "numeric",
                               month: "short",
-                            })}{" "}
+                              year: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true
+                            });
+                          })()}{" "}
                           {DOT}{" "}
                           {txn.id ||
                             (txn._id ? txn._id.toString().slice(-6).toUpperCase() : "N/A")}
