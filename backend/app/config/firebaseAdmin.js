@@ -21,21 +21,30 @@ export const getFirebaseAdminApp = () => {
   if (!json) {
     return null;
   }
-
-  try {
-    const serviceAccount = JSON.parse(json);
-    const config = {
-      credential: admin.credential.cert(serviceAccount),
-    };
-    if (databaseURL) {
-      config.databaseURL = databaseURL;
-    }
-    firebaseAdminApp = admin.initializeApp(config);
-    return firebaseAdminApp;
-  } catch (e) {
-    console.warn("[Firebase] Init skipped:", e.message);
-    return null;
+try {
+  const serviceAccount = JSON.parse(json);
+console.log("Project:", serviceAccount.project_id);
+console.log("Private key starts with:");
+console.log(serviceAccount.private_key.substring(0, 30));
+  // Fix escaped newlines in the private key
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
   }
+
+  const config = {
+    credential: admin.credential.cert(serviceAccount),
+  };
+
+  if (databaseURL) {
+    config.databaseURL = databaseURL;
+  }
+
+  firebaseAdminApp = admin.initializeApp(config);
+  return firebaseAdminApp;
+} catch (e) {
+  console.warn("[Firebase] Init skipped:", e.message);
+  return null;
+}
 };
 
 export const getFirebaseRealtimeDb = () => {

@@ -663,7 +663,7 @@ export async function getOrderWithAccess(orderId, userId, role) {
   if (isOwnerCustomer) {
     try {
       const activeCustomerOtps = await OrderOtp.find({
-        orderId: order.orderId,
+        orderId: { $in: [order.orderId, order.checkoutGroupId].filter(Boolean) },
         type: { $in: ["delivery", "return_pickup"] },
         consumedAt: null,
         expiresAt: { $gt: new Date() }
@@ -686,7 +686,7 @@ export async function getOrderWithAccess(orderId, userId, role) {
   if (isAssignedDeliveryBoy) {
     try {
       const activeDeliveryOtps = await OrderOtp.find({
-        orderId: order.orderId,
+        orderId: { $in: [order.orderId, order.checkoutGroupId].filter(Boolean) },
         type: { $in: ["delivery", "return_pickup"] },
         consumedAt: null,
         expiresAt: { $gt: new Date() }
