@@ -155,6 +155,7 @@ const OrderDetailPage = () => {
   const [returnConditionAssurance, setReturnConditionAssurance] = useState(false);
   const [returnImages, setReturnImages] = useState([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const fileInputRef = useRef(null);
   const [liveLocation, setLiveLocation] = useState(null);
   const [trail, setTrail] = useState([]);
@@ -162,8 +163,9 @@ const OrderDetailPage = () => {
   const [handoffOtp, setHandoffOtp] = useState(null);
   const [clockTick, setClockTick] = useState(Date.now());
   const returnWindowMinutes = useMemo(() => {
+    // If settings defines a very short window (like 1 min) during testing, override it to 2 days
     const fromSettings = Number(settings?.returnWindowMinutes);
-    if (Number.isFinite(fromSettings) && fromSettings > 0) return fromSettings;
+    if (Number.isFinite(fromSettings) && fromSettings > 1) return fromSettings;
     return 2880; // 2 days default, matches backend Setting model default
   }, [settings]);
   const routeOriginRef = useRef(null);
@@ -227,11 +229,14 @@ const OrderDetailPage = () => {
           const retRes = await customerApi.getReturnDetails(resolveOrderLookupId(ord));
           const ret = retRes.data.result;
           setReturnDetails(ret);
-          if (ret?.returnPickupOtp) {
-            setHandoffOtp(ret.returnPickupOtp);
+          if (ret?.returnPickupOtp || ord.activeReturnOtp?.otp) {
+            setHandoffOtp(ret?.returnPickupOtp || ord.activeReturnOtp?.otp);
           }
         } catch {
           setReturnDetails(null);
+          if (ord.activeReturnOtp?.otp) {
+            setHandoffOtp(ord.activeReturnOtp.otp);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch order details:", error);
@@ -507,6 +512,12 @@ const OrderDetailPage = () => {
     order.paymentMode === "ONLINE" &&
     order.paymentStatus !== "PAID" &&
     status !== "cancelled";
+
+  const isAwaitingPaymentSelection =
+    Boolean(order) &&
+    order.workflowStatus === "SELLER_ACCEPTED" &&
+    (order.paymentMode === "PENDING" || order.paymentStatus === "AWAITING_PAYMENT_METHOD");
+
   const sellerLocation = coordsToLatLng(order?.seller?.location?.coordinates);
   const baseRoutePhase = getTrackingRoutePhase(order);
   // If we don't have a live rider yet, default to showing the delivery route (store to customer) preview
@@ -644,6 +655,33 @@ const OrderDetailPage = () => {
     status,
   ]);
 
+  useEffect(() => {
+    if (!order || order.status !== "delivered") return;
+    const interval = setInterval(() => setClockTick(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [order]);
+
+  useEffect(() => {
+    if (!order || order.status !== "delivered") return;
+    const windowStart = new Date(order.deliveredAt || order.createdAt).getTime();
+    const windowMs = returnWindowMinutes * 60 * 1000;
+    const endMs = windowStart + windowMs;
+    const diff = endMs - clockTick;
+    
+    if (diff <= 0) {
+      setReturnCountdown(0);
+    } else {
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      if (h > 24) {
+        setReturnCountdown(`${Math.floor(h/24)}d ${h%24}h`);
+      } else {
+        setReturnCountdown(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
+      }
+    }
+  }, [clockTick, order, returnWindowMinutes]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-white">
@@ -664,7 +702,7 @@ const OrderDetailPage = () => {
     ) {
       return false;
     }
-
+    
     const windowStart = new Date(order.deliveredAt || order.createdAt).getTime();
     const now = Date.now();
     const windowMs = returnWindowMinutes * 60 * 1000;
@@ -811,6 +849,34 @@ const OrderDetailPage = () => {
     }
   };
 
+  const handleSelectPaymentMethod = async (method) => {
+    try {
+      if (!order) return;
+      setIsProcessingPayment(true);
+      const paymentRef =
+        Number(order.checkoutGroupSize || 1) > 1
+          ? (order.checkoutGroupId || order.orderId)
+          : order.orderId;
+      const response = await customerApi.selectPaymentMethod(paymentRef, { paymentMode: method });
+      if (method === "ONLINE" && response.data.result?.redirectUrl) {
+        window.location.href = response.data.result.redirectUrl;
+      } else {
+        toast.success(response.data.message || "Payment method updated");
+        const res = await customerApi.getOrderDetails(orderId);
+        setOrder(res.data.result);
+      }
+    } catch (err) {
+      console.error("[OrderDetailPage] Select payment error:", err);
+      toast.error(
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to update payment method. Please try again later.",
+      );
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
   if (!order) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-white">
@@ -842,6 +908,46 @@ const OrderDetailPage = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-3 py-2 space-y-3">
+        {/* Payment Selection Card - Post Seller Acceptance */}
+        {isAwaitingPaymentSelection && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#F5FBF5] rounded-2xl p-4 shadow-sm border border-[#1A4516]/20 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <CreditCard size={64} className="text-[#1A4516]" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-[#1A4516] animate-pulse" />
+                <h3 className="text-sm font-black text-[#1A4516] uppercase tracking-tight">Order Accepted</h3>
+              </div>
+              <p className="text-xs text-[#1A4516] font-medium leading-relaxed mb-4">
+                The seller has accepted your order! Please select how you would like to pay <span className="font-bold">₹{order.pricing.total}</span> to proceed.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleSelectPaymentMethod("ONLINE")}
+                  disabled={isProcessingPayment}
+                  className="bg-[#1A4516] text-white px-4 py-3 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md flex flex-col items-center justify-center gap-1 disabled:opacity-70"
+                >
+                  <CreditCard size={18} />
+                  Pay Online
+                </button>
+                <button
+                  onClick={() => handleSelectPaymentMethod("COD")}
+                  disabled={isProcessingPayment}
+                  className="bg-white text-[#1A4516] border-2 border-[#1A4516] px-4 py-3 rounded-xl text-xs font-bold hover:bg-slate-50 active:scale-95 transition-all shadow-sm flex flex-col items-center justify-center gap-1 disabled:opacity-70"
+                >
+                  <MapPin size={18} />
+                  Cash on Delivery
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Payment Required Card - Only for Online Pending Orders */}
         {isAwaitingOnlinePayment && (
           <motion.div
@@ -873,7 +979,7 @@ const OrderDetailPage = () => {
         )}
 
         {/* Enhanced Map with Cleaner Design - Hide when delivered or cancelled */}
-        {!isAwaitingOnlinePayment && status !== "delivered" && status !== "cancelled" && (
+        {!isAwaitingOnlinePayment && !isAwaitingPaymentSelection && status !== "delivered" && status !== "cancelled" && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -907,7 +1013,7 @@ const OrderDetailPage = () => {
         )}
 
         {/* Order Progress Tracker - New Component */}
-        {!isAwaitingOnlinePayment && (
+        {!isAwaitingOnlinePayment && !isAwaitingPaymentSelection && (
           <OrderProgressTracker
             order={order}
             estimatedArrivalText={estimatedArrival.arrivalTimeText}
@@ -917,14 +1023,15 @@ const OrderDetailPage = () => {
         )}
 
         {/* Delivery Partner Rating */}
-        {status === "delivered" && order?.deliveryBoy && (
-          <DeliveryPartnerRating orderId={orderId} deliveryBoy={order.deliveryBoy} />
+        {order.status === "delivered" && order.deliveryBoy && (
+          <DeliveryPartnerRating orderId={order._id} deliveryBoy={order.deliveryBoy} />
         )}
 
         {/* Proximity-based Delivery OTP Display */}
         <DeliveryOtpDisplay
           orderId={order?.orderId || orderId}
           checkoutGroupId={order?.checkoutGroupId || orderId}
+          initialOtpData={order?.activeDeliveryOtp || null}
         />
 
         {/* Delivery Partner Card - Redesigned */}
@@ -1185,7 +1292,7 @@ const OrderDetailPage = () => {
               <h3 className="text-base font-bold text-[#1A4516]">
                 Return & Refund
               </h3>
-              {canRequestReturn() && returnCountdown !== 0 && (
+              {canRequestReturn() && returnCountdown !== 0 && returnCountdown !== null && (
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-bold ring-1 ring-amber-200">
                   <Clock size={12} />
                   Ends in {returnCountdown}

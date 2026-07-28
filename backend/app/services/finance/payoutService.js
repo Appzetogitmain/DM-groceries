@@ -257,6 +257,14 @@ export async function cancelPendingPayoutForOrder(orderId, payoutType, { remarks
     if (adminId) payout.createdBy = adminId;
     await payout.save({ session });
 
+    if (ownerType === OWNER_TYPE.SELLER) {
+      await Transaction.updateMany(
+        { order: orderId, user: payout.beneficiaryId, userModel: "Seller", type: "Order Payment", status: { $in: ["Pending", "Processing"] } },
+        { $set: { status: "Cancelled" } },
+        { session }
+      );
+    }
+
     await createLedgerEntry(
       {
         orderId,

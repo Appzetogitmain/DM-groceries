@@ -275,14 +275,42 @@ export const getMyDeliveryOrders = async (req, res) => {
             query = assignedToPartner;
         }
 
-        const orders = await Order.find(query)
+        const rawOrders = await Order.find(query)
             .sort({ createdAt: -1 })
             .limit(100)
             .populate("seller", "shopName address")
             .populate("customer", "name phone")
             .lean();
 
-        return handleResponse(res, 200, "Delivery orders fetched", orders);
+        const historyItems = [];
+        for (const order of rawOrders) {
+            const isForward = String(order.deliveryBoy) === String(deliveryBoyId);
+            const isReturn = String(order.returnDeliveryBoy) === String(deliveryBoyId) && order.returnStatus !== "none";
+
+            if (isForward && (normalized === "all" || normalized === "delivered" || normalized === "cancelled")) {
+                // Forward trip
+                historyItems.push({
+                    ...order,
+                    _id: String(order._id) + "_forward",
+                    historyJobType: "FORWARD",
+                    displayEarnings: order.paymentBreakdown?.riderPayoutTotal || (order.pricing?.total ? order.pricing.total * 0.1 : 0),
+                    displayStatus: order.workflowStatus === WORKFLOW_STATUS.DELIVERED || order.status === "delivered" ? "delivered" : 
+                                   order.workflowStatus === WORKFLOW_STATUS.CANCELLED || order.status === "cancelled" ? "cancelled" : "active"
+                });
+            }
+            if (isReturn && (normalized === "all" || normalized === "returns")) {
+                // Return trip
+                historyItems.push({
+                    ...order,
+                    _id: String(order._id) + "_return",
+                    historyJobType: "RETURN",
+                    displayEarnings: order.returnDeliveryCommission || 0,
+                    displayStatus: order.returnStatus === "returned" || order.returnStatus === "qc_passed" || order.returnStatus === "qc_failed" || order.returnStatus === "refund_completed" ? "returned" : "active return"
+                });
+            }
+        }
+
+        return handleResponse(res, 200, "Delivery orders fetched", historyItems);
     } catch (error) {
         return handleResponse(res, 500, error.message);
     }

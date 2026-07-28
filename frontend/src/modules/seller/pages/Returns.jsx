@@ -181,6 +181,7 @@ const Returns = () => {
         try {
             await sellerApi.approveReturn(orderId, {});
             showToast("Return approved", "success");
+            setIsDetailsOpen(false);
             await fetchReturns();
         } catch (error) {
             console.error("Failed to approve return", error);
@@ -614,12 +615,12 @@ const Returns = () => {
                                     </div>
                                 )}
 
-                                {/* Quality Check Comparison (2-Way) */}
+                                {/* Quality Check Comparison (4-Way) */}
                                 <div className="space-y-3 pt-2">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
                                         Product Comparison (QC)
                                     </p>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         {/* 1. Original Listing Image */}
                                         <div className="space-y-1.5 flex flex-col h-full group">
                                             <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner group-hover:border-slate-300 transition-colors">
@@ -634,8 +635,51 @@ const Returns = () => {
                                             </div>
                                         </div>
 
+                                        {/* 2. Seller Pickup Proof (Forward) */}
+                                        <div className="space-y-1.5 flex flex-col h-full group">
+                                            <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner group-hover:border-slate-300 transition-colors flex items-center justify-center">
+                                                {selectedReturn.pickupProofImages?.[0] ? (
+                                                    <img
+                                                        src={selectedReturn.pickupProofImages[0]}
+                                                        alt="Forward Pickup"
+                                                        className="h-full w-full object-cover"
+                                                        onClick={() => window.open(selectedReturn.pickupProofImages[0], '_blank')}
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-1.5 text-slate-400 px-3 text-center">
+                                                        <HiOutlineInboxStack className="h-5 w-5" />
+                                                        <p className="text-[8px] font-bold leading-tight uppercase">No Photo</p>
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/60 to-transparent p-2">
+                                                    <p className="text-[9px] font-black text-white uppercase leading-none">Seller Pickup</p>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                        {/* 3. Return Pickup Proof */}
+                                        {/* 3. Customer Delivery Proof (Forward) */}
+                                        <div className="space-y-1.5 flex flex-col h-full group">
+                                            <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner group-hover:border-slate-300 transition-colors flex items-center justify-center">
+                                                {selectedReturn.deliveryProofImages?.[0] ? (
+                                                    <img
+                                                        src={selectedReturn.deliveryProofImages[0]}
+                                                        alt="Forward Delivery"
+                                                        className="h-full w-full object-cover"
+                                                        onClick={() => window.open(selectedReturn.deliveryProofImages[0], '_blank')}
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-1.5 text-slate-400 px-3 text-center">
+                                                        <HiOutlineInboxStack className="h-5 w-5" />
+                                                        <p className="text-[8px] font-bold leading-tight uppercase">No Photo</p>
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/60 to-transparent p-2">
+                                                    <p className="text-[9px] font-black text-white uppercase leading-none">Delivery</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 4. Return Pickup Proof */}
                                         <div className="space-y-1.5 flex flex-col h-full group">
                                             <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner group-hover:border-slate-300 transition-colors flex items-center justify-center">
                                                 {selectedReturn.returnPickupImages?.[0] ? (

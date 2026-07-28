@@ -13,7 +13,7 @@ import {
 } from "../constants/payment.js";
 import { handleOnlineOrderFinance } from "./finance/orderFinanceService.js";
 import { DEFAULT_SELLER_TIMEOUT_MS, WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
-import { afterPlaceOrderV2 } from "./orderWorkflowService.js";
+import { afterPlaceOrderV2, proceedToDeliverySearch } from "./orderWorkflowService.js";
 import { releaseReservedStockForOrder } from "./stockService.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
@@ -300,6 +300,25 @@ async function moveOrderToSellerPendingAfterPayment(orderId) {
   }
 }
 
+async function moveOrderToDeliverySearchAfterPayment(orderId) {
+  const orderForCheck = await Order.findById(orderId);
+  if (orderForCheck && orderForCheck.workflowStatus === WORKFLOW_STATUS.SELLER_ACCEPTED) {
+    // Update payment method to online since it was captured
+    orderForCheck.paymentMode = "ONLINE";
+    orderForCheck.payment.method = "online";
+    await orderForCheck.save();
+
+    try {
+      await proceedToDeliverySearch(orderForCheck.orderId, orderForCheck);
+    } catch (error) {
+      logger.warn("proceedToDeliverySearch failed in moveOrderToDeliverySearchAfterPayment", {
+        orderId: orderForCheck.orderId,
+        error: error.message,
+      });
+    }
+  }
+}
+
 async function getRelatedOrdersForPayment(payment) {
   if (Array.isArray(payment.orderIds) && payment.orderIds.length > 0) {
     return Order.find({ _id: { $in: payment.orderIds } })
@@ -373,6 +392,7 @@ async function handleOrderSideEffectsFromPaymentStatus(payment, nextStatus, reas
         },
       });
       await moveOrderToSellerPendingAfterPayment(order._id);
+      await moveOrderToDeliverySearchAfterPayment(order._id);
       emitNotificationEvent(NOTIFICATION_EVENTS.PAYMENT_SUCCESS, {
         orderId: order.orderId,
         checkoutGroupId: payment.checkoutGroupId,

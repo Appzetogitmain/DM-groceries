@@ -256,7 +256,7 @@ function filterV2OrdersByRadius(v2Orders, deliveryCoords) {
     if (!Array.isArray(coords) || coords.length < 2) return true;
 
     const [slng, slat] = coords;
-    const searchR = order.deliverySearchMeta?.radiusMeters || 5000;
+    const searchR = order.deliverySearchMeta?.radiusMeters || order.returnSearchMeta?.radiusMeters || 5000;
     const serviceKm = Number(order.seller?.serviceRadius ?? 5);
     const serviceM = Math.max(serviceKm, 0) * 1000;
     const maxR = Math.min(searchR, serviceM);
@@ -287,25 +287,6 @@ export async function fetchAvailableOrdersForDelivery({
   const showDeliveries = type === "delivery" || type === "all";
   const showReturns = type === "return" || type === "all";
 
-  let assignedReturnPickups = [];
-  if (showReturns) {
-    const assignedReturnPickupsRaw = await Order.find({
-      returnStatus: "return_pickup_assigned",
-      returnDeliveryBoy: userId,
-      skippedBy: { $nin: [userId] },
-    })
-      .sort({ createdAt: -1, _id: -1 })
-      .limit(limit)
-      .populate("customer", "name phone")
-      .populate("seller", "shopName address name location")
-      .lean();
-
-    assignedReturnPickups = assignedReturnPickupsRaw.map((rp) => ({
-      ...rp,
-      isReturnPickup: true,
-    }));
-  }
-
   const deliveryPartner = await Delivery.findById(userId);
   if (
     !deliveryPartner ||
@@ -313,13 +294,36 @@ export async function fetchAvailableOrdersForDelivery({
     !Array.isArray(deliveryPartner.location.coordinates)
   ) {
     return {
-      requiresLocation: showDeliveries && assignedReturnPickups.length === 0,
-      orders: assignedReturnPickups,
+      requiresLocation: true,
+      orders: [],
       limit,
     };
   }
 
   const { sellerIds } = await resolveNearbySellerIds(deliveryPartner, userId);
+
+  let availableReturnPickups = [];
+  if (showReturns) {
+    const availableReturnsRaw = await Order.find({
+      returnStatus: "return_pickup_assigned",
+      returnDeliveryBoy: null,
+      seller: { $in: sellerIds },
+      skippedBy: { $nin: [userId] },
+    })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit)
+      .populate("customer", "name phone")
+      .populate("seller", "shopName address name location serviceRadius")
+      .lean();
+
+    availableReturnPickups = filterV2OrdersByRadius(
+      availableReturnsRaw,
+      deliveryPartner.location.coordinates,
+    ).map((rp) => ({
+      ...rp,
+      isReturnPickup: true,
+    }));
+  }
 
   let v2Orders = [];
   if (showDeliveries) {
@@ -430,8 +434,8 @@ export async function fetchAvailableOrdersForDelivery({
         
         if (!custLat || !custLng) return false;
 
-        // Default radius is 5000m unless specified in meta
-        const radiusM = rp.returnSearchMeta?.radiusMeters || 5000;
+        // Default radius is 15000m unless specified in meta
+        const radiusM = rp.returnSearchMeta?.radiusMeters || 15000;
         const dist = distanceMeters(dpLat, dpLng, custLat, custLng);
         return dist <= radiusM;
       })
@@ -445,7 +449,7 @@ export async function fetchAvailableOrdersForDelivery({
   const orders = mergeAvailableOrders(
     v2Orders,
     legacyOrders,
-    [...assignedReturnPickups, ...returnPickups],
+    [...availableReturnPickups, ...returnPickups],
     limit,
   );
 
@@ -653,6 +657,52 @@ export async function getOrderWithAccess(orderId, userId, role) {
       "Access denied. You are not authorized to view this order.",
       403,
     );
+  }
+
+  // Attach active OTPs for the customer so they survive page refreshes
+  if (isOwnerCustomer) {
+    try {
+      const activeCustomerOtps = await OrderOtp.find({
+        orderId: order.orderId,
+        type: { $in: ["delivery", "return_pickup"] },
+        consumedAt: null,
+        expiresAt: { $gt: new Date() }
+      }).sort({ createdAt: -1 }).lean();
+
+      for (const otpDoc of activeCustomerOtps) {
+        if (otpDoc.type === "delivery" && !order.activeDeliveryOtp) {
+           order.activeDeliveryOtp = { otp: otpDoc.code, expiresAt: otpDoc.expiresAt, deliveryPersonNearby: true };
+        }
+        if (otpDoc.type === "return_pickup" && !order.activeReturnOtp) {
+           order.activeReturnOtp = { otp: otpDoc.code, expiresAt: otpDoc.expiresAt, deliveryPersonNearby: true };
+        }
+      }
+    } catch (err) {
+      logger.warn("Failed to fetch customer OTPs", { error: err.message, orderId: order.orderId });
+    }
+  }
+
+  // Attach active OTP expiration times for the delivery partner so they survive page refreshes
+  if (isAssignedDeliveryBoy) {
+    try {
+      const activeDeliveryOtps = await OrderOtp.find({
+        orderId: order.orderId,
+        type: { $in: ["delivery", "return_pickup"] },
+        consumedAt: null,
+        expiresAt: { $gt: new Date() }
+      }).sort({ createdAt: -1 }).lean();
+
+      for (const otpDoc of activeDeliveryOtps) {
+        if (otpDoc.type === "delivery" && !order.activeDeliveryOtpExpiresAt) {
+           order.activeDeliveryOtpExpiresAt = otpDoc.expiresAt;
+        }
+        if (otpDoc.type === "return_pickup" && !order.activeReturnOtpExpiresAt) {
+           order.activeReturnOtpExpiresAt = otpDoc.expiresAt;
+        }
+      }
+    } catch (err) {
+      logger.warn("Failed to fetch delivery OTPs for partner", { error: err.message, orderId: order.orderId });
+    }
   }
 
   return {

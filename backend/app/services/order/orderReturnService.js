@@ -41,6 +41,7 @@ import { LEDGER_TRANSACTION_TYPE, OWNER_TYPE } from "../../constants/finance.js"
 import { clearOrderTracking } from "../firebaseService.js";
 import logger from "../logger.js";
 import { calculateRiderPayout } from "../finance/pricingService.js";
+import { getOrCreateFinanceSettings } from "../finance/financeSettingsService.js";
 import { distanceMeters } from "../../utils/geoUtils.js";
 
 function err(message, statusCode) {
@@ -88,12 +89,7 @@ export class OrderReturnService {
     const { eligibleAt, windowExpiresAt, eligibleDelay, windowMinutes } =
       await computeReturnWindowForOrder(order);
 
-    if (now < eligibleAt) {
-      throw err(
-        `Returns are available ${eligibleDelay} minute(s) after delivery. Please try again shortly.`,
-        400,
-      );
-    }
+
     if (now > windowExpiresAt) {
       const windowHours = Math.round(windowMinutes / 60);
       const windowLabel = windowHours >= 24
@@ -212,9 +208,22 @@ export class OrderReturnService {
       returnDeliveryCommission === null
     ) {
       try {
-        const settings = await Setting.findOne({});
-        returnDeliveryCommission = settings?.returnDeliveryCommission ?? 0;
-      } catch {
+        const settings = await getOrCreateFinanceSettings();
+        let distanceKm = order.distanceSnapshot?.distanceKmActual || order.paymentBreakdown?.distanceKmActual || 0;
+        
+        if (!distanceKm && order.address?.location && order.seller) {
+          const sellerDoc = await Seller.findById(order.seller).lean();
+          if (sellerDoc?.location?.coordinates) {
+            const [lng, lat] = sellerDoc.location.coordinates;
+            const distMeters = distanceMeters(order.address.location.lat, order.address.location.lng, lat, lng);
+            distanceKm = distMeters / 1000;
+          }
+        }
+        
+        const riderPayout = calculateRiderPayout(distanceKm, settings || {});
+        returnDeliveryCommission = riderPayout.riderPayoutTotal || 0;
+      } catch (err) {
+        logger.error("Failed to estimate return delivery commission", { err });
         returnDeliveryCommission = 0;
       }
     }
@@ -302,7 +311,7 @@ export class OrderReturnService {
 
     const refundAmount = productRefundAmount + deliveryRefund + handlingRefund;
 
-    const settings = await Setting.findOne({}).lean();
+    const settings = await getOrCreateFinanceSettings();
     
     // Calculate return commission based on distance (similar to forward delivery)
     let distanceKm = order.distanceSnapshot?.distanceKmActual || order.paymentBreakdown?.distanceKmActual || 0;
@@ -331,7 +340,7 @@ export class OrderReturnService {
     order.returnRefundAmount = refundAmount;
     order.returnDeliveryCommission = returnCommission;
 
-    order.returnStatus = "return_approved";
+    order.returnStatus = "return_pickup_assigned";
     order.returnDeliveryBoy = null;
     order.skippedBy = [];
 
@@ -366,32 +375,9 @@ export class OrderReturnService {
       customerInfo = null;
     }
 
-    const broadcastPayload = {
-      orderId: order.orderId,
-      type: "RETURN_PICKUP",
-      commission: returnCommission,
-      preview: {
-        pickup: order.address?.address || "Customer Address",
-        pickupPhone: order.address?.phone || customerInfo?.phone || "",
-        customerName: order.address?.name || customerInfo?.name || "Customer",
-        drop: sellerInfo?.shopName || "Seller Store",
-        dropAddress: sellerInfo?.address || "",
-        total: order.pricing?.total || 0,
-        returnReason: order.returnReason || "",
-        returnItems: Array.isArray(order.returnItems)
-          ? order.returnItems.map((i) => ({
-            name: i.name || "",
-            quantity: i.quantity || 1,
-            price: i.price || 0,
-            image: i.image || "",
-          }))
-          : [],
-      },
-      deliverySearchExpiresAt: new Date(Date.now() + 60 * 1000).toISOString(),
-    };
+    const { startReturnPickupBroadcast } = await import("../orderWorkflowService.js");
+    await startReturnPickupBroadcast(order);
 
-    const customerLocation = order.address?.location;
-    emitReturnBroadcastForCustomer(customerLocation, broadcastPayload);
     emitNotificationEvent(NOTIFICATION_EVENTS.RETURN_PICKUP_ASSIGNED, {
       orderId: order.orderId,
       sellerId: order.seller,
@@ -596,6 +582,7 @@ export class OrderReturnService {
                     idempotencyKey: `RET-SELL-COMM-${order._id}`,
                     correlationId,
                     metadata: { commission },
+                    allowNegative: true,
                   });
                 }
 
@@ -609,7 +596,8 @@ export class OrderReturnService {
                 throw error;
               }
             } else {
-              const adjustment = Math.max(0, refundAmount + commission);
+              const sellerPayoutForReturnedItems = (order.paymentBreakdown?.sellerPayoutTotal || 0) * (refundAmount / (order.paymentBreakdown?.grandTotal || refundAmount));
+              const adjustment = Math.max(0, sellerPayoutForReturnedItems + commission);
               if (adjustment > 0) {
                 try {
                   await walletService.debitWallet({
@@ -626,6 +614,7 @@ export class OrderReturnService {
                     idempotencyKey: `RET-SELL-DEBIT-${order._id}`,
                     correlationId,
                     metadata: { refundAmount, commission },
+                    allowNegative: true,
                   });
                 } catch (error) {
                   logger.error("Wallet debit failed for seller", {
@@ -638,7 +627,8 @@ export class OrderReturnService {
               }
             }
 
-            const legacyAdjustment = isHeld ? commission : Math.max(0, refundAmount + commission);
+            const sellerPayoutForReturnedItems = (order.paymentBreakdown?.sellerPayoutTotal || 0) * (refundAmount / (order.paymentBreakdown?.grandTotal || refundAmount));
+            const legacyAdjustment = isHeld ? commission : Math.max(0, sellerPayoutForReturnedItems + commission);
             if (legacyAdjustment > 0) {
               await Transaction.create(
                 [

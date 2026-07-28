@@ -279,7 +279,7 @@ async function computeDeliveryCodCashSummary(deliveryBoyId) {
       order.paymentBreakdown?.riderPayoutTotal ?? 0,
     );
 
-    const estimatedNet = roundCurrency(Math.max(gross - riderCommission, 0));
+    const estimatedNet = gross;
     const pendingNet = roundCurrency(
       order.paymentBreakdown?.codPendingAmount ?? 0,
     );

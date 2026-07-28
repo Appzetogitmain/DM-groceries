@@ -9,6 +9,7 @@ import {
   XCircle,
   IndianRupee,
   AlertCircle,
+  LocateFixed,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,8 +26,11 @@ const Dashboard = () => {
   const { user, refreshUser } = useAuth();
   const [isOnline, setIsOnline] = useState(user?.isOnline || false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [locationText, setLocationText] = useState("Fetching location...");
+  const [isDetecting, setIsDetecting] = useState(false);
   const [activeTab, setActiveTab] = useState("delivery"); // 'delivery' or 'return'
   const [availableOrders, setAvailableOrders] = useState([]);
+  const [ongoingOrder, setOngoingOrder] = useState(null);
   const [earnings, setEarnings] = useState({
     today: 0,
     deliveries: 0,
@@ -41,6 +45,65 @@ const Dashboard = () => {
       setIsOnline(user.isOnline);
     }
   }, [user]);
+
+  // Fetch human-readable location using Google Maps via our backend
+  const fetchAddress = async (lat, lng) => {
+    try {
+      const response = await deliveryApi.geocodeAddress(`${lat},${lng}`);
+      if (response.data.success && response.data.result) {
+        const address = response.data.result.formattedAddress;
+        
+        // Extract city/locality from the formatted address for a shorter display
+        const parts = address.split(',').map(p => p.trim());
+        // Simple heuristic: if it's long, take the first two meaningful parts, else take it all.
+        if (parts.length > 3) {
+           const shortName = `${parts[Math.max(0, parts.length - 4)]}, ${parts[parts.length - 3]}`;
+           setLocationText(shortName.replace(/[0-9]{6}/g, '').trim()); 
+        } else {
+           setLocationText(address);
+        }
+      } else {
+        setLocationText("Current Location");
+      }
+    } catch (error) {
+      setLocationText("Current Location");
+    }
+  };
+
+  useEffect(() => {
+    import("../utils/deliveryLastLocation.js").then(({ getCachedDeliveryPartnerLocation }) => {
+      const loc = getCachedDeliveryPartnerLocation();
+      if (!loc) {
+        setLocationText("Location not available");
+        return;
+      }
+      fetchAddress(loc.lat, loc.lng);
+    });
+  }, []);
+
+  const handleDetectLocation = async () => {
+    setIsDetecting(true);
+    setLocationText("Detecting...");
+    try {
+      const { getCurrentPositionWithCache } = await import("../utils/deliveryLastLocation.js");
+      getCurrentPositionWithCache(
+        (loc) => {
+          fetchAddress(loc.lat, loc.lng);
+          setIsDetecting(false);
+          toast.success("Location updated");
+        },
+        () => {
+          setLocationText("Failed to detect");
+          setIsDetecting(false);
+          toast.error("Could not get your location. Please check GPS permissions.");
+        },
+        { maxCacheAgeMs: 0 } // Force a fresh read
+      );
+    } catch (error) {
+      setIsDetecting(false);
+      setLocationText("Current Location");
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -80,10 +143,27 @@ const Dashboard = () => {
     }
   };
 
+  const fetchOngoingOrder = async () => {
+    try {
+      const response = await deliveryApi.getOrderHistory({ status: 'all' });
+      const orders = response.data?.results ?? response.data?.result ?? [];
+      const active = orders.find(o => 
+         o.displayStatus === "active" || o.displayStatus === "active return" ||
+         (!o.displayStatus && o.status !== "delivered" && o.status !== "cancelled")
+      );
+      setOngoingOrder(active || null);
+    } catch (error) {
+      console.error("Failed to fetch ongoing order:", error);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
     fetchNotifications();
-    if (isOnline) fetchAvailableOrders();
+    if (isOnline) {
+      fetchAvailableOrders();
+      fetchOngoingOrder();
+    }
   }, [isOnline, activeTab]);
 
   const handleOnlineToggle = async () => {
@@ -137,7 +217,20 @@ const Dashboard = () => {
               <h2 className="text-[16px] font-black leading-tight tracking-tight">
                 Hi, {user?.name?.split(" ")[0] || "Partner"} 👋
               </h2>
-              <p className="text-xs text-white/70 font-medium">Good Morning</p>
+              <div className="flex items-center mt-0.5 space-x-2">
+                <p className="text-xs text-white/70 font-medium flex items-center max-w-[200px] truncate">
+                  <MapPin size={12} className="mr-1 shrink-0" />
+                  <span className="truncate">{locationText}</span>
+                </p>
+                <button
+                  onClick={handleDetectLocation}
+                  disabled={isDetecting}
+                  className="p-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
+                  title="Detect Location"
+                >
+                  <LocateFixed size={12} className={`text-white ${isDetecting ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -336,6 +429,33 @@ const Dashboard = () => {
                     <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                       <span className="w-2 h-2 bg-[#1A4516] rounded-full animate-pulse" />
                       Listening for assignments
+                    </div>
+                  </motion.div>
+                ) : ongoingOrder ? (
+                  <motion.div
+                    key="ongoing"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="bg-[#1A4516] rounded-2xl p-5 text-white shadow-lg relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                      <Package size={80} />
+                    </div>
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shadow-sm">
+                          <LocateFixed size={14} className="text-white animate-pulse" />
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/90">Ongoing Order</span>
+                      </div>
+                      <h3 className="text-xl font-black mb-1">#{ongoingOrder.orderId}</h3>
+                      <p className="text-xs text-white/80 mb-5 truncate max-w-[80%] font-medium">
+                        {ongoingOrder.historyJobType === 'RETURN' ? 'Return Pickup' : 'Delivery to Customer'}
+                      </p>
+                      <Button onClick={() => navigate(`/delivery/order-details/${ongoingOrder.orderId}`)} variant="secondary" className="w-full bg-white text-[#1A4516] hover:bg-gray-50 font-bold border-0 shadow-sm py-2.5">
+                        View Order Details
+                      </Button>
                     </div>
                   </motion.div>
                 ) : (

@@ -25,6 +25,9 @@ import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
 import { useSellerEarnings } from "../context/SellerEarningsContext";
 import Pagination from "@shared/components/ui/Pagination";
+import { onWithdrawalUpdated } from "@core/services/orderSocket";
+import { createSocketTokenReader } from "@core/utils/authStorage";
+import { STORAGE_KEYS } from "@core/utils/storage";
 
 const Withdrawals = () => {
     const { earningsData: data, earningsLoading: loading, refreshEarnings } = useSellerEarnings();
@@ -39,6 +42,15 @@ const Withdrawals = () => {
 
     const ledger = Array.isArray(data?.ledger) ? data.ledger : [];
     const withdrawalHistory = ledger.filter((t) => (t.type || '').toString() === 'Withdrawal');
+
+    React.useEffect(() => {
+        const getToken = createSocketTokenReader(STORAGE_KEYS.AUTH_SELLER);
+        const unsubscribe = onWithdrawalUpdated(getToken, (payload) => {
+            console.log("Withdrawal updated:", payload);
+            refreshEarnings();
+        });
+        return unsubscribe;
+    }, [refreshEarnings]);
 
     const filteredHistory = useMemo(() => {
         const term = searchTerm.toLowerCase();

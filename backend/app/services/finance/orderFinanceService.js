@@ -464,14 +464,12 @@ export async function handleCodOrderFinance(
       throw new Error("COD collection amount must be greater than 0");
     }
 
-    // Requirement: system float (COD) should track remittable cash with delivery partners,
-    // i.e. gross order amount minus delivery partner commission.
+    // Requirement updated: system float (COD) should track the FULL cash collected,
+    // and riders will receive their commission digitally.
     const deliveryPartnerCommission = roundCurrency(
       order.paymentBreakdown?.riderPayoutTotal || 0,
     );
-    const codAmountNet = roundCurrency(
-      Math.max(codAmountGross - deliveryPartnerCommission, 0),
-    );
+    const codAmountNet = roundCurrency(codAmountGross);
 
     await updateCashInHand({
       ownerType: OWNER_TYPE.DELIVERY_PARTNER,

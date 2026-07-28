@@ -288,6 +288,7 @@ export async function debitWallet({
   correlationId = null,
   // Phase 4 P4-3: dual-write to legacy `User.walletBalance`. See creditWallet.
   syncUserWalletBalance = true,
+  allowNegative = false,
 }) {
   const normalizedAmount = assertPositiveAmount(amount);
   const wallet = await getOrCreateWallet(ownerType, ownerId, { session });
@@ -298,7 +299,7 @@ export async function debitWallet({
 
   const field = `${bucket}Balance`;
   const before = roundCurrency(wallet[field] || 0);
-  if (before < normalizedAmount) {
+  if (!allowNegative && before < normalizedAmount) {
     throw new Error(`Insufficient ${bucket} balance`);
   }
 
@@ -573,6 +574,7 @@ export async function getAdminFinanceSummary() {
         { 
           $match: { 
             status: "delivered", 
+            returnStatus: { $ne: "refund_completed" },
             $or: [
               { paymentMode: "ONLINE" },
               { paymentMode: "COD", "financeFlags.codMarkedCollected": true }
@@ -595,6 +597,7 @@ export async function getAdminFinanceSummary() {
           $match: {
             paymentMode: "COD",
             status: "delivered",
+            returnStatus: { $ne: "refund_completed" }
           },
         },
         {
@@ -635,6 +638,7 @@ export async function getAdminFinanceSummary() {
         {
           $match: {
             status: "delivered",
+            returnStatus: { $ne: "refund_completed" }
           },
         },
         {
@@ -652,6 +656,7 @@ export async function getAdminFinanceSummary() {
         {
           $match: {
             status: "delivered",
+            returnStatus: { $ne: "refund_completed" }
           },
         },
         {
@@ -738,4 +743,48 @@ export async function getCustomerBalance(userId, { session } = {}) {
   } catch {
     return 0;
   }
+}
+
+export async function requestCustomerWithdrawal(userId, amount, method, details) {
+  const mongoose = await import('mongoose');
+  const session = await mongoose.default.startSession();
+  
+  let payout;
+  try {
+    session.startTransaction();
+    
+    // Debit wallet (this will throw if balance is insufficient)
+    const { ledgerEntry } = await debitWallet({
+      ownerType: OWNER_TYPE.CUSTOMER,
+      ownerId: userId,
+      amount,
+      bucket: "available",
+      session,
+      ledgerType: LEDGER_TRANSACTION_TYPE.WITHDRAWAL,
+      ledgerDescription: "Customer wallet withdrawal request",
+      metadata: { method, ...details },
+    });
+    
+    // Create Payout request
+    const payouts = await Payout.create([
+      {
+        payoutType: PAYOUT_TYPE.CUSTOMER,
+        beneficiaryId: userId,
+        amount,
+        status: PAYOUT_STATUS.PENDING,
+        metadata: { method, ...details, ledgerEntryId: ledgerEntry._id },
+        remarks: "Customer requested withdrawal via " + method,
+      }
+    ], { session });
+    payout = payouts[0];
+    
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+  
+  return payout;
 }

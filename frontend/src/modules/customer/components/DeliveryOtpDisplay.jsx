@@ -33,20 +33,30 @@ const matchesOrderIdentifier = (payloadOrderId, identifiers = []) => {
     .includes(normalizedPayloadId);
 };
 
-const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null }) => {
-  const [otpData, setOtpData] = useState(null);
+// Calculate remaining time from expiration timestamp
+const calculateRemainingTime = (expiresAt) => {
+  const now = new Date().getTime();
+  const expiry = new Date(expiresAt).getTime();
+  const diff = Math.floor((expiry - now) / 1000);
+  return Math.max(0, diff);
+};
+
+const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtpData = null }) => {
+  const [otpData, setOtpData] = useState(initialOtpData);
   const [isDelivered, setIsDelivered] = useState(false);
-  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [remainingSeconds, setRemainingSeconds] = useState(
+    initialOtpData ? calculateRemainingTime(initialOtpData.expiresAt) : 0
+  );
   const [isVisible, setIsVisible] = useState(true);
   const timerRef = useRef(null);
 
-  // Calculate remaining time from expiration timestamp
-  const calculateRemainingTime = (expiresAt) => {
-    const now = new Date().getTime();
-    const expiry = new Date(expiresAt).getTime();
-    const diff = Math.floor((expiry - now) / 1000);
-    return Math.max(0, diff);
-  };
+  // Sync with initial data when fetched (e.g. after a page refresh)
+  useEffect(() => {
+    if (initialOtpData && !isDelivered) {
+      setOtpData(initialOtpData);
+      setRemainingSeconds(calculateRemainingTime(initialOtpData.expiresAt));
+    }
+  }, [initialOtpData, isDelivered]);
 
   // Format seconds to MM:SS
   const formatTime = (seconds) => {
@@ -113,7 +123,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null }) => {
     // Listen for OTP validation event
     const offValidated = onDeliveryOtpValidated(getToken, (payload) => {
       console.log(`[DeliveryOtpDisplay] Received delivery:otp:validated event:`, payload);
-      if (matchesOrderIdentifier(payload?.orderId, acceptedOrderIds)) {
+      if (matchesOrderIdentifier(payload?.orderId, acceptedOrderIds) || matchesOrderIdentifier(payload?.checkoutGroupId, acceptedOrderIds)) {
         setIsDelivered(true);
         setOtpData(null);
       }
@@ -127,9 +137,10 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null }) => {
   }, [orderId, checkoutGroupId]);
 
   // Countdown timer
-  // Requirement 7.5: Display countdown timer showing remaining validity
+  // Countdown timer showing remaining validity
+  // Set up the countdown timer using dynamic calculation to prevent drift
   useEffect(() => {
-    if (!otpData || remainingSeconds <= 0) {
+    if (!otpData?.expiresAt) {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -137,18 +148,17 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null }) => {
       return;
     }
 
-    timerRef.current = setInterval(() => {
-      setRemainingSeconds((prev) => {
-        const next = prev - 1;
-        if (next <= 0) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-          setOtpData(null);
-          return 0;
-        }
-        return next;
-      });
-    }, 1000);
+    const tick = () => {
+      const remaining = calculateRemainingTime(otpData.expiresAt);
+      setRemainingSeconds(remaining);
+      if (remaining <= 0) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        setOtpData(null);
+      }
+    };
+
+    tick(); // initial calculation
+    timerRef.current = setInterval(tick, 1000);
 
     return () => {
       if (timerRef.current) {
@@ -156,7 +166,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null }) => {
         timerRef.current = null;
       }
     };
-  }, [otpData, remainingSeconds]);
+  }, [otpData?.expiresAt]);
 
   // Show delivery confirmation
   if (isDelivered) {

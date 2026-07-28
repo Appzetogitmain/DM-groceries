@@ -28,6 +28,7 @@ import {
   previewCheckoutFinance,
   reconcileCodCashSubmission,
   verifyOnlineOrderPayment,
+  selectPaymentMethod,
 } from "../controller/orderFinanceController.js";
 import {
   confirmPickup,
@@ -102,6 +103,12 @@ router.get("/details/:orderId", verifyToken, getOrderDetails);
 router.put("/cancel/:orderId", verifyToken, cancelOrder);
 router.post("/:orderId/returns", verifyToken, requestReturn);
 router.get("/:orderId/returns", verifyToken, getReturnDetails);
+router.post(
+  "/:id/select-payment",
+  verifyToken,
+  allowRoles("customer", "user"),
+  selectPaymentMethod,
+);
 
 // Admin/Seller routes
 router.get(

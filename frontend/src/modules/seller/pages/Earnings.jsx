@@ -460,7 +460,52 @@ const Earnings = () => {
                     )}
                  </div>
                  
-                 <div className="grid grid-cols-2 gap-4">
+                 {selectedTxn.items && selectedTxn.items.length > 0 && (
+                   <div className="mt-4">
+                     <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-3">
+                       Items Ordered ({selectedTxn.items.length})
+                     </h4>
+                     <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
+                       {selectedTxn.items.map((item, idx) => (
+                         <div
+                           key={idx}
+                           className="flex items-center justify-between p-3 bg-white ring-1 ring-slate-100 rounded-2xl group hover:shadow-md transition-all"
+                         >
+                           <div className="flex items-center gap-4">
+                             <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-50 ring-1 ring-slate-200">
+                               {item.image ? (
+                                 <img
+                                   src={item.image}
+                                   alt={item.name}
+                                   className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                 />
+                               ) : (
+                                 <div className="h-full w-full flex items-center justify-center text-slate-600 text-xs font-bold">
+                                   —
+                                 </div>
+                               )}
+                             </div>
+                             <div>
+                               <p className="text-xs font-bold text-slate-900">
+                                 {item.name}
+                               </p>
+                               <p className="text-[10px] font-semibold text-slate-600 mt-0.5">
+                                 ₹{Number(item.price).toFixed(2)} × {item.quantity}
+                               </p>
+                             </div>
+                           </div>
+                           <div className="text-right">
+                             <p className="text-xs font-black text-slate-900">
+                               ₹{(item.price * item.quantity).toFixed(2)}
+                             </p>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+                 
+                 <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Status</p>
                         <Badge

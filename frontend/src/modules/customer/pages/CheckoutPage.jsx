@@ -217,26 +217,12 @@ const CheckoutPage = () => {
   }, [cart.length === 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const paymentMethods = [
-    ...(settings?.onlineEnabled === false
-      ? []
-      : [
-          {
-            id: "online",
-            label: "Pay Online",
-            icon: CreditCard,
-            sublabel: "UPI / Cards / NetBanking",
-          },
-        ]),
-    ...(settings?.codEnabled === false
-      ? []
-      : [
-          {
-            id: "cash",
-            label: "Cash on Delivery",
-            icon: Banknote,
-            sublabel: "Pay after delivery",
-          },
-        ]),
+    {
+      id: "pending",
+      label: "Pay after seller accepts",
+      icon: Clock,
+      sublabel: "Choose Online or Cash later",
+    },
   ];
 
   const tipAmounts = [
@@ -710,7 +696,7 @@ const CheckoutPage = () => {
       discountTotal: discountAmount,
       taxTotal: 0,
       tipAmount: selectedTip,
-      paymentMode: selectedPayment === "online" ? "ONLINE" : "COD",
+      paymentMode: "PENDING",
       timeSlot: selectedTimeSlot,
     });
 
@@ -784,7 +770,7 @@ const CheckoutPage = () => {
       const taxAmount = pricingPreview?.taxTotal || 0;
       const orderData = {
         address: buildAddressForOrder(),
-        paymentMode: selectedPayment === "online" ? "ONLINE" : "COD",
+        paymentMode: "PENDING",
         discountTotal: discountAmount,
         taxTotal: taxAmount,
         tipAmount: selectedTip,
@@ -821,35 +807,7 @@ const CheckoutPage = () => {
           return;
         }
 
-        if (selectedPayment === "online") {
-          try {
-            const paymentRes = await customerApi.createPaymentOrder({
-              orderRef: paymentRef,
-              orderId: mainOrderId,
-            });
-            if (paymentRes.data.success && paymentRes.data.result?.redirectUrl) {
-              setIsRedirecting(true);
-              clearCart();
-              window.location.href = paymentRes.data.result.redirectUrl;
-              return;
-            } else {
-              throw new Error(
-                paymentRes.data.message || "Failed to initiate payment gateway"
-              );
-            }
-          } catch (payError) {
-            setIsPlacingOrder(false);
-            showToast(
-              payError.message ||
-                "Order created but payment gateway failed. Please pay from order details.",
-              "error"
-            );
-            navigate(`/orders/${mainOrderId}`);
-            return;
-          }
-        }
-
-        // COD flow
+        // PENDING / COD flow
         clearCart();
         showToast("Order placed — waiting for seller to accept.", "success");
         setOrderId(mainOrderId);

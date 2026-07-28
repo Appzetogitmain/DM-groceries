@@ -392,14 +392,6 @@ const AdminWallet = () => {
                         {isExporting ? <RotateCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                         {isExporting ? 'EXPORTING...' : 'EXPORT STATEMENT'}
                     </button>
-                    <button
-                        onClick={handleProcessPayouts}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
-                    >
-                        {isProcessing ? <RotateCw className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
-                        {isProcessing ? 'PROCESSING...' : 'PROCESS PAYOUTS'}
-                    </button>
                 </div>
             </div>
 

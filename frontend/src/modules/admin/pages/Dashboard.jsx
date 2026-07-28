@@ -147,7 +147,7 @@ const AdminDashboard = () => {
             color: 'text-brand-600',
             bg: 'bg-brand-50',
             trend: '+8.2%',
-            description: 'Net earnings',
+            description: 'Total Sales Value',
             onClick: () => navigate('/admin/wallet')
         },
     ];

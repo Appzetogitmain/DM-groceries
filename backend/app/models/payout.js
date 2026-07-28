@@ -15,6 +15,7 @@ import { ALL_PAYOUT_STATUSES, ALL_PAYOUT_TYPES, CURRENCY, PAYOUT_TYPE } from "..
 const PAYOUT_TYPE_TO_BENEFICIARY_MODEL = {
   [PAYOUT_TYPE.SELLER]: "Seller",
   [PAYOUT_TYPE.DELIVERY_PARTNER]: "Delivery",
+  [PAYOUT_TYPE.CUSTOMER]: "User",
 };
 
 const payoutSchema = new mongoose.Schema(
@@ -27,7 +28,7 @@ const payoutSchema = new mongoose.Schema(
     },
     beneficiaryModel: {
       type: String,
-      enum: ["Seller", "Delivery"],
+      enum: ["Seller", "Delivery", "User"],
       default: undefined,
     },
     beneficiaryId: {

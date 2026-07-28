@@ -91,6 +91,11 @@ const settingSchema = new mongoose.Schema(
             default: 2,
             min: 0,
         },
+        paymentTimeoutMinutes: {
+            type: Number,
+            default: 10,
+            min: 1,
+        },
 
         /**
          * Finance / delivery pricing rules (single source of truth).

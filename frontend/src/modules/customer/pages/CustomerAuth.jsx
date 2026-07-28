@@ -123,7 +123,7 @@ const CustomerAuth = () => {
                 });
             }
             setShowOtp(true);
-            setTimer(30);
+            setTimer(60);
             toast.success('OTP sent!');
         } catch (error) {
             const apiMessage = error?.response?.data?.message || '';

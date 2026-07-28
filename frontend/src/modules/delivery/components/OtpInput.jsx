@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
 import { getCurrentPositionWithCache } from "../utils/deliveryLastLocation";
@@ -19,14 +19,43 @@ import { getCurrentPositionWithCache } from "../utils/deliveryLastLocation";
  * @param {Function} props.onError - Callback when validation fails
  * @param {Function} props.onCancel - Optional callback for cancel action
  */
-const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPickup = false, onSuccess, onError, onCancel }) => {
+const calculateRemainingTime = (expiresAt) => {
+  if (!expiresAt) return 0;
+  const now = new Date().getTime();
+  const expiry = new Date(expiresAt).getTime();
+  const diff = Math.floor((expiry - now) / 1000);
+  return Math.max(0, diff);
+};
+
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
+const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPickup = false, initialExpiresAt = null, onSuccess, onError, onCancel }) => {
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [lastErrorCode, setLastErrorCode] = useState(null);
   const [attemptsRemaining, setAttemptsRemaining] = useState(3);
+  
+  // Timer state
+  const [expiresAtStr, setExpiresAtStr] = useState(initialExpiresAt);
+  const [remainingSeconds, setRemainingSeconds] = useState(
+    initialExpiresAt ? calculateRemainingTime(initialExpiresAt) : 0
+  );
+  const timerRef = useRef(null);
+
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+  
+  // Photo upload state
+  const [images, setImages] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const requirePhotos = isSellerPickup || (!isReturn && !isReturnDrop);
 
   // Auto-focus first input on mount
   useEffect(() => {
@@ -43,10 +72,89 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
     setAttemptsRemaining(3);
     setIsLoading(false);
     setIsGenerating(false);
+    setImages([]);
+    setExpiresAtStr(initialExpiresAt);
+    setRemainingSeconds(initialExpiresAt ? calculateRemainingTime(initialExpiresAt) : 0);
     if (inputRefs[0].current) {
       inputRefs[0].current.focus();
     }
-  }, [orderId]);
+  }, [orderId, initialExpiresAt]);
+
+  // Countdown timer logic using dynamic calculation to prevent drift
+  useEffect(() => {
+    if (!expiresAtStr) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    const tick = () => {
+      const remaining = calculateRemainingTime(expiresAtStr);
+      setRemainingSeconds(remaining);
+      if (remaining <= 0) {
+        if (timerRef.current) clearInterval(timerRef.current);
+      }
+    };
+
+    tick(); // initial calculation
+    timerRef.current = setInterval(tick, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [expiresAtStr]);
+
+  const handleImageSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const remaining = 3 - images.length;
+    const toProcess = files.slice(0, remaining);
+
+    setIsUploading(true);
+    const newImages = [];
+
+    for (const file of toProcess) {
+      try {
+        const preview = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        let url = preview;
+        try {
+          const { default: axiosInstance } = await import("@core/api/axios");
+          const uploadForm = new FormData();
+          uploadForm.append("file", file);
+          const uploadRes = await axiosInstance.post("/media/upload", uploadForm, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+          url = uploadRes.data?.result?.url || uploadRes.data?.data?.url || uploadRes.data?.url || preview;
+        } catch {
+          url = preview;
+        }
+
+        newImages.push({ url, preview });
+      } catch (err) {
+        toast.error("Failed to process image");
+      }
+    }
+
+    setImages((prev) => [...prev, ...newImages].slice(0, 3));
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeImage = (index) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   /**
    * Handle input change for a specific digit
@@ -122,6 +230,13 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
       toast.success(response.data?.message || "OTP generated successfully");
       setError(null);
       setLastErrorCode(null);
+      
+      const newExpiresAt = response.data?.result?.expiresAt || response.data?.expiresAt;
+      if (newExpiresAt) {
+        setExpiresAtStr(newExpiresAt);
+        setRemainingSeconds(calculateRemainingTime(newExpiresAt));
+      }
+      
       clearInputs();
     } catch (err) {
       const errorMessage =
@@ -146,6 +261,11 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
     // Validate OTP format before submission
     if (otpString.length !== 4) {
       setError("Please enter all 4 digits");
+      return;
+    }
+    
+    if (requirePhotos && images.length === 0) {
+      setError("Please upload at least 1 product photo");
       return;
     }
 
@@ -175,12 +295,12 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
 
       // Call appropriate validation endpoint
       const response = isSellerPickup
-        ? await deliveryApi.verifySellerPickupOtp(orderId, { enteredCode: otpString, ...locationData })
+        ? await deliveryApi.verifySellerPickupOtp(orderId, { enteredCode: otpString, ...locationData, images: images.map(img => img.url) })
         : isReturnDrop
           ? await deliveryApi.verifyReturnDropOtp(orderId, { code: otpString })
           : isReturn
             ? await deliveryApi.verifyReturnOtp(orderId, { otp: otpString })
-            : await deliveryApi.verifyDeliveryOtp(orderId, { code: otpString });
+            : await deliveryApi.verifyDeliveryOtp(orderId, { code: otpString, images: images.map(img => img.url) });
 
       // Success
       toast.success(
@@ -275,6 +395,57 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
         </p>
       </div>
 
+      {/* Photo Upload Section */}
+      {requirePhotos && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-sm font-bold text-gray-800">
+              Product Photos <span className="text-red-500">*</span>
+            </p>
+            <p className="text-xs text-gray-500">{images.length}/3 uploaded</p>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-3">
+            {images.map((img, index) => (
+              <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
+                <img src={img.preview || img.url} alt={`proof-${index}`} className="w-full h-full object-cover" />
+                <button
+                  onClick={() => removeImage(index)}
+                  className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
+              </div>
+            ))}
+            {images.length < 3 && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-white hover:bg-gray-50 transition-colors"
+              >
+                {isUploading ? (
+                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="w-6 h-6 text-gray-400" />
+                    <span className="text-xs text-gray-400 mt-1">Add Photo</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            capture="environment"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+        </div>
+      )}
+
       {/* OTP Input Fields */}
       <div className="flex justify-center gap-3">
         {otp.map((digit, index) => (
@@ -318,6 +489,32 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
           </p>
         </div>
       )}
+      
+      {/* Countdown Timer (Only show if we have an active timer) */}
+      {remainingSeconds > 0 && (
+        <div
+          className={`border rounded-xl p-4 flex items-center justify-between transition-colors duration-300 ${
+            remainingSeconds <= 120
+              ? "bg-amber-50 border-amber-200"
+              : "bg-gray-50 border-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <svg
+              className={`w-5 h-5 ${remainingSeconds <= 120 ? "text-amber-500" : "text-gray-500"}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className={`text-sm font-medium ${remainingSeconds <= 120 ? "text-amber-900" : "text-gray-700"}`}>
+              Valid For
+            </p>
+          </div>
+          <p className={`text-lg font-bold font-mono tracking-wider ${remainingSeconds <= 120 ? "text-amber-700" : "text-gray-900"}`}>
+            {formatTime(remainingSeconds)}
+          </p>
+        </div>
+      )}
 
       {["OTP_NOT_FOUND", "OTP_EXPIRED", "OTP_CONSUMED"].includes(lastErrorCode) && (
         <button
@@ -337,11 +534,11 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
       )}
 
       {/* Submit Button */}
-      {/* Enable submit button only when 4 digits entered */}
+      {/* Enable submit button only when 4 digits entered and photos (if required) are uploaded */}
       <button
         onClick={handleSubmit}
-        disabled={!isComplete || isLoading || isGenerating}
-        className={`w-full h-12 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 outline-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0 ${!isComplete || isLoading || isGenerating
+        disabled={!isComplete || isLoading || isGenerating || (requirePhotos && images.length === 0)}
+        className={`w-full h-12 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 outline-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0 ${!isComplete || isLoading || isGenerating || (requirePhotos && images.length === 0)
             ? "bg-gray-200 text-gray-600 cursor-not-allowed"
             : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-md hover:shadow-lg"
           }`}

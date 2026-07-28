@@ -42,6 +42,7 @@ const createInitialVerificationState = () => ({
   isSending: false,
   isVerifying: false,
   verifiedValue: "",
+  timer: 0,
 });
 
 const REQUIRED_DOCUMENT_CONFIG = [
@@ -85,6 +86,25 @@ const Auth = () => {
     dob: "",
     bloodGroup: "",
   });
+
+  React.useEffect(() => {
+    const timerId = setInterval(() => {
+      setVerifications((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        if (next.email.timer > 0) {
+          next.email = { ...next.email, timer: next.email.timer - 1 };
+          changed = true;
+        }
+        if (next.phone.timer > 0) {
+          next.phone = { ...next.phone, timer: next.phone.timer - 1 };
+          changed = true;
+        }
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(timerId);
+  }, []);
 
   const handleLocationSelect = (location) => {
     setFormData((prev) => ({
@@ -203,6 +223,7 @@ const Auth = () => {
         isSending: false,
         isOtpVisible: true,
         status: "otp-sent",
+        timer: 60,
       });
       toast.success(
         isEmailField
@@ -570,6 +591,7 @@ const Auth = () => {
                             disabled={
                               verifications.email.isSending ||
                               verifications.email.status === "verified" ||
+                              (verifications.email.isOtpVisible && verifications.email.timer > 0) ||
                               !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email || "")
                             }
                             className={`absolute right-2 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${verifications.email.status === "verified"
@@ -581,7 +603,7 @@ const Auth = () => {
                             ) : verifications.email.status === "verified" ? (
                               "Verified"
                             ) : verifications.email.isOtpVisible ? (
-                              "Resend"
+                              verifications.email.timer > 0 ? `Resend in ${verifications.email.timer}s` : "Resend"
                             ) : (
                               "Verify"
                             )}
@@ -642,6 +664,7 @@ const Auth = () => {
                               disabled={
                                 verifications.phone.isSending ||
                                 verifications.phone.status === "verified" ||
+                                (verifications.phone.isOtpVisible && verifications.phone.timer > 0) ||
                                 !/^[0-9]{10}$/.test(formData.phone || "")
                               }
                               className={`absolute right-2 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${verifications.phone.status === "verified"
@@ -653,7 +676,7 @@ const Auth = () => {
                               ) : verifications.phone.status === "verified" ? (
                                 "Verified"
                               ) : verifications.phone.isOtpVisible ? (
-                                "Resend"
+                                verifications.phone.timer > 0 ? `Resend in ${verifications.phone.timer}s` : "Resend"
                               ) : (
                                 "Verify"
                               )}

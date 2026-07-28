@@ -7,6 +7,7 @@ import {
   CheckCircle,
   Clock,
   Trash2,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,6 +26,7 @@ const Notifications = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   const fetchNotifications = async () => {
     try {
@@ -133,7 +135,10 @@ const Notifications = () => {
                   key={notification._id}
                   variants={itemVariants}
                   layout
-                  onClick={() => !notification.isRead && handleMarkAsRead(notification._id)}>
+                  onClick={() => {
+                    if (!notification.isRead) handleMarkAsRead(notification._id);
+                    setSelectedNotification(notification);
+                  }}>
                   <Card
                     className={`p-4 border-none shadow-sm relative overflow-hidden transition-all duration-300 cursor-pointer ${!notification.isRead
                       ? "bg-brand-50/50 border-l-4 border-l-brand-500 shadow-brand-500/5 scale-[1.02]"
@@ -162,7 +167,7 @@ const Notifications = () => {
                         </p>
                         <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                           <Clock size={10} className="mr-1" />
-                          {new Date(notification.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(notification.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(notification.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                         </div>
                       </div>
                     </div>
@@ -188,6 +193,56 @@ const Notifications = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Full Details Modal */}
+      <AnimatePresence>
+        {selectedNotification && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedNotification(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center">
+                  <div className={`p-2 rounded-full mr-3 flex-shrink-0 ${selectedNotification.type === "order" ? "bg-orange-100 text-orange-600" : "bg-brand-100 text-brand-600"}`}>
+                    {selectedNotification.type === "order" ? <Megaphone size={20} /> : <Bell size={20} />}
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight">{selectedNotification.title}</h3>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedNotification(null)} className="h-8 w-8 -mr-2 -mt-2 shrink-0 bg-gray-100/50 hover:bg-gray-100 text-gray-500 rounded-full">
+                  <X size={18} />
+                </Button>
+              </div>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-700 leading-relaxed font-medium">
+                  {selectedNotification.message || "No additional details provided."}
+                </p>
+                {selectedNotification.data?.preview && (
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm space-y-3">
+                    {selectedNotification.data.preview.pickup && (
+                      <div className="flex flex-col"><span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Pickup From</span> <span className="font-semibold text-gray-800">{selectedNotification.data.preview.pickup}</span></div>
+                    )}
+                    {selectedNotification.data.preview.drop && (
+                      <div className="flex flex-col"><span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Drop To</span> <span className="font-semibold text-gray-800">{selectedNotification.data.preview.drop}</span></div>
+                    )}
+                    {selectedNotification.data.preview.earnings !== undefined && (
+                      <div className="flex flex-col"><span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Earnings</span> <span className="font-bold text-green-600 text-base">₹{selectedNotification.data.preview.earnings}</span></div>
+                    )}
+                  </div>
+                )}
+                <div className="text-[11px] text-gray-400 font-bold uppercase tracking-wider flex items-center pt-2">
+                  <Clock size={12} className="mr-1" />
+                  {new Date(selectedNotification.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} at {new Date(selectedNotification.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

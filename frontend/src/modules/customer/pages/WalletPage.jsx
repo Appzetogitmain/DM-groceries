@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownLeft, ChevronLeft, Wallet } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, ChevronLeft, Wallet, X } from 'lucide-react';
 import { customerApi } from '../services/customerApi';
+import { toast } from 'sonner';
 import { onNotificationNew } from '@core/services/orderSocket';
 import { useAuth } from '@core/context/AuthContext';
 
@@ -23,6 +24,53 @@ const WalletPage = () => {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const { getToken } = useAuth();
+    const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState('');
+    const [withdrawMethod, setWithdrawMethod] = useState('UPI');
+    const [withdrawDetails, setWithdrawDetails] = useState({ upiId: '', accountNumber: '', ifsc: '', accountName: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleWithdraw = async (e) => {
+        e.preventDefault();
+        const amount = Number(withdrawAmount);
+        if (!amount || amount <= 0 || amount > balance) {
+            toast.error('Invalid withdrawal amount');
+            return;
+        }
+
+        let details = {};
+        if (withdrawMethod === 'UPI') {
+            if (!withdrawDetails.upiId) return toast.error('UPI ID is required');
+            details = { upiId: withdrawDetails.upiId };
+        } else {
+            if (!withdrawDetails.accountNumber || !withdrawDetails.ifsc || !withdrawDetails.accountName) {
+                return toast.error('All bank details are required');
+            }
+            details = {
+                accountNumber: withdrawDetails.accountNumber,
+                ifsc: withdrawDetails.ifsc,
+                accountName: withdrawDetails.accountName,
+            };
+        }
+
+        setIsSubmitting(true);
+        try {
+            await customerApi.requestWithdrawal({
+                amount,
+                method: withdrawMethod,
+                details
+            });
+            toast.success('Withdrawal request submitted successfully');
+            setIsWithdrawModalOpen(false);
+            setWithdrawAmount('');
+            setWithdrawDetails({ upiId: '', accountNumber: '', ifsc: '', accountName: '' });
+            fetchData();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to submit withdrawal request');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -89,6 +137,14 @@ const WalletPage = () => {
                         {loading ? '...' : `₹${(balance || 0).toLocaleString('en-IN')}`}
                     </h2>
                     <p className="text-xs text-slate-500 mt-1">Return refunds are credited here</p>
+                    {balance > 0 && (
+                        <button
+                            onClick={() => setIsWithdrawModalOpen(true)}
+                            className="mt-4 w-full bg-brand-600 text-white font-semibold py-2.5 rounded-lg text-sm hover:bg-brand-700 transition-colors"
+                        >
+                            Withdraw Balance
+                        </button>
+                    )}
                 </div>
 
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -133,6 +189,114 @@ const WalletPage = () => {
                     )}
                 </div>
             </div>
+
+            {/* Withdraw Modal */}
+            {isWithdrawModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <h3 className="font-semibold text-slate-800">Withdraw Balance</h3>
+                            <button onClick={() => setIsWithdrawModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleWithdraw} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1.5">Withdrawal Amount (₹)</label>
+                                <input
+                                    type="number"
+                                    value={withdrawAmount}
+                                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                                    placeholder={`Max: ₹${balance}`}
+                                    max={balance}
+                                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1.5">Withdrawal Method</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setWithdrawMethod('UPI')}
+                                        className={`py-2 text-sm font-medium rounded-lg border ${withdrawMethod === 'UPI' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                    >
+                                        UPI ID
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setWithdrawMethod('BANK_ACCOUNT')}
+                                        className={`py-2 text-sm font-medium rounded-lg border ${withdrawMethod === 'BANK_ACCOUNT' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                    >
+                                        Bank Account
+                                    </button>
+                                </div>
+                            </div>
+
+                            {withdrawMethod === 'UPI' ? (
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1.5">UPI ID</label>
+                                    <input
+                                        type="text"
+                                        value={withdrawDetails.upiId}
+                                        onChange={(e) => setWithdrawDetails({ ...withdrawDetails, upiId: e.target.value })}
+                                        placeholder="e.g. 9876543210@ybl"
+                                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                                        required={withdrawMethod === 'UPI'}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Account Holder Name</label>
+                                        <input
+                                            type="text"
+                                            value={withdrawDetails.accountName}
+                                            onChange={(e) => setWithdrawDetails({ ...withdrawDetails, accountName: e.target.value })}
+                                            placeholder="Name as per bank"
+                                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                                            required={withdrawMethod === 'BANK_ACCOUNT'}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Account Number</label>
+                                        <input
+                                            type="text"
+                                            value={withdrawDetails.accountNumber}
+                                            onChange={(e) => setWithdrawDetails({ ...withdrawDetails, accountNumber: e.target.value })}
+                                            placeholder="Enter Account Number"
+                                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                                            required={withdrawMethod === 'BANK_ACCOUNT'}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1.5">IFSC Code</label>
+                                        <input
+                                            type="text"
+                                            value={withdrawDetails.ifsc}
+                                            onChange={(e) => setWithdrawDetails({ ...withdrawDetails, ifsc: e.target.value })}
+                                            placeholder="Enter IFSC Code"
+                                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all uppercase"
+                                            required={withdrawMethod === 'BANK_ACCOUNT'}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting || !withdrawAmount || Number(withdrawAmount) > balance}
+                                    className="w-full bg-brand-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

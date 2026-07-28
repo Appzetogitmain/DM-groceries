@@ -103,6 +103,7 @@ async function computeSellerStats(sellerOid, range) {
       $match: {
         seller: sellerOid,
         status: { $ne: "cancelled" },
+        returnStatus: { $ne: "refund_completed" },
       },
     },
     {
@@ -111,7 +112,7 @@ async function computeSellerStats(sellerOid, range) {
           {
             $group: {
               _id: null,
-              totalSales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+              totalSales: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", 0] } },
               totalOrders: { $sum: 1 },
             },
           },
@@ -121,7 +122,7 @@ async function computeSellerStats(sellerOid, range) {
           {
             $group: {
               _id: null,
-              sales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+              sales: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", 0] } },
               count: { $sum: 1 },
             },
           },
@@ -131,7 +132,7 @@ async function computeSellerStats(sellerOid, range) {
           {
             $group: {
               _id: null,
-              sales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+              sales: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", 0] } },
               count: { $sum: 1 },
             },
           },
@@ -141,7 +142,7 @@ async function computeSellerStats(sellerOid, range) {
           {
             $group: {
               _id: { $dateToString: { format: aggregationFormat, date: "$createdAt" } },
-              sales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+              sales: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", 0] } },
               orders: { $sum: 1 },
             },
           },

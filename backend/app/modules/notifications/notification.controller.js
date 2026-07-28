@@ -63,6 +63,7 @@ function normalizeNotification(doc = {}) {
     type: doc.type,
     title: doc.title,
     body: doc.body || doc.message || "",
+    message: doc.message || doc.body || "",
     data: doc.data || {},
     status: doc.status || "sent",
     isRead: Boolean(doc.isRead),

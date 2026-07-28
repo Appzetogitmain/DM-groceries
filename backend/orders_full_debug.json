@@ -1,0 +1,301 @@
+[
+  {
+    "address": {
+      "location": {
+        "lat": 22.6633463,
+        "lng": 75.8230715
+      },
+      "type": "Home",
+      "name": "Harshvardhan",
+      "address": "Reti Mandi, Indore, Madhya Pradesh 452012, India",
+      "city": "Indore - 452012, Madhya Pradesh, 452018",
+      "phone": "+916268423925",
+      "landmark": ""
+    },
+    "payment": {
+      "method": "online",
+      "status": "refunded",
+      "transactionId": "plink_TIQinIwEErjecr"
+    },
+    "pricing": {
+      "subtotal": 100,
+      "deliveryFee": 75,
+      "platformFee": 20,
+      "gst": 0,
+      "tip": 0,
+      "discount": 0,
+      "total": 195,
+      "walletAmount": 0
+    },
+    "stockReservation": {
+      "status": "RESERVED",
+      "reservedAt": "2026-07-27T06:35:34.487Z",
+      "expiresAt": "2026-07-27T06:50:34.487Z",
+      "releasedAt": null
+    },
+    "placement": {
+      "idempotencyKeyExpiry": null,
+      "createdFrom": "DIRECT_ITEMS"
+    },
+    "settlementStatus": {
+      "overall": "PARTIAL",
+      "sellerPayout": "CANCELLED",
+      "riderPayout": "COMPLETED",
+      "adminEarningCredited": true,
+      "reconciledAt": null
+    },
+    "distanceSnapshot": {
+      "distanceKmActual": 10.49,
+      "distanceKmRounded": 11,
+      "source": "google_routes"
+    },
+    "pricingSnapshot": {
+      "deliverySettings": {
+        "deliveryPricingMode": "distance_based",
+        "pricingMode": "distance_based",
+        "customerBaseDeliveryFee": 20,
+        "riderBasePayout": 20,
+        "baseDeliveryCharge": 20,
+        "baseDistanceCapacityKm": 0,
+        "incrementalKmSurcharge": 5,
+        "deliveryPartnerRatePerKm": 5,
+        "fleetCommissionRatePerKm": 5,
+        "fixedDeliveryFee": 30,
+        "handlingFeeStrategy": "highest_category_fee",
+        "codEnabled": true,
+        "onlineEnabled": true,
+        "distanceSource": "google_routes"
+      },
+      "handlingFeeStrategy": "highest_category_fee",
+      "handlingCategoryUsed": {
+        "headerCategoryId": "699b2b283858bd13797179b2",
+        "categoryName": "Grocery",
+        "subtotal": 100,
+        "handlingFeeType": "fixed",
+        "handlingFeeValue": 20,
+        "computedFee": 20
+      },
+      "categoryCommissionSettings": [
+        {
+          "headerCategoryId": "699b2b283858bd13797179b2",
+          "headerCategoryName": "Grocery",
+          "adminCommissionType": "percentage",
+          "adminCommissionValue": 10,
+          "adminCommissionFixedRule": "per_qty",
+          "handlingFeeType": "fixed",
+          "handlingFeeValue": 20
+        }
+      ]
+    },
+    "paymentBreakdown": {
+      "snapshots": {
+        "deliverySettings": {
+          "deliveryPricingMode": "distance_based",
+          "pricingMode": "distance_based",
+          "customerBaseDeliveryFee": 20,
+          "riderBasePayout": 20,
+          "baseDeliveryCharge": 20,
+          "baseDistanceCapacityKm": 0,
+          "incrementalKmSurcharge": 5,
+          "deliveryPartnerRatePerKm": 5,
+          "fleetCommissionRatePerKm": 5,
+          "fixedDeliveryFee": 30,
+          "handlingFeeStrategy": "highest_category_fee",
+          "codEnabled": true,
+          "onlineEnabled": true,
+          "distanceSource": "google_routes"
+        },
+        "categoryCommissionSettings": [
+          {
+            "headerCategoryId": "699b2b283858bd13797179b2",
+            "headerCategoryName": "Grocery",
+            "adminCommissionType": "percentage",
+            "adminCommissionValue": 10,
+            "adminCommissionFixedRule": "per_qty",
+            "handlingFeeType": "fixed",
+            "handlingFeeValue": 20
+          }
+        ],
+        "handlingFeeStrategy": "highest_category_fee",
+        "handlingCategoryUsed": {
+          "headerCategoryId": "699b2b283858bd13797179b2",
+          "categoryName": "Grocery",
+          "subtotal": 100,
+          "handlingFeeType": "fixed",
+          "handlingFeeValue": 20,
+          "computedFee": 20
+        }
+      },
+      "currency": "INR",
+      "productSubtotal": 100,
+      "deliveryFeeCharged": 75,
+      "handlingFeeCharged": 20,
+      "tipTotal": 0,
+      "discountTotal": 0,
+      "taxTotal": 0,
+      "grandTotal": 195,
+      "sellerPayoutTotal": 90,
+      "adminProductCommissionTotal": 10,
+      "riderPayoutBase": 20,
+      "riderPayoutDistance": 55,
+      "riderPayoutBonus": 0,
+      "riderTipAmount": 0,
+      "riderPayoutTotal": 75,
+      "platformLogisticsMargin": 20,
+      "platformTotalEarning": 30,
+      "codCollectedAmount": 0,
+      "codRemittedAmount": 0,
+      "codPendingAmount": 0,
+      "walletAmount": 0,
+      "distanceKmActual": 10.493,
+      "distanceKmRounded": 11,
+      "lineItems": [
+        {
+          "productId": "6a41078851bfd538d2f803b8",
+          "productName": "Strawberry",
+          "quantity": 1,
+          "unitPrice": 100,
+          "itemSubtotal": 100,
+          "sellerPayout": 90,
+          "adminProductCommission": 10,
+          "headerCategoryId": "699b2b283858bd13797179b2",
+          "headerCategoryName": "Grocery",
+          "appliedCommissionType": "percentage",
+          "appliedCommissionValue": 10,
+          "appliedCommissionFixedRule": "per_qty"
+        }
+      ]
+    },
+    "financeFlags": {
+      "onlinePaymentCaptured": true,
+      "codMarkedCollected": false,
+      "deliveredSettlementApplied": true,
+      "sellerPayoutQueued": true,
+      "riderPayoutQueued": true,
+      "adminEarningCredited": true,
+      "sellerPayoutHeld": false,
+      "returnPickupCommissionPaid": false,
+      "cancellationReversalApplied": false
+    },
+    "couponSnapshot": {
+      "couponId": null,
+      "code": null,
+      "title": null,
+      "discountType": null,
+      "discountValue": 0,
+      "maxDiscount": null,
+      "couponType": null,
+      "minOrderValue": 0,
+      "minItems": 0,
+      "perUserLimit": null,
+      "usageLimit": null,
+      "validFrom": null,
+      "validTill": null,
+      "cartSubtotalAtApply": 0,
+      "discountAmountApplied": 0,
+      "freeDeliveryApplied": false,
+      "appliedAt": null
+    },
+    "deliverySearchMeta": {
+      "radiusMeters": 5000,
+      "attempt": 1,
+      "lastBroadcastAt": "2026-07-27T06:37:07.152Z"
+    },
+    "returnSearchMeta": {
+      "radiusMeters": 5000,
+      "attempt": 1,
+      "lastBroadcastAt": "2026-07-27T06:47:36.086Z"
+    },
+    "otpValidationLocation": {
+      "lng": 75.87189978578688,
+      "lat": 22.71760587990089
+    },
+    "_id": "6a66fc365d5b7c96427c34a4",
+    "orderId": "ORD-01KYH4JD501R92QXG54Y5KJD5J",
+    "customer": "69cab7107b8b237bff3201d2",
+    "seller": "6999782fd49e8099e8a7b11c",
+    "items": [
+      {
+        "product": "6a41078851bfd538d2f803b8",
+        "name": "Strawberry",
+        "quantity": 1,
+        "price": 100,
+        "image": "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg",
+        "_id": "6a66fc365d5b7c96427c34a5"
+      }
+    ],
+    "paymentMode": "ONLINE",
+    "paymentStatus": "PAID",
+    "checkoutGroupId": "CHK-01KYH4JD0S63T92P73X7SQS569",
+    "checkoutGroupSize": 1,
+    "checkoutGroupIndex": 0,
+    "orderStatus": "delivered",
+    "coupon": null,
+    "status": "delivered",
+    "workflowStatus": "DELIVERED",
+    "workflowVersion": 2,
+    "sellerPendingExpiresAt": "2026-07-27T06:37:22.429Z",
+    "assignmentVersion": 1,
+    "timeSlot": "now",
+    "deviceType": "Mobile",
+    "trafficSource": "Direct",
+    "skippedBy": [],
+    "returnStatus": "refund_completed",
+    "returnConditionAssurance": true,
+    "returnImages": [
+      "https://res.cloudinary.com/dv1l9sb4p/image/upload/v1785134508/media/images/xw4udyyn2cb34t4gfq4s.png"
+    ],
+    "returnDeliveryCommission": 75,
+    "returnRefundAmount": 195,
+    "returnPickupImages": [
+      "https://res.cloudinary.com/dv1l9sb4p/image/upload/v1785135494/media/images/iiiisecse51r1wfifvtl.png"
+    ],
+    "pickupProofImages": [
+      "https://res.cloudinary.com/dv1l9sb4p/image/upload/v1785134420/media/images/o8zjcgjk7penevblshc1.png"
+    ],
+    "deliveryProofImages": [
+      "https://res.cloudinary.com/dv1l9sb4p/image/upload/v1785134459/media/images/y05pauejvngu8stoxvqn.png"
+    ],
+    "returnItems": [
+      {
+        "product": "6a41078851bfd538d2f803b8",
+        "name": "Strawberry",
+        "quantity": 1,
+        "price": 100,
+        "itemIndex": 0,
+        "status": "approved",
+        "_id": "6a66fdcb5d5b7c96427c3886"
+      }
+    ],
+    "createdAt": "2026-07-27T06:35:34.724Z",
+    "updatedAt": "2026-07-27T07:07:56.779Z",
+    "__v": 3,
+    "deliverySearchExpiresAt": "2026-07-27T06:38:07.152Z",
+    "sellerAcceptedAt": "2026-07-27T06:37:07.152Z",
+    "assignedAt": "2026-07-27T06:37:18.167Z",
+    "deliveryBoy": "6a6097bff299dbc37c9dbcf8",
+    "deliveryPartner": "6a6097bff299dbc37c9dbcf8",
+    "deliveryRiderStep": 3,
+    "pickupReadyAt": "2026-07-27T06:37:24.467Z",
+    "outForDeliveryAt": "2026-07-27T06:40:34.156Z",
+    "pickupConfirmedAt": "2026-07-27T06:40:34.156Z",
+    "deliveredAt": "2026-07-27T06:41:08.511Z",
+    "otpValidatedAt": "2026-07-27T06:41:08.511Z",
+    "returnDeadline": null,
+    "returnEligibleAt": "2026-07-27T06:42:18.836Z",
+    "returnWindowExpiresAt": null,
+    "returnReason": "Other",
+    "returnReasonDetail": "the produc tis expired",
+    "returnRequestedAt": "2026-07-27T06:42:18.836Z",
+    "returnDeliveryBoy": "6a6097bff299dbc37c9dbcf8",
+    "returnPickupCondition": "good",
+    "returnPickedAt": "2026-07-27T06:58:54.767Z",
+    "returnDeliveredBackAt": "2026-07-27T06:59:09.371Z",
+    "returnDropVerifiedAt": "2026-07-27T06:59:09.371Z",
+    "returnDropVerifiedBy": "6a6097bff299dbc37c9dbcf8",
+    "returnQcAt": "2026-07-27T06:59:09.370Z",
+    "returnQcBy": "6a6097bff299dbc37c9dbcf8",
+    "returnQcNote": "Auto-passed QC upon Delivery Drop",
+    "returnQcStatus": "passed"
+  }
+]

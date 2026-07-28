@@ -71,7 +71,7 @@ const orderSchema = new mongoose.Schema(
     payment: {
       method: {
         type: String,
-        enum: ["cash", "online", "wallet"],
+        enum: ["cash", "online", "wallet", "pending"],
         default: "cash",
       },
       status: {
@@ -342,6 +342,7 @@ const orderSchema = new mongoose.Schema(
     sellerPendingExpiresAt: Date,
     deliverySearchExpiresAt: Date,
     sellerAcceptedAt: Date,
+    customerPaymentPendingExpiresAt: Date,
     assignedAt: Date,
     assignmentVersion: {
       type: Number,
@@ -534,6 +535,7 @@ const orderSchema = new mongoose.Schema(
     },
     refundIssuedAt: { type: Date },
     sellerPayoutReleasedAt: { type: Date },
+    pickupProofImages: [{ type: String }],
     deliveryProofImages: [{ type: String }],
     otpValidatedAt: {
       type: Date,
@@ -586,12 +588,14 @@ orderSchema.pre('save', function(next) {
   }
   if (!this.paymentMode) {
     const method = String(this.payment?.method || "").toLowerCase();
-    this.paymentMode = method === "online" ? "ONLINE" : "COD";
+    this.paymentMode = method === "online" ? "ONLINE" : method === "pending" ? "PENDING" : "COD";
   }
   if (!this.paymentStatus) {
     const paymentStatusLegacy = String(this.payment?.status || "").toLowerCase();
     if (this.paymentMode === "ONLINE") {
       this.paymentStatus = paymentStatusLegacy === "completed" ? "PAID" : "CREATED";
+    } else if (this.paymentMode === "PENDING") {
+      this.paymentStatus = "AWAITING_PAYMENT_METHOD";
     } else {
       this.paymentStatus = paymentStatusLegacy === "completed" ? "CASH_COLLECTED" : "PENDING_CASH_COLLECTION";
     }
@@ -640,6 +644,7 @@ const PAYMENT_STATUS_TO_LEGACY = {
   COD_RECONCILED: "completed",
   REFUNDED: "refunded",
   FAILED: "failed",
+  AWAITING_PAYMENT_METHOD: "pending",
 };
 
 function deriveLegacyPaymentStatus(canonical) {
@@ -668,7 +673,7 @@ function mirrorCanonicalToLegacy(update) {
   // values are "cash" / "online" / "wallet"; we never derive "wallet"
   // automatically (it is set explicitly by the wallet-payment flow).
   if (set.paymentMode && set["payment.method"] == null) {
-    set["payment.method"] = set.paymentMode === "ONLINE" ? "online" : "cash";
+    set["payment.method"] = set.paymentMode === "ONLINE" ? "online" : set.paymentMode === "PENDING" ? "pending" : "cash";
   }
 
   // deliveryBoy ↔ deliveryPartner mirror (Phase 4 P4-9 prep).

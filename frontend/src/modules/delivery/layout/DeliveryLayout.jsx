@@ -139,8 +139,11 @@ const DeliveryLayout = () => {
 
   const applyFromBroadcastPayload = useCallback((payload) => {
     if (!payload?.orderId) return false;
+    const isReturn = payload.type === "RETURN_PICKUP" || payload.isReturnPickup === true;
+    const trackingId = isReturn ? `${payload.orderId}-return` : payload.orderId;
+
     if (activeOrderRef.current) return true;
-    if (shownOrderIdsRef.current.has(payload.orderId)) return true;
+    if (shownOrderIdsRef.current.has(trackingId)) return true;
     const p = payload.preview;
     if (
       !p ||
@@ -154,10 +157,10 @@ const DeliveryLayout = () => {
     if (exp && secondsLeftUntilDeliveryExpiry(exp) <= 0) {
       return false;
     }
-    shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(payload.orderId);
+    shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(trackingId);
     const total = typeof p.total === "number" ? p.total : Number(p.total) || 0;
     const dropLabel = typeof p.drop === "string" ? p.drop : String(p.drop);
-    const earnings = typeof p.earnings === "number" ? p.earnings : Math.round(total * 0.1);
+    const earnings = payload.commission ?? (typeof p.earnings === "number" ? p.earnings : Math.round(total * 0.1));
     setActiveOrder({
       id: payload.orderId,
       mongoId: undefined,
@@ -186,20 +189,26 @@ const DeliveryLayout = () => {
     setAvailableOrdersCount(availableOrders.length);
     if (activeOrderRef.current) return;
     const newOrder = availableOrders.find((o) => {
-      if (shownOrderIdsRef.current.has(o.orderId)) return false;
+      const isReturn = o.isReturnPickup === true || o.type === "RETURN_PICKUP";
+      const trackingId = isReturn ? `${o.orderId}-return` : o.orderId;
+      if (shownOrderIdsRef.current.has(trackingId)) return false;
+      const expAt = o.deliverySearchExpiresAt || o.returnSearchExpiresAt;
       if (
-        o.deliverySearchExpiresAt &&
-        secondsLeftUntilDeliveryExpiry(o.deliverySearchExpiresAt) <= 0
+        expAt &&
+        secondsLeftUntilDeliveryExpiry(expAt) <= 0
       ) {
         return false;
       }
       return true;
     });
     if (!newOrder) return;
-    shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(newOrder.orderId);
+    const isReturnPickup = newOrder.isReturnPickup || newOrder.type === "RETURN_PICKUP" || false;
+    const trackingId = isReturnPickup ? `${newOrder.orderId}-return` : newOrder.orderId;
+    shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(trackingId);
     const total = newOrder.pricing?.total || 0;
-    const isReturnPickup = newOrder.isReturnPickup || false;
-    const earnings = newOrder.riderEarnings || Math.round(total * 0.1);
+    const earnings = isReturnPickup 
+      ? (newOrder.returnDeliveryCommission || newOrder.commission || Math.round(total * 0.1))
+      : (newOrder.riderEarnings || Math.round(total * 0.1));
     setActiveOrder({
       id: newOrder.orderId,
       mongoId: newOrder._id,
@@ -213,7 +222,7 @@ const DeliveryLayout = () => {
       estTime: "10-15 min",
       value: total,
       earnings: earnings,
-      expiresAt: newOrder.deliverySearchExpiresAt || null,
+      expiresAt: newOrder.deliverySearchExpiresAt || newOrder.returnSearchExpiresAt || null,
       isReturnPickup,
       items: newOrder.items || [],
     });
@@ -272,7 +281,7 @@ const DeliveryLayout = () => {
     availableOrdersRequestRef.current.controller = controller;
 
     try {
-      return await deliveryApi.getAvailableOrders({}, {
+      return await deliveryApi.getAvailableOrders({ type: "all" }, {
         signal: controller.signal,
         timeout: 15000,
       });
@@ -709,8 +718,9 @@ const DeliveryLayout = () => {
       } else {
         await deliveryApi.skipOrder(current.id);
       }
-      shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(current.id);
-      markIncomingOrderHandled(current.id);
+      const trackingId = current.isReturnPickup ? `${current.id}-return` : current.id;
+      shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(trackingId);
+      markIncomingOrderHandled(trackingId);
       stopOrderRingtone();
       setActiveOrder(null);
       toast.info("Order skipped");
@@ -771,12 +781,12 @@ const DeliveryLayout = () => {
         await deliveryApi.acceptOrder(activeOrder.id, idem);
       }
       toast.success("Order accepted!");
-      const orderId = activeOrder.id;
-      shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(orderId);
-      markIncomingOrderHandled(orderId);
+      const trackingId = activeOrder.isReturnPickup ? `${activeOrder.id}-return` : activeOrder.id;
+      shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(trackingId);
+      markIncomingOrderHandled(trackingId);
       stopOrderRingtone();
       setActiveOrder(null);
-      navigate(`/delivery/order-details/${orderId}`);
+      navigate(`/delivery/order-details/${activeOrder.id}`);
     } catch (error) {
       console.error("Delivery Alert - Accept failed:", error);
       const msg =

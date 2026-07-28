@@ -24,7 +24,7 @@ async function getCustomerVisibleProductById(productId) {
     _id: productId,
     ...CUSTOMER_VISIBLE_PRODUCT_MATCH,
   })
-    .select("_id")
+    .select("_id sellerId")
     .lean();
 }
 
@@ -78,26 +78,44 @@ export const addToCart = async (req, res) => {
       return handleResponse(res, 404, "Product is not available for purchase");
     }
 
-    let cart = await Cart.findOne({ customerId });
+    let cart = await Cart.findOne({ customerId }).populate("items.productId", "sellerId").lean();
 
     if (!cart) {
-      cart = new Cart({ customerId, items: [] });
+      cart = { customerId, items: [] };
     }
 
-    const itemIndex = cart.items.findIndex(
+    // Validate that the new product belongs to the same seller as existing items in the cart
+    if (cart.items && cart.items.length > 0) {
+      const existingItem = cart.items.find(item => item.productId && item.productId.sellerId);
+      if (existingItem) {
+        const existingSellerId = existingItem.productId.sellerId.toString();
+        const newSellerId = customerVisibleProduct.sellerId.toString();
+        if (existingSellerId !== newSellerId) {
+          return handleResponse(res, 400, "You can only add items from the same store. Please clear your cart to add items from a different store.");
+        }
+      }
+    }
+
+    // Since we used .lean() to populate, we need to fetch the mongoose document to save it
+    let cartDoc = await Cart.findOne({ customerId });
+    if (!cartDoc) {
+      cartDoc = new Cart({ customerId, items: [] });
+    }
+
+    const itemIndex = cartDoc.items.findIndex(
       (item) =>
         item.productId.toString() === productId &&
         String(item.variantSku || "").trim() === normalizedVariantSku,
     );
 
     if (itemIndex > -1) {
-      cart.items[itemIndex].quantity += quantity;
+      cartDoc.items[itemIndex].quantity += quantity;
     } else {
-      cart.items.push({ productId, variantSku: normalizedVariantSku, quantity });
+      cartDoc.items.push({ productId, variantSku: normalizedVariantSku, quantity });
     }
 
-    await cart.save();
-    const updatedCart = await fetchPopulatedCart(cart._id);
+    await cartDoc.save();
+    const updatedCart = await fetchPopulatedCart(cartDoc._id);
 
     try {
       const io = getIO();

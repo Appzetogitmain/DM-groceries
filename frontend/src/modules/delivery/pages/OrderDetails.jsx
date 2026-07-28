@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/core/context/AuthContext";
 import {
   Phone,
@@ -66,11 +66,11 @@ const PUBLIC_STATUS_STEPS = [
   { id: 3, label: "Delivered" },
 ];
 
-const getPersistedRiderStep = (order) => {
+const getPersistedRiderStep = (order, viewType) => {
   if (!order) return 1;
 
   // Handle Return Flow Steps (5-step UI)
-  if (order.returnStatus && order.returnStatus !== "none") {
+  if (viewType !== "FORWARD" && order.returnStatus && order.returnStatus !== "none") {
     const rs = order.returnStatus.toLowerCase();
     if (["returned", "qc_passed", "qc_failed", "refund_completed"].includes(rs)) return 5;
     if (rs === "return_drop_pending") return 4;
@@ -162,6 +162,10 @@ const estimateMinutesFromDistance = (meters) => {
 
 const OrderDetails = () => {
   const { orderId } = useParams();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const viewType = searchParams.get("type"); // "FORWARD" or "RETURN"
+
   const { user } = useAuth();
   const [accepting, setAccepting] = useState(false);
   const navigate = useNavigate();
@@ -178,7 +182,7 @@ const OrderDetails = () => {
   const [routeStats, setRouteStats] = useState(null);
   const [clockTick, setClockTick] = useState(Date.now());
 
-  const isReturn = order?.returnStatus && order.returnStatus !== "none";
+  const isReturn = viewType === "FORWARD" ? false : !!(order?.returnStatus && order.returnStatus !== "none");
 
   const fetchOrderDetails = useCallback(async () => {
     if (!orderId) return;
@@ -186,7 +190,7 @@ const OrderDetails = () => {
       const response = await deliveryApi.getOrderDetails(orderId);
       const ord = response.data.result;
       setOrder(ord);
-      setStep(getPersistedRiderStep(ord));
+      setStep(getPersistedRiderStep(ord, viewType));
     } catch (error) {
       toast.error("Failed to fetch order details");
       navigate("/delivery/dashboard");
@@ -512,6 +516,17 @@ const OrderDetails = () => {
 
   const handleOtpGenerated = (data) => {
     console.log("OTP generated successfully:", data);
+    
+    // Save the expiration time so the OtpInput timer starts immediately
+    const newExpiresAt = data?.result?.expiresAt || data?.data?.expiresAt || data?.expiresAt;
+    if (newExpiresAt && order) {
+      if (isReturn) {
+        setOrder({ ...order, activeReturnOtpExpiresAt: newExpiresAt });
+      } else {
+        setOrder({ ...order, activeDeliveryOtpExpiresAt: newExpiresAt });
+      }
+    }
+    
     setShowOtpInput(true);
     toast.success("OTP sent to customer!");
   };
@@ -1185,7 +1200,11 @@ const OrderDetails = () => {
                 bgColor="bg-green-600"
                 bgColorLight="bg-green-50"
                 label="SLIDE TO SEND SELLER OTP"
-                onSuccess={() => {
+                onSuccess={(data) => {
+                  const newExpiresAt = data?.result?.expiresAt || data?.data?.expiresAt || data?.expiresAt;
+                  if (newExpiresAt && order) {
+                     setOrder({ ...order, activeReturnOtpExpiresAt: newExpiresAt });
+                  }
                   setShowDropOtpInput(true);
                   toast.success("OTP sent to seller!");
                 }}
@@ -1203,6 +1222,7 @@ const OrderDetails = () => {
                 orderId={orderId}
                 isReturn={isReturn}
                 isReturnDrop={false}
+                initialExpiresAt={isReturn ? order?.activeReturnOtpExpiresAt : order?.activeDeliveryOtpExpiresAt}
                 onSuccess={handleOtpValidationSuccess}
                 onError={handleOtpValidationError}
                 onCancel={() => setShowOtpInput(false)}
@@ -1220,6 +1240,7 @@ const OrderDetails = () => {
                 isReturn={false}
                 isReturnDrop={false}
                 isSellerPickup={true}
+                initialExpiresAt={order?.activeReturnOtpExpiresAt} // Seller pickup uses return_pickup OTP under the hood sometimes, or we don't have this, but safe to pass if present.
                 onSuccess={handleSellerOtpSuccess}
                 onError={handleOtpValidationError}
                 onCancel={() => setShowSellerOtpInput(false)}
@@ -1236,6 +1257,7 @@ const OrderDetails = () => {
                 orderId={orderId}
                 isReturn={false}
                 isReturnDrop={true}
+                initialExpiresAt={null} // Return drop doesn't have an active expiration fetched explicitly yet, leave as null
                 onSuccess={(data) => {
                   const updatedOrder = data?.result || data?.data?.result;
                   if (updatedOrder) setOrder(updatedOrder);
@@ -1253,7 +1275,7 @@ const OrderDetails = () => {
       </div>
 
       {/* Slide button: for returns shown at steps 1 and 3 (navigation steps); for standard shown at steps 1-2 */}
-      {((isReturn && (step === 1 || step === 3) && isAssignedRider) || (!isReturn && step <= 2)) && (
+      {((isReturn && (step === 1 || step === 3) && isAssignedRider) || (!isReturn && step <= 2)) && !showSellerOtpInput && !showOtpInput && !showDropOtpInput && (
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
           <div className="max-w-2xl mx-auto p-4">
             <div className="relative h-16 bg-slate-100 rounded-full overflow-hidden select-none">
@@ -1314,51 +1336,6 @@ const OrderDetails = () => {
         </div>
       )}
 
-      {/* Go Back button: shown when step > 1 and order not yet complete */}
-      {!isReturn && step > 1 && step < 4 && (
-        <div
-          className={`fixed ${
-            step <= 2 ? "bottom-24" : "bottom-4"
-          } left-0 right-0 z-39 flex justify-center pointer-events-none`}
-        >
-          <button
-            onClick={() => {
-              setStep((s) => Math.max(1, s - 1));
-              setIsSlideComplete(false);
-              setDragX(0);
-              setShowOtpInput(false);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="pointer-events-auto flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-500 text-xs font-bold shadow-md hover:bg-slate-50 active:scale-95 transition-all"
-          >
-            <ChevronDown className="rotate-90" size={14} />
-            Go Back
-          </button>
-        </div>
-      )}
-
-      {/* Go Back for return flow */}
-      {isReturn && isAssignedRider && (step === 2 || step === 4) && (
-        <div
-          className="fixed bottom-4 left-0 right-0 z-39 flex justify-center pointer-events-none"
-        >
-          <button
-            onClick={() => {
-              setStep((s) => Math.max(1, s - 1));
-              setIsSlideComplete(false);
-              setDragX(0);
-              setShowOtpInput(false);
-              setPickupProofSubmitted(false);
-              setShowDropOtpInput(false);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="pointer-events-auto flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-500 text-xs font-bold shadow-md hover:bg-slate-50 active:scale-95 transition-all"
-          >
-            <ChevronDown className="rotate-90" size={14} />
-            Go Back
-          </button>
-        </div>
-      )}
     </div>
   );
 };

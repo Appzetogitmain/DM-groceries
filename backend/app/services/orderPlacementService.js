@@ -50,8 +50,10 @@ import * as logger from "./logger.js";
 const IDEMPOTENCY_RECORD_TTL_MS = 24 * 60 * 60 * 1000;
 
 function normalizePaymentMode(raw) {
-  const mode = String(raw || "COD").trim().toUpperCase();
-  return mode === "ONLINE" ? "ONLINE" : "COD";
+  const mode = String(raw || "").trim().toUpperCase();
+  if (mode === "ONLINE") return "ONLINE";
+  if (mode === "COD") return "COD";
+  return "PENDING";
 }
 
 function normalizeAddress(address = {}) {
@@ -284,6 +286,7 @@ async function seedCanonicalCustomerWalletFromUser({ customerId, user, session }
 }
 
 function buildCheckoutGroupPaymentStatus(paymentMode) {
+  if (paymentMode === "PENDING") return ORDER_PAYMENT_STATUS.AWAITING_PAYMENT_METHOD;
   return paymentMode === "ONLINE"
     ? ORDER_PAYMENT_STATUS.CREATED
     : ORDER_PAYMENT_STATUS.PENDING_CASH_COLLECTION;
@@ -448,8 +451,8 @@ export async function placeOrderAtomic({
     const orders = [];
     const pendingLowStockAlerts = [];
     const sellerTimeoutMs = DEFAULT_SELLER_TIMEOUT_MS();
-    const shouldStartSellerWorkflow = paymentMode === "COD";
-
+    const isFullyWalletPaid = walletAmount > 0 && Number(pricingSnapshot.aggregateBreakdown.payableAmount || 0) === 0;
+    const shouldStartSellerWorkflow = paymentMode === "COD" || paymentMode === "PENDING" || isFullyWalletPaid;
     for (let index = 0; index < pricingSnapshot.sellerBreakdownEntries.length; index += 1) {
       const entry = pricingSnapshot.sellerBreakdownEntries[index];
       const orderId = await generateUniquePublicOrderId({ session });
@@ -500,12 +503,16 @@ export async function placeOrderAtomic({
         address: normalizedAddress,
         paymentMode,
         paymentStatus:
-          paymentMode === "ONLINE"
+          isFullyWalletPaid
+            ? ORDER_PAYMENT_STATUS.PAID
+            : paymentMode === "PENDING"
+            ? ORDER_PAYMENT_STATUS.AWAITING_PAYMENT_METHOD
+            : paymentMode === "ONLINE"
             ? ORDER_PAYMENT_STATUS.CREATED
             : ORDER_PAYMENT_STATUS.PENDING_CASH_COLLECTION,
         payment: {
-          method: paymentMode === "ONLINE" ? "online" : "cash",
-          status: "pending",
+          method: paymentMode === "ONLINE" ? "online" : paymentMode === "PENDING" ? "pending" : "cash",
+          status: isFullyWalletPaid ? "completed" : "pending",
         },
         pricing: {
           ...entry.breakdown, // This might overwrite fields, be careful
@@ -604,7 +611,7 @@ export async function placeOrderAtomic({
       // Legacy `Transaction` row: kept under both code paths so existing
       // admin dashboards and the `walletLedgerVerifierJob` baseline view
       // are unaffected. The collection deprecation is a later phase.
-      await Transaction.create({
+      await Transaction.create([{
         user: customerId,
         userModel: "User",
         type: "Wallet Payment",
@@ -612,7 +619,7 @@ export async function placeOrderAtomic({
         status: "Settled",
         reference: `WLT-CHOUT-${checkoutGroupId}`,
         meta: { checkoutGroupId }
-      }, { session });
+      }], { session });
     }
 
     const transactionRows = orders.map((order) => ({

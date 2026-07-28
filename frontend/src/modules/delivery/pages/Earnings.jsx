@@ -371,7 +371,9 @@ const Earnings = () => {
                       <ArrowUpRight size={16} />
                     </div>
                       <div className="flex-1">
-                        <p className="font-bold text-xs text-gray-900">{txn.type}</p>
+                        <p className="font-bold text-xs text-gray-900">
+                          {txn.reference && String(txn.reference).startsWith("RET-DEL-") ? "Return Earning" : txn.type}
+                        </p>
                         <p className="text-[10px] text-gray-400 mt-0.5">
                           {(() => {
                             const dateStr = txn.date || txn.createdAt;

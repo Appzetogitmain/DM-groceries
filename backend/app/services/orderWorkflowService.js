@@ -138,8 +138,10 @@ export async function removeReturnPickupTimeoutJob(orderId, attempt = 1) {
   return removeReturnPickupTimeout(orderId, attempt);
 }
 
+import Setting from "../models/setting.js";
+
 /**
- * Seller accepts: SELLER_PENDING -> DELIVERY_SEARCH (atomic).
+ * Seller accepts: SELLER_PENDING -> SELLER_ACCEPTED (if pending payment) or DELIVERY_SEARCH (atomic).
  */
 export async function sellerAcceptAtomic(sellerId, orderId) {
   orderId = await requireCanonicalOrderId(orderId);
@@ -147,33 +149,62 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
   const sellerMs = DEFAULT_SELLER_TIMEOUT_MS();
   const deliveryMs = DEFAULT_DELIVERY_TIMEOUT_MS();
 
-  const updated = await Order.findOneAndUpdate(
-    {
-      orderId,
-      seller: sellerId,
-      workflowVersion: { $gte: 2 },
-      workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
-      sellerPendingExpiresAt: { $gt: now },
-      $or: [
-        { paymentMode: { $ne: "ONLINE" } },
-        { paymentStatus: "PAID" },
-      ],
-    },
-    {
-      $set: {
-        workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
-        status: legacyStatusFromWorkflow(WORKFLOW_STATUS.DELIVERY_SEARCH),
-        sellerAcceptedAt: now,
-        deliverySearchExpiresAt: new Date(now.getTime() + deliveryMs),
-        deliverySearchMeta: {
-          radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
-          attempt: 1,
-          lastBroadcastAt: now,
+  const orderForCheck = await Order.findOne({
+    orderId,
+    seller: sellerId,
+    workflowVersion: { $gte: 2 },
+    workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
+    sellerPendingExpiresAt: { $gt: now },
+  });
+
+  if (!orderForCheck) {
+    const err = new Error("Order not available for acceptance or expired");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  let paymentTimeoutMinutes = 10;
+  try {
+    const settings = await Setting.findOne();
+    if (settings && settings.paymentTimeoutMinutes) {
+      paymentTimeoutMinutes = settings.paymentTimeoutMinutes;
+    }
+  } catch (e) {
+    logger.warn("Could not fetch paymentTimeoutMinutes from settings", { error: e });
+  }
+
+  const isPaymentPending = (orderForCheck.paymentMode === "PENDING" || orderForCheck.paymentStatus === "AWAITING_PAYMENT_METHOD") && orderForCheck.paymentStatus !== "PAID";
+
+  const paymentTimeoutDate = new Date(now.getTime() + paymentTimeoutMinutes * 60000);
+
+  const updatePayload = isPaymentPending
+    ? {
+        $set: {
+          workflowStatus: WORKFLOW_STATUS.SELLER_ACCEPTED,
+          status: legacyStatusFromWorkflow(WORKFLOW_STATUS.SELLER_ACCEPTED),
+          sellerAcceptedAt: now,
+          customerPaymentPendingExpiresAt: paymentTimeoutDate,
+          expiresAt: paymentTimeoutDate,
         },
-      },
-      // CRITICAL FIX: Remove expiresAt to prevent TTL index from auto-deleting the order
-      $unset: { expiresAt: 1 },
-    },
+      }
+    : {
+        $set: {
+          workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+          status: legacyStatusFromWorkflow(WORKFLOW_STATUS.DELIVERY_SEARCH),
+          sellerAcceptedAt: now,
+          deliverySearchExpiresAt: new Date(now.getTime() + deliveryMs),
+          deliverySearchMeta: {
+            radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
+            attempt: 1,
+            lastBroadcastAt: now,
+          },
+        },
+        $unset: { expiresAt: 1 },
+      };
+
+  const updated = await Order.findOneAndUpdate(
+    { _id: orderForCheck._id },
+    updatePayload,
     { new: true },
   )
     .populate("customer", "name phone")
@@ -186,6 +217,87 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
   }
 
   await removeSellerTimeoutJob(orderId);
+
+  if (!isPaymentPending) {
+    await scheduleDeliveryTimeoutJob(orderId, 1);
+
+    await DeliveryAssignment.create({
+      orderMongoId: updated._id,
+      orderId: updated.orderId,
+      status: "broadcasting",
+      radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
+      attempt: 1,
+      expiresAt: updated.deliverySearchExpiresAt,
+    });
+
+    emitOrderStatusUpdate(
+      updated.orderId,
+      {
+        workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+        deliverySearchExpiresAt: updated.deliverySearchExpiresAt,
+      },
+      updated.customer?._id || updated.customer,
+    );
+    await emitDeliveryBroadcastForSeller(
+      updated.seller,
+      deliveryBroadcastPayloadFromOrder(updated),
+    );
+  } else {
+    // Notify customer that seller accepted and payment is pending
+    emitOrderStatusUpdate(
+      updated.orderId,
+      {
+        workflowStatus: WORKFLOW_STATUS.SELLER_ACCEPTED,
+        customerPaymentPendingExpiresAt: updated.customerPaymentPendingExpiresAt,
+      },
+      updated.customer?._id || updated.customer,
+    );
+  }
+
+  emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CONFIRMED, {
+    orderId: updated.orderId,
+    customerId: updated.customer?._id || updated.customer,
+    userId: updated.customer?._id || updated.customer,
+    sellerId: updated.seller?._id || updated.seller,
+    isPaymentPending: isPaymentPending,
+  });
+
+  return updated;
+}
+
+/**
+ * Transitions an order to DELIVERY_SEARCH, creating the broadcast assignment and emitting to socket.
+ * Called when a customer selects a payment method post-acceptance, or automatically for non-pending payments.
+ */
+export async function proceedToDeliverySearch(orderId, orderDoc = null) {
+  const now = new Date();
+  const deliveryMs = DEFAULT_DELIVERY_TIMEOUT_MS();
+  
+  const updated = await Order.findOneAndUpdate(
+    {
+      orderId,
+      workflowVersion: { $gte: 2 },
+    },
+    {
+      $set: {
+        workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+        status: legacyStatusFromWorkflow(WORKFLOW_STATUS.DELIVERY_SEARCH),
+        deliverySearchExpiresAt: new Date(now.getTime() + deliveryMs),
+        deliverySearchMeta: {
+          radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
+          attempt: 1,
+          lastBroadcastAt: now,
+        },
+      },
+      $unset: { expiresAt: 1 },
+    },
+    { new: true },
+  )
+    .populate("customer", "name phone")
+    .populate("seller", "shopName address name location serviceRadius");
+
+  if (!updated) return null;
+
   await scheduleDeliveryTimeoutJob(orderId, 1);
 
   await DeliveryAssignment.create({
@@ -209,13 +321,6 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
     updated.seller,
     deliveryBroadcastPayloadFromOrder(updated),
   );
-
-  emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CONFIRMED, {
-    orderId: updated.orderId,
-    customerId: updated.customer?._id || updated.customer,
-    userId: updated.customer?._id || updated.customer,
-    sellerId: updated.seller?._id || updated.seller,
-  });
 
   return updated;
 }
@@ -548,15 +653,27 @@ function returnPickupBroadcastPayloadFromOrder(order, extra = {}) {
         image: item.image || item.thumbnail,
       }))
     : [];
+  const seller =
+    order.seller && typeof order.seller === "object" && order.seller !== null
+      ? order.seller
+      : null;
+  const sellerStore = seller?.shopName || order.sellerBranchArea || "Seller Store";
+  const customerAddress =
+    typeof order.address?.address === "string" && order.address.address.trim()
+      ? order.address.address.trim()
+      : "Customer Address";
+
   return {
     orderId: order.orderId,
+    sellerId: order.seller,
     type: "RETURN_PICKUP",
     isReturnPickup: true,
     radiusMeters: meta.radiusMeters ?? INITIAL_RETURN_PICKUP_RADIUS_M(),
+    commission: order.returnDeliveryCommission ?? order.riderEarnings ?? 0,
     items,
     preview: {
-      pickup: order.address?.completeAddress || "Customer Address",
-      drop: order.sellerBranchArea || "Seller Store",
+      pickup: customerAddress,
+      drop: sellerStore,
       total: order.pricing?.total ?? 0,
       earnings: order.riderEarnings ?? 0,
     },
@@ -597,7 +714,7 @@ export async function startReturnPickupBroadcast(order) {
       },
     },
     { new: true },
-  );
+  ).populate("seller", "shopName address name location serviceRadius");
   if (!updated) return null;
 
   await scheduleReturnPickupTimeoutJob(updated.orderId, 1);
@@ -663,7 +780,7 @@ export async function processReturnPickupTimeoutJob({ orderId, attempt }) {
         },
       },
       { new: true },
-    );
+    ).populate("seller", "shopName address name location serviceRadius");
     if (!updated) return;
 
     await scheduleReturnPickupTimeoutJob(orderId, currentAttempt + 1);
@@ -879,7 +996,7 @@ export async function markArrivedAtStoreAtomic(deliveryId, orderId, lat, lng) {
   return updated;
 }
 
-export async function confirmPickupAtomic(deliveryId, orderId, lat, lng) {
+export async function confirmPickupAtomic(deliveryId, orderId, lat, lng, images = []) {
   orderId = await requireCanonicalOrderId(orderId);
   if (
     typeof lat !== "number" ||
@@ -888,6 +1005,12 @@ export async function confirmPickupAtomic(deliveryId, orderId, lat, lng) {
     !Number.isFinite(lng)
   ) {
     const err = new Error("Valid lat/lng required");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!Array.isArray(images) || images.length === 0) {
+    const err = new Error("Product photo is mandatory for pickup confirmation");
     err.statusCode = 400;
     throw err;
   }
@@ -939,6 +1062,7 @@ export async function confirmPickupAtomic(deliveryId, orderId, lat, lng) {
         pickupConfirmedAt: now,
         outForDeliveryAt: now,
         deliveryRiderStep: 3,
+        pickupProofImages: images,
       },
     },
     { new: true },
@@ -1251,7 +1375,7 @@ function statusCodeForOtpError(errorCode) {
   }
 }
 
-export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code) {
+export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code, images = []) {
   // Validate format up-front so the controller surfaces OTP_INVALID_FORMAT
   // exactly like the legacy endpoint did (frontend switches on this code).
   if (!code || typeof code !== "string") {
@@ -1264,6 +1388,12 @@ export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code) {
     const err = new Error("OTP must be exactly 4 digits");
     err.statusCode = 400;
     err.code = "OTP_INVALID_FORMAT";
+    throw err;
+  }
+
+  if (!Array.isArray(images) || images.length === 0) {
+    const err = new Error("Product photo is mandatory for delivery confirmation");
+    err.statusCode = 400;
     throw err;
   }
 
@@ -1385,6 +1515,7 @@ export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code) {
     status: "delivered",
     deliveredAt: now,
     otpValidatedAt: now,
+    deliveryProofImages: images,
   };
   if (isV2Out) {
     updateSet.workflowStatus = WORKFLOW_STATUS.DELIVERED;
@@ -1449,7 +1580,10 @@ export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code) {
 
   emitOrderStatusUpdate(
     orderId,
-    { workflowStatus: WORKFLOW_STATUS.DELIVERED },
+    { 
+      workflowStatus: WORKFLOW_STATUS.DELIVERED,
+      checkoutGroupId: updated.checkoutGroupId 
+    },
     updated.customer,
   );
 
@@ -1458,6 +1592,7 @@ export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code) {
   // order room so any open client picks it up.
   const validatedPayload = {
     orderId,
+    checkoutGroupId: updated.checkoutGroupId,
     status: "delivered",
     deliveredAt: now.toISOString(),
   };

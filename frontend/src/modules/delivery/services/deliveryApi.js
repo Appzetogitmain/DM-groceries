@@ -18,6 +18,8 @@ export const deliveryApi = {
     axiosInstance.get("/delivery/order-history", { params, ...config }),
   getAvailableOrders: (params = {}, config = {}) =>
     axiosInstance.get("/orders/available", { params, ...config }),
+  geocodeAddress: (address) =>
+    axiosInstance.get("/maps/geocode", { params: { address } }),
   acceptOrder: (orderId, idempotencyKey) =>
     axiosInstance.put(
       `/orders/accept/${encodeURIComponent(String(orderId))}`,

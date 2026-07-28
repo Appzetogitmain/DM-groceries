@@ -96,6 +96,8 @@ export const customerApi = {
   createPaymentOrder: (data) =>
     axiosInstance.post("/payments/create-order", data),
   verifyPaymentStatus: (id) => axiosInstance.get(`/payments/status/${id}`),
+  selectPaymentMethod: (orderId, data) => 
+    axiosInstance.post(`/orders/${orderId}/select-payment`, data),
 
   // Support & Reviews
   submitDeliveryReview: (data) => axiosInstance.post("/delivery-reviews/submit", data),
@@ -153,4 +155,7 @@ export const customerApi = {
   // Notifications
   getNotifications: (params) => axiosInstance.get("/notifications", { params }),
   markNotificationsRead: () => axiosInstance.patch("/notifications/read"),
+
+  // Wallet
+  requestWithdrawal: (data) => axiosInstance.post("/wallet/withdraw", data),
 };

@@ -5,6 +5,7 @@ import Seller from "../../models/seller.js";
 import { getAdminFinanceSummary } from "../finance/walletService.js";
 import { getLedgerEntries } from "../finance/ledgerService.js";
 import Wallet from "../../models/wallet.js";
+import { emitToSeller } from "../../services/orderSocketEmitter.js";
 
 export async function getAdminWalletOverview({ page, limit }) {
   const stats = await getAdminFinanceSummary();
@@ -173,6 +174,13 @@ export async function updateWithdrawalStatusById({ id, status, reason, paymentPr
         wallet.availableBalance = (wallet.availableBalance || 0) + Math.abs(transaction.amount);
       }
       await wallet.save();
+    }
+    
+    if (ownerType === 'SELLER') {
+      emitToSeller(transaction.user._id, { 
+        event: "withdrawal:updated", 
+        payload: { transactionId: transaction._id, status }
+      });
     }
   }
 

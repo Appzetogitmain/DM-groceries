@@ -1,0 +1,98 @@
+[
+  {
+    "paymentBreakdown": {
+      "snapshots": {
+        "deliverySettings": {
+          "deliveryPricingMode": "distance_based",
+          "pricingMode": "distance_based",
+          "customerBaseDeliveryFee": 20,
+          "riderBasePayout": 20,
+          "baseDeliveryCharge": 20,
+          "baseDistanceCapacityKm": 0,
+          "incrementalKmSurcharge": 5,
+          "deliveryPartnerRatePerKm": 5,
+          "fleetCommissionRatePerKm": 5,
+          "fixedDeliveryFee": 30,
+          "handlingFeeStrategy": "highest_category_fee",
+          "codEnabled": true,
+          "onlineEnabled": true,
+          "distanceSource": "google_routes"
+        },
+        "categoryCommissionSettings": [
+          {
+            "headerCategoryId": "699b2b283858bd13797179b2",
+            "headerCategoryName": "Grocery",
+            "adminCommissionType": "percentage",
+            "adminCommissionValue": 10,
+            "adminCommissionFixedRule": "per_qty",
+            "handlingFeeType": "fixed",
+            "handlingFeeValue": 20
+          }
+        ],
+        "handlingFeeStrategy": "highest_category_fee",
+        "handlingCategoryUsed": {
+          "headerCategoryId": "699b2b283858bd13797179b2",
+          "categoryName": "Grocery",
+          "subtotal": 100,
+          "handlingFeeType": "fixed",
+          "handlingFeeValue": 20,
+          "computedFee": 20
+        }
+      },
+      "currency": "INR",
+      "productSubtotal": 100,
+      "deliveryFeeCharged": 75,
+      "handlingFeeCharged": 20,
+      "tipTotal": 0,
+      "discountTotal": 0,
+      "taxTotal": 0,
+      "grandTotal": 195,
+      "sellerPayoutTotal": 90,
+      "adminProductCommissionTotal": 10,
+      "riderPayoutBase": 20,
+      "riderPayoutDistance": 55,
+      "riderPayoutBonus": 0,
+      "riderTipAmount": 0,
+      "riderPayoutTotal": 75,
+      "platformLogisticsMargin": 20,
+      "platformTotalEarning": 30,
+      "codCollectedAmount": 0,
+      "codRemittedAmount": 0,
+      "codPendingAmount": 0,
+      "walletAmount": 0,
+      "distanceKmActual": 10.493,
+      "distanceKmRounded": 11,
+      "lineItems": [
+        {
+          "productId": "6a41078851bfd538d2f803b8",
+          "productName": "Strawberry",
+          "quantity": 1,
+          "unitPrice": 100,
+          "itemSubtotal": 100,
+          "sellerPayout": 90,
+          "adminProductCommission": 10,
+          "headerCategoryId": "699b2b283858bd13797179b2",
+          "headerCategoryName": "Grocery",
+          "appliedCommissionType": "percentage",
+          "appliedCommissionValue": 10,
+          "appliedCommissionFixedRule": "per_qty"
+        }
+      ]
+    },
+    "financeFlags": {
+      "onlinePaymentCaptured": true,
+      "codMarkedCollected": false,
+      "deliveredSettlementApplied": true,
+      "sellerPayoutQueued": true,
+      "riderPayoutQueued": true,
+      "adminEarningCredited": true,
+      "sellerPayoutHeld": false,
+      "returnPickupCommissionPaid": false,
+      "cancellationReversalApplied": false
+    },
+    "_id": "6a66fc365d5b7c96427c34a4",
+    "orderId": "ORD-01KYH4JD501R92QXG54Y5KJD5J",
+    "paymentMode": "ONLINE",
+    "status": "delivered"
+  }
+]

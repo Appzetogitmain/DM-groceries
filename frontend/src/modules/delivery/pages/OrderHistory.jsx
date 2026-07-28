@@ -14,6 +14,7 @@ import { deliveryApi } from "../services/deliveryApi";
 import { toast } from "sonner";
 
 const displayOrderStatus = (order) => {
+  if (order.displayStatus) return order.displayStatus;
   if (order?.workflowStatus === "DELIVERED" || order?.status === "delivered")
     return "delivered";
   if (order?.workflowStatus === "CANCELLED" || order?.status === "cancelled")
@@ -144,7 +145,8 @@ const OrderHistory = () => {
       toast.error("Missing order reference");
       return;
     }
-    navigate(`/delivery/order-details/${encodeURIComponent(String(id))}`);
+    const typeQuery = order.historyJobType ? `?type=${order.historyJobType}` : '';
+    navigate(`/delivery/order-details/${encodeURIComponent(String(id))}${typeQuery}`);
   };
 
   return (
@@ -232,7 +234,7 @@ const OrderHistory = () => {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 mb-0.5 min-w-0 flex-wrap">
                               <span className="font-bold text-gray-900 text-xs group-hover:text-[#1A4516] transition-colors break-all">
-                                #{order.orderId}
+                                #{order.orderId} {order.historyJobType === 'RETURN' ? <span className="text-amber-600">(Return)</span> : ''}
                               </span>
                               <span
                                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
@@ -253,7 +255,7 @@ const OrderHistory = () => {
                           </div>
                           <div className="text-right shrink-0">
                             <span className="block font-black text-base text-[#1A4516] leading-none mb-0.5">
-                              ₹{Math.round(order.paymentBreakdown?.riderPayoutTotal || ((order.pricing?.total || 0) * 0.1))}
+                              ₹{Math.round(order.displayEarnings ?? (order.paymentBreakdown?.riderPayoutTotal || ((order.pricing?.total || 0) * 0.1)))}
                             </span>
                             <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Earnings</span>
                           </div>

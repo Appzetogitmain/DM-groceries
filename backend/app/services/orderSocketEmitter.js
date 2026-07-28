@@ -263,9 +263,23 @@ export function emitToCustomer(customerId, { event, payload }) {
  */
 export async function emitReturnBroadcastForCustomer(customerLocation, payload) {
   const s = getIo();
-  if (!customerLocation) return;
+  const idsSet = new Set();
 
-  const ids = await getDeliveryPartnerIdsWithinCustomerRadius(customerLocation);
+  // 1. Find riders near the customer (15km radius for returns to increase match rate)
+  if (customerLocation) {
+    const custIds = await getDeliveryPartnerIdsWithinCustomerRadius(customerLocation, 15);
+    custIds.forEach(id => idsSet.add(id));
+  }
+
+  // 2. Find riders near the seller (fallback, as riders might be waiting at the store)
+  if (payload.sellerId) {
+    const { getDeliveryPartnerIdsWithinSellerRadius } = await import("./deliveryNearbyService.js");
+    const sellerIds = await getDeliveryPartnerIdsWithinSellerRadius(payload.sellerId);
+    sellerIds.forEach(id => idsSet.add(id));
+  }
+
+  const ids = Array.from(idsSet);
+
   if (!ids.length) {
     if (process.env.NODE_ENV !== "production" && s) {
       s.to("delivery:online").emit("delivery:broadcast", { ...payload, at: new Date().toISOString() });
@@ -286,25 +300,4 @@ export async function emitReturnBroadcastForCustomer(customerLocation, payload) 
     orderId: payload.orderId,
     deliveryIds: ids,
   });
-
-  // DB Sync for in-app notification list
-  try {
-    await Notification.insertMany(
-      ids.map((id) => ({
-        recipient: new mongoose.Types.ObjectId(id),
-        recipientModel: "Delivery",
-        title: "New Return Pickup Task",
-        message: `Return pickup ${payload.orderId} nearby — tap to Accept.`,
-        type: "order",
-        data: {
-          orderId: payload.orderId,
-          type: "RETURN_PICKUP",
-          preview: payload.preview || null,
-        },
-      })),
-      { ordered: false }
-    );
-  } catch (err) {
-    console.warn("[emitReturnBroadcastForCustomer] DB error", err.message);
-  }
 }

@@ -42,6 +42,13 @@ function buildOrderLink(orderId) {
   return `${baseUrl}/orders/${encodeURIComponent(id)}`;
 }
 
+function buildDeliveryOrderLink(orderId) {
+  const id = String(orderId || "").trim();
+  const baseUrl = getFrontendBaseUrl();
+  if (!id) return `${baseUrl}/delivery/dashboard`;
+  return `${baseUrl}/delivery/order-details/${encodeURIComponent(id)}`;
+}
+
 function buildCustomerSupportLink(ticketId) {
   const baseUrl = getFrontendBaseUrl();
   const id = String(ticketId || "").trim();
@@ -85,7 +92,9 @@ function eventDefinition(eventType) {
         role: NOTIFICATION_ROLES.CUSTOMER,
         recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
         title: () => "Order Confirmed",
-        body: () => "Seller has confirmed your order.",
+        body: (payload) => payload.isPaymentPending 
+          ? "Seller accepted your order! Please choose Pay Online or COD to dispatch it." 
+          : "Seller has confirmed your order.",
       };
     case NOTIFICATION_EVENTS.ORDER_PACKED:
       return {
@@ -606,11 +615,20 @@ function eventData(eventType, payload = {}, role) {
 
   const orderId = String(payload.orderId || "").trim() || undefined;
   const checkoutGroupId = String(payload.checkoutGroupId || "").trim() || undefined;
+  
+  let link = buildOrderLink(orderId);
+  if (role === NOTIFICATION_ROLES.DELIVERY) {
+    link = buildDeliveryOrderLink(orderId);
+  } else if (role === NOTIFICATION_ROLES.SELLER) {
+    const baseUrl = getFrontendBaseUrl();
+    link = orderId ? `${baseUrl}/seller/orders?search=${encodeURIComponent(orderId)}` : `${baseUrl}/seller/orders`;
+  }
+
   return {
     eventType,
     orderId,
     checkoutGroupId,
-    link: buildOrderLink(orderId),
+    link,
     ...(payload.data || {}),
   };
 }

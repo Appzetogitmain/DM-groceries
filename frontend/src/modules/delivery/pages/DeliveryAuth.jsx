@@ -144,7 +144,7 @@ const DeliveryAuth = () => {
         toast.success(res.data?.message || "OTP sent!");
       }
       setOtp(["", "", "", ""]);
-      setTimer(30);
+      setTimer(60);
       setStep("otp");
     } catch (error) {
       console.error(error);

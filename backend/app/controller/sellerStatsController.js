@@ -34,7 +34,7 @@ export const getSellerEarnings = async (req, res) => {
 
         const transactions = await Transaction.find({ user: sellerId, userModel: 'Seller' })
             .sort({ createdAt: -1 })
-            .populate("order", "orderId returnWindowExpiresAt");
+            .populate("order", "orderId returnWindowExpiresAt items paymentBreakdown");
 
         const settledBalance = roundCurrency(transactions
             .filter(t => t.status === 'Settled')
@@ -49,23 +49,10 @@ export const getSellerEarnings = async (req, res) => {
         const onHoldBalance = wallet ? wallet.pendingBalance : 0;
         const liveAvailableBalance = wallet ? wallet.availableBalance : settledBalance;
 
-        // Keep "Total Revenue" aligned with Dashboard definition:
-        // sum of non-cancelled seller orders from Order collection.
-        const [orderRevenueAgg] = await Order.aggregate([
-            {
-                $match: {
-                    seller: sellerOid,
-                    status: { $ne: 'cancelled' },
-                },
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalRevenue: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", 0] } },
-                },
-            },
-        ]);
-        const totalRevenue = Number(orderRevenueAgg?.totalRevenue || 0);
+        // Keep "Total Revenue" aligned with actual wallet transactions (Order Payments + Refunds)
+        const totalRevenue = roundCurrency(transactions
+            .filter(t => (t.type === 'Order Payment' && t.status !== 'Cancelled') || (t.type === 'Refund' && t.status === 'Settled'))
+            .reduce((acc, t) => acc + (t.amount || 0), 0));
 
         const totalWithdrawn = roundCurrency(transactions
             .filter(t => t.type === 'Withdrawal' && t.status === 'Settled')
@@ -80,7 +67,7 @@ export const getSellerEarnings = async (req, res) => {
                 $match: {
                     user: new mongoose.Types.ObjectId(sellerId),
                     userModel: 'Seller',
-                    type: 'Order Payment',
+                    type: { $in: ['Order Payment', 'Refund'] },
                     createdAt: { $gte: sixMonthsAgo }
                 }
             },
@@ -128,7 +115,13 @@ export const getSellerEarnings = async (req, res) => {
                 ref: t.order ? `#${t.order.orderId}` : t.reference || t._id,
                 releaseTime: (t.status === 'Pending' && t.order?.returnWindowExpiresAt) ? t.order.returnWindowExpiresAt : null,
                 productSubtotal: t.order?.paymentBreakdown?.productSubtotal || 0,
-                commission: t.order?.paymentBreakdown?.adminProductCommissionTotal || 0
+                commission: t.order?.paymentBreakdown?.adminProductCommissionTotal || 0,
+                items: (t.order?.items || []).map(i => ({
+                    name: i.name || i.productName || 'Item',
+                    image: i.image || '',
+                    quantity: i.quantity || 1,
+                    price: i.price || 0
+                }))
             }))
         });
     } catch (error) {

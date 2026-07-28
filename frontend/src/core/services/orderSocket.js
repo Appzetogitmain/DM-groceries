@@ -186,6 +186,20 @@ export function onDeliveryBroadcastWithdrawn(getToken, handler) {
   return () => s.off("delivery:broadcast:withdrawn", handler);
 }
 
+export function onOrderCanceledCustomer(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("order:canceled", handler);
+  return () => s.off("order:canceled", handler);
+}
+
+export function onWithdrawalUpdated(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("withdrawal:updated", handler);
+  return () => s.off("withdrawal:updated", handler);
+}
+
 export function onSellerOrderNew(getToken, handler) {
   const s = getOrderSocket(getToken);
   if (!s || typeof handler !== "function") return () => {};

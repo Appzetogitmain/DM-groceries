@@ -25,6 +25,7 @@ import { sendSmsIndiaHubOtp } from "../services/smsIndiaHubService.js";
 import { creditWallet } from "../services/finance/walletService.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
+import OrderReturnService from "../services/order/orderReturnService.js";
 
 export const confirmPickup = async (req, res) => {
   try {
@@ -146,7 +147,7 @@ export const requestDeliveryOtp = async (req, res) => {
 export const verifyDeliveryOtp = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { code, otp } = req.body || {};
+    const { code, otp, images } = req.body || {};
     // Accept either `{ code }` (workflow convention) or `{ otp }` (legacy
     // convention) so older clients on the canonical endpoint don't break.
     const entered = String(code ?? otp ?? "").trim();
@@ -154,6 +155,7 @@ export const verifyDeliveryOtp = async (req, res) => {
       req.user.id,
       orderId,
       entered,
+      images,
     );
     return handleResponse(
       res,
@@ -333,7 +335,8 @@ export const requestReturnPickupOtp = async (req, res) => {
 
     // ── Emit OTP to customer via Socket.IO/SMS ──────────────────────────────────
     try {
-      const customerId = order.customer?.toString();
+      const order = await Order.findOne({ orderId });
+      const customerId = order?.customer?.toString();
       if (customerId) {
         emitToCustomer(customerId, {
           event: "return:pickup:otp",
@@ -539,11 +542,19 @@ export const verifyReturnDropOtp = async (req, res) => {
       });
     }
 
-    order.returnStatus = "returned";
+    order.returnStatus = "qc_passed";
+    order.returnQcStatus = "passed";
+    order.returnQcAt = new Date();
+    order.returnQcBy = userId;
+    order.returnQcNote = "Auto-passed QC upon Delivery Drop";
+    
     order.returnDeliveredBackAt = new Date();
     order.returnDropVerifiedAt = new Date();
     order.returnDropVerifiedBy = userId;
     await order.save();
+
+    // Trigger complete return and refund immediately
+    await OrderReturnService.completeReturnAndRefund(order);
 
     // Notify admin + seller + customer
     try {
@@ -553,7 +564,7 @@ export const verifyReturnDropOtp = async (req, res) => {
         userId: order.customer,
         sellerId: order.seller?._id || order.seller,
         deliveryId: userId,
-        data: { message: "Product returned to seller. Admin QC pending." },
+        data: { message: "Product returned to seller and refund has been processed." },
       });
     } catch (notifErr) {
       console.warn("[verifyReturnDropOtp] Notification failed:", notifErr.message);
@@ -669,7 +680,7 @@ export const requestSellerPickupOtp = async (req, res) => {
 export const verifySellerPickupOtp = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { enteredCode, lat, lng } = req.body;
+    const { enteredCode, lat, lng, images } = req.body;
 
     if (!enteredCode) {
       return handleResponse(res, 400, "OTP is required");
@@ -684,7 +695,7 @@ export const verifySellerPickupOtp = async (req, res) => {
     }
 
     // OTP is valid! Proceed to mark order as picked up (Out for Delivery)
-    const result = await confirmPickupAtomic(req.user.id, orderId, lat, lng);
+    const result = await confirmPickupAtomic(req.user.id, orderId, lat, lng, images);
     
     return handleResponse(res, 200, "Pickup confirmed", result);
   } catch (e) {

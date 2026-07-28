@@ -20,6 +20,65 @@ import { buildCheckoutPricingSnapshot } from "../services/checkoutPricingService
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
 import { validateBody as validateWithJoi } from "../middleware/validate.js";
+import { proceedToDeliverySearch } from "../services/orderWorkflowService.js";
+import { WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
+import { ORDER_PAYMENT_STATUS } from "../constants/finance.js";
+import { createPaymentOrderForOrderRef } from "../services/paymentService.js";
+
+export const selectPaymentMethod = async (req, res) => {
+  try {
+    const { id: orderId } = req.params;
+    const { paymentMode } = req.body;
+    const userId = req.user?.id;
+
+    if (!orderId || !paymentMode || !userId) {
+      return handleResponse(res, 400, "Missing required fields");
+    }
+
+    const query = orderMatchQueryFromRouteParam(orderId);
+    query.customer = userId;
+
+    const order = await Order.findOne(query).populate("seller", "shopName address name location serviceRadius");
+    if (!order) {
+      return handleResponse(res, 404, "Order not found");
+    }
+
+    if (order.workflowStatus !== WORKFLOW_STATUS.SELLER_ACCEPTED) {
+      return handleResponse(res, 400, "Order is not awaiting payment");
+    }
+
+    const mode = String(paymentMode).trim().toUpperCase();
+
+    if (mode === "ONLINE") {
+      order.paymentMode = "ONLINE";
+      await order.save();
+
+      const { payment, redirectUrl } = await createPaymentOrderForOrderRef({
+        orderRef: orderId,
+        userId,
+      });
+
+      return handleResponse(res, 200, "Payment session created", {
+        redirectUrl,
+        paymentId: payment._id,
+      });
+    } else if (mode === "COD") {
+      order.paymentMode = "COD";
+      order.paymentStatus = ORDER_PAYMENT_STATUS.PENDING_CASH_COLLECTION;
+      order.payment.method = "cash";
+      order.payment.status = "pending";
+      await order.save();
+
+      await proceedToDeliverySearch(order.orderId, order);
+
+      return handleResponse(res, 200, "Payment method updated to COD");
+    } else {
+      return handleResponse(res, 400, "Invalid payment mode");
+    }
+  } catch (error) {
+    return handleResponse(res, error.statusCode || 500, error.message);
+  }
+};
 
 export const previewCheckoutFinance = async (req, res) => {
   try {

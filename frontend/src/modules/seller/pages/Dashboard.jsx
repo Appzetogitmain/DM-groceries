@@ -105,27 +105,27 @@ const Dashboard = () => {
     {
       label: "Total Revenue",
       value: statsData?.overview?.totalSales || "₹0",
-      change: "+12.5%",
-      changeType: "increase",
+      change: statsData?.overview?.salesTrend || "0%",
+      changeType: (statsData?.overview?.salesTrend || "").startsWith("-") ? "decrease" : "increase",
       icon: DollarSign,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-700",
-      description: "vs last month",
+      description: "vs last week",
     },
     {
       label: "Total Orders",
       value: statsData?.overview?.totalOrders || "0",
-      change: "+8.2%",
-      changeType: "increase",
+      change: statsData?.overview?.ordersTrend || "0%",
+      changeType: (statsData?.overview?.ordersTrend || "").startsWith("-") ? "decrease" : "increase",
       icon: ShoppingBag,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-700",
-      description: "vs last month",
+      description: "vs last week",
     },
     {
       label: "Avg Order Value",
       value: statsData?.overview?.avgOrderValue || "₹0",
-      change: "+2",
+      change: "",
       changeType: "increase",
       icon: Package,
       iconBg: "bg-emerald-50",
@@ -135,12 +135,12 @@ const Dashboard = () => {
     {
       label: "Pending Orders",
       value: safeOrders.filter(o => o.status === 'pending').length.toString(),
-      change: "-3",
+      change: "",
       changeType: "decrease",
       icon: Clock,
       iconBg: "bg-orange-50",
       iconColor: "text-orange-600",
-      description: "need attention",
+      description: "current",
     },
   ];
 
@@ -221,6 +221,11 @@ const Dashboard = () => {
       address: addressStr || "—",
       items,
       total: Number(order.pricing?.total ?? 0),
+      subtotal: Number(order.pricing?.subtotal ?? 0),
+      deliveryFee: Number(order.paymentBreakdown?.deliveryFeeCharged ?? order.pricing?.deliveryFee ?? 0),
+      handlingFee: Number(order.paymentBreakdown?.handlingFeeCharged ?? order.pricing?.platformFee ?? 0),
+      adminCommission: Number(order.paymentBreakdown?.adminProductCommissionTotal ?? 0),
+      sellerPayout: Number(order.paymentBreakdown?.sellerPayoutTotal ?? 0),
       status: order.status || "pending",
       payment:
         order.payment?.method === "cash" || order.payment?.method === "cod"
@@ -257,7 +262,7 @@ const Dashboard = () => {
       />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat) => (
           <Card key={stat.label} className="hover:shadow-lg transition-all !p-0">
             <div className="flex items-center gap-2.5 p-2.5">
@@ -268,14 +273,16 @@ const Dashboard = () => {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
                 <p className="text-lg font-extrabold text-slate-800 leading-tight mt-0.5">{stat.value}</p>
                 <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold flex items-center gap-0.5",
-                      stat.changeType === "increase" ? "text-emerald-700" : "text-red-700"
-                    )}
-                  >
-                    {stat.changeType === "increase" ? "▲" : "▼"} {stat.change}
-                  </span>
+                  {stat.change && (
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold flex items-center gap-0.5",
+                        stat.changeType === "increase" ? "text-emerald-700" : "text-red-700"
+                      )}
+                    >
+                      {stat.changeType === "increase" ? "▲" : "▼"} {stat.change.replace(/[+-]/g, '')}
+                    </span>
+                  )}
                   <span className="text-[9px] text-slate-400 font-medium">{stat.description}</span>
                 </div>
               </div>
@@ -583,26 +590,56 @@ const Dashboard = () => {
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs">
                           <span className="font-bold text-slate-600">
-                            Subtotal
+                            Item Subtotal
                           </span>
                           <span className="font-black text-slate-900">
-                            ₹{(selectedOrder.total - 10).toFixed(2)}
+                            ₹{selectedOrder.subtotal.toFixed(2)}
                           </span>
                         </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="font-bold text-slate-600">
-                            Delivery Fee
-                          </span>
-                          <span className="font-black text-brand-600">
-                            ₹10.00
-                          </span>
-                        </div>
+                        {selectedOrder.adminCommission > 0 && (
+                          <div className="flex justify-between text-xs">
+                            <span className="font-bold text-rose-600">
+                              Admin Commission
+                            </span>
+                            <span className="font-black text-rose-600">
+                              -₹{selectedOrder.adminCommission.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {selectedOrder.deliveryFee > 0 && (
+                          <div className="flex justify-between text-xs opacity-60">
+                            <span className="font-bold text-slate-600">
+                              Customer Delivery Fee
+                            </span>
+                            <span className="font-black text-slate-900">
+                              ₹{selectedOrder.deliveryFee.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {selectedOrder.handlingFee > 0 && (
+                          <div className="flex justify-between text-xs opacity-60">
+                            <span className="font-bold text-slate-600">
+                              Customer Platform Fee
+                            </span>
+                            <span className="font-black text-slate-900">
+                              ₹{selectedOrder.handlingFee.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
                         <div className="h-px bg-primary/10 my-2" />
                         <div className="flex justify-between text-sm">
                           <span className="font-black text-slate-900">
-                            Total
+                            Your Payout
                           </span>
-                          <span className="font-black text-primary">
+                          <span className="font-black text-emerald-600">
+                            ₹{selectedOrder.sellerPayout.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-[10px] opacity-50 mt-1">
+                          <span className="font-bold text-slate-500">
+                            Order Grand Total
+                          </span>
+                          <span className="font-bold text-slate-500">
                             ₹{selectedOrder.total.toFixed(2)}
                           </span>
                         </div>
