@@ -290,3 +290,17 @@ export function onDeliveryOtpValidated(getToken, handler) {
     s.off("delivery:otp:validated", wrappedHandler);
   };
 }
+
+export function onSosAlertTriggered(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("sos-alert-triggered", handler);
+  return () => s.off("sos-alert-triggered", handler);
+}
+
+export function onSosAlertResolved(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("sos-alert-resolved", handler);
+  return () => s.off("sos-alert-resolved", handler);
+}

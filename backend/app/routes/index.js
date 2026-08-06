@@ -25,6 +25,7 @@ import metricsRoute from "./metricsRoutes.js";
 import authOtpRoute from "../modules/otp/otp.routes.js";
 import milestoneCampaignRoute from "./milestoneCampaignRoutes.js";
 import customerMilestoneRoute from "./customerMilestoneRoutes.js";
+import sosRoute from "./sosRoutes.js";
 
 import express from "express";
 
@@ -74,6 +75,7 @@ const setupRoutes = (app) => {
     router.use("/delivery-reviews", deliveryReviewRoute);
     router.use("/admin/faqs", faqRoute);
     router.use("/public/faqs", faqRoute); // For public access without admin prefix
+    router.use("/", sosRoute);
 
     app.use("/api", router);
 }

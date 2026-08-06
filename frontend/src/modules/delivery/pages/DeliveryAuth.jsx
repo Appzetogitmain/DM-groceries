@@ -493,7 +493,7 @@ const DeliveryAuth = () => {
                                 if (!signupVehicleNumber) {
                                   toast.error("Please enter your vehicle plate number");
                                   return;
-                                  }
+                                }
                                 if (!signupDLNumber) {
                                   toast.error("Please enter your driving license number");
                                   return;

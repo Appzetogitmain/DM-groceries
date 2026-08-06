@@ -72,7 +72,8 @@ const ActiveDeliveryBoys = () => {
                 todayEarnings: 0, // Mock earnings
                 location: r.currentArea || 'Unknown',
                 lastSync: 'Now',
-                joinDate: new Date(r.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                joinDate: new Date(r.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                documents: r.documents || {}
             }));
 
             setRiders(mappedRiders);
@@ -474,6 +475,32 @@ return (
                                     <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Wallet Creds</p>
                                     <span className="text-lg font-black text-slate-900 text-brand-600">₹4,250</span>
                                 </div>
+                            </div>
+
+                            {/* Documents Section */}
+                            <div className="mt-8">
+                                <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-3">Uploaded Documents</h4>
+                                {viewingRider.documents && Object.keys(viewingRider.documents).length > 0 ? (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {Object.entries(viewingRider.documents).map(([key, url]) => (
+                                            <div key={key} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                <span className="text-[10px] font-bold text-slate-600 capitalize">
+                                                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                                                </span>
+                                                <button
+                                                    onClick={() => window.open(url, "_blank")}
+                                                    className="px-3 py-1.5 bg-brand-50 text-brand-600 text-[10px] font-black rounded-lg hover:bg-brand-100 transition-colors"
+                                                >
+                                                    View
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center">
+                                        <p className="text-xs font-semibold text-slate-400">No documents uploaded yet.</p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="mt-8 flex gap-4">

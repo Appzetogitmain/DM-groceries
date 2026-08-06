@@ -59,6 +59,8 @@ const AdminSettings = () => {
         companyName: '',
         taxId: '',
         address: '',
+        termsConditions: '',
+        privacyPolicy: '',
         facebook: '',
         twitter: '',
         instagram: '',
@@ -582,6 +584,30 @@ const AdminSettings = () => {
                                             value={settings.address}
                                             onChange={(e) => handleInputChange('address', e.target.value)}
                                             className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Terms & Conditions</label>
+                                    <div className="relative group">
+                                        <textarea
+                                            rows={8}
+                                            value={settings.termsConditions}
+                                            onChange={(e) => handleInputChange('termsConditions', e.target.value)}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
+                                            placeholder="Enter your terms and conditions..."
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Privacy Policy</label>
+                                    <div className="relative group">
+                                        <textarea
+                                            rows={8}
+                                            value={settings.privacyPolicy}
+                                            onChange={(e) => handleInputChange('privacyPolicy', e.target.value)}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
+                                            placeholder="Enter your privacy policy..."
                                         />
                                     </div>
                                 </div>

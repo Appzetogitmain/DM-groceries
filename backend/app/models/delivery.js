@@ -59,6 +59,25 @@ const deliverySchema = new mongoose.Schema(
             aadhar: { type: String },
             pan: { type: String },
             drivingLicense: { type: String },
+            policeClearance: { type: String },
+            bankPassbook: { type: String },
+        },
+
+        emergencyContacts: [
+            {
+                name: { type: String, required: true },
+                phone: { type: String, required: true }
+            }
+        ],
+
+        shareLiveLocation: {
+            type: Boolean,
+            default: true
+        },
+
+        profileVisibility: {
+            type: Boolean,
+            default: true
         },
 
         vehicleNumber: {
@@ -128,7 +147,7 @@ const deliverySchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        
+
         totalReviews: {
             type: Number,
             default: 0,

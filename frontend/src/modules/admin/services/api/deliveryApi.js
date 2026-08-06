@@ -15,6 +15,9 @@ export const adminDeliveryApi = {
         axiosInstance.get('/admin/active-fleet', { params }),
     getDeliveryReviews: (params) =>
         axiosInstance.get('/delivery-reviews/admin', { params }),
+    getActiveSosAlerts: () => axiosInstance.get('/admin/sos'),
+    getResolvedSosAlerts: () => axiosInstance.get('/admin/sos/history'),
+    resolveSosAlert: (id, data) => axiosInstance.put(`/admin/sos/${id}/resolve`, data),
 };
 
 export default adminDeliveryApi;

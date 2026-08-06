@@ -48,6 +48,14 @@ const settingSchema = new mongoose.Schema(
         companyName: String,
         taxId: String,
         address: String,
+        termsConditions: {
+            type: String,
+            default: "Welcome to our app. By continuing, you agree to our terms and conditions."
+        },
+        privacyPolicy: {
+            type: String,
+            default: "Your privacy is important to us. This privacy policy explains how we collect and use your data."
+        },
 
         // Social
         facebook: String,

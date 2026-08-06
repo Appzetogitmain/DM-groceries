@@ -38,6 +38,8 @@ const Dashboard = () => {
     cashCollected: 0,
     ongoingCount: 0,
   });
+  const [isSosModalOpen, setIsSosModalOpen] = useState(false);
+  const [sosTriggering, setSosTriggering] = useState(false);
 
   // Sync isOnline with user profile from context
   useEffect(() => {
@@ -196,6 +198,25 @@ const Dashboard = () => {
     }
   };
 
+  const handleTriggerSos = async () => {
+    try {
+      setSosTriggering(true);
+      const { getCachedDeliveryPartnerLocation } = await import("../utils/deliveryLastLocation.js");
+      const loc = getCachedDeliveryPartnerLocation();
+      const locationPayload = loc ? { type: "Point", coordinates: [loc.lng, loc.lat] } : undefined;
+      
+      const response = await deliveryApi.triggerSos({ location: locationPayload });
+      if (response.data.success) {
+        toast.success("SOS Alert sent to admin successfully!");
+        setIsSosModalOpen(false);
+      }
+    } catch (error) {
+      toast.error("Failed to trigger SOS alert.");
+    } finally {
+      setSosTriggering(false);
+    }
+  };
+
   return (
     <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
       
@@ -234,17 +255,66 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div
-            className="relative p-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full transition-colors cursor-pointer"
-            onClick={() => navigate("/delivery/notifications")}
-          >
-            <Bell size={20} className="text-white" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-[#1A4516] rounded-full animate-pulse"></span>
-            )}
+          <div className="flex items-center space-x-2">
+            <div
+              className="relative p-2.5 bg-red-500 hover:bg-red-600 border border-red-400 rounded-full transition-colors cursor-pointer flex items-center shadow-lg animate-pulse"
+              onClick={() => setIsSosModalOpen(true)}
+              title="SOS Emergency"
+            >
+              <AlertCircle size={20} className="text-white" />
+            </div>
+
+            <div
+              className="relative p-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full transition-colors cursor-pointer"
+              onClick={() => navigate("/delivery/notifications")}
+            >
+              <Bell size={20} className="text-white" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-[#1A4516] rounded-full animate-pulse"></span>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* SOS Confirmation Modal */}
+      <AnimatePresence>
+        {isSosModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl border-4 border-red-500"
+            >
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={32} className="text-red-500" />
+              </div>
+              <h2 className="text-xl font-black text-gray-900 mb-2 uppercase">Trigger SOS?</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                This will immediately alert the admin team with your live location and emergency contacts. Only use in real emergencies!
+              </p>
+              <div className="flex space-x-3">
+                <Button 
+                  onClick={() => setIsSosModalOpen(false)} 
+                  variant="outline" 
+                  className="flex-1 font-bold text-gray-600 h-12"
+                  disabled={sosTriggering}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleTriggerSos} 
+                  className="flex-1 font-bold bg-red-600 hover:bg-red-700 text-white h-12"
+                  isLoading={sosTriggering}
+                >
+                  Send SOS
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area overlapping with rounded corners */}
       <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-4 space-y-3 relative z-10">

@@ -64,7 +64,7 @@ export const signupDelivery = async (req, res) => {
         const normalizedAadhar = String(req.body?.aadharUrl || req.body?.aadhar || "").trim();
         const normalizedPan = String(req.body?.panUrl || req.body?.pan || "").trim();
         const normalizedDl = String(
-          req.body?.drivingLicenseUrl || req.body?.dlUrl || req.body?.dl || "",
+            req.body?.drivingLicenseUrl || req.body?.dlUrl || req.body?.dl || "",
         ).trim();
         const normalizedProfileImage = String(req.body?.profileImageUrl || req.body?.profileImage || "").trim();
 
@@ -222,7 +222,7 @@ export const getDeliveryProfile = async (req, res) => {
 ================================ */
 export const updateDeliveryProfile = async (req, res) => {
     try {
-        const { name, vehicleType, vehicleNumber, drivingLicenseNumber, currentArea, isOnline, accountHolder, accountNumber, ifsc, dob, email, bloodGroup, address } = req.body;
+        const { name, vehicleType, vehicleNumber, drivingLicenseNumber, currentArea, isOnline, accountHolder, accountNumber, ifsc, dob, email, bloodGroup, address, emergencyContacts, shareLiveLocation, profileVisibility } = req.body;
 
         const delivery = await Delivery.findById(req.user.id);
         if (!delivery) {
@@ -242,6 +242,42 @@ export const updateDeliveryProfile = async (req, res) => {
         if (bloodGroup) delivery.bloodGroup = bloodGroup;
         if (address) delivery.address = address;
 
+        // Handle new privacy/safety fields
+        if (shareLiveLocation !== undefined) delivery.shareLiveLocation = shareLiveLocation === 'true' || shareLiveLocation === true;
+        if (profileVisibility !== undefined) delivery.profileVisibility = profileVisibility === 'true' || profileVisibility === true;
+        if (emergencyContacts) {
+            try {
+                // If it comes as a stringified JSON from FormData, parse it
+                delivery.emergencyContacts = typeof emergencyContacts === 'string' ? JSON.parse(emergencyContacts) : emergencyContacts;
+            } catch (err) {
+                console.error("Failed to parse emergencyContacts", err);
+            }
+        }
+
+        if (req.files && Array.isArray(req.files)) {
+            for (const file of req.files) {
+                if (file.fieldname === "profileImage") {
+                    delivery.profileImage = await uploadToCloudinary(file.buffer, "delivery/profiles");
+                } else if (file.fieldname === "aadhar") {
+                    if (!delivery.documents) delivery.documents = {};
+                    delivery.documents.aadhar = await uploadToCloudinary(file.buffer, "delivery/documents");
+                } else if (file.fieldname === "pan") {
+                    if (!delivery.documents) delivery.documents = {};
+                    delivery.documents.pan = await uploadToCloudinary(file.buffer, "delivery/documents");
+                } else if (file.fieldname === "drivingLicense" || file.fieldname === "dl") {
+                    if (!delivery.documents) delivery.documents = {};
+                    delivery.documents.drivingLicense = await uploadToCloudinary(file.buffer, "delivery/documents");
+                } else if (file.fieldname === "policeClearance") {
+                    if (!delivery.documents) delivery.documents = {};
+                    delivery.documents.policeClearance = await uploadToCloudinary(file.buffer, "delivery/documents");
+                } else if (file.fieldname === "bankPassbook") {
+                    if (!delivery.documents) delivery.documents = {};
+                    delivery.documents.bankPassbook = await uploadToCloudinary(file.buffer, "delivery/documents");
+                }
+            }
+        }
+
+
         // Capture going-offline transition before the save so we know whether
         // to drop the rider's realtime presence nodes after the write.
         const wasOnline = delivery.isOnline === true;
@@ -254,7 +290,7 @@ export const updateDeliveryProfile = async (req, res) => {
         // Fire-and-forget — never blocks the HTTP response. A failed cleanup
         // is also safe: the scheduled sweep job will pick it up on TTL.
         if (willGoOffline) {
-            clearRiderPresence(String(delivery._id)).catch(() => {});
+            clearRiderPresence(String(delivery._id)).catch(() => { });
         }
 
         return handleResponse(res, 200, "Profile updated successfully", delivery);

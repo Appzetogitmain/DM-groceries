@@ -11,6 +11,9 @@ import {
   Upload,
   Image,
   Sparkles,
+  ArrowUp,
+  ArrowDown,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,6 +65,7 @@ const HeaderCategories = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isIconSelectorOpen, setIsIconSelectorOpen] = useState(false);
+  const [isOrderChanged, setIsOrderChanged] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -134,6 +138,45 @@ const HeaderCategories = () => {
     } catch (error) {
       toast.error("Failed to fetch header categories");
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const moveCategory = (index, direction) => {
+    if (
+      (direction === -1 && index === 0) ||
+      (direction === 1 && index === categories.length - 1)
+    ) return;
+
+    const newCategories = [...categories];
+    const temp = newCategories[index];
+    newCategories[index] = newCategories[index + direction];
+    newCategories[index + direction] = temp;
+    
+    const updatedCategories = newCategories.map((cat, i) => ({
+      ...cat,
+      sortOrder: (page - 1) * pageSize + i
+    }));
+
+    setCategories(updatedCategories);
+    setIsOrderChanged(true);
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      setIsLoading(true);
+      const payload = {
+        categories: categories.map(cat => ({
+          id: cat._id || cat.id,
+          sortOrder: cat.sortOrder
+        }))
+      };
+      await adminApi.reorderCategories(payload);
+      toast.success("Category order saved successfully");
+      setIsOrderChanged(false);
+      fetchCategories(page);
+    } catch (error) {
+      toast.error("Failed to save category order");
       setIsLoading(false);
     }
   };
@@ -302,6 +345,14 @@ const HeaderCategories = () => {
           <Plus className="w-5 h-5" />
           Add New Header
         </button>
+        {isOrderChanged && (
+          <button
+            onClick={handleSaveOrder}
+            className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors ml-2">
+            <Save className="w-5 h-5" />
+            Save Order
+          </button>
+        )}
       </div>
 
       <Card className="border-none shadow-sm">
@@ -448,7 +499,23 @@ const HeaderCategories = () => {
                           setIsDeleteModalOpen(true);
                         }}
                         className="p-1 text-gray-500 hover:text-red-600 transition-colors">
-                        <Trash2 className="w-5 h-5" />
+                        <Trash className="w-5 h-5" />
+                      </button>
+                      
+                      {/* Reorder Arrows */}
+                      <button
+                        onClick={() => moveCategory(categories.findIndex(c => (c._id || c.id) === (cat._id || cat.id)), -1)}
+                        disabled={categories.findIndex(c => (c._id || c.id) === (cat._id || cat.id)) === 0}
+                        className="p-1 text-gray-500 hover:text-brand-600 transition-colors disabled:opacity-30 disabled:hover:text-gray-500"
+                        title="Move Up">
+                        <ArrowUp className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => moveCategory(categories.findIndex(c => (c._id || c.id) === (cat._id || cat.id)), 1)}
+                        disabled={categories.findIndex(c => (c._id || c.id) === (cat._id || cat.id)) === categories.length - 1}
+                        className="p-1 text-gray-500 hover:text-brand-600 transition-colors disabled:opacity-30 disabled:hover:text-gray-500"
+                        title="Move Down">
+                        <ArrowDown className="w-5 h-5" />
                       </button>
                     </td>
                   </tr>

@@ -136,6 +136,11 @@ const userSchema = new mongoose.Schema(
         },
 
         lastLogin: Date,
+
+        notificationsEnabled: {
+            type: Boolean,
+            default: true,
+        },
     },
     {
         timestamps: true,

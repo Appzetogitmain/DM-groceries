@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "@shared/layout/DashboardLayout";
+import SOSListener from "../components/SOSListener";
 import { useSupportUnread } from "@core/context/SupportUnreadContext";
 import { setActiveRole, ROLES } from "@core/auth/activeRoleStore";
 import {
@@ -18,7 +19,6 @@ import {
   ClipboardList,
   RotateCcw,
   Settings,
-  Terminal,
   Sparkles,
   User,
   Store,
@@ -93,11 +93,11 @@ const ShopByStoreManagement = React.lazy(
   () => import("../pages/ShopByStoreManagement"),
 );
 const AdminSettings = React.lazy(() => import("../pages/AdminSettings"));
-const EnvSettings = React.lazy(() => import("../pages/EnvSettings"));
 const AdminProfile = React.lazy(() => import("../pages/AdminProfile"));
 const BirthdayCenter = React.lazy(() => import("../pages/BirthdayCenter"));
 const MilestoneCampaigns = React.lazy(() => import("../pages/marketing/MilestoneCampaigns"));
 const CreateMilestoneCampaign = React.lazy(() => import("../pages/marketing/CreateMilestoneCampaign"));
+const SOSHistory = React.lazy(() => import("../pages/SOSHistory"));
 
 const navItems = [
   {
@@ -162,6 +162,7 @@ const navItems = [
       { label: "Track Drivers", path: "/admin/tracking" },
       { label: "Send Money", path: "/admin/delivery-funds" },
       { label: "Delivery Reviews", path: "/admin/delivery-reviews" },
+      { label: "SOS History", path: "/admin/sos-history" },
     ],
   },
   { label: "Wallet", path: "/admin/wallet", icon: Wallet, color: "violet" },
@@ -221,7 +222,6 @@ const navItems = [
     color: "slate",
   },
   { label: "My Profile", path: "/admin/profile", icon: User, color: "indigo" },
-  { label: "System Settings", path: "/admin/env", icon: Terminal, color: "dark" },
 ];
 
 const BillingCharges = React.lazy(() => import("../pages/BillingCharges"));
@@ -244,6 +244,7 @@ const AdminRoutes = () => {
 
   return (
     <DashboardLayout navItems={navItemsWithBadges} title="Admin Center">
+      <SOSListener />
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/users" element={<UserManagement />} />
@@ -261,6 +262,7 @@ const AdminRoutes = () => {
         <Route path="/sellers/active" element={<ActiveSellers />} />
         <Route path="/sellers/active/:id" element={<SellerDetail />} />
         <Route path="/support-tickets" element={<SupportTickets />} />
+        <Route path="/sos-history" element={<SOSHistory />} />
         <Route path="/moderation" element={<ReviewModeration />} />
         <Route path="/experience-studio" element={<ContentManager />} />
         <Route path="/hero-categories" element={<HeroCategoriesPerPage />} />
@@ -294,7 +296,6 @@ const AdminRoutes = () => {
         <Route path="/returns" element={<Returns />} />
         <Route path="/billing" element={<BillingCharges />} />
         <Route path="/settings" element={<AdminSettings />} />
-        <Route path="/env" element={<EnvSettings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </DashboardLayout>

@@ -70,7 +70,7 @@ export const getCategories = async (req, res) => {
                 select: selectFields,
               },
             })
-            .sort({ name: 1, _id: 1 })
+            .sort({ sortOrder: 1, name: 1, _id: 1 })
             .lean();
         },
         getTTL("categories"),
@@ -106,7 +106,7 @@ export const getCategories = async (req, res) => {
       }
 
       const [items, total] = await Promise.all([
-        Category.find(query).sort({ name: 1 }).skip(skip).limit(limit).lean(),
+        Category.find(query).sort({ sortOrder: 1, name: 1 }).skip(skip).limit(limit).lean(),
         Category.countDocuments(query),
       ]);
       return handleResponse(res, 200, "Categories fetched successfully", {
@@ -125,7 +125,7 @@ export const getCategories = async (req, res) => {
     const cacheKey = categoryCacheKey({ tree: false, type: query.type || "all" });
     const categories = await getOrSet(
       cacheKey,
-      async () => Category.find(query).sort({ name: 1, _id: 1 }).lean(),
+      async () => Category.find(query).sort({ sortOrder: 1, name: 1, _id: 1 }).lean(),
       getTTL("categories"),
     );
     return handleResponse(
@@ -299,6 +299,8 @@ export const updateCategory = async (req, res) => {
   }
 };
 
+
+
 /* ===============================
    DELETE CATEGORY
  ================================ */
@@ -307,7 +309,7 @@ export const deleteCategory = async (req, res) => {
     const { id } = req.params;
 
     const deleteWithChildren = async (parentId) => {
-      const children = await Category.find({ parentId });
+      const children = await Category.find({ parentId }).select("_id").lean();
       for (const child of children) {
         await deleteWithChildren(child._id);
       }
@@ -326,5 +328,40 @@ export const deleteCategory = async (req, res) => {
     return handleResponse(res, 200, "Category and all descendants deleted");
   } catch (error) {
     return handleResponse(res, 500, error.message);
+  }
+};
+
+/* ===============================
+   BULK UPDATE CATEGORY ORDER
+ ================================ */
+export const updateCategoryOrders = async (req, res) => {
+  try {
+    const { categories } = req.body; // Array of { id, sortOrder }
+    
+    if (!Array.isArray(categories)) {
+      return handleResponse(res, 400, "Invalid data format. Expected an array of categories.");
+    }
+
+    const bulkOps = categories.map((cat) => ({
+      updateOne: {
+        filter: { _id: cat.id },
+        update: { sortOrder: cat.sortOrder }
+      }
+    }));
+
+    if (bulkOps.length > 0) {
+      await Category.bulkWrite(bulkOps);
+      invalidateCategoryName(); // Clear caches if necessary
+      
+      // Also invalidate specific category caches
+      invalidate(categoryCacheKey({ tree: true, type: "header" }));
+      invalidate(categoryCacheKey({ tree: false, type: "header" }));
+      invalidate(categoryCacheKey({ tree: false, type: "all" }));
+    }
+
+    return handleResponse(res, 200, "Category order updated successfully");
+  } catch (error) {
+    console.error("Error updating category order:", error);
+    return handleResponse(res, 500, "Server error during reorder", error.message);
   }
 };

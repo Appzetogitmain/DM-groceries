@@ -44,28 +44,8 @@ const PrivacyPage = () => {
                         </p>
 
                         <h3 className="text-slate-800 font-bold text-base mt-6">1. Information We Collect</h3>
-                        <p>
-                            We collect information you provide directly, such as your name, address, phone number, and payment details. We also collect usage data automatically.
-                        </p>
-
-                        <h3 className="text-slate-800 font-bold text-base mt-6">2. How We Use Information</h3>
-                        <p>
-                            We use your data to process orders, improve our services, and communicate with you about promotions and updates.
-                        </p>
-
-                        <h3 className="text-slate-800 font-bold text-base mt-6">3. Data Security</h3>
-                        <p>
-                            We implement industry-standard security measures to protect your data. However, no method of transmission is 100% secure.
-                        </p>
-
-                        <h3 className="text-slate-800 font-bold text-base mt-6">4. Sharing of Information</h3>
-                        <p>
-                            We do not sell your personal data. We may share data with service providers (e.g., delivery partners) as necessary to fulfill your orders.
-                        </p>
-
-                        <h3 className="text-slate-800 font-bold text-base mt-6">5. Your Rights</h3>
-                        <p>
-                            You have the right to access, correct, or delete your personal data. Contact our support team for assistance.
+                        <p className="whitespace-pre-wrap">
+                            {settings?.privacyPolicy || "We collect information you provide directly, such as your name, address, phone number, and payment details. We also collect usage data automatically."}
                         </p>
                     </div>
                 </div>

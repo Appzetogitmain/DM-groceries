@@ -1,53 +1,87 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileCheck, UploadCloud, XCircle, Clock } from "lucide-react";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { toast } from "sonner";
+import { deliveryApi } from "../../services/deliveryApi";
 
 const Documents = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [activeUploadId, setActiveUploadId] = useState(null);
 
   const [docs, setDocs] = useState([
-    {
-      id: 1,
-      title: "Aadhar Card",
-      status: "Verified",
-      uploadedOn: "12 Jan 2024",
-      fileName: "aadhar_front_back.pdf",
-    },
-    {
-      id: 2,
-      title: "PAN Card",
-      status: "Verified",
-      uploadedOn: "12 Jan 2024",
-      fileName: "pan_card.jpg",
-    },
-    {
-      id: 3,
-      title: "Driving License",
-      status: "Verified",
-      uploadedOn: "15 Jan 2024",
-      fileName: "dl_front.jpg",
-    },
-    {
-      id: 4,
-      title: "Police Clearance",
-      status: "Pending",
-      uploadedOn: "20 Feb 2024",
-      fileName: "pcc_receipt.pdf",
-    },
-    {
-      id: 5,
-      title: "Bank Passbook",
-      status: "Rejected",
-      reason: "Image blurry, please re-upload",
-      fileName: null,
-    },
+    { id: "aadhar", title: "Aadhar Card", status: "Pending", fileName: null, url: null },
+    { id: "pan", title: "PAN Card", status: "Pending", fileName: null, url: null },
+    { id: "drivingLicense", title: "Driving License", status: "Pending", fileName: null, url: null },
+    { id: "policeClearance", title: "Police Clearance", status: "Pending", fileName: null, url: null },
+    { id: "bankPassbook", title: "Bank Passbook", status: "Pending", fileName: null, url: null },
   ]);
 
-  const handleUpload = (id) => {
-    toast.info("Upload functionality would open file picker here");
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const res = await deliveryApi.getProfile();
+      const profile = res.data.result;
+      
+      if (profile && profile.documents) {
+        setDocs(prevDocs => prevDocs.map(doc => {
+          const docUrl = profile.documents[doc.id];
+          if (docUrl) {
+            // Extract filename from URL or use a generic name
+            const fileName = docUrl.split('/').pop() || `${doc.title} Document`;
+            return {
+              ...doc,
+              fileName: fileName,
+              url: docUrl,
+              status: "Verified", // Assuming verified if it exists, since we don't have per-doc status in schema yet
+            };
+          }
+          return doc;
+        }));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to fetch documents");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadClick = (id) => {
+    setActiveUploadId(id);
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !activeUploadId) return;
+
+    try {
+      const formData = new FormData();
+      formData.append(activeUploadId, file);
+
+      toast.loading(`Uploading ${activeUploadId}...`, { id: "upload-doc" });
+      await deliveryApi.updateProfile(formData);
+      toast.success("Document updated successfully", { id: "upload-doc" });
+      
+      // Refresh docs
+      fetchProfile();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to upload document", { id: "upload-doc" });
+    } finally {
+      setActiveUploadId(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""; // Reset input
+      }
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -90,9 +124,18 @@ const Documents = () => {
         <h1 className="text-sm font-black leading-tight tracking-tight">My Documents</h1>
       </div>
 
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        onChange={handleFileChange} 
+        accept="image/*,.pdf" 
+      />
+
       {/* Main Content Area overlapping with rounded corners */}
       <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-4 space-y-3 relative z-10">
-        {docs.map((doc) => (
+        {loading && <div className="text-center py-4 text-sm text-gray-500">Loading documents...</div>}
+        {!loading && docs.map((doc) => (
           <Card key={doc.id} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-1.5">
               <h4 className="font-bold text-gray-800 text-xs">{doc.title}</h4>
@@ -102,8 +145,12 @@ const Documents = () => {
             {doc.fileName && (
               <p className="text-[10px] text-gray-400 mb-2.5 flex items-center">
                 <span className="truncate max-w-[200px] font-medium">{doc.fileName}</span>
-                <span className="mx-1.5">•</span>
-                <span className="font-medium">{doc.uploadedOn}</span>
+                {doc.uploadedOn && (
+                  <>
+                    <span className="mx-1.5">•</span>
+                    <span className="font-medium">{doc.uploadedOn}</span>
+                  </>
+                )}
               </p>
             )}
 
@@ -114,22 +161,22 @@ const Documents = () => {
             )}
 
             <div className="flex space-x-2">
-              {doc.status !== "Verified" && (
-                <Button 
-                  size="sm" 
-                  className="w-full text-[10px] h-7 bg-[#1A4516] hover:bg-[#153b12] text-white border-none rounded-lg font-bold flex justify-center items-center gap-1" 
-                  onClick={() => handleUpload(doc.id)}
-                >
-                  <UploadCloud size={12} /> 
-                  {doc.status === "Rejected" ? "Re-upload" : "Update"}
-                </Button>
-              )}
-              {doc.fileName && (
+              <Button 
+                size="sm" 
+                className="w-full text-[10px] h-7 bg-[#1A4516] hover:bg-[#153b12] text-white border-none rounded-lg font-bold flex justify-center items-center gap-1" 
+                onClick={() => handleUploadClick(doc.id)}
+                disabled={activeUploadId !== null}
+              >
+                <UploadCloud size={12} /> 
+                {doc.status === "Rejected" ? "Re-upload" : "Update"}
+              </Button>
+              
+              {doc.url && (
                 <Button 
                   variant="outline" 
                   size="sm" 
                   className="w-full text-[10px] h-7 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg font-bold"
-                  onClick={() => toast.success("Downloading document...")}
+                  onClick={() => window.open(doc.url, "_blank")}
                 >
                   View File
                 </Button>
