@@ -14,6 +14,24 @@ const orderSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    orderType: {
+      type: String,
+      enum: ["ONLINE", "POS"],
+      default: "ONLINE",
+      index: true,
+    },
+    posMetadata: {
+      walkInCustomerName: String,
+      walkInCustomerPhone: String,
+      cashReceived: { type: Number, default: 0 },
+      changeReturned: { type: Number, default: 0 },
+      onlineAmountPaid: { type: Number, default: 0 },
+      receiptNumber: String,
+      billedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Seller",
+      },
+    },
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -162,7 +180,7 @@ const orderSchema = new mongoose.Schema(
       },
       createdFrom: {
         type: String,
-        enum: ["DIRECT_ITEMS", "CART"],
+        enum: ["DIRECT_ITEMS", "CART", "POS"],
         default: "DIRECT_ITEMS",
       },
     },

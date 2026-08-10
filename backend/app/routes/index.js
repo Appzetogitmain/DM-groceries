@@ -26,6 +26,7 @@ import authOtpRoute from "../modules/otp/otp.routes.js";
 import milestoneCampaignRoute from "./milestoneCampaignRoutes.js";
 import customerMilestoneRoute from "./customerMilestoneRoutes.js";
 import sosRoute from "./sosRoutes.js";
+import posRoute from "./posRoutes.js";
 
 import express from "express";
 
@@ -54,6 +55,7 @@ const setupRoutes = (app) => {
     router.use("/wishlist", wishlistRoute);
     router.use("/orders", orderRoute);
     router.use("/payments", paymentRoute);
+    router.use("/pos", posRoute);
     router.use("/maps", mapsRoute);
     router.use("/media", mediaRoute);
     // experienceRoute, offerRoute, couponRoute are mounted at "/" intentionally:
