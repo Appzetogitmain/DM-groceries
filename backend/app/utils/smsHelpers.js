@@ -27,7 +27,7 @@ export function buildMessage(otp) {
   const minutes = parseInt(process.env.OTP_EXPIRY_MINUTES || "5", 10);
   const template = String(
     process.env.SMS_INDIA_HUB_TEMPLATE_TEXT ||
-      "Your OTP is {{OTP}}. Valid for {{MINUTES}} minutes.",
+    "Welcome to the ##var## powered by Appzeto.Your OTP for registration is ##var##.BGADEC",
   );
   const appName = String(process.env.APP_NAME || "Noyo").trim();
 
