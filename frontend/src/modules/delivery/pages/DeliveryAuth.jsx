@@ -108,6 +108,31 @@ const DeliveryAuth = () => {
     setAadharFile(file || null);
   };
 
+  const handleCameraCapture = async (e, onFileCaptured) => {
+    if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+      e.preventDefault();
+      try {
+        const response = await window.flutter_inappwebview.callHandler("openCamera");
+        if (response && response.success) {
+          const byteString = atob(response.base64);
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([ab], { type: response.mimeType });
+          const file = new File([blob], response.fileName || "camera_image.jpg", {
+            type: response.mimeType,
+          });
+          onFileCaptured(file);
+        }
+      } catch (error) {
+        console.error("Camera handler error:", error);
+        toast.error("Failed to open camera");
+      }
+    }
+  };
+
   const handleSendOtp = async () => {
     try {
       setLoading(true);
@@ -327,6 +352,14 @@ const DeliveryAuth = () => {
                               />
                               <label
                                 htmlFor="profile-upload"
+                                onClick={(e) => {
+                                  if (window.flutter_inappwebview) {
+                                    handleCameraCapture(e, (file) => {
+                                      setProfileImageFile(file);
+                                      setProfileImagePreview(URL.createObjectURL(file));
+                                    });
+                                  }
+                                }}
                                 className="absolute -bottom-2 -right-2 p-2.5 bg-brand-600 text-primary-foreground rounded-2xl shadow-lg shadow-brand-200 cursor-pointer hover:bg-brand-700 hover:scale-110 active:scale-95 transition-all"
                               >
                                 <Camera className="w-4 h-4" />
@@ -626,6 +659,16 @@ const DeliveryAuth = () => {
                                 />
                                 <label
                                   htmlFor={doc.id}
+                                  onClick={(e) => {
+                                    if (window.flutter_inappwebview) {
+                                      handleCameraCapture(e, (file) => {
+                                        if (doc.id === "dl") handleDLUpload(file);
+                                        else if (doc.id === "pan") handlePanUpload(file);
+                                        else if (doc.id === "aadhar") handleAadharUpload(file);
+                                        else doc.setter(file);
+                                      });
+                                    }
+                                  }}
                                   className={`flex items-center justify-between p-4 rounded-2xl border-2 border-dashed transition-all cursor-pointer ${doc.state
                                     ? "border-brand-200 bg-brand-50/50"
                                     : "border-gray-100 bg-gray-50 hover:border-brand-200 hover:bg-brand-50/30"
