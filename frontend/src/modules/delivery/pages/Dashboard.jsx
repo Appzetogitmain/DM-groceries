@@ -218,7 +218,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+    <div className="bg-white min-h-screen pb-28 relative font-sans">
       
       {/* Deep Green Header Banner */}
       <div className="bg-[#1A4516] text-white pt-3 pb-10 px-6 relative">

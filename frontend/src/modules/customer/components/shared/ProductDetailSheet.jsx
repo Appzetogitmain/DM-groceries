@@ -882,7 +882,6 @@ const ProductDetailSheet = () => {
                                                 src={applyCloudinaryTransform(img, "f_auto,q_auto:best,w_1200,dpr_auto")}
                                                 alt={`${selectedProduct.name} ${i + 1}`}
                                                 className="w-full h-full object-contain mix-blend-multiply drop-shadow-xl"
-                                                style={{ objectPosition: 'center calc(50% - 40px)' }}
                                             />
                                         </div>
                                     ))}

@@ -458,8 +458,34 @@ const MainLocationHeader = ({
             </motion.div>
           </div>
 
-
-
+          {/* Categories Navigation (Desktop & Mobile) */}
+          <motion.div
+            style={{
+              height: navHeight,
+              opacity: navOpacity,
+              marginTop: categorySpacing,
+              display: displayNav,
+            }}
+            className="relative z-10 mx-[-16px] px-2"
+          >
+            <div className="flex h-full items-end gap-1 overflow-x-auto pb-0.5 scrollbar-hide snap-x md:gap-3 md:px-4">
+              {categories.map((cat) => (
+                <CategoryNavColumn
+                  key={cat.id || cat._id}
+                  cat={cat}
+                  isActive={
+                    activeCategory &&
+                    (activeCategory.id === cat.id ||
+                      activeCategory._id === cat._id)
+                  }
+                  categoryAccent={categoryAccent}
+                  onCategorySelect={onCategorySelect}
+                  headerFontColor={headerFontColor}
+                  headerIconColor={headerIconColor}
+                />
+              ))}
+            </div>
+          </motion.div>
           {/* Background Decorative patterns */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none" />
         </motion.div>
