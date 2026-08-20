@@ -33,6 +33,19 @@ const ProfilePage = () => {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+            try {
+                await customerApi.deleteAccount();
+                toast.success("Account deleted successfully.");
+                logout();
+            } catch (error) {
+                toast.error("Failed to delete account.");
+                console.error("Delete account error:", error);
+            }
+        }
+    };
+
     return (
         <div className="min-h-screen bg-white font-sans pb-20">
             {/* Top Green Header */}
@@ -74,6 +87,7 @@ const ProfilePage = () => {
                         <MenuItem icon={HelpCircle} label="Help & Support" path="/support" />
                         <MenuItem icon={Settings} label="Settings" path="/settings" />
                         <MenuItem icon={Bell} label="Test Push Notification" onClick={handleTestPushNotification} />
+                        <MenuItem icon={LogOut} label="Delete Account" onClick={handleDeleteAccount} />
                         <MenuItem icon={LogOut} label="Logout" onClick={logout} />
                     </div>
                 

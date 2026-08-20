@@ -110,6 +110,11 @@ const deliverySchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        
+        isDeleted: {
+            type: Boolean,
+            default: false,
+        },
         location: {
             type: {
                 type: String,

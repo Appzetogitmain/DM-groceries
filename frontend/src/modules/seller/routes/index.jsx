@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import DashboardLayout from "@shared/layout/DashboardLayout";
 import { setActiveRole, ROLES } from "@core/auth/activeRoleStore";
 import Orders from "../pages/Orders";
@@ -32,6 +32,8 @@ const Profile = React.lazy(() => import("../pages/Profile"));
 const Withdrawals = React.lazy(() => import("../pages/Withdrawals"));
 const POS = React.lazy(() => import("../pages/POS"));
 const PosSalesHistory = React.lazy(() => import("../pages/PosSalesHistory"));
+const TermsPage = React.lazy(() => import("../pages/TermsPage"));
+const PrivacyPage = React.lazy(() => import("../pages/PrivacyPage"));
 
 const navItems = [
   { label: "Dashboard", path: "/seller", icon: HiOutlineSquares2X2, end: true },
@@ -69,6 +71,18 @@ const SellerRoutes = () => {
   useEffect(() => {
     setActiveRole(ROLES.SELLER);
   }, []);
+
+  const location = useLocation();
+  const isPublicPage = location.pathname === '/seller/terms' || location.pathname === '/seller/privacy';
+
+  if (isPublicPage) {
+    return (
+      <Routes>
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+      </Routes>
+    );
+  }
 
   return (
     <DashboardLayout navItems={navItems} title="Seller Panel">

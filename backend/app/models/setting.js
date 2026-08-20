@@ -56,6 +56,22 @@ const settingSchema = new mongoose.Schema(
             type: String,
             default: "Your privacy is important to us. This privacy policy explains how we collect and use your data."
         },
+        deliveryTermsConditions: {
+            type: String,
+            default: "Welcome to the Delivery Partner app. By continuing, you agree to our terms and conditions."
+        },
+        deliveryPrivacyPolicy: {
+            type: String,
+            default: "Your privacy is important to us. This privacy policy explains how we collect and use your data for delivery partners."
+        },
+        sellerTermsConditions: {
+            type: String,
+            default: "Welcome to the Seller app. By continuing, you agree to our terms and conditions."
+        },
+        sellerPrivacyPolicy: {
+            type: String,
+            default: "Your privacy is important to us. This privacy policy explains how we collect and use your data for sellers."
+        },
 
         // Social
         facebook: String,

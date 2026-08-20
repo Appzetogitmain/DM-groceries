@@ -14,6 +14,11 @@ const ProtectedRoute = ({ children }) => {
         );
     }
 
+    const publicPaths = ['/delivery/terms', '/delivery/privacy', '/seller/terms', '/seller/privacy'];
+    if (publicPaths.includes(location.pathname)) {
+        return <>{children}</>;
+    }
+
     if (!isAuthenticated) {
         if (location.pathname.startsWith('/admin')) {
             return <Navigate to="/admin/auth" state={{ from: location }} replace />;

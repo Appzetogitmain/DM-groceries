@@ -1027,6 +1027,13 @@ const Auth = () => {
                     </button>
                   </p>
                 )}
+                
+                <p className="text-center text-[10px] text-slate-400 font-semibold mt-1">
+                  By joining, you agree to our{" "}
+                  <span onClick={() => navigate('/seller/terms')} className="text-[#1A4516] font-bold cursor-pointer hover:underline">Terms</span>{" "}
+                  &amp;{" "}
+                  <span onClick={() => navigate('/seller/privacy')} className="text-[#1A4516] font-bold cursor-pointer hover:underline">Privacy Policy</span>
+                </p>
               </div>
             </motion.div>
           </AnimatePresence>

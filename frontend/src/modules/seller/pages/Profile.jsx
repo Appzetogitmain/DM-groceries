@@ -838,14 +838,16 @@ const SellerProfile = () => {
       {/* ==================== SEVENTH ROW (Quick Actions) ==================== */}
       <div className="space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Quick Actions Dashboard</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
           {[
             { label: "Manage Products", icon: Award, path: "/seller/products" },
             { label: "Manage Orders", icon: ShoppingBag, path: "/seller/orders" },
             { label: "Wallet", icon: Wallet, path: "/seller/withdrawals" },
             { label: "Membership", icon: Zap, path: "#" },
+            { label: "Reports", icon: BarChart3, path: "/seller/analytics" },
             { label: "Support", icon: HelpCircle, path: "#" },
-            { label: "Reports", icon: BarChart3, path: "/seller/analytics" }
+            { label: "Terms", icon: FileText, path: "/seller/terms" },
+            { label: "Privacy", icon: Shield, path: "/seller/privacy" }
           ].map((act, idx) => (
             <motion.a
               href={act.path}

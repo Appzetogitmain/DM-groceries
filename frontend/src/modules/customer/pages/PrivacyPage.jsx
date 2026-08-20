@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronLeft, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '@core/context/SettingsContext';
+import ReactMarkdown from 'react-markdown';
 
 const PrivacyPage = () => {
     const navigate = useNavigate();
@@ -39,14 +40,15 @@ const PrivacyPage = () => {
                     </div>
 
                     <div className="prose prose-slate prose-sm max-w-none text-slate-600 space-y-4">
-                        <p>
-                            At {appName}, we take your privacy seriously. This Privacy Policy explains how we collect, use, and protect your personal information.
-                        </p>
-
-                        <h3 className="text-slate-800 font-bold text-base mt-6">1. Information We Collect</h3>
-                        <p className="whitespace-pre-wrap">
-                            {settings?.privacyPolicy || "We collect information you provide directly, such as your name, address, phone number, and payment details. We also collect usage data automatically."}
-                        </p>
+                        <div className="markdown-body text-sm text-slate-600 space-y-4">
+                            {settings?.privacyPolicy ? (
+                                <ReactMarkdown>
+                                    {settings.privacyPolicy}
+                                </ReactMarkdown>
+                            ) : (
+                                <p>We collect information you provide directly, such as your name, address, phone number, and payment details. We also collect usage data automatically.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

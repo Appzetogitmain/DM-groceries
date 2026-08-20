@@ -114,6 +114,12 @@ export async function issueCustomerOtp({
     "+otpHash +otpExpiresAt +otpFailedAttempts +otpLockedUntil +otpLastSentAt +otpSessionVersion +otp +otpExpiry",
   );
 
+  if (flow === "login" && customer && customer.isDeleted) {
+    const err = new Error("Account has been deleted. Please contact support.");
+    err.statusCode = 403;
+    throw err;
+  }
+
   if (flow === "login" && (!customer || !customer.isVerified)) {
     if (useRealSMS()) {
       otpAuditLog("customer_otp_login_generic_response", {

@@ -25,6 +25,10 @@ const ALLOWED_KEYS = [
   "address",
   "termsConditions",
   "privacyPolicy",
+  "deliveryTermsConditions",
+  "deliveryPrivacyPolicy",
+  "sellerTermsConditions",
+  "sellerPrivacyPolicy",
   "facebook",
   "twitter",
   "instagram",
@@ -98,6 +102,10 @@ const updateSettingsSchema = Joi.object({
   address: Joi.string().allow("").max(500),
   termsConditions: Joi.string().allow("").empty("").default(""),
   privacyPolicy: Joi.string().allow("").empty("").default(""),
+  deliveryTermsConditions: Joi.string().allow("").empty("").default(""),
+  deliveryPrivacyPolicy: Joi.string().allow("").empty("").default(""),
+  sellerTermsConditions: Joi.string().allow("").empty("").default(""),
+  sellerPrivacyPolicy: Joi.string().allow("").empty("").default(""),
   facebook: Joi.string().allow("").max(500),
   twitter: Joi.string().allow("").max(500),
   instagram: Joi.string().allow("").max(500),
@@ -155,7 +163,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval createdAt",
+            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy deliveryTermsConditions deliveryPrivacyPolicy sellerTermsConditions sellerPrivacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval createdAt",
           )
           .lean();
         return existing || null;

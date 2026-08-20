@@ -22,6 +22,7 @@ import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { useAuth } from "@core/context/AuthContext";
 import { useSettings } from "@core/context/SettingsContext";
+import { toast } from "sonner";
 import axiosInstance from '@core/api/axios';
 import { useEffect } from 'react';
 import { deliveryApi } from "../services/deliveryApi";
@@ -56,6 +57,19 @@ const Profile = () => {
     fetchFaqs();
     fetchStats();
   }, []);
+
+  const handleDeleteAccount = async () => {
+    if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      try {
+        await deliveryApi.deleteAccount();
+        toast.success("Account deleted successfully.");
+        logout();
+      } catch (error) {
+        toast.error("Failed to delete account.");
+        console.error("Delete account error:", error);
+      }
+    }
+  };
 
   const menuItems = [
     {
@@ -120,6 +134,20 @@ const Profile = () => {
       sub: "FAQs, Chat support",
       color: "text-teal-600 bg-teal-50",
       path: "/delivery/profile/help-support",
+    },
+    {
+      icon: FileText,
+      label: "Terms & Conditions",
+      sub: "Read our terms of service",
+      color: "text-blue-600 bg-blue-50",
+      path: "/delivery/terms",
+    },
+    {
+      icon: Shield,
+      label: "Privacy Policy",
+      sub: "How we protect your data",
+      color: "text-emerald-600 bg-emerald-50",
+      path: "/delivery/privacy",
     },
   ];
 
@@ -261,11 +289,17 @@ const Profile = () => {
           </div>
         </div>
 
-        <motion.div variants={itemVariants} className="pt-4">
+        <motion.div variants={itemVariants} className="pt-4 space-y-3">
+          <Button
+            onClick={handleDeleteAccount}
+            variant="outline"
+            className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 py-6">
+            <LogOut size={20} className="mr-2" /> Delete Account
+          </Button>
           <Button
             onClick={logout}
             variant="outline"
-            className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 py-6">
+            className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 py-6">
             <LogOut size={20} className="mr-2" /> Logout
           </Button>
         </motion.div>

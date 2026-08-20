@@ -214,3 +214,23 @@ export const requestWalletWithdrawal = async (req, res) => {
         return handleResponse(res, 500, error.message);
     }
 };
+
+/* ===============================
+   DELETE ACCOUNT
+================================ */
+export const deleteCustomerAccount = async (req, res) => {
+    try {
+        const customer = await Customer.findById(req.user.id);
+        if (!customer) {
+            return handleResponse(res, 404, "Customer not found");
+        }
+
+        customer.isDeleted = true;
+        customer.isActive = false; // optional, but good for soft delete
+        await customer.save();
+
+        return handleResponse(res, 200, "Account deleted successfully");
+    } catch (error) {
+        return handleResponse(res, 500, error.message);
+    }
+};

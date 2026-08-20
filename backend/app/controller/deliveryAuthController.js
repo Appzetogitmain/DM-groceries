@@ -129,6 +129,9 @@ export const loginDelivery = async (req, res) => {
         if (!delivery) {
             return handleResponse(res, 404, "Delivery partner not found");
         }
+        if (delivery.isDeleted) {
+            return handleResponse(res, 403, "Account has been deleted. Please contact support.");
+        }
         if (!delivery.isVerified) {
             return handleResponse(res, 403, "Your application is still pending admin approval");
         }
@@ -294,6 +297,28 @@ export const updateDeliveryProfile = async (req, res) => {
         }
 
         return handleResponse(res, 200, "Profile updated successfully", delivery);
+    } catch (error) {
+        return handleResponse(res, 500, error.message);
+    }
+};
+
+/* ===============================
+   DELETE ACCOUNT
+================================ */
+export const deleteDeliveryAccount = async (req, res) => {
+    try {
+        const delivery = await Delivery.findById(req.user.id);
+        if (!delivery) {
+            return handleResponse(res, 404, "Delivery partner not found");
+        }
+
+        delivery.isDeleted = true;
+        delivery.isOnline = false;
+        await delivery.save();
+
+        clearRiderPresence(String(delivery._id)).catch(() => { });
+
+        return handleResponse(res, 200, "Account deleted successfully");
     } catch (error) {
         return handleResponse(res, 500, error.message);
     }

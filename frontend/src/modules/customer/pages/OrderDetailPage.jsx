@@ -1034,51 +1034,7 @@ const OrderDetailPage = () => {
           initialOtpData={order?.activeDeliveryOtp || null}
         />
 
-        {/* Delivery Partner Card - Redesigned */}
-        {(status?.startsWith("return_") ? order.returnDeliveryBoy : order.deliveryBoy) && status !== "delivered" && status !== "cancelled" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-[#1A4516] to-[#0a3000] rounded-3xl p-3.5 shadow-lg text-white"
-          >
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm overflow-hidden border-2 border-white/40 shadow-lg">
-                  <img
-                    src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&auto=format&fit=crop&q=60"
-                    alt="Rider"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-1 -right-1 bg-white text-[#1A4516] text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-md">
-                  4.8 ★
-                </div>
-              </div>
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-white/80 uppercase tracking-wider">Your Courier</p>
-                <h3 className="font-bold text-white text-lg">
-                  {(status?.startsWith("return_") ? order.returnDeliveryBoy?.name : order.deliveryBoy?.name) || "Delivery Partner"}
-                </h3>
-                <p className="text-xs text-white/90 mt-0.5">
-                  On the way to you{
-                    (status?.startsWith("return_") ? order.returnDeliveryBoy?.vehicle?.plateNumber : order.deliveryBoy?.vehicle?.plateNumber) 
-                      ? ` • ${status?.startsWith("return_") ? order.returnDeliveryBoy.vehicle.plateNumber : order.deliveryBoy.vehicle.plateNumber}` 
-                      : ""
-                  }
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="h-11 w-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors border border-white/30">
-                  <MessageSquare size={20} className="text-white" />
-                </button>
-                <button className="h-11 w-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors border border-white/30">
-                  <Phone size={20} className="text-white" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
+
 
         {/* Pickup Location Card - Redesigned */}
         <motion.div

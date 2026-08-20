@@ -8,19 +8,13 @@ const TermsPage = () => {
     const navigate = useNavigate();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
-    const companyName = settings?.companyName || appName;
+    
     return (
         <div className="min-h-screen bg-slate-50 font-sans pb-10">
             {/* Header */}
             <div className="bg-white sticky top-0 z-30 px-4 py-3 flex items-center gap-1 shadow-sm">
                 <button
-                    onClick={() => {
-                        if (window.history.state && window.history.state.idx > 0) {
-                            navigate(-1);
-                        } else {
-                            navigate('/');
-                        }
-                    }}
+                    onClick={() => navigate(-1)}
                     className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors"
                 >
                     <ChevronLeft size={24} className="text-slate-600" />
@@ -35,19 +29,18 @@ const TermsPage = () => {
                             <ScrollText size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800">Terms of Use</h2>
-                            <p className="text-xs text-slate-500 font-medium">Last updated: Oct 2025</p>
+                            <h2 className="text-xl font-bold text-slate-800">Terms of Use (Seller)</h2>
                         </div>
                     </div>
 
                     <div className="prose prose-slate prose-sm max-w-none text-slate-600 space-y-4">
                         <div className="markdown-body text-sm text-slate-600 space-y-4">
-                            {settings?.termsConditions ? (
+                            {settings?.sellerTermsConditions ? (
                                 <ReactMarkdown>
-                                    {settings.termsConditions}
+                                    {settings.sellerTermsConditions}
                                 </ReactMarkdown>
                             ) : (
-                                <p>By creating an account or using our services, you agree to comply with these terms. If you do not agree, you may not use our services.</p>
+                                <p>By creating a seller account or using our platform, you agree to comply with these terms. If you do not agree, you may not sell on our platform.</p>
                             )}
                         </div>
                     </div>
@@ -58,4 +51,3 @@ const TermsPage = () => {
 };
 
 export default TermsPage;
-

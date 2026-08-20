@@ -22,6 +22,8 @@ import HelpSupport from "../pages/profile/HelpSupport";
 import Withdrawals from "../pages/profile/Withdrawals";
 import Notifications from "../pages/Notifications";
 import ReviewsPage from "../pages/ReviewsPage";
+import TermsPage from "../pages/TermsPage";
+import PrivacyPage from "../pages/PrivacyPage";
 
 const DeliveryRoutes = () => {
   useEffect(() => {
@@ -52,6 +54,8 @@ const DeliveryRoutes = () => {
         <Route path="profile/withdrawals" element={<Withdrawals />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="reviews" element={<ReviewsPage />} />
+        <Route path="terms" element={<TermsPage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
         <Route path="/" element={<Navigate to="dashboard" replace />} />
       </Route>
     </Routes>

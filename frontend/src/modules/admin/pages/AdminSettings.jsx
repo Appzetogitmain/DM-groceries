@@ -61,6 +61,10 @@ const AdminSettings = () => {
         address: '',
         termsConditions: '',
         privacyPolicy: '',
+        deliveryTermsConditions: '',
+        deliveryPrivacyPolicy: '',
+        sellerTermsConditions: '',
+        sellerPrivacyPolicy: '',
         facebook: '',
         twitter: '',
         instagram: '',
@@ -587,27 +591,86 @@ const AdminSettings = () => {
                                         />
                                     </div>
                                 </div>
+                                <div className="space-y-3 pt-6 mt-6 border-t border-slate-100">
+                                    <h4 className="text-sm font-bold text-slate-900">Customer Legal Documents</h4>
+                                </div>
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Terms & Conditions</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Terms & Conditions</label>
                                     <div className="relative group">
                                         <textarea
-                                            rows={8}
+                                            rows={6}
                                             value={settings.termsConditions}
                                             onChange={(e) => handleInputChange('termsConditions', e.target.value)}
                                             className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
-                                            placeholder="Enter your terms and conditions..."
+                                            placeholder="Enter your customer terms and conditions..."
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Privacy Policy</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Privacy Policy</label>
                                     <div className="relative group">
                                         <textarea
-                                            rows={8}
+                                            rows={6}
                                             value={settings.privacyPolicy}
                                             onChange={(e) => handleInputChange('privacyPolicy', e.target.value)}
                                             className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
-                                            placeholder="Enter your privacy policy..."
+                                            placeholder="Enter your customer privacy policy..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-6 mt-6 border-t border-slate-100">
+                                    <h4 className="text-sm font-bold text-slate-900">Delivery Partner Legal Documents</h4>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delivery Terms & Conditions</label>
+                                    <div className="relative group">
+                                        <textarea
+                                            rows={6}
+                                            value={settings.deliveryTermsConditions}
+                                            onChange={(e) => handleInputChange('deliveryTermsConditions', e.target.value)}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
+                                            placeholder="Enter delivery partner terms and conditions..."
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delivery Privacy Policy</label>
+                                    <div className="relative group">
+                                        <textarea
+                                            rows={6}
+                                            value={settings.deliveryPrivacyPolicy}
+                                            onChange={(e) => handleInputChange('deliveryPrivacyPolicy', e.target.value)}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
+                                            placeholder="Enter delivery partner privacy policy..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-6 mt-6 border-t border-slate-100">
+                                    <h4 className="text-sm font-bold text-slate-900">Seller Legal Documents</h4>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Seller Terms & Conditions</label>
+                                    <div className="relative group">
+                                        <textarea
+                                            rows={6}
+                                            value={settings.sellerTermsConditions}
+                                            onChange={(e) => handleInputChange('sellerTermsConditions', e.target.value)}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
+                                            placeholder="Enter seller terms and conditions..."
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Seller Privacy Policy</label>
+                                    <div className="relative group">
+                                        <textarea
+                                            rows={6}
+                                            value={settings.sellerPrivacyPolicy}
+                                            onChange={(e) => handleInputChange('sellerPrivacyPolicy', e.target.value)}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all resize-none"
+                                            placeholder="Enter seller privacy policy..."
                                         />
                                     </div>
                                 </div>
