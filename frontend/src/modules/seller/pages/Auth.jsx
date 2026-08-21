@@ -613,28 +613,33 @@ const Auth = () => {
                     </div>
 
                     {!isLogin && verifications.email.isOtpVisible && verifications.email.status !== "verified" && (
-                      <div className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={4}
-                          placeholder="Enter email OTP"
-                          value={verifications.email.otp}
-                          onChange={(e) =>
-                            updateVerificationState("email", {
-                              otp: e.target.value.replace(/\D/g, "").slice(0, 4),
-                            })
-                          }
-                          className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleVerifyOtp("email")}
-                          disabled={verifications.email.isVerifying || verifications.email.otp.length !== 4}
-                          className="rounded-md bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
-                        >
-                          {verifications.email.isVerifying ? "Checking..." : "Confirm OTP"}
-                        </button>
+                      <div className="flex flex-col gap-1.5 mt-2">
+                        <div className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={4}
+                            placeholder="Enter email OTP"
+                            value={verifications.email.otp}
+                            onChange={(e) =>
+                              updateVerificationState("email", {
+                                otp: e.target.value.replace(/\D/g, "").slice(0, 4),
+                              })
+                            }
+                            className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleVerifyOtp("email")}
+                            disabled={verifications.email.isVerifying || verifications.email.otp.length !== 4}
+                            className="rounded-md bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            {verifications.email.isVerifying ? "Checking..." : "Confirm OTP"}
+                          </button>
+                        </div>
+                        <p className="text-[9.5px] text-slate-400 ml-1 leading-tight">
+                          If you don't see the email, please check your <strong className="text-slate-500">Spam or Junk</strong> folder.
+                        </p>
                       </div>
                     )}
                     {!isLogin && verifications.email.status === "verified" && (
@@ -749,6 +754,7 @@ const Auth = () => {
                             <input
                               type="date"
                               name="dob"
+                              max={new Date().toISOString().split("T")[0]}
                               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                               value={formData.dob}
                               onChange={handleChange}
