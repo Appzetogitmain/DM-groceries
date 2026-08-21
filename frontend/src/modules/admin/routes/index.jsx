@@ -89,9 +89,7 @@ const OffersManagement = React.lazy(
 const OfferSectionsManagement = React.lazy(
   () => import("../pages/OfferSectionsManagement"),
 );
-const ShopByStoreManagement = React.lazy(
-  () => import("../pages/ShopByStoreManagement"),
-);
+
 const AdminSettings = React.lazy(() => import("../pages/AdminSettings"));
 const AdminProfile = React.lazy(() => import("../pages/AdminProfile"));
 const BirthdayCenter = React.lazy(() => import("../pages/BirthdayCenter"));
@@ -129,7 +127,7 @@ const navItems = [
       { label: "Send Notifications", path: "/admin/notifications" },
       { label: "Coupons & Promos", path: "/admin/coupons" },
       { label: "Offer Sections", path: "/admin/offer-sections" },
-      { label: "Shop by Store", path: "/admin/shop-by-store" },
+
       { label: "Milestone Coupons", path: "/admin/marketing/milestones" },
     ],
   },
@@ -269,7 +267,7 @@ const AdminRoutes = () => {
         <Route path="/notifications" element={<NotificationComposer />} />
         <Route path="/offers" element={<OffersManagement />} />
         <Route path="/offer-sections" element={<OfferSectionsManagement />} />
-        <Route path="/shop-by-store" element={<ShopByStoreManagement />} />
+
         <Route path="/coupons" element={<CouponManagement />} />
         <Route path="/marketing/milestones" element={<MilestoneCampaigns />} />
         <Route path="/marketing/milestones/create" element={<CreateMilestoneCampaign />} />

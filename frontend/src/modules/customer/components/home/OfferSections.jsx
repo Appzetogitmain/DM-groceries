@@ -99,12 +99,6 @@ const OfferSections = ({ sections, noServiceData }) => {
                     </div>
                   )}
 
-                  <div className="relative z-10 flex items-center justify-center h-full">
-                    <Sparkles
-                      className="text-amber-200 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]"
-                      size={30}
-                    />
-                  </div>
                 </div>
               </div>
               <div className="px-4 pt-4 md:px-5 md:pt-5 pb-1">

@@ -662,22 +662,29 @@ const ContentManager = () => {
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <select
                                                         value={item.linkType || 'none'}
-                                                        onChange={(e) => updateBannerItem(idx, { linkType: e.target.value })}
+                                                        onChange={(e) => updateBannerItem(idx, { linkType: e.target.value, linkValue: '' })}
                                                         className="w-full p-2.5 bg-slate-50 rounded-xl text-xs font-black outline-none"
                                                     >
                                                         <option value="none">No link</option>
-                                                        <option value="header">Header</option>
                                                         <option value="category">Category</option>
                                                         <option value="subcategory">Subcategory</option>
                                                         <option value="product">Product</option>
                                                         <option value="url">External URL</option>
                                                     </select>
-                                                    <input
-                                                        value={item.linkValue || ''}
-                                                        onChange={(e) => updateBannerItem(idx, { linkValue: e.target.value })}
-                                                        className="w-full p-2.5 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none"
-                                                        placeholder={item.linkType === 'url' ? "https://..." : "Slug / ID"}
-                                                    />
+                                                    {item.linkType && item.linkType !== 'none' && (
+                                                        <input
+                                                            value={item.linkValue || ''}
+                                                            onChange={(e) => updateBannerItem(idx, { linkValue: e.target.value })}
+                                                            className="w-full p-2.5 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none"
+                                                            placeholder={
+                                                                item.linkType === 'product' ? "/product/product-id" :
+                                                                item.linkType === 'category' ? "/category/category-name" :
+                                                                item.linkType === 'subcategory' ? "/category/subcategory-name" :
+                                                                item.linkType === 'url' ? "https://dmgroceries.com/..." :
+                                                                "Link"
+                                                            }
+                                                        />
+                                                    )}
                                                 </div>
                                             </div>
                                             {formData.bannerItems.length > 1 && (
