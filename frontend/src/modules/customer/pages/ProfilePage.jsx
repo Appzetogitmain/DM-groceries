@@ -84,7 +84,7 @@ const ProfilePage = () => {
                         <MenuItem icon={Heart} label="My Wishlist" path="/wishlist" />
                         <MenuItem icon={Users} label="Refer & Earn" />
                         <MenuItem icon={Bell} label="Notifications" />
-                        <MenuItem icon={HelpCircle} label="Help & Support" path="/support" />
+                        <MenuItem icon={HelpCircle} label="Help & Support" path="/help" />
                         <MenuItem icon={Settings} label="Settings" path="/settings" />
                         <MenuItem icon={Bell} label="Test Push Notification" onClick={handleTestPushNotification} />
                         <MenuItem icon={LogOut} label="Delete Account" onClick={handleDeleteAccount} />

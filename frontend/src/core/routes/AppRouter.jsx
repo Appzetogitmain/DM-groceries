@@ -35,7 +35,7 @@ const AddressesPage = lazy(() => import('../../modules/customer/pages/AddressesP
 const SettingsPage = lazy(() => import('../../modules/customer/pages/SettingsPage'));
 const SupportPage = lazy(() => import('../../modules/customer/pages/SupportPage'));
 const ChatPage = lazy(() => import('../../modules/customer/pages/ChatPage'));
-const TermsPage = lazy(() => import('../../modules/customer/pages/TermsPage'));
+const SupportTermsPage = lazy(() => import('../../modules/customer/pages/SupportTermsPage'));
 const PrivacyPage = lazy(() => import('../../modules/customer/pages/PrivacyPage'));
 const AboutPage = lazy(() => import('../../modules/customer/pages/AboutPage'));
 const EditProfilePage = lazy(() => import('../../modules/customer/pages/EditProfilePage'));
@@ -156,7 +156,7 @@ const AppRouter = () => {
                         { path: 'categories', element: <CategoriesPage /> },
                         { path: 'category/:categoryName', element: <CategoryProductsPage /> },
                         { path: 'product/:id', element: <ProductDetailPage /> },
-                        { path: 'terms', element: <TermsPage /> },
+                        { path: 'support', element: <SupportTermsPage /> },
                         { path: 'privacy', element: <PrivacyPage /> },
                         { path: 'about', element: <AboutPage /> },
                         { path: 'offers', element: <OffersPage /> },
@@ -167,7 +167,7 @@ const AppRouter = () => {
                         { path: 'transactions', element: <ProtectedRoute><OrderTransactionsPage /></ProtectedRoute> },
                         { path: 'addresses', element: <ProtectedRoute><AddressesPage /></ProtectedRoute> },
                         { path: 'settings', element: <ProtectedRoute><SettingsPage /></ProtectedRoute> },
-                        { path: 'support', element: <ProtectedRoute><SupportPage /></ProtectedRoute> },
+                        { path: 'help', element: <ProtectedRoute><SupportPage /></ProtectedRoute> },
                         { path: 'chat', element: <ProtectedRoute><ChatPage /></ProtectedRoute> },
                         { path: 'checkout', element: <ProtectedRoute><CheckoutPage /></ProtectedRoute> },
                         { path: 'payment-status', element: <PaymentStatusPage /> },

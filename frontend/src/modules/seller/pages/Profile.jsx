@@ -846,7 +846,7 @@ const SellerProfile = () => {
             { label: "Membership", icon: Zap, path: "#" },
             { label: "Reports", icon: BarChart3, path: "/seller/analytics" },
             { label: "Support", icon: HelpCircle, path: "#" },
-            { label: "Terms", icon: FileText, path: "/seller/terms" },
+            { label: "Support", icon: FileText, path: "/seller/support" },
             { label: "Privacy", icon: Shield, path: "/seller/privacy" }
           ].map((act, idx) => (
             <motion.a

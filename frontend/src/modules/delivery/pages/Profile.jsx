@@ -136,11 +136,11 @@ const Profile = () => {
       path: "/delivery/profile/help-support",
     },
     {
-      icon: FileText,
-      label: "Terms & Conditions",
-      sub: "Read our terms of service",
+      icon: HelpCircle,
+      label: "Support",
+      sub: "Read our support policies",
       color: "text-blue-600 bg-blue-50",
-      path: "/delivery/terms",
+      path: "/delivery/support",
     },
     {
       icon: Shield,

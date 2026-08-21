@@ -926,7 +926,8 @@ const OrderDetailPage = () => {
               <p className="text-xs text-[#1A4516] font-medium leading-relaxed mb-4">
                 The seller has accepted your order! Please select how you would like to pay <span className="font-bold">₹{order.pricing.total}</span> to proceed.
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
+                {/* 
                 <button
                   onClick={() => handleSelectPaymentMethod("ONLINE")}
                   disabled={isProcessingPayment}
@@ -935,6 +936,7 @@ const OrderDetailPage = () => {
                   <CreditCard size={18} />
                   Pay Online
                 </button>
+                */}
                 <button
                   onClick={() => handleSelectPaymentMethod("COD")}
                   disabled={isProcessingPayment}
@@ -968,12 +970,14 @@ const OrderDetailPage = () => {
                   Complete your payment of <span className="font-bold">₹{order.pricing.total}</span> to proceed with this order.
                 </p>
               </div>
+              {/*
               <button
                 onClick={handleRetryPayment}
                 className="bg-[#1A4516] text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md shrink-0"
               >
                 Pay Now <ArrowRight size={14} />
               </button>
+              */}
             </div>
           </motion.div>
         )}

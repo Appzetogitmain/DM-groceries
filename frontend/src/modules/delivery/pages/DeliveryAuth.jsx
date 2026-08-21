@@ -734,7 +734,7 @@ const DeliveryAuth = () => {
 
                       <p className="text-center text-xs text-gray-400 font-semibold pt-1">
                         By joining, you agree to our{" "}
-                        <span onClick={() => navigate('/delivery/terms')} className="text-brand-500 font-bold cursor-pointer hover:underline">Terms</span>{" "}
+                        <span onClick={() => navigate('/delivery/support')} className="text-brand-500 font-bold cursor-pointer hover:underline">Support</span>{" "}
                         &amp;{" "}
                         <span onClick={() => navigate('/delivery/privacy')} className="text-brand-500 font-bold cursor-pointer hover:underline">Privacy Policy</span>
                       </p>

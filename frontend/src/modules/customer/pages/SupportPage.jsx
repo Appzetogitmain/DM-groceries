@@ -144,8 +144,8 @@ const SupportPage = () => {
                 <div className="bg-white rounded-xl p-4 border border-slate-200">
                     <h3 className="text-[11px] font-semibold text-[#1A4516]/70 uppercase tracking-wide mb-3">Legal</h3>
                     <div className="space-y-3">
-                        <Link to="/terms" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
-                            <FileText size={18} /> Terms & Conditions
+                        <Link to="/support" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
+                            <FileText size={18} /> Support
                         </Link>
                         <Link to="/privacy" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
                             <FileText size={18} /> Privacy Policy

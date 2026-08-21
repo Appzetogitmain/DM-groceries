@@ -264,7 +264,7 @@ const DeliveryLayout = () => {
     "/delivery/confirm-delivery",
     "/delivery/order-details",
     "/delivery/profile/",
-    "/delivery/terms",
+    "/delivery/support",
     "/delivery/privacy",
   ];
 

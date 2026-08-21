@@ -12,8 +12,8 @@ import OrderTransactionsPage from '../pages/OrderTransactionsPage';
 import AddressesPage from '../pages/AddressesPage';
 import SettingsPage from '../pages/SettingsPage';
 import SupportPage from '../pages/SupportPage';
+import SupportTermsPage from '../pages/SupportTermsPage';
 import ChatPage from '../pages/ChatPage';
-import TermsPage from '../pages/TermsPage';
 import PrivacyPage from '../pages/PrivacyPage';
 import AboutPage from '../pages/AboutPage';
 import EditProfilePage from '../pages/EditProfilePage';
@@ -42,7 +42,7 @@ const CustomerRoutes = () => {
                             <Route path="categories" element={<CategoriesPage />} />
                             <Route path="category/:categoryName" element={<CategoryProductsPage />} />
                             <Route path="product/:id" element={<ProductDetailPage />} />
-                            <Route path="terms" element={<TermsPage />} />
+                            <Route path="support" element={<SupportTermsPage />} />
                             <Route path="privacy" element={<PrivacyPage />} />
                             <Route path="about" element={<AboutPage />} />
                             <Route path="offers" element={<OffersPage />} />
@@ -54,7 +54,7 @@ const CustomerRoutes = () => {
                             <Route path="transactions" element={<ProtectedRoute><OrderTransactionsPage /></ProtectedRoute>} />
                             <Route path="addresses" element={<ProtectedRoute><AddressesPage /></ProtectedRoute>} />
                             <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-                            <Route path="support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+                            <Route path="help" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
                             <Route path="chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                             <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
                             <Route path="payment-status" element={<ProtectedRoute><PaymentStatusPage /></ProtectedRoute>} />

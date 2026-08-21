@@ -19,28 +19,28 @@ const TermsPage = () => {
                 >
                     <ChevronLeft size={24} className="text-slate-600" />
                 </button>
-                <h1 className="text-lg font-black text-slate-800">Terms & Conditions</h1>
+                <h1 className="text-lg font-black text-slate-800">Support</h1>
             </div>
 
             <div className="p-5 max-w-3xl mx-auto space-y-6">
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                     <div className="flex items-center gap-4 mb-6">
-                        <div className="h-12 w-12 rounded-2xl bg-brand-50 flex items-center justify-center text-primary">
+                        <div className="h-12 w-12 rounded-2xl bg-[#1A4516]/10 flex items-center justify-center text-[#1A4516]">
                             <ScrollText size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800">Terms of Use (Seller)</h2>
+                            <h2 className="text-xl font-bold text-slate-800">Support (Delivery Partner)</h2>
                         </div>
                     </div>
 
                     <div className="prose prose-slate prose-sm max-w-none text-slate-600 space-y-4">
                         <div className="markdown-body text-sm text-slate-600 space-y-4">
-                            {settings?.sellerTermsConditions ? (
+                            {settings?.deliveryTermsConditions ? (
                                 <ReactMarkdown>
-                                    {settings.sellerTermsConditions}
+                                    {settings.deliveryTermsConditions}
                                 </ReactMarkdown>
                             ) : (
-                                <p>By creating a seller account or using our platform, you agree to comply with these terms. If you do not agree, you may not sell on our platform.</p>
+                                <p>By creating an account or using our services, you agree to comply with our support policies.</p>
                             )}
                         </div>
                     </div>

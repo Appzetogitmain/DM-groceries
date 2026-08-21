@@ -463,11 +463,11 @@ const CustomerAuth = () => {
                                         </p>
                                         <div className="flex items-center gap-1.5 underline decoration-gray-200 underline-offset-4">
                                             <button 
-                                                onClick={() => navigate('/terms')}
+                                                onClick={() => navigate('/support')}
                                                 className="text-[10px] font-black uppercase tracking-widest hover:text-gray-900 transition-colors"
                                                 style={{ color: activeCategory.theme }}
                                             >
-                                                Terms & Condition
+                                                Support
                                             </button>
                                             <span className="text-[8px] text-gray-300">•</span>
                                             <button 

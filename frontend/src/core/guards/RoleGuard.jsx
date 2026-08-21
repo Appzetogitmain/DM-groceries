@@ -10,7 +10,7 @@ const RoleGuard = ({ children, allowedRoles }) => {
         return null; // Let ProtectedRoute handle the loading spinner
     }
 
-    const publicPaths = ['/delivery/terms', '/delivery/privacy', '/seller/terms', '/seller/privacy'];
+    const publicPaths = ['/delivery/support', '/delivery/privacy', '/seller/support', '/seller/privacy'];
     if (publicPaths.includes(location.pathname)) {
         return <>{children}</>;
     }

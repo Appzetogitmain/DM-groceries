@@ -32,7 +32,7 @@ const Profile = React.lazy(() => import("../pages/Profile"));
 const Withdrawals = React.lazy(() => import("../pages/Withdrawals"));
 const POS = React.lazy(() => import("../pages/POS"));
 const PosSalesHistory = React.lazy(() => import("../pages/PosSalesHistory"));
-const TermsPage = React.lazy(() => import("../pages/TermsPage"));
+const SupportPage = React.lazy(() => import("../pages/SupportPage"));
 const PrivacyPage = React.lazy(() => import("../pages/PrivacyPage"));
 
 const navItems = [
@@ -73,12 +73,12 @@ const SellerRoutes = () => {
   }, []);
 
   const location = useLocation();
-  const isPublicPage = location.pathname === '/seller/terms' || location.pathname === '/seller/privacy';
+  const isPublicPage = location.pathname === '/seller/support' || location.pathname === '/seller/privacy';
 
   if (isPublicPage) {
     return (
       <Routes>
-        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/support" element={<SupportPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
       </Routes>
     );
