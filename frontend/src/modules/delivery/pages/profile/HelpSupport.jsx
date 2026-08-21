@@ -11,6 +11,7 @@ import {
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSettings } from "@core/context/SettingsContext";
 
 const HelpSupport = () => {
   const navigate = useNavigate();
@@ -44,6 +45,10 @@ const HelpSupport = () => {
     setOpenIndex(openIndex === index ? null : index);
   };
 
+  const { settings } = useSettings();
+  const supportPhone = settings?.supportPhone || '9992507555';
+  const supportPhoneUrl = supportPhone.replace(/[^0-9+]/g, '');
+
   return (
     <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
       
@@ -62,21 +67,26 @@ const HelpSupport = () => {
       {/* Main Content Area overlapping with rounded corners */}
       <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-4 space-y-4.5 relative z-10">
         
-        {/* Support Channels */}
         <section className="grid grid-cols-2 gap-3.5 mt-5">
-          <Card className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow">
+          <Card 
+            className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/delivery/profile/chat-support')}
+          >
             <div className="w-10 h-10 bg-[#1A4516]/5 rounded-full flex items-center justify-center text-[#1A4516] mb-2 shrink-0">
               <MessageCircle size={18} />
             </div>
             <h4 className="font-bold text-gray-800 text-xs">Chat Support</h4>
             <p className="text-[10px] text-gray-400 mt-0.5">Wait time: ~2 mins</p>
           </Card>
-          <Card className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow">
+          <Card 
+            className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => window.location.href = `tel:+91${supportPhoneUrl}`}
+          >
             <div className="w-10 h-10 bg-[#1A4516]/5 rounded-full flex items-center justify-center text-[#1A4516] mb-2 shrink-0">
               <Phone size={18} />
             </div>
             <h4 className="font-bold text-gray-800 text-xs">Call Support</h4>
-            <p className="text-[10px] text-gray-400 mt-0.5">Available 24/7</p>
+            <p className="text-[10px] text-gray-400 mt-0.5 font-bold tracking-wide">{supportPhone}</p>
           </Card>
         </section>
 

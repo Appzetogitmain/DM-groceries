@@ -61,6 +61,12 @@ export const deliveryApi = {
   getMyReviews: (params) => axiosInstance.get("/delivery-reviews/me", { params }),
   requestWithdrawal: (data) =>
     axiosInstance.post("/delivery/request-withdrawal", data),
+
+  // Tickets
+  getMyTickets: () => axiosInstance.get("/tickets/my-tickets"),
+  createTicket: (data) => axiosInstance.post("/tickets/create", data),
+
+  // Workflows (Forward/Return)
   updateStatus: (orderId, data) =>
     axiosInstance.put(`/orders/status/${orderId}`, data),
   updateReturnStatus: (orderId, data) =>

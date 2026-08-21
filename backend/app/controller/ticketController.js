@@ -84,10 +84,17 @@ export const getMyTickets = async (req, res) => {
 export const getAllTickets = async (req, res) => {
     try {
         const { page, limit, skip } = getPagination(req, { defaultLimit: 25, maxLimit: 200 });
+        const { userType } = req.query;
+        let query = {};
+        let populateModel = "User";
+        if (userType) {
+            query.userType = userType;
+            if (userType === 'Delivery' || userType === 'Rider') populateModel = "Delivery";
+        }
 
         const [tickets, total] = await Promise.all([
-            Ticket.find().populate("userId", "name email").sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-            Ticket.countDocuments()
+            Ticket.find(query).populate({ path: "userId", select: "name email", model: populateModel }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+            Ticket.countDocuments(query)
         ]);
 
         return handleResponse(res, 200, "All tickets fetched successfully", {

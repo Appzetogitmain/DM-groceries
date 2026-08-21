@@ -41,6 +41,7 @@ const SupportTickets = () => {
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [reply, setReply] = useState('');
     const [menuOpen, setMenuOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('Customer');
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [tickets, setTickets] = useState([]);
@@ -68,12 +69,12 @@ const SupportTickets = () => {
         }, 500);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pageSize, searchTerm]);
+    }, [pageSize, searchTerm, activeTab]);
 
     const fetchTickets = async (requestedPage = 1) => {
         try {
             setLoading(true);
-            const params = { page: requestedPage, limit: pageSize };
+            const params = { page: requestedPage, limit: pageSize, userType: activeTab };
             if (searchTerm.trim()) params.search = searchTerm.trim();
 
             const res = await adminApi.getTickets(params);
@@ -352,6 +353,20 @@ const SupportTickets = () => {
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-black text-slate-900 tracking-tight">Support Desk</h2>
                             <Badge variant="blue" className="text-[10px] font-black">{tickets.length} ACTIVE</Badge>
+                        </div>
+                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                            <button
+                                onClick={() => setActiveTab('Customer')}
+                                className={cn("flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-colors", activeTab === 'Customer' ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700")}
+                            >
+                                Customers
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('Delivery')}
+                                className={cn("flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-colors", activeTab === 'Delivery' ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700")}
+                            >
+                                Delivery Partners
+                            </button>
                         </div>
                         <div className="relative group">
                             <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
