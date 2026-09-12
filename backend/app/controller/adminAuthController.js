@@ -14,12 +14,16 @@ function sanitizeAdmin(adminDoc) {
   const admin = adminDoc?.toObject ? adminDoc.toObject() : { ...(adminDoc || {}) };
   delete admin.password;
   delete admin.__v;
+  // Convert Map to plain object for JSON serialization
+  if (admin.permissions instanceof Map) {
+    admin.permissions = Object.fromEntries(admin.permissions);
+  }
   return admin;
 }
 
 const generateToken = (admin) =>
   jwt.sign(
-    { id: admin._id, role: "admin" },
+    { id: admin._id, role: "admin", adminType: admin.adminType || "super_admin" },
     process.env.JWT_SECRET,
     { expiresIn: process.env.ADMIN_JWT_EXPIRES_IN || "7d" },
   );
@@ -114,6 +118,11 @@ export const loginAdmin = async (req, res) => {
     const admin = await Admin.findOne({ email: payload.email }).select("+password");
     if (!admin) {
       return handleResponse(res, 401, "Invalid credentials");
+    }
+
+    // Check if the account is deactivated (sub admins can be deactivated)
+    if (admin.isActive === false) {
+      return handleResponse(res, 403, "Your account has been deactivated. Contact the Super Admin.");
     }
 
     const isMatch = await admin.comparePassword(payload.password);

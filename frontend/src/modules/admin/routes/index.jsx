@@ -1,9 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "@shared/layout/DashboardLayout";
 import SOSListener from "../components/SOSListener";
 import { useSupportUnread } from "@core/context/SupportUnreadContext";
 import { setActiveRole, ROLES } from "@core/auth/activeRoleStore";
+import { usePermissions } from "@core/hooks/usePermissions";
+import PermissionGuard from "@core/guards/PermissionGuard";
 import {
   LayoutDashboard,
   Tag,
@@ -23,6 +25,7 @@ import {
   User,
   Store,
   Gift,
+  Shield,
 } from "lucide-react";
 
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
@@ -96,7 +99,16 @@ const BirthdayCenter = React.lazy(() => import("../pages/BirthdayCenter"));
 const MilestoneCampaigns = React.lazy(() => import("../pages/marketing/MilestoneCampaigns"));
 const CreateMilestoneCampaign = React.lazy(() => import("../pages/marketing/CreateMilestoneCampaign"));
 const SOSHistory = React.lazy(() => import("../pages/SOSHistory"));
+const AccessDenied = React.lazy(() => import("../pages/AccessDenied"));
+const SubAdminManagement = React.lazy(() => import("../pages/SubAdminManagement"));
+const CreateSubAdmin = React.lazy(() => import("../pages/CreateSubAdmin"));
+const EditSubAdmin = React.lazy(() => import("../pages/EditSubAdmin"));
 
+/**
+ * Each navItem can optionally include a `section` key to enable
+ * permission-based filtering. Items without a `section` key are always visible.
+ * Items with `superAdminOnly: true` are only visible to super admins.
+ */
 const navItems = [
   {
     label: "Dashboard",
@@ -104,11 +116,13 @@ const navItems = [
     icon: LayoutDashboard,
     color: "indigo",
     end: true,
+    section: "dashboard",
   },
   {
     label: "Categories",
     icon: Tag,
     color: "rose",
+    section: "categories",
     children: [
       { label: "All Categories", path: "/admin/categories/hierarchy" },
       { label: "Header Categories", path: "/admin/categories/header" },
@@ -116,11 +130,12 @@ const navItems = [
       { label: "Sub-Categories", path: "/admin/categories/sub" },
     ],
   },
-  { label: "Products", path: "/admin/products", icon: Box, color: "amber" },
+  { label: "Products", path: "/admin/products", icon: Box, color: "amber", section: "products" },
   {
     label: "Marketing Tools",
     icon: Sparkles,
     color: "amber",
+    section: "marketing",
     children: [
       { label: "Create Sections", path: "/admin/experience-studio" },
       { label: "Hero & categories per page", path: "/admin/hero-categories" },
@@ -135,6 +150,7 @@ const navItems = [
     label: "Customer Support",
     icon: Receipt,
     color: "emerald",
+    section: "support",
     children: [
       { label: "Help Tickets", path: "/admin/support-tickets" },
       { label: "Review Content", path: "/admin/moderation" },
@@ -144,6 +160,7 @@ const navItems = [
     label: "Sellers",
     icon: Store,
     color: "blue",
+    section: "sellers",
     children: [
       { label: "Active Sellers", path: "/admin/sellers/active" },
       { label: "Waiting for Review", path: "/admin/sellers/pending" },
@@ -154,6 +171,7 @@ const navItems = [
     label: "Delivery Drivers",
     icon: Truck,
     color: "emerald",
+    section: "delivery",
     children: [
       { label: "Active Drivers", path: "/admin/delivery-boys/active" },
       { label: "Waiting for Review", path: "/admin/delivery-boys/pending" },
@@ -163,39 +181,44 @@ const navItems = [
       { label: "SOS History", path: "/admin/sos-history" },
     ],
   },
-  { label: "Wallet", path: "/admin/wallet", icon: Wallet, color: "violet" },
+  { label: "Wallet", path: "/admin/wallet", icon: Wallet, color: "violet", section: "wallet" },
   {
     label: "Money Requests",
     path: "/admin/withdrawals",
     icon: Banknote,
     color: "cyan",
+    section: "withdrawals",
   },
   {
     label: "Seller Payments",
     path: "/admin/seller-transactions",
     icon: Receipt,
     color: "orange",
+    section: "seller_transactions",
   },
   {
     label: "Collect Cash",
     path: "/admin/cash-collection",
     icon: CircleDollarSign,
     color: "green",
+    section: "cash_collection",
   },
   {
     label: "Customers",
     icon: Users,
     color: "sky",
+    section: "customers",
     children: [
       { label: "All Customers", path: "/admin/customers" },
       { label: "Birthday Center", path: "/admin/birthdays" },
     ],
   },
-  { label: "FAQs", path: "/admin/faqs", icon: HelpCircle, color: "pink" },
+  { label: "FAQs", path: "/admin/faqs", icon: HelpCircle, color: "pink", section: "faqs" },
   {
     label: "Orders",
     icon: ClipboardList,
     color: "fuchsia",
+    section: "orders",
     children: [
       { label: "All Orders", path: "/admin/orders/all" },
       { label: "New Orders", path: "/admin/orders/pending" },
@@ -212,12 +235,21 @@ const navItems = [
     path: "/admin/billing",
     icon: RotateCcw,
     color: "red",
+    section: "billing",
   },
   {
     label: "Settings",
     path: "/admin/settings",
     icon: Settings,
     color: "slate",
+    section: "settings",
+  },
+  {
+    label: "Sub Admins",
+    path: "/admin/sub-admins",
+    icon: Shield,
+    color: "indigo",
+    superAdminOnly: true,
   },
   { label: "My Profile", path: "/admin/profile", icon: User, color: "indigo" },
 ];
@@ -230,70 +262,275 @@ const AdminRoutes = () => {
   }, []);
 
   const { totalUnread } = useSupportUnread();
+  const { hasPermission, isSuperAdmin } = usePermissions();
 
-  const navItemsWithBadges = React.useMemo(() => {
+  // Filter nav items based on permissions
+  const filteredNavItems = useMemo(() => {
+    return navItems.filter((item) => {
+      // Items without a section key are always visible (e.g. My Profile)
+      if (!item.section && !item.superAdminOnly) return true;
+
+      // Super admin only items
+      if (item.superAdminOnly) return isSuperAdmin();
+
+      // Section-based permission check
+      if (item.section) return hasPermission(item.section, "view");
+
+      return true;
+    });
+  }, [hasPermission, isSuperAdmin]);
+
+  const navItemsWithBadges = useMemo(() => {
     const count = Number.isFinite(totalUnread) ? totalUnread : 0;
-    if (count <= 0) return navItems;
-    return navItems.map((item) => {
+    if (count <= 0) return filteredNavItems;
+    return filteredNavItems.map((item) => {
       if (item?.label !== "Customer Support") return item;
       return { ...item, badgeCount: count };
     });
-  }, [totalUnread]);
+  }, [totalUnread, filteredNavItems]);
 
   return (
     <DashboardLayout navItems={navItemsWithBadges} title="Admin Center">
       <SOSListener />
       <Routes>
+        {/* Always accessible: dashboard (landing page for all admins) */}
         <Route path="/" element={<Dashboard />} />
-        <Route path="/users" element={<UserManagement />} />
+        <Route path="/users" element={
+          <PermissionGuard section="customers" action="view" fallback={AccessDenied}>
+            <UserManagement />
+          </PermissionGuard>
+        } />
         <Route path="/profile" element={<AdminProfile />} />
-        {/* Lazy routes for new sections */}
+
+        {/* Categories */}
         <Route
           path="/categories"
           element={<Navigate to="/admin/categories/header" replace />}
         />
-        <Route path="/categories/header" element={<HeaderCategories />} />
-        <Route path="/categories/level2" element={<Level2Categories />} />
-        <Route path="/categories/sub" element={<SubCategories />} />
-        <Route path="/categories/hierarchy" element={<CategoryHierarchy />} />
-        <Route path="/products" element={<ProductManagement />} />
-        <Route path="/sellers/active" element={<ActiveSellers />} />
-        <Route path="/sellers/active/:id" element={<SellerDetail />} />
-        <Route path="/support-tickets" element={<SupportTickets />} />
-        <Route path="/sos-history" element={<SOSHistory />} />
-        <Route path="/moderation" element={<ReviewModeration />} />
-        <Route path="/experience-studio" element={<ContentManager />} />
-        <Route path="/hero-categories" element={<HeroCategoriesPerPage />} />
-        <Route path="/notifications" element={<NotificationComposer />} />
-        <Route path="/offers" element={<OffersManagement />} />
-        <Route path="/offer-sections" element={<OfferSectionsManagement />} />
+        <Route path="/categories/header" element={
+          <PermissionGuard section="categories" action="view" fallback={AccessDenied}>
+            <HeaderCategories />
+          </PermissionGuard>
+        } />
+        <Route path="/categories/level2" element={
+          <PermissionGuard section="categories" action="view" fallback={AccessDenied}>
+            <Level2Categories />
+          </PermissionGuard>
+        } />
+        <Route path="/categories/sub" element={
+          <PermissionGuard section="categories" action="view" fallback={AccessDenied}>
+            <SubCategories />
+          </PermissionGuard>
+        } />
+        <Route path="/categories/hierarchy" element={
+          <PermissionGuard section="categories" action="view" fallback={AccessDenied}>
+            <CategoryHierarchy />
+          </PermissionGuard>
+        } />
 
-        <Route path="/coupons" element={<CouponManagement />} />
-        <Route path="/marketing/milestones" element={<MilestoneCampaigns />} />
-        <Route path="/marketing/milestones/create" element={<CreateMilestoneCampaign />} />
-        <Route path="/sellers/pending" element={<PendingSellers />} />
-        <Route path="/seller-locations" element={<SellerLocations />} />
-        <Route path="/delivery-boys/active" element={<ActiveDeliveryBoys />} />
-        <Route
-          path="/delivery-boys/pending"
-          element={<PendingDeliveryBoys />}
-        />
-        <Route path="/tracking" element={<FleetTracking />} />
-        <Route path="/delivery-funds" element={<DeliveryFunds />} />
-        <Route path="/delivery-reviews" element={<DeliveryReviewsPage />} />
-        <Route path="/wallet" element={<AdminWallet />} />
-        <Route path="/withdrawals" element={<WithdrawalRequests />} />
-        <Route path="/seller-transactions" element={<SellerTransactions />} />
-        <Route path="/cash-collection" element={<CashCollection />} />
-        <Route path="/customers" element={<CustomerManagement />} />
-        <Route path="/customers/:id" element={<CustomerDetail />} />
-        <Route path="/birthdays" element={<BirthdayCenter />} />
-        <Route path="/faqs" element={<FAQManagement />} />
-        <Route path="/orders/:status" element={<OrdersList />} />
-        <Route path="/orders/view/:orderId" element={<OrderDetail />} />
-        <Route path="/returns" element={<Returns />} />
-        <Route path="/billing" element={<BillingCharges />} />
-        <Route path="/settings" element={<AdminSettings />} />
+        {/* Products */}
+        <Route path="/products" element={
+          <PermissionGuard section="products" action="view" fallback={AccessDenied}>
+            <ProductManagement />
+          </PermissionGuard>
+        } />
+
+        {/* Sellers */}
+        <Route path="/sellers/active" element={
+          <PermissionGuard section="sellers" action="view" fallback={AccessDenied}>
+            <ActiveSellers />
+          </PermissionGuard>
+        } />
+        <Route path="/sellers/active/:id" element={
+          <PermissionGuard section="sellers" action="view" fallback={AccessDenied}>
+            <SellerDetail />
+          </PermissionGuard>
+        } />
+        <Route path="/sellers/pending" element={
+          <PermissionGuard section="sellers" action="view" fallback={AccessDenied}>
+            <PendingSellers />
+          </PermissionGuard>
+        } />
+        <Route path="/seller-locations" element={
+          <PermissionGuard section="sellers" action="view" fallback={AccessDenied}>
+            <SellerLocations />
+          </PermissionGuard>
+        } />
+
+        {/* Support */}
+        <Route path="/support-tickets" element={
+          <PermissionGuard section="support" action="view" fallback={AccessDenied}>
+            <SupportTickets />
+          </PermissionGuard>
+        } />
+        <Route path="/sos-history" element={
+          <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
+            <SOSHistory />
+          </PermissionGuard>
+        } />
+        <Route path="/moderation" element={
+          <PermissionGuard section="support" action="view" fallback={AccessDenied}>
+            <ReviewModeration />
+          </PermissionGuard>
+        } />
+
+        {/* Marketing */}
+        <Route path="/experience-studio" element={
+          <PermissionGuard section="marketing" action="view" fallback={AccessDenied}>
+            <ContentManager />
+          </PermissionGuard>
+        } />
+        <Route path="/hero-categories" element={
+          <PermissionGuard section="marketing" action="view" fallback={AccessDenied}>
+            <HeroCategoriesPerPage />
+          </PermissionGuard>
+        } />
+        <Route path="/notifications" element={
+          <PermissionGuard section="marketing" action="view" fallback={AccessDenied}>
+            <NotificationComposer />
+          </PermissionGuard>
+        } />
+        <Route path="/offers" element={
+          <PermissionGuard section="marketing" action="view" fallback={AccessDenied}>
+            <OffersManagement />
+          </PermissionGuard>
+        } />
+        <Route path="/offer-sections" element={
+          <PermissionGuard section="marketing" action="view" fallback={AccessDenied}>
+            <OfferSectionsManagement />
+          </PermissionGuard>
+        } />
+        <Route path="/coupons" element={
+          <PermissionGuard section="marketing" action="view" fallback={AccessDenied}>
+            <CouponManagement />
+          </PermissionGuard>
+        } />
+        <Route path="/marketing/milestones" element={
+          <PermissionGuard section="marketing" action="view" fallback={AccessDenied}>
+            <MilestoneCampaigns />
+          </PermissionGuard>
+        } />
+        <Route path="/marketing/milestones/create" element={
+          <PermissionGuard section="marketing" action="create" fallback={AccessDenied}>
+            <CreateMilestoneCampaign />
+          </PermissionGuard>
+        } />
+
+        {/* Delivery */}
+        <Route path="/delivery-boys/active" element={
+          <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
+            <ActiveDeliveryBoys />
+          </PermissionGuard>
+        } />
+        <Route path="/delivery-boys/pending" element={
+          <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
+            <PendingDeliveryBoys />
+          </PermissionGuard>
+        } />
+        <Route path="/tracking" element={
+          <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
+            <FleetTracking />
+          </PermissionGuard>
+        } />
+        <Route path="/delivery-funds" element={
+          <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
+            <DeliveryFunds />
+          </PermissionGuard>
+        } />
+        <Route path="/delivery-reviews" element={
+          <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
+            <DeliveryReviewsPage />
+          </PermissionGuard>
+        } />
+
+        {/* Finance */}
+        <Route path="/wallet" element={
+          <PermissionGuard section="wallet" action="view" fallback={AccessDenied}>
+            <AdminWallet />
+          </PermissionGuard>
+        } />
+        <Route path="/withdrawals" element={
+          <PermissionGuard section="withdrawals" action="view" fallback={AccessDenied}>
+            <WithdrawalRequests />
+          </PermissionGuard>
+        } />
+        <Route path="/seller-transactions" element={
+          <PermissionGuard section="seller_transactions" action="view" fallback={AccessDenied}>
+            <SellerTransactions />
+          </PermissionGuard>
+        } />
+        <Route path="/cash-collection" element={
+          <PermissionGuard section="cash_collection" action="view" fallback={AccessDenied}>
+            <CashCollection />
+          </PermissionGuard>
+        } />
+
+        {/* Customers */}
+        <Route path="/customers" element={
+          <PermissionGuard section="customers" action="view" fallback={AccessDenied}>
+            <CustomerManagement />
+          </PermissionGuard>
+        } />
+        <Route path="/customers/:id" element={
+          <PermissionGuard section="customers" action="view" fallback={AccessDenied}>
+            <CustomerDetail />
+          </PermissionGuard>
+        } />
+        <Route path="/birthdays" element={
+          <PermissionGuard section="customers" action="view" fallback={AccessDenied}>
+            <BirthdayCenter />
+          </PermissionGuard>
+        } />
+
+        {/* Other */}
+        <Route path="/faqs" element={
+          <PermissionGuard section="faqs" action="view" fallback={AccessDenied}>
+            <FAQManagement />
+          </PermissionGuard>
+        } />
+        <Route path="/orders/:status" element={
+          <PermissionGuard section="orders" action="view" fallback={AccessDenied}>
+            <OrdersList />
+          </PermissionGuard>
+        } />
+        <Route path="/orders/view/:orderId" element={
+          <PermissionGuard section="orders" action="view" fallback={AccessDenied}>
+            <OrderDetail />
+          </PermissionGuard>
+        } />
+        <Route path="/returns" element={
+          <PermissionGuard section="orders" action="view" fallback={AccessDenied}>
+            <Returns />
+          </PermissionGuard>
+        } />
+        <Route path="/billing" element={
+          <PermissionGuard section="billing" action="view" fallback={AccessDenied}>
+            <BillingCharges />
+          </PermissionGuard>
+        } />
+        <Route path="/settings" element={
+          <PermissionGuard section="settings" action="view" fallback={AccessDenied}>
+            <AdminSettings />
+          </PermissionGuard>
+        } />
+
+        {/* Sub Admin Management (Super Admin only) */}
+        <Route path="/sub-admins" element={
+          <PermissionGuard superAdminOnly fallback={AccessDenied}>
+            <SubAdminManagement />
+          </PermissionGuard>
+        } />
+        <Route path="/sub-admins/create" element={
+          <PermissionGuard superAdminOnly fallback={AccessDenied}>
+            <CreateSubAdmin />
+          </PermissionGuard>
+        } />
+        <Route path="/sub-admins/:id/edit" element={
+          <PermissionGuard superAdminOnly fallback={AccessDenied}>
+            <EditSubAdmin />
+          </PermissionGuard>
+        } />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </DashboardLayout>

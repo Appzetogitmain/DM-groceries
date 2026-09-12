@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import Sidebar from './Sidebar';
@@ -12,13 +13,21 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import SellerOrdersContext from '@/modules/seller/context/SellerOrdersContext';
 import SellerEarningsContext, { defaultEarnings } from '@/modules/seller/context/SellerEarningsContext';
-import { getOrderSocket, onSellerOrderNew, onReturnDropOtp, onSellerPickupOtp, onSellerDeliveryArrived, onWithdrawalUpdated } from '@/core/services/orderSocket';
+import { getOrderSocket, onSellerOrderNew, onReturnDropOtp, onSellerPickupOtp, onSellerDeliveryArrived, wakeOrderSocket } from '@/core/services/orderSocket';
 import { createSocketTokenReader } from '@core/utils/authStorage';
 import { STORAGE_KEYS } from '@core/utils/storage';
 import { showSystemNotification } from '@/core/firebase/pushClient';
+import AppZetoBridge, { APP_RESUME_EVENT, NATIVE_PUSH_EVENT } from '@/lib/appZetoBridge';
+import {
+    canUseBrowserNotifications,
+    hasNativeFlutterBridge,
+    isFlutterWebView,
+    shouldTreatDocumentAsVisible,
+} from '@/core/utils/deviceUtils';
 import orderAlertSound from '@/assets/sounds/order_alert.mp3';
 
 const POLL_INTERVAL_MS = 15000;
+const WEBVIEW_POLL_INTERVAL_MS = 5000;
 
 /** Match server `sellerPendingExpiresAt` — never reset to a full 60s when the modal opens late. */
 function secondsLeftUntilSellerExpiry(order) {
@@ -42,6 +51,21 @@ function isSellerAlertEligible(order) {
     return status === 'pending';
 }
 
+function orderFromIncomingPayload(payload) {
+    if (!payload) return null;
+    const orderId = payload.orderId || payload.data?.orderId;
+    if (!orderId) return null;
+    return {
+        orderId,
+        workflowStatus: payload.workflowStatus || payload.data?.workflowStatus || 'SELLER_PENDING',
+        sellerPendingExpiresAt: payload.sellerPendingExpiresAt || payload.expiresAt || payload.data?.sellerPendingExpiresAt,
+        expiresAt: payload.expiresAt || payload.sellerPendingExpiresAt,
+        pricing: payload.pricing || payload.data?.pricing,
+        total: payload.total ?? payload.pricing?.total ?? payload.data?.total,
+        status: payload.status || 'pending',
+    };
+}
+
 const isEarningsRoute = (path) =>
     path.includes('earnings') || path.includes('withdrawals') || path.includes('transactions');
 
@@ -57,7 +81,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const [returnDropOtpAlert, setReturnDropOtpAlert] = useState(null); // { orderId, otp, expiresAt }
     const [sellerPickupOtpAlert, setSellerPickupOtpAlert] = useState(null); // { orderId, otp, expiresAt }
     const [deliveryArrivedAlert, setDeliveryArrivedAlert] = useState(null); // { orderId, deliveryId }
-    const { user, logout, role } = useAuth();
+    const { user, logout, role, token } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -141,10 +165,33 @@ const DashboardLayout = ({ children, navItems, title }) => {
         audio.currentTime = 0;
     };
 
+    const presentNewOrderAlert = (order, { force = false } = {}) => {
+        if (!isSellerAlertEligible(order)) return false;
+        if (newOrderAlertRef.current) return false;
+        if (!force && shownOrderIdsRef.current.has(order.orderId)) return false;
+
+        setNewOrderAlert(order);
+        setShownOrderIds((prev) => new Set(prev).add(order.orderId));
+        shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(order.orderId);
+        newOrderAlertRef.current = order;
+
+        showSystemNotification({
+            title: "New Order Received!",
+            body: `You have a new order #${order.orderId} for ₹${order.pricing?.total || order.total || ""}`,
+            data: { orderId: order.orderId, eventType: "new_order" },
+        });
+        return true;
+    };
+
     useEffect(() => {
         shownOrderIdsRef.current = shownOrderIds;
-        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-            Notification.requestPermission().catch(() => {});
+        if (!canUseBrowserNotifications()) return;
+        try {
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().catch(() => {});
+            }
+        } catch {
+            /* WebView / restricted browsers */
         }
     }, [shownOrderIds]);
     useEffect(() => {
@@ -179,30 +226,40 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 const allOrders = Array.isArray(rawOrders) ? rawOrders : [];
                 setSellerOrders(allOrders);
 
-                const pendingOrders = allOrders.filter(isSellerAlertEligible);
+                let pendingOrders = allOrders.filter(isSellerAlertEligible);
+                if (!pendingOrders.length) {
+                    try {
+                        const pendingRes = await sellerApi.getOrders({ status: 'pending', limit: 10 });
+                        if (pendingRes?.data?.success) {
+                            const pendingPayload = pendingRes.data.result || {};
+                            const pendingRaw = Array.isArray(pendingPayload.items)
+                                ? pendingPayload.items
+                                : (pendingRes.data.results || []);
+                            pendingOrders = (Array.isArray(pendingRaw) ? pendingRaw : []).filter(isSellerAlertEligible);
+                        }
+                    } catch {
+                        /* keep the list-derived pending set */
+                    }
+                }
 
+                // Flutter WebView remounts on every app open. Skipping pending
+                // orders on first load meant the accept modal never appeared.
+                // Always surface the newest still-eligible order.
                 if (isFirstLoadRef.current) {
-                    const existingIds = new Set(pendingOrders.map((o) => o.orderId).filter(Boolean));
-                    shownOrderIdsRef.current = existingIds;
                     isFirstLoadRef.current = false;
-                    setShownOrderIds(existingIds);
+                    const newestPending = pendingOrders[0] || null;
+                    const remainingIds = pendingOrders
+                        .map((o) => o.orderId)
+                        .filter((id) => id && id !== newestPending?.orderId);
+                    shownOrderIdsRef.current = new Set(remainingIds);
+                    setShownOrderIds(new Set(remainingIds));
+                    if (newestPending) presentNewOrderAlert(newestPending, { force: true });
                     return;
                 }
 
                 const newOrder = pendingOrders.find((o) => !shownOrderIdsRef.current.has(o.orderId));
                 if (!newOrder || newOrderAlertRef.current) return;
-
-                setNewOrderAlert(newOrder);
-                setShownOrderIds((prev) => new Set(prev).add(newOrder.orderId));
-                shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(newOrder.orderId);
-                newOrderAlertRef.current = newOrder;
-
-                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                    showSystemNotification({
-                        title: "New Order Received!",
-                        body: `You have a new order #${newOrder.orderId} for ₹${newOrder.pricing?.total || newOrder.total}`
-                    });
-                }
+                presentNewOrderAlert(newOrder);
             } catch (error) {
                 console.error("Polling Error:", error);
             } finally {
@@ -223,20 +280,38 @@ const DashboardLayout = ({ children, navItems, title }) => {
             if (fetchOrdersRef.current) fetchOrdersRef.current();
         };
 
-        const timer = setInterval(syncOrders, POLL_INTERVAL_MS);
-        const onFocus = () => syncOrders();
-        const onVisible = () => {
-            if (document.visibilityState === 'visible') syncOrders();
+        const pollMs = isFlutterWebView() ? WEBVIEW_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+        const timer = setInterval(syncOrders, pollMs);
+        const onFocus = () => {
+            wakeOrderSocket();
+            syncOrders();
         };
-        const onOnline = () => syncOrders();
+        const onVisible = () => {
+            if (shouldTreatDocumentAsVisible()) {
+                wakeOrderSocket();
+                syncOrders();
+            }
+        };
+        const onOnline = () => {
+            wakeOrderSocket();
+            syncOrders();
+        };
+        const onResume = () => {
+            wakeOrderSocket();
+            syncOrders();
+        };
 
         window.addEventListener('focus', onFocus);
+        window.addEventListener('pageshow', onResume);
+        window.addEventListener(APP_RESUME_EVENT, onResume);
         document.addEventListener('visibilitychange', onVisible);
         window.addEventListener('online', onOnline);
 
         return () => {
             clearInterval(timer);
             window.removeEventListener('focus', onFocus);
+            window.removeEventListener('pageshow', onResume);
+            window.removeEventListener(APP_RESUME_EVENT, onResume);
             document.removeEventListener('visibilitychange', onVisible);
             window.removeEventListener('online', onOnline);
         };
@@ -266,7 +341,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
         if (role !== 'seller') return undefined;
         const getToken = createSocketTokenReader(STORAGE_KEYS.AUTH_SELLER);
         getOrderSocket(getToken);
-        const unsubscribeSellerNew = onSellerOrderNew(getToken, () => {
+        const unsubscribeSellerNew = onSellerOrderNew(getToken, (payload) => {
+            const incoming = orderFromIncomingPayload(payload);
+            if (incoming) presentNewOrderAlert(incoming, { force: true });
             if (fetchOrdersRef.current) fetchOrdersRef.current();
         });
 
@@ -275,12 +352,10 @@ const DashboardLayout = ({ children, navItems, title }) => {
             setReturnDropOtpAlert(payload);
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(() => { });
-            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-                showSystemNotification({
-                    title: "Rider at Store!",
-                    body: `A rider is at your store for Return #${payload.orderId}. OTP: ${payload.otp}`
-                });
-            }
+            showSystemNotification({
+                title: "Rider at Store!",
+                body: `A rider is at your store for Return #${payload.orderId}. OTP: ${payload.otp}`
+            });
         });
 
         const unsubscribeSellerPickup = onSellerPickupOtp(getToken, (payload) => {
@@ -288,12 +363,10 @@ const DashboardLayout = ({ children, navItems, title }) => {
             setSellerPickupOtpAlert(payload);
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(() => { });
-            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-                showSystemNotification({
-                    title: "Rider at Store!",
-                    body: `A rider is at your store for Pickup #${payload.orderId}. OTP: ${payload.otp}`
-                });
-            }
+            showSystemNotification({
+                title: "Rider at Store!",
+                body: `A rider is at your store for Pickup #${payload.orderId}. OTP: ${payload.otp}`
+            });
         });
 
         const unsubscribeDeliveryArrived = onSellerDeliveryArrived(getToken, (payload) => {
@@ -301,21 +374,39 @@ const DashboardLayout = ({ children, navItems, title }) => {
             setDeliveryArrivedAlert(payload);
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(() => { });
-            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-                showSystemNotification({
-                    title: "Delivery Partner Arrived",
-                    body: `Delivery partner for order #${payload.orderId} has arrived at your store.`
-                });
-            }
+            showSystemNotification({
+                title: "Delivery Partner Arrived",
+                body: `Delivery partner for order #${payload.orderId} has arrived at your store.`
+            });
         });
+
+        const onNativePush = (eventOrMessage) => {
+            const message = eventOrMessage?.detail || eventOrMessage;
+            const type = String(message?.type || message?.event || message?.data?.eventType || "").toLowerCase();
+            const data = message?.data || message || {};
+            const looksLikeNewOrder =
+                type.includes("order") ||
+                type === "push_received" ||
+                type === "new_order" ||
+                Boolean(data.orderId || data?.data?.orderId);
+            if (!looksLikeNewOrder) return;
+            const incoming = orderFromIncomingPayload(data);
+            if (incoming) presentNewOrderAlert(incoming, { force: true });
+            if (fetchOrdersRef.current) fetchOrdersRef.current();
+        };
+
+        const unsubscribeNative = AppZetoBridge.subscribe(onNativePush);
+        window.addEventListener(NATIVE_PUSH_EVENT, onNativePush);
 
         return () => {
             unsubscribeSellerNew();
             unsubscribeDrop();
             unsubscribeSellerPickup();
             unsubscribeDeliveryArrived();
+            unsubscribeNative();
+            window.removeEventListener(NATIVE_PUSH_EVENT, onNativePush);
         };
-    }, [role]);
+    }, [role, token]);
 
     // Single earnings fetch when seller is on earnings/withdrawals/transactions – no duplicate calls
     useEffect(() => {
@@ -438,49 +529,28 @@ const DashboardLayout = ({ children, navItems, title }) => {
         }
     };
 
-    return (
-        <div className="min-h-screen mesh-gradient-light relative overflow-x-hidden">
-            {/* Background Blobs for depth */}
-            <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] -z-10 animate-pulse pointer-events-none"></div>
-            <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-500/5 rounded-full blur-[120px] -z-10 animate-pulse pointer-events-none" style={{ animationDelay: '2s' }}></div>
+    const inWebView = isFlutterWebView() || hasNativeFlutterBridge();
+    const overlayStyle = { position: "fixed", inset: 0, zIndex: 10050 };
+    const overlayClass = (zClass) =>
+        cn(
+            "fixed inset-0 flex items-center justify-center p-4 bg-slate-900/80",
+            zClass,
+            !inWebView && "backdrop-blur-sm",
+        );
+    const cardMotion = inWebView
+        ? { initial: false, animate: { scale: 1, opacity: 1, y: 0 } }
+        : {
+            initial: { scale: 0.9, opacity: 0, y: 20 },
+            animate: { scale: 1, opacity: 1, y: 0 },
+            exit: { scale: 0.9, opacity: 0, y: 20 },
+        };
 
-            <Sidebar
-                items={navItems}
-                title={title}
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-            <div className={cn("transition-all duration-300", (role === "admin" || role === "seller") ? "pl-0 md:pl-72" : "pl-72")}>
-                <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
-                <main className={cn("p-4 md:p-6 min-h-screen", (role === "admin" || role === "seller") ? "pt-20 md:pt-22 pb-24 md:pb-6" : "pt-20")}>
-                    <div className="w-full pb-12">
-                        <SellerOrdersContext.Provider
-                            value={{
-                                orders: role === 'seller' ? sellerOrders : [],
-                                ordersLoading: role === 'seller' ? ordersLoading : false,
-                                refreshOrders,
-                            }}>
-                            <SellerEarningsContext.Provider
-                                value={{
-                                    earningsData: role === 'seller' ? sellerEarningsData : defaultEarnings,
-                                    earningsLoading: role === 'seller' ? earningsLoading : false,
-                                    refreshEarnings,
-                                }}>
-                                {children}
-                            </SellerEarningsContext.Provider>
-                        </SellerOrdersContext.Provider>
-                    </div>
-                </main>
-            </div>
-
-            {/* Global Order Alert Modal */}
+    const overlayTree = (
             <AnimatePresence>
                 {newOrderAlert && (
-                    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className={overlayClass("z-[9999]")} style={overlayStyle}>
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            {...cardMotion}
                             className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100"
                         >
                             <div className="flex flex-col items-center text-center">
@@ -490,7 +560,10 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
                                 <h2 className="text-2xl font-black text-slate-900 mb-2">New Order Received!</h2>
                                 <p className="text-slate-600 font-medium mb-6">
-                                    You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span> for <span className="text-slate-900 font-bold">₹{newOrderAlert.pricing?.total || newOrderAlert.total}</span>
+                                    You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span>
+                                    {(newOrderAlert.pricing?.total || newOrderAlert.total) ? (
+                                        <> for <span className="text-slate-900 font-bold">₹{newOrderAlert.pricing?.total || newOrderAlert.total}</span></>
+                                    ) : null}
                                 </p>
 
                                 {/* Timer Bar — width from real server deadline */}
@@ -536,11 +609,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
                 {/* Global Return Drop OTP Modal */}
                 {returnDropOtpAlert && (
-                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+                    <div className={overlayClass("z-[10000]")} style={overlayStyle}>
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            {...cardMotion}
                             className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-brand-100"
                         >
                             <div className="flex flex-col items-center text-center">
@@ -579,11 +650,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
                 {/* Global Seller Pickup OTP Modal */}
                 {sellerPickupOtpAlert && (
-                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+                    <div className={overlayClass("z-[10000]")} style={overlayStyle}>
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            {...cardMotion}
                             className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-brand-100"
                         >
                             <div className="flex flex-col items-center text-center">
@@ -622,11 +691,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
                 {/* Global Delivery Arrived Alert Modal */}
                 {deliveryArrivedAlert && (
-                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+                    <div className={overlayClass("z-[10000]")} style={overlayStyle}>
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            {...cardMotion}
                             className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-brand-100"
                         >
                             <div className="flex flex-col items-center text-center">
@@ -654,6 +721,44 @@ const DashboardLayout = ({ children, navItems, title }) => {
                     </div>
                 )}
             </AnimatePresence>
+    );
+
+    return (
+        <div className="min-h-screen mesh-gradient-light relative">
+            {/* Background Blobs for depth */}
+            <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] -z-10 animate-pulse pointer-events-none"></div>
+            <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-500/5 rounded-full blur-[120px] -z-10 animate-pulse pointer-events-none" style={{ animationDelay: '2s' }}></div>
+
+            <Sidebar
+                items={navItems}
+                title={title}
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
+            />
+            <div className={cn("transition-all duration-300", (role === "admin" || role === "seller") ? "pl-0 md:pl-72" : "pl-72")}>
+                <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
+                <main className={cn("p-4 md:p-6 min-h-screen overflow-x-hidden", (role === "admin" || role === "seller") ? "pt-20 md:pt-22 pb-24 md:pb-6" : "pt-20")}>
+                    <div className="w-full pb-12">
+                        <SellerOrdersContext.Provider
+                            value={{
+                                orders: role === 'seller' ? sellerOrders : [],
+                                ordersLoading: role === 'seller' ? ordersLoading : false,
+                                refreshOrders,
+                            }}>
+                            <SellerEarningsContext.Provider
+                                value={{
+                                    earningsData: role === 'seller' ? sellerEarningsData : defaultEarnings,
+                                    earningsLoading: role === 'seller' ? earningsLoading : false,
+                                    refreshEarnings,
+                                }}>
+                                {children}
+                            </SellerEarningsContext.Provider>
+                        </SellerOrdersContext.Provider>
+                    </div>
+                </main>
+            </div>
+
+            {typeof document !== "undefined" && createPortal(overlayTree, document.body)}
 
             {(role === "admin" || role === "seller") && <BottomNav navItems={navItems} />}
         </div>

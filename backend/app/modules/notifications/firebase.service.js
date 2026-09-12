@@ -73,6 +73,14 @@ export async function sendFCM(tokens = [], payload = {}) {
   const image = resolveImageUrl(payload, data);
   const chunks = chunkArray(tokens, MAX_FCM_MULTICAST_TOKENS);
 
+  // Flutter firebase_messaging reads both keys from the data map. Keep them
+  // in sync so native local-notifications can download the picture.
+  if (image) {
+    data.image = image;
+    data.imageUrl = image;
+  }
+
+  const isOrderAlert = data.eventType === "NEW_ORDER" || data.eventType === "order";
   const merged = {
     successCount: 0,
     failureCount: 0,
@@ -85,19 +93,38 @@ export async function sendFCM(tokens = [], payload = {}) {
       notification: {
         title,
         body,
-        ...(image ? { image } : {}),
+        // Admin SDK maps this to FCM `notification.image`. `image` is ignored.
+        ...(image ? { imageUrl: image } : {}),
       },
       data,
       android: {
+        priority: "high",
         notification: {
-          sound: (data.eventType === "NEW_ORDER" || data.eventType === "order") ? "order_alert" : "default",
-          channelId: (data.eventType === "NEW_ORDER" || data.eventType === "order") ? "order_alert" : "default",
-        }
+          sound: isOrderAlert ? "order_alert" : "default",
+          channelId: isOrderAlert ? "order_alert" : "default",
+          ...(image ? { imageUrl: image } : {}),
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: "default",
+            ...(image ? { "mutable-content": 1 } : {}),
+          },
+        },
+        ...(image
+          ? {
+              fcmOptions: {
+                imageUrl: image,
+              },
+            }
+          : {}),
       },
       webpush: {
         headers: {
           Urgency: "high",
           TTL: String(60 * 60),
+          ...(image ? { image } : {}),
         },
         notification: {
           title,
@@ -105,7 +132,7 @@ export async function sendFCM(tokens = [], payload = {}) {
           tag,
           requireInteraction: true,
           ...(image ? { image } : {}),
-          data: { link: resolvedLink || link },
+          data: { link: resolvedLink || link, image, imageUrl: image },
         },
         fcmOptions: resolvedLink ? { link: resolvedLink } : undefined,
       },

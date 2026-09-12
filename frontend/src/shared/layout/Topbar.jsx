@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@core/context/AuthContext';
 import {
     HiOutlineLogout,
@@ -16,9 +17,11 @@ import NotificationPopup from './NotificationPopup';
 import { toast } from 'sonner';
 
 import { useSettings } from '@core/context/SettingsContext';
-import { onNotificationNew } from '@core/services/orderSocket';
+import { onNotificationNew, wakeOrderSocket } from '@core/services/orderSocket';
 import { playNotificationSound } from '@/lib/soundUtils';
 import { showSystemNotification } from '@/core/firebase/pushClient';
+import AppZetoBridge, { APP_RESUME_EVENT, NATIVE_PUSH_EVENT } from '@/lib/appZetoBridge';
+import { canUseBrowserNotifications, isFlutterWebView, hasNativeFlutterBridge, shouldTreatDocumentAsVisible } from '@/core/utils/deviceUtils';
 
 const Topbar = ({ onMenuClick }) => {
     const { user, logout, role, token } = useAuth();
@@ -54,6 +57,8 @@ const Topbar = ({ onMenuClick }) => {
     React.useEffect(() => { isSellerRef.current = isSeller; }, [isSeller]);
     React.useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
 
+    const ignoreOutsideUntilRef = React.useRef(0);
+
     const fetchNotifications = React.useCallback(async () => {
         try {
             const sellerMode = isSellerRef.current;
@@ -85,7 +90,14 @@ const Topbar = ({ onMenuClick }) => {
         let scheduled = null;
         const refresh = (payload) => {
             if (payload && payload.title) {
-                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                toast.info(payload.title, { description: payload.body || undefined });
+                if (AppZetoBridge.isFlutterApp() || hasNativeFlutterBridge()) {
+                    AppZetoBridge.showNativeNotification({
+                        title: payload.title,
+                        body: payload.body || '',
+                        data: payload.data || {},
+                    });
+                } else if (canUseBrowserNotifications() && Notification.permission === 'granted') {
                     showSystemNotification({ title: payload.title, body: payload.body || '' });
                 }
             }
@@ -101,24 +113,37 @@ const Topbar = ({ onMenuClick }) => {
 
         const offNotification = token ? onNotificationNew(getToken, refresh) : null;
 
-        // Degraded fallback: 60s poll. The socket is the primary
-        // path, this just covers offline-recovery / dropped connections.
-        const FALLBACK_POLL_MS = 60000;
+        const onNativePush = () => {
+            wakeOrderSocket();
+            fetchNotifications();
+        };
+        const unsubscribeNative = AppZetoBridge.subscribe(onNativePush);
+        window.addEventListener(NATIVE_PUSH_EVENT, onNativePush);
+        window.addEventListener(APP_RESUME_EVENT, onNativePush);
+
+        // Degraded fallback. Flutter WebView often reports visibilityState
+        // "hidden" while the seller is looking at the app, so never skip polls
+        // there — and poll more often because sockets/WebPush are unreliable.
+        const FALLBACK_POLL_MS = isFlutterWebView() ? 15000 : 60000;
         const poll = setInterval(() => {
-            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+            if (!shouldTreatDocumentAsVisible()) {
                 return;
             }
             fetchNotifications();
         }, FALLBACK_POLL_MS);
 
         const onVisibility = () => {
-            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+            if (shouldTreatDocumentAsVisible()) {
+                wakeOrderSocket();
                 fetchNotifications();
             }
         };
         if (typeof document !== 'undefined') {
             document.addEventListener('visibilitychange', onVisibility);
         }
+        window.addEventListener('pageshow', onNativePush);
+        window.addEventListener('focus', onNativePush);
+        window.addEventListener('online', onNativePush);
 
         return () => {
             if (scheduled) clearTimeout(scheduled);
@@ -126,6 +151,12 @@ const Topbar = ({ onMenuClick }) => {
             if (typeof document !== 'undefined') {
                 document.removeEventListener('visibilitychange', onVisibility);
             }
+            window.removeEventListener('pageshow', onNativePush);
+            window.removeEventListener('focus', onNativePush);
+            window.removeEventListener('online', onNativePush);
+            window.removeEventListener(NATIVE_PUSH_EVENT, onNativePush);
+            window.removeEventListener(APP_RESUME_EVENT, onNativePush);
+            unsubscribeNative();
             if (typeof offNotification === 'function') offNotification();
         };
     }, [isSeller, isAdmin, token, fetchNotifications]);
@@ -133,12 +164,18 @@ const Topbar = ({ onMenuClick }) => {
     // Handle Click Outside
     React.useEffect(() => {
         const handleClickOutside = (event) => {
-            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-                setShowNotifications(false);
-            }
+            if (Date.now() < ignoreOutsideUntilRef.current) return;
+            const target = event.target;
+            if (target?.closest?.('[data-seller-notifications]')) return;
+            if (notificationRef.current && notificationRef.current.contains(target)) return;
+            setShowNotifications(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener('pointerdown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('pointerdown', handleClickOutside);
+        };
     }, []);
 
     const handleMarkAsRead = async (id) => {
@@ -207,9 +244,13 @@ const Topbar = ({ onMenuClick }) => {
             </div>
 
             <div className="flex items-center space-x-4">
-                <div className="relative" ref={notificationRef}>
+                <div className="relative" ref={notificationRef} data-seller-notifications="bell">
                     <button
-                        onClick={() => setShowNotifications(!showNotifications)}
+                        onClick={() => setShowNotifications((open) => {
+                            const next = !open;
+                            if (next) ignoreOutsideUntilRef.current = Date.now() + 500;
+                            return next;
+                        })}
                         className={cn(
                             "p-2 hover:bg-[#1A4516]/5 text-gray-500 hover:text-[#1A4516] rounded-xl transition-all duration-300 relative group",
                             showNotifications && "bg-[#1A4516]/5 text-[#1A4516]"
@@ -223,12 +264,26 @@ const Topbar = ({ onMenuClick }) => {
 
                     <AnimatePresence>
                         {showNotifications && (
-                            <NotificationPopup
-                                notifications={notifications}
-                                onMarkAsRead={handleMarkAsRead}
-                                onMarkAllAsRead={handleMarkAllAsRead}
-                                onClose={() => setShowNotifications(false)}
-                            />
+                            typeof document !== "undefined"
+                                ? createPortal(
+                                    <NotificationPopup
+                                        notifications={notifications}
+                                        onMarkAsRead={handleMarkAsRead}
+                                        onMarkAllAsRead={handleMarkAllAsRead}
+                                        onClose={() => setShowNotifications(false)}
+                                        disableAnimation={isFlutterWebView() || hasNativeFlutterBridge()}
+                                        portaled
+                                    />,
+                                    document.body,
+                                )
+                                : (
+                                    <NotificationPopup
+                                        notifications={notifications}
+                                        onMarkAsRead={handleMarkAsRead}
+                                        onMarkAllAsRead={handleMarkAllAsRead}
+                                        onClose={() => setShowNotifications(false)}
+                                    />
+                                )
                         )}
                     </AnimatePresence>
                 </div>

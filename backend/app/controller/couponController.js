@@ -5,7 +5,10 @@ import Cart from "../models/cart.js";
 import { buildSearchRegex } from "../utils/regex.js";
 import mongoose from "mongoose";
 import { isServerSideCouponEngineEnabled } from "../constants/finance.js";
-import { computeOrderDiscount } from "../services/finance/couponService.js";
+import {
+  computeOrderDiscount,
+  sanitizeCouponWritePayload,
+} from "../services/finance/couponService.js";
 import { hydrateOrderItems } from "../services/finance/pricingService.js";
 
 export const listCoupons = async (req, res) => {
@@ -59,7 +62,10 @@ export const listCoupons = async (req, res) => {
             query.$or = customerOr;
         }
 
-        let coupons = await Coupon.find(query).sort({ createdAt: -1 }).lean();
+        let coupons = await Coupon.find(query)
+            .populate("applicableCategories", "name")
+            .sort({ createdAt: -1 })
+            .lean();
 
         if (customerId && coupons.length > 0) {
             const usedCouponsCounts = {};
@@ -99,10 +105,13 @@ export const listCoupons = async (req, res) => {
 
 export const createCoupon = async (req, res) => {
     try {
-        const data = { ...req.body };
+        const data = sanitizeCouponWritePayload(req.body);
         const coupon = await Coupon.create(data);
         return handleResponse(res, 201, "Coupon created successfully", coupon);
     } catch (error) {
+        if (error.statusCode) {
+            return handleResponse(res, error.statusCode, error.message);
+        }
         if (error.code === 11000) {
             return handleResponse(res, 400, "Coupon code already exists");
         }
@@ -113,16 +122,19 @@ export const createCoupon = async (req, res) => {
 export const updateCoupon = async (req, res) => {
     try {
         const { id } = req.params;
-        const data = { ...req.body };
+        const data = sanitizeCouponWritePayload(req.body);
         const coupon = await Coupon.findByIdAndUpdate(id, data, {
             new: true,
             runValidators: true,
-        });
+        }).populate("applicableCategories", "name");
         if (!coupon) {
             return handleResponse(res, 404, "Coupon not found");
         }
         return handleResponse(res, 200, "Coupon updated successfully", coupon);
     } catch (error) {
+        if (error.statusCode) {
+            return handleResponse(res, error.statusCode, error.message);
+        }
         return handleResponse(res, 500, error.message);
     }
 };

@@ -1,11 +1,59 @@
 import { io } from "socket.io-client";
 import { resolveSocketBaseUrl } from "@core/api/resolveApiBaseUrl";
+import { isFlutterWebView, subscribeNativeBridgeReady } from "@core/utils/deviceUtils";
+import { APP_RESUME_EVENT } from "@/lib/appZetoBridge";
 
 let socket = null;
 let socketUrl = "";
+let wakeListenersInstalled = false;
+let webViewTransportLockInstalled = false;
 
 function socketBaseUrl() {
   return resolveSocketBaseUrl();
+}
+
+function isPollingOnlySocket(client) {
+  const transports = client?.io?.opts?.transports;
+  return Array.isArray(transports) && transports.length === 1 && transports[0] === "polling";
+}
+
+function installWebViewTransportLock() {
+  if (webViewTransportLockInstalled || typeof window === "undefined") return;
+  webViewTransportLockInstalled = true;
+  subscribeNativeBridgeReady(() => {
+    if (!socket) return;
+    if (isPollingOnlySocket(socket)) return;
+    try {
+      socket.io.opts.transports = ["polling"];
+      socket.io.opts.upgrade = false;
+      if (socket.connected || socket.disconnected) {
+        socket.disconnect();
+        socket.connect();
+      }
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+function installSocketWakeListeners() {
+  if (wakeListenersInstalled || typeof window === "undefined") return;
+  wakeListenersInstalled = true;
+
+  const wake = () => {
+    if (!socket) return;
+    try {
+      if (socket.disconnected) socket.connect();
+    } catch {
+      /* ignore */
+    }
+  };
+
+  window.addEventListener("focus", wake);
+  window.addEventListener("online", wake);
+  window.addEventListener("pageshow", wake);
+  window.addEventListener(APP_RESUME_EVENT, wake);
+  document.addEventListener("visibilitychange", wake);
 }
 
 /**
@@ -19,6 +67,8 @@ export function getOrderSocket(getToken) {
   }
 
   const url = socketBaseUrl();
+  const inWebView = isFlutterWebView();
+  installWebViewTransportLock();
 
   // If base URL changes (env switch), recreate the client.
   if (socket && socketUrl && socketUrl !== url) {
@@ -36,13 +86,23 @@ export function getOrderSocket(getToken) {
     console.log('[orderSocket] Creating new Socket.IO connection to:', url);
 
     // Important: capture the instance so logs don't reference a later-overwritten module variable.
+    // Flutter / Android WebView often hangs on the websocket upgrade, so stay on HTTP
+    // long-polling there. Token is sent in both auth and query because some WebViews
+    // drop the Socket.IO handshake auth payload.
     const s = io(url, {
       autoConnect: false,
       auth: { token },
-      transports: ["polling", "websocket"],
+      query: { token },
+      // Android/iOS WebViews often hang forever on the websocket upgrade.
+      // Stay on HTTP long-polling in Flutter; desktop browsers can still upgrade.
+      transports: inWebView ? ["polling"] : ["polling", "websocket"],
+      upgrade: !inWebView,
+      withCredentials: true,
       reconnection: true,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 10000,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: inWebView ? 1000 : 2000,
+      reconnectionDelayMax: inWebView ? 8000 : 10000,
+      timeout: 20000,
     });
 
     s.on("connect", () => {
@@ -65,6 +125,7 @@ export function getOrderSocket(getToken) {
     });
 
     socket = s;
+    installSocketWakeListeners();
     s.connect();
     return socket;
   }
@@ -72,6 +133,7 @@ export function getOrderSocket(getToken) {
   // Refresh auth token — if token changed (different role), force reconnect
   if (socket.auth?.token !== token) {
     socket.auth = { token };
+    socket.io.opts.query = { ...(socket.io.opts.query || {}), token };
     // If already connected with a different token, reconnect so server re-authenticates
     if (socket.connected) {
       socket.disconnect();
@@ -84,6 +146,15 @@ export function getOrderSocket(getToken) {
   }
   
   return socket;
+}
+
+export function wakeOrderSocket() {
+  if (!socket) return;
+  try {
+    if (socket.disconnected) socket.connect();
+  } catch {
+    /* ignore */
+  }
 }
 
 export function disconnectOrderSocket() {

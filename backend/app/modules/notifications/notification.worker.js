@@ -136,6 +136,7 @@ export async function deliverNotificationById(notificationId) {
           title: notification.title,
           body: notification.body || notification.message,
           message: notification.message,
+          imageUrl: notification.data?.imageUrl || notification.data?.image,
           data: notification.data || {},
         },
       ),

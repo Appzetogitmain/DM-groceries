@@ -3,10 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineBell, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineClock } from 'react-icons/hi2';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@core/context/AuthContext';
-import { cn } from '@/lib/utils';
-import Button from '@shared/components/ui/Button';
+import { cn, notificationImageUrl } from '@/lib/utils';
 
-const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClose }) => {
+const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClose, disableAnimation = false, portaled = false }) => {
     const navigate = useNavigate();
     const { role } = useAuth();
 
@@ -37,11 +36,21 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
     };
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            initial={disableAnimation ? false : { opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="fixed md:absolute top-14 md:top-full left-0 md:left-auto md:right-0 mt-0 md:mt-4 w-full md:w-[380px] bg-white rounded-b-2xl md:rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] md:border border-gray-100 overflow-hidden z-[999999999999] max-h-[80vh] md:h-auto flex flex-col"
+            exit={disableAnimation ? { opacity: 1 } : { opacity: 0, y: 10, scale: 0.95 }}
+            transition={disableAnimation ? { duration: 0 } : { type: "spring", damping: 20, stiffness: 300 }}
+            className={cn(
+                "bg-white rounded-b-2xl md:rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] md:border border-gray-100 overflow-hidden z-[200] max-h-[80vh] md:h-auto flex flex-col",
+                portaled
+                    ? "fixed top-14 left-0 right-0 md:left-auto md:right-4 md:w-[380px]"
+                    : "fixed md:absolute top-14 md:top-full left-0 md:left-auto md:right-0 mt-0 md:mt-4 w-full md:w-[380px]",
+            )}
+            data-seller-notifications="panel"
+            style={{
+                zIndex: 200,
+                ...(disableAnimation ? { opacity: 1, transform: "none" } : {}),
+            }}
         >
             <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-slate-50/50 flex-shrink-0">
                 <div className="flex items-center gap-2">
@@ -66,6 +75,7 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
                         {notifications.map((notif) => {
                             const notificationId = notif?._id || notif?.id;
                             const messageText = notif?.message || notif?.body || "";
+                            const imageUrl = notificationImageUrl(notif);
                             return (
                                 <div
                                     key={notificationId}
@@ -79,6 +89,14 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
                                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
                                     )}
                                     <div className="flex gap-4">
+                                        {imageUrl ? (
+                                            <img
+                                                src={imageUrl}
+                                                alt=""
+                                                className="h-12 w-12 rounded-xl object-cover flex-shrink-0 ring-1 ring-slate-100"
+                                                loading="lazy"
+                                            />
+                                        ) : (
                                         <div className={cn(
                                             "h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110",
                                             notif.type === 'order' ? "bg-brand-50 text-brand-600" :
@@ -89,7 +107,8 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
                                                 notif.type === 'payment' ? <HiOutlineClock size={20} /> :
                                                     <HiOutlineExclamationCircle size={20} />}
                                         </div>
-                                        <div className="flex-1">
+                                        )}
+                                        <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-1">
                                                 <p className={cn(
                                                     "text-xs font-black tracking-tight",

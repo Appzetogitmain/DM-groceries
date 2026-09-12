@@ -34,9 +34,39 @@ const adminSchema = new mongoose.Schema(
       type: String,
       default: "admin",
     },
+
+    adminType: {
+      type: String,
+      enum: ["super_admin", "sub_admin"],
+      default: "super_admin",
+    },
+
     isVerified: {
       type: Boolean,
-      default: true, // Internal admins might be verified by default or via admin code
+      default: true,
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+
+    // Granular permission map: { "orders": ["view", "create"], "products": ["view", "create", "delete"] }
+    permissions: {
+      type: Map,
+      of: [String],
+      default: new Map(),
+    },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+      default: null,
+    },
+
+    emailVerifiedAt: {
+      type: Date,
+      default: null,
     },
 
     lastLogin: Date,

@@ -860,6 +860,9 @@ const OrderDetailPage = () => {
       const response = await customerApi.selectPaymentMethod(paymentRef, { paymentMode: method });
       if (method === "ONLINE" && response.data.result?.redirectUrl) {
         window.location.href = response.data.result.redirectUrl;
+      } else if (method === "COD") {
+        toast.success(response.data.message || "Payment method updated");
+        window.location.reload();
       } else {
         toast.success(response.data.message || "Payment method updated");
         const res = await customerApi.getOrderDetails(orderId);

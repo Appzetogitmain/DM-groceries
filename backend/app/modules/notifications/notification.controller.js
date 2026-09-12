@@ -513,7 +513,9 @@ export const broadcastNotification = async (req, res) => {
         data: {
           audience,
           deepLink,
+          link: deepLink,
           imageUrl,
+          image: imageUrl,
           broadcastId,
           source: "admin_broadcast",
           sentBy: adminId,

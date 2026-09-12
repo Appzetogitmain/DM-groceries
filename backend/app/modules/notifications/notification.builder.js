@@ -629,6 +629,8 @@ function eventData(eventType, payload = {}, role) {
     orderId,
     checkoutGroupId,
     link,
+    imageUrl: String(payload.imageUrl || payload.data?.imageUrl || "").trim() || undefined,
+    image: String(payload.imageUrl || payload.data?.image || payload.data?.imageUrl || "").trim() || undefined,
     ...(payload.data || {}),
   };
 }

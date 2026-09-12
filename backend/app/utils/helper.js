@@ -7,18 +7,25 @@ export const handleResponse = (res, statusCode, message, data = {}) => {
     // Handle Mongoose documents
     let obj = item;
     if (typeof item.toObject === 'function') {
-      obj = item.toObject();
+      obj = item.toObject({ flattenMaps: true });
     } else if (typeof item === 'object') {
       // Recursively sanitize if it's a plain object that might contain Mongoose docs
       obj = { ...item };
       for (const key in obj) {
         if (obj[key] && typeof obj[key].toObject === 'function') {
-          obj[key] = obj[key].toObject();
+          obj[key] = obj[key].toObject({ flattenMaps: true });
           // Clean the nested object too
           const { updatedAt, __v, password, ...rest } = obj[key];
           obj[key] = rest;
+        } else if (obj[key] instanceof Map) {
+          obj[key] = Object.fromEntries(obj[key]);
         }
       }
+    }
+
+    // Double-check top level fields for Map just in case
+    if (obj.permissions instanceof Map) {
+      obj.permissions = Object.fromEntries(obj.permissions);
     }
 
     const { updatedAt, __v, password, ...cleaned } = obj;

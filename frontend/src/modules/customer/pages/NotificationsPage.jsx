@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Bell, BellRing, Check } from "lucide-react";
 import { customerApi } from "../services/customerApi";
 import { toast } from "sonner";
+import { notificationImageUrl } from "@/lib/utils";
 
 const NotificationsPage = () => {
     const navigate = useNavigate();
@@ -90,7 +91,9 @@ const NotificationsPage = () => {
 
             <div className="px-4 space-y-3 max-w-2xl mx-auto">
                 {notifications.length > 0 ? (
-                    notifications.map((notification) => (
+                    notifications.map((notification) => {
+                        const imageUrl = notificationImageUrl(notification);
+                        return (
                         <div 
                             key={notification.id} 
                             className={`p-4 rounded-2xl border flex gap-4 ${
@@ -104,7 +107,7 @@ const NotificationsPage = () => {
                             }`}>
                                 {notification.isRead ? <Bell size={18} /> : <BellRing size={18} />}
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                     <h3 className={`font-semibold ${notification.isRead ? "text-slate-700" : "text-slate-900"}`}>
                                         {notification.title}
@@ -116,9 +119,18 @@ const NotificationsPage = () => {
                                 <p className={`mt-1 text-sm ${notification.isRead ? "text-slate-500" : "text-slate-700"}`}>
                                     {notification.message}
                                 </p>
+                                {imageUrl ? (
+                                    <img
+                                        src={imageUrl}
+                                        alt=""
+                                        className="mt-3 w-full max-h-40 rounded-xl object-cover"
+                                        loading="lazy"
+                                    />
+                                ) : null}
                             </div>
                         </div>
-                    ))
+                        );
+                    })
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                         <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">

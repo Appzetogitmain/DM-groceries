@@ -76,47 +76,73 @@ export const AuthProvider = ({ children }) => {
         if (!token) return;
         let cancelled = false;
         let cleanupDeferredRegistration = null;
+        let cleanupBridgeWait = null;
 
-        // Fire-and-forget; never block auth/profile load.
-        setTimeout(() => {
-            import('@core/firebase/pushClient')
-                .then(async ({
+        const registerPush = async () => {
+            if (cancelled) return;
+            try {
+                const {
                     ensureFcmTokenRegistered,
                     hasRegisteredFcmToken,
                     startForegroundPushListener,
-                    scheduleFcmRegistrationOnUserGesture
-                }) => {
-                    if (cancelled) return;
-                    await startForegroundPushListener();
-                    if (hasRegisteredFcmToken(currentRole)) return;
+                    scheduleFcmRegistrationOnUserGesture,
+                } = await import('@core/firebase/pushClient');
+                const { hasNativeFlutterBridge } = await import('@core/utils/deviceUtils');
+                const AppZetoBridge = (await import('@/lib/appZetoBridge')).default;
 
-                    const permission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
-                    if (permission === 'granted') {
-                        await ensureFcmTokenRegistered({
-                            role: currentRole,
-                            platform: 'web'
-                        });
-                        return;
-                    }
+                if (cancelled) return;
+                await startForegroundPushListener();
+                if (hasRegisteredFcmToken(currentRole)) return;
 
-                    cleanupDeferredRegistration = scheduleFcmRegistrationOnUserGesture({
+                const nativeApp = hasNativeFlutterBridge() || AppZetoBridge.isFlutterApp();
+                if (nativeApp) {
+                    await ensureFcmTokenRegistered({
+                        role: currentRole,
+                        platform: 'app',
+                    });
+                    return;
+                }
+
+                const permission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+                if (permission === 'granted') {
+                    await ensureFcmTokenRegistered({
                         role: currentRole,
                         platform: 'web',
-                        onError: (error) => {
-                            console.warn('[push] Deferred registration failed:', error?.message || error);
-                        },
                     });
-                })
-                .catch((error) => {
-                    // Permission denied / unsupported / any error: user can retry later from push-enabled actions.
-                    console.warn('[push] Auto-registration skipped:', error?.message || error);
+                    return;
+                }
+
+                cleanupDeferredRegistration = scheduleFcmRegistrationOnUserGesture({
+                    role: currentRole,
+                    platform: 'web',
+                    onError: (error) => {
+                        console.warn('[push] Deferred registration failed:', error?.message || error);
+                    },
                 });
+            } catch (error) {
+                console.warn('[push] Auto-registration skipped:', error?.message || error);
+            }
+        };
+
+        // Fire-and-forget; never block auth/profile load.
+        setTimeout(() => {
+            registerPush();
         }, 0);
+
+        import('@core/utils/deviceUtils').then(({ subscribeNativeBridgeReady }) => {
+            if (cancelled) return;
+            cleanupBridgeWait = subscribeNativeBridgeReady(() => {
+                registerPush();
+            });
+        }).catch(() => {});
 
         return () => {
             cancelled = true;
             if (typeof cleanupDeferredRegistration === 'function') {
                 cleanupDeferredRegistration();
+            }
+            if (typeof cleanupBridgeWait === 'function') {
+                cleanupBridgeWait();
             }
         };
     }, [token, currentRole]);

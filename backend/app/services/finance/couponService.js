@@ -336,7 +336,111 @@ export async function incrementCouponUsage({ couponId, session = null } = {}) {
   return Number(updateResult?.modifiedCount || 0) > 0;
 }
 
+const ALLOWED_COUPON_TYPES = [
+  "generic",
+  "bulk_order",
+  "min_order_value",
+  "free_delivery",
+  "category_based",
+  "monthly_volume",
+];
+const ALLOWED_DISCOUNT_TYPES = ["percentage", "fixed", "free_delivery"];
+
+function toOptionalNumber(value, fallback = null) {
+  if (value === "" || value == null) return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * Normalize admin create/update bodies. Rejects inconsistent strategy fields
+ * so checkout `computeOrderDiscount` is not given empty category lists or
+ * bulk coupons with no minItems.
+ */
+export function sanitizeCouponWritePayload(body = {}) {
+  const couponType = String(body.couponType || "generic").trim().toLowerCase();
+  if (!ALLOWED_COUPON_TYPES.includes(couponType)) {
+    throw makeError(400, "Invalid coupon strategy");
+  }
+
+  let discountType = String(body.discountType || "percentage").trim().toLowerCase();
+  if (couponType === "free_delivery") {
+    discountType = "free_delivery";
+  }
+  if (!ALLOWED_DISCOUNT_TYPES.includes(discountType)) {
+    throw makeError(400, "Invalid discount kind");
+  }
+
+  const code = String(body.code || "").trim().toUpperCase();
+  if (!code) {
+    throw makeError(400, "Promo code is required");
+  }
+  if (!body.validFrom || !body.validTill) {
+    throw makeError(400, "Start and end dates are required");
+  }
+
+  let discountValue = toOptionalNumber(body.discountValue, 0);
+  if (discountType === "free_delivery") {
+    discountValue = 0;
+  } else if (discountValue == null || discountValue < 0) {
+    throw makeError(400, "Discount value is required");
+  }
+  if (discountType === "percentage" && discountValue > 100) {
+    throw makeError(400, "Percentage discount cannot exceed 100");
+  }
+
+  const minOrderValue = Math.max(0, toOptionalNumber(body.minOrderValue, 0) || 0);
+  const minItems = Math.max(0, Math.floor(toOptionalNumber(body.minItems, 0) || 0));
+  const monthlyVolumeThreshold = toOptionalNumber(body.monthlyVolumeThreshold, null);
+  const maxDiscount = toOptionalNumber(body.maxDiscount, null);
+  const usageLimit = toOptionalNumber(body.usageLimit, null);
+  const perUserLimit = toOptionalNumber(body.perUserLimit, 1);
+
+  const applicableCategories = Array.isArray(body.applicableCategories)
+    ? [
+        ...new Set(
+          body.applicableCategories
+            .map((id) => String(id?._id || id || "").trim())
+            .filter((id) => mongoose.isValidObjectId(id)),
+        ),
+      ]
+    : [];
+
+  if (couponType === "category_based" && applicableCategories.length < 1) {
+    throw makeError(400, "Select at least one category for a category-based coupon");
+  }
+  if (couponType === "bulk_order" && minItems < 1) {
+    throw makeError(400, "Bulk order coupons require a minimum item count");
+  }
+  if (couponType === "monthly_volume" && !(Number(monthlyVolumeThreshold) > 0)) {
+    throw makeError(400, "Monthly volume coupons require a spend threshold");
+  }
+  if (couponType === "min_order_value" && !(minOrderValue > 0)) {
+    throw makeError(400, "Minimum order value coupons require a min order amount");
+  }
+
+  return {
+    code,
+    title: String(body.title || "").trim(),
+    description: String(body.description || "").trim(),
+    couponType,
+    discountType,
+    discountValue,
+    maxDiscount: maxDiscount != null && maxDiscount > 0 ? maxDiscount : null,
+    minOrderValue,
+    minItems: couponType === "bulk_order" ? minItems : 0,
+    applicableCategories: couponType === "category_based" ? applicableCategories : [],
+    monthlyVolumeThreshold:
+      couponType === "monthly_volume" ? Number(monthlyVolumeThreshold) : null,
+    usageLimit: usageLimit != null && usageLimit > 0 ? usageLimit : null,
+    perUserLimit: perUserLimit != null && perUserLimit > 0 ? perUserLimit : 1,
+    validFrom: body.validFrom,
+    validTill: body.validTill,
+  };
+}
+
 export default {
   computeOrderDiscount,
   incrementCouponUsage,
+  sanitizeCouponWritePayload,
 };

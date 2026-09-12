@@ -15,6 +15,7 @@ import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { deliveryApi } from "../services/deliveryApi";
 import { toast } from "sonner";
+import { notificationImageUrl } from "@/lib/utils";
 import {
   getOrderSocket,
   onDeliveryBroadcastWithdrawn,
@@ -130,7 +131,9 @@ const Notifications = () => {
             initial="hidden"
             animate="visible">
             <AnimatePresence mode="popLayout">
-              {notifications.map((notification) => (
+              {notifications.map((notification) => {
+                const imageUrl = notificationImageUrl(notification);
+                return (
                 <motion.div
                   key={notification._id}
                   variants={itemVariants}
@@ -157,7 +160,7 @@ const Notifications = () => {
                         {notification.type === "order" ? <Megaphone size={20} /> : <Bell size={20} />}
                       </div>
 
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <h3
                           className={`font-extrabold text-gray-900 mb-0.5 text-sm ${!notification.isRead ? "text-brand-900" : "text-gray-700 font-bold"}`}>
                           {notification.title}
@@ -165,6 +168,14 @@ const Notifications = () => {
                         <p className={`text-xs mb-2 leading-snug ${!notification.isRead ? "text-gray-900 font-medium" : "text-gray-500"}`}>
                           {notification.message}
                         </p>
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt=""
+                            className="mb-2 w-full max-h-28 rounded-xl object-cover"
+                            loading="lazy"
+                          />
+                        ) : null}
                         <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                           <Clock size={10} className="mr-1" />
                           {new Date(notification.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(notification.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -173,7 +184,8 @@ const Notifications = () => {
                     </div>
                   </Card>
                 </motion.div>
-              ))}
+                );
+              })}
             </AnimatePresence>
 
             {notifications.length === 0 && (
@@ -220,6 +232,13 @@ const Notifications = () => {
                 <p className="text-sm text-gray-700 leading-relaxed font-medium">
                   {selectedNotification.message || "No additional details provided."}
                 </p>
+                {notificationImageUrl(selectedNotification) ? (
+                  <img
+                    src={notificationImageUrl(selectedNotification)}
+                    alt=""
+                    className="w-full max-h-48 rounded-xl object-cover"
+                  />
+                ) : null}
                 {selectedNotification.data?.preview && (
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm space-y-3">
                     {selectedNotification.data.preview.pickup && (

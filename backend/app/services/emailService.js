@@ -125,6 +125,49 @@ export async function sendSellerVerificationOtpEmail({
   };
 }
 
+export async function sendSubAdminInviteOtpEmail({
+  email,
+  otp,
+  expiresInMinutes,
+}) {
+  if (!useRealEmailOTP()) {
+    logger.info("Sub Admin invite OTP generated in mock mode", {
+      email,
+      otp,
+      mode: "mock",
+    });
+    return {
+      delivered: false,
+      mode: "mock",
+    };
+  }
+
+  const transporter = getTransporter();
+  await transporter.sendMail({
+    from: getMailFrom(),
+    to: email,
+    subject: "Admin Panel — Verify your email",
+    text: `Your verification code for admin panel access is ${otp}. This code expires in ${expiresInMinutes} minutes.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #0f172a; max-width: 480px; margin: 0 auto; padding: 32px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h2 style="color: #0B3B24; margin: 0;">Admin Panel Access</h2>
+        </div>
+        <p style="font-size: 14px; color: #475569;">You have been invited as a Sub Admin. Please use the code below to verify your email:</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <p style="font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0B3B24; margin: 0;">${otp}</p>
+        </div>
+        <p style="font-size: 12px; color: #94a3b8; text-align: center;">This code expires in ${expiresInMinutes} minutes.</p>
+      </div>
+    `,
+  });
+
+  return {
+    delivered: true,
+    mode: "real",
+  };
+}
+
 export function __resetEmailTransportForTests() {
   cachedTransporter = null;
 }

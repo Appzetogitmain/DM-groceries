@@ -124,3 +124,87 @@ export const requireApprovedSeller = async (req, res, next) => {
     return handleResponse(res, 500, "Unable to validate seller approval status");
   }
 };
+
+/* ===============================
+   Permission-based access for Admin RBAC
+   Usage: requirePermission("orders", "view")
+================================ */
+export const requirePermission = (section, action = "view") => {
+  return async (req, res, next) => {
+    try {
+      // Must be authenticated with admin role
+      if (req.user?.role !== "admin") {
+        return handleResponse(res, 403, "Access denied");
+      }
+
+      // Import Admin model dynamically to avoid circular deps
+      const { default: Admin } = await import("../models/admin.js");
+
+      const admin = await Admin.findById(req.user.id)
+        .select("adminType permissions isActive")
+        .lean();
+
+      if (!admin) {
+        return handleResponse(res, 401, "Admin account not found");
+      }
+
+      if (!admin.isActive) {
+        return handleResponse(res, 403, "Your account has been deactivated. Contact the Super Admin.");
+      }
+
+      // Super admins bypass all permission checks
+      if (admin.adminType === "super_admin") {
+        return next();
+      }
+
+      // Sub admins: check the permissions map
+      const sectionPerms = admin.permissions instanceof Map
+        ? admin.permissions.get(section)
+        : admin.permissions?.[section];
+
+      const permsArray = Array.isArray(sectionPerms) ? sectionPerms : [];
+
+      if (!permsArray.includes(action)) {
+        return handleResponse(res, 403, "You do not have permission to access this resource");
+      }
+
+      next();
+    } catch (error) {
+      return handleResponse(res, 500, "Unable to validate admin permissions");
+    }
+  };
+};
+
+/* ===============================
+   Super Admin only access
+   Shortcut for routes that only super admins should access (e.g. Sub Admin management)
+================================ */
+export const requireSuperAdmin = async (req, res, next) => {
+  try {
+    if (req.user?.role !== "admin") {
+      return handleResponse(res, 403, "Access denied");
+    }
+
+    const { default: Admin } = await import("../models/admin.js");
+
+    const admin = await Admin.findById(req.user.id)
+      .select("adminType isActive")
+      .lean();
+
+    if (!admin) {
+      return handleResponse(res, 401, "Admin account not found");
+    }
+
+    if (!admin.isActive) {
+      return handleResponse(res, 403, "Your account has been deactivated");
+    }
+
+    if (admin.adminType !== "super_admin") {
+      return handleResponse(res, 403, "Only Super Admins can access this resource");
+    }
+
+    next();
+  } catch (error) {
+    return handleResponse(res, 500, "Unable to validate admin status");
+  }
+};

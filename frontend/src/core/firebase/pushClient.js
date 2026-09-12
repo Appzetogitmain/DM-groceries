@@ -3,6 +3,7 @@ import { getFirebaseApp } from "./client";
 import axiosInstance from "@core/api/axios";
 import AppZetoBridge from "../../lib/appZetoBridge";
 import { rawGet, rawSet, rawRemove, KEY_PREFIXES } from "@core/utils/storage";
+import { hasNativeFlutterBridge, isFlutterWebView } from "@core/utils/deviceUtils";
 
 let foregroundListenerStarted = false;
 let foregroundUnsubscribe = null;
@@ -41,6 +42,12 @@ export function describePushSupport() {
     return { supported: false, reason: "no-window" };
   }
 
+  // Native Flutter must win over the iOS Safari UA check — WKWebView looks
+  // like Safari and is not "standalone", but FCM is handled by the app.
+  if (hasNativeFlutterBridge() || window.Flutter) {
+    return { supported: true, reason: "flutter-native" };
+  }
+
   if (!window.isSecureContext) {
     return { supported: false, reason: "insecure-context" };
   }
@@ -58,8 +65,8 @@ export function describePushSupport() {
     };
   }
 
-  if (window.Flutter) {
-    return { supported: true, reason: "flutter-native" };
+  if (isFlutterWebView()) {
+    return { supported: false, reason: "webview-without-native-bridge" };
   }
 
   return { supported: true, reason: "ok" };
@@ -102,6 +109,19 @@ export async function showSystemNotification({ title, body, data } = {}) {
   const link = data?.link || "/";
   const tag = data?.orderId || data?.eventType || "quick-commerce";
   const image = String(data?.image || data?.imageUrl || "").trim();
+
+  if (hasNativeFlutterBridge() || AppZetoBridge.isFlutterApp()) {
+    AppZetoBridge.showNativeNotification({
+      title: safeTitle,
+      body: safeBody,
+      image,
+      data: {
+        ...(data || {}),
+        ...(image ? { image, imageUrl: image } : {}),
+      },
+    });
+    return;
+  }
 
   // Prefer SW notifications so they land in the OS notification center consistently.
   try {
@@ -153,7 +173,9 @@ export async function ensureFcmTokenRegistered({
     throw new Error(support.message || `Push unsupported: ${support.reason}`);
   }
 
-  if (!window.Flutter) {
+  const nativeFlutter = hasNativeFlutterBridge() || AppZetoBridge.isFlutterApp();
+
+  if (!nativeFlutter) {
     const supported = await isSupported().catch(() => false);
     if (!supported) {
       throw new Error("Firebase Messaging is not supported in this environment");
@@ -162,7 +184,7 @@ export async function ensureFcmTokenRegistered({
 
   let token = "";
 
-  if (window.Flutter) {
+  if (nativeFlutter) {
     // Get token from Flutter native layer
     token = await AppZetoBridge.getFcmToken();
     if (!token) {
@@ -273,17 +295,17 @@ export async function startForegroundPushListener() {
     return foregroundUnsubscribe;
   }
 
-  if (!window.Flutter) {
+  if (!hasNativeFlutterBridge() && !window.Flutter) {
     const supported = await isSupported().catch(() => false);
     if (!supported) return () => {};
   }
 
   const app = getFirebaseApp();
-  if (!app && !window.Flutter) return () => {};
+  if (!app && !hasNativeFlutterBridge() && !window.Flutter) return () => {};
 
-  // If in Flutter, the native app handles foreground notifications, 
+  // If in Flutter, the native app handles foreground notifications,
   // but we can still return a dummy unsubscribe.
-  if (window.Flutter) {
+  if (hasNativeFlutterBridge() || window.Flutter) {
     return () => {};
   }
 

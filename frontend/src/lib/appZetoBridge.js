@@ -1,150 +1,211 @@
 /**
- * AppZeto JS Bridge Helper
- * This script should be included in your React application (MERN frontend).
- * It enables bidirectional communication between the React web app and the
- * Flutter native wrapper via the WebView JavaScript channel.
+ * AppZeto JS Bridge
+ *
+ * Bidirectional channel between the React seller/customer/delivery UI and a
+ * Flutter WebView wrapper. Supports both:
+ *   - webview_flutter `JavascriptChannel`  → window.Flutter.postMessage
+ *   - flutter_inappwebview                  → window.flutter_inappwebview.callHandler
+ *
+ * Flutter can also push events into the page with:
+ *   window.AppZetoNative.dispatch({ type: "push_received", data: { ... } })
+ *   window.dispatchEvent(new CustomEvent("appzeto:native-push", { detail }))
  */
 
-const AppZetoBridge = {
-  /**
-   * Check if the app is running inside the Flutter WebView
-   * @returns {boolean}
-   */
-  isFlutterApp: () => {
-    return !!window.Flutter;
-  },
+export const NATIVE_PUSH_EVENT = "appzeto:native-push";
+export const APP_RESUME_EVENT = "appzeto:app-resume";
 
-  /**
-   * Send a message to Flutter
-   * @param {string} action - Action name (open_camera, get_location, pick_file, get_fcm_token)
-   */
-  send: (action) => {
-    if (window.Flutter) {
-      window.Flutter.postMessage(action);
-    } else {
-      console.warn("Flutter context not found. Are you running inside the Flutter app?");
+const listeners = new Set();
+const pendingByType = new Map();
+let hookInstalled = false;
+
+function hasFlutterChannel() {
+  return typeof window !== "undefined" && Boolean(window.Flutter);
+}
+
+function hasInAppWebView() {
+  return (
+    typeof window !== "undefined" &&
+    Boolean(window.flutter_inappwebview && window.flutter_inappwebview.callHandler)
+  );
+}
+
+function notifyListeners(message) {
+  listeners.forEach((callback) => {
+    try {
+      callback(message);
+    } catch {
+      /* ignore listener errors */
     }
+  });
+
+  if (typeof window === "undefined" || !message) return;
+
+  const type = String(message.type || message.event || "").toLowerCase();
+  window.dispatchEvent(new CustomEvent(NATIVE_PUSH_EVENT, { detail: message }));
+
+  if (type === "app_resume" || type === "resume") {
+    window.dispatchEvent(new CustomEvent(APP_RESUME_EVENT, { detail: message }));
+  }
+}
+
+function resolvePending(type, data) {
+  const key = String(type || "");
+  const resolvers = pendingByType.get(key);
+  if (!resolvers?.length) return;
+  pendingByType.delete(key);
+  resolvers.forEach((resolve) => {
+    try {
+      resolve(data);
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+export function dispatchNativeMessage(message) {
+  if (!message || typeof message !== "object") return;
+  const type = message.type || message.event;
+  if (type) {
+    resolvePending(type, message.data !== undefined ? message.data : message);
+  }
+  notifyListeners(message);
+}
+
+function installNativeHook() {
+  if (hookInstalled || typeof window === "undefined") return;
+  hookInstalled = true;
+
+  const previous = window.onFlutterResponse;
+  window.onFlutterResponse = (response) => {
+    dispatchNativeMessage(response && typeof response === "object" ? response : { type: "unknown", data: response });
+    if (typeof previous === "function" && previous !== window.onFlutterResponse) {
+      try {
+        previous(response);
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
+  window.AppZetoNative = {
+    dispatch: dispatchNativeMessage,
+  };
+}
+
+if (typeof window !== "undefined") {
+  installNativeHook();
+}
+
+const AppZetoBridge = {
+  isFlutterApp: () => hasFlutterChannel() || hasInAppWebView(),
+
+  send: (action, payload) => {
+    const body =
+      payload === undefined
+        ? action
+        : JSON.stringify({ action, ...payload });
+
+    if (hasFlutterChannel()) {
+      window.Flutter.postMessage(typeof body === "string" ? body : String(action));
+      return;
+    }
+
+    if (hasInAppWebView()) {
+      const handlerName = typeof action === "string" ? action : "postMessage";
+      window.flutter_inappwebview.callHandler(handlerName, payload || action);
+      return;
+    }
+
+    console.warn("Flutter context not found. Are you running inside the Flutter app?");
   },
 
-  /**
-   * Listen for responses from Flutter
-   * @param {Function} callback - Function to handle the response
-   */
   onResponse: (callback) => {
-    window.onFlutterResponse = (response) => {
-      // response format: { type: "camera_response", data: "base64..." }
-      callback(response);
-    };
+    if (typeof callback !== "function") return () => {};
+    listeners.add(callback);
+    return () => listeners.delete(callback);
   },
 
-  /**
-   * Request FCM Token from Flutter and return it as a Promise
-   * @returns {Promise<string|null>}
-   */
+  subscribe: (callback) => AppZetoBridge.onResponse(callback),
+
   getFcmToken: () => {
     return new Promise((resolve) => {
-      if (!window.Flutter) {
+      if (hasInAppWebView()) {
+        window.flutter_inappwebview
+          .callHandler("getFcmToken")
+          .then((token) => resolve(token || null))
+          .catch(() => resolve(null));
+        return;
+      }
+
+      if (!hasFlutterChannel()) {
         resolve(null);
         return;
       }
 
-      // One-time listener for the token response
-      const originalOnResponse = window.onFlutterResponse;
-      window.onFlutterResponse = (response) => {
-        if (response.type === 'fcm_token_response') {
-          // Restore original listener if it existed
-          window.onFlutterResponse = originalOnResponse;
-          resolve(response.data);
-        } else if (originalOnResponse) {
-          // Pass other messages to the original listener
-          originalOnResponse(response);
-        }
-      };
+      const resolvers = pendingByType.get("fcm_token_response") || [];
+      resolvers.push(resolve);
+      pendingByType.set("fcm_token_response", resolvers);
 
       window.Flutter.postMessage("get_fcm_token");
-      
-      // Timeout after 10 seconds
+
       setTimeout(() => {
-        if (window.onFlutterResponse !== originalOnResponse) {
-          window.onFlutterResponse = originalOnResponse;
-          resolve(null);
-        }
+        const stillWaiting = pendingByType.get("fcm_token_response");
+        if (!stillWaiting?.includes(resolve)) return;
+        pendingByType.set(
+          "fcm_token_response",
+          stillWaiting.filter((fn) => fn !== resolve),
+        );
+        resolve(null);
       }, 10000);
     });
   },
 
-  /**
-   * Request Location from Flutter and return it as a Promise
-   * @returns {Promise<{lat: number, lng: number}|null>}
-   */
   getLocation: () => {
     return new Promise((resolve) => {
-      if (!window.Flutter) {
+      if (hasInAppWebView()) {
+        window.flutter_inappwebview
+          .callHandler("getLocation")
+          .then((coords) => resolve(coords || null))
+          .catch(() => resolve(null));
+        return;
+      }
+
+      if (!hasFlutterChannel()) {
         resolve(null);
         return;
       }
 
-      const originalOnResponse = window.onFlutterResponse;
-      window.onFlutterResponse = (response) => {
-        if (response.type === 'location_response') {
-          window.onFlutterResponse = originalOnResponse;
-          resolve(response.data);
-        } else if (originalOnResponse) {
-          originalOnResponse(response);
-        }
-      };
+      const resolvers = pendingByType.get("location_response") || [];
+      resolvers.push(resolve);
+      pendingByType.set("location_response", resolvers);
 
       window.Flutter.postMessage("get_location");
-      
+
       setTimeout(() => {
-        if (window.onFlutterResponse !== originalOnResponse) {
-          window.onFlutterResponse = originalOnResponse;
-          resolve(null);
-        }
-      }, 15000); // Higher timeout for GPS
+        const stillWaiting = pendingByType.get("location_response");
+        if (!stillWaiting?.includes(resolve)) return;
+        pendingByType.set(
+          "location_response",
+          stillWaiting.filter((fn) => fn !== resolve),
+        );
+        resolve(null);
+      }, 15000);
     });
-  }
-};
+  },
 
-// --- Example Usage in React Component ---
-
-/*
-import React, { useEffect, useState } from 'react';
-
-const MyComponent = () => {
-  const [image, setImage] = useState(null);
-
-  useEffect(() => {
-    AppZetoBridge.onResponse((res) => {
-      if (res.type === 'camera_response' && res.data) {
-        setImage(`data:image/jpeg;base64,${res.data}`);
-      }
-      if (res.type === 'location_response') {
-        console.log("Current Location:", res.data);
-      }
-      if (res.type === 'fcm_token_response') {
-        console.log("FCM Token:", res.data);
-        // Send this token to your backend API to save it for push notifications
-      }
+  showNativeNotification: ({ title, body, data, image } = {}) => {
+    const imageUrl = String(image || data?.imageUrl || data?.image || "").trim();
+    AppZetoBridge.send("show_notification", {
+      title: title || "Notification",
+      body: body || "",
+      image: imageUrl,
+      imageUrl,
+      data: {
+        ...(data || {}),
+        ...(imageUrl ? { image: imageUrl, imageUrl } : {}),
+      },
     });
-  }, []);
-
-  const handleCapture = () => {
-    AppZetoBridge.send("open_camera");
-  };
-
-  const handleGetLocation = () => {
-    AppZetoBridge.send("get_location");
-  };
-
-  return (
-    <div>
-      <button onClick={handleCapture}>Open Camera</button>
-      <button onClick={handleGetLocation}>Get Location</button>
-      {image && <img src={image} alt="Captured" style={{width: '200px'}} />}
-    </div>
-  );
+  },
 };
-*/
 
 export default AppZetoBridge;
