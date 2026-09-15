@@ -38,38 +38,69 @@ const AddProduct = () => {
   const isAutoSku = (sku, name, index = 1) =>
     String(sku || "").toLowerCase() === makeSku(name, index);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    slug: "",
-    sku: "",
-    description: "",
-    price: "",
-    salePrice: "",
-    stock: "",
-    lowStockAlert: 5,
-    category: "",
-    subcategory: "",
-    header: "",
-    status: "active",
-    tags: "",
-    weight: "",
-    brand: "",
-    mainImage: null,
-    galleryImages: [],
-    variants: [
-      {
-        id: Date.now(),
-        name: "",
-        price: "",
-        salePrice: "",
-        stock: "",
-        sku: "",
-      },
-    ],
+  const [formData, setFormData] = useState(() => {
+    const saved = localStorage.getItem("sellerAddProductDraft");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed) {
+          return {
+            ...parsed,
+            mainImage: null,
+            galleryImages: [],
+            mainImageFile: null,
+            galleryFiles: []
+          };
+        }
+      } catch (e) {}
+    }
+    return {
+      name: "",
+      slug: "",
+      sku: "",
+      description: "",
+      price: "",
+      salePrice: "",
+      stock: "",
+      lowStockAlert: 5,
+      category: "",
+      subcategory: "",
+      header: "",
+      status: "active",
+      tags: "",
+      weight: "",
+      brand: "",
+      mainImage: null,
+      galleryImages: [],
+      variants: [
+        {
+          id: Date.now(),
+          name: "",
+          price: "",
+          salePrice: "",
+          stock: "",
+          sku: "",
+        },
+      ],
+    };
   });
 
   const [dbCategories, setDbCategories] = useState([]);
   const [isLoadingCats, setIsLoadingCats] = useState(true);
+
+  // Disable pull-down-to-refresh
+  useEffect(() => {
+    document.body.style.overscrollBehaviorY = 'contain';
+    return () => {
+      document.body.style.overscrollBehaviorY = 'auto';
+    };
+  }, []);
+
+  // Save draft to localStorage (excluding images to avoid quota issues)
+  useEffect(() => {
+    const { mainImage, galleryImages, mainImageFile, galleryFiles, ...rest } = formData;
+    localStorage.setItem("sellerAddProductDraft", JSON.stringify(rest));
+  }, [formData]);
 
   useEffect(() => {
     setFormData((prev) => {
@@ -181,6 +212,7 @@ const AddProduct = () => {
       } else {
         toast.success(response?.data?.message || "Product saved successfully!");
       }
+      localStorage.removeItem("sellerAddProductDraft");
       navigate("/seller/products");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to save product");
@@ -361,6 +393,9 @@ const AddProduct = () => {
                   />
                 </div>
               </div>
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => setModalTab("variants")}>Next: Variants <HiOutlineArrowLeft className="ml-2 h-4 w-4 rotate-180" /></Button>
+              </div>
             </div>
           )}
 
@@ -540,6 +575,9 @@ const AddProduct = () => {
                   </div>
                 ))}
               </div>
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => setModalTab("category")}>Next: Category <HiOutlineArrowLeft className="ml-2 h-4 w-4 rotate-180" /></Button>
+              </div>
             </div>
           )}
 
@@ -609,6 +647,9 @@ const AddProduct = () => {
                       ))}
                   </select>
                 </div>
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => setModalTab("media")}>Next: Media <HiOutlineArrowLeft className="ml-2 h-4 w-4 rotate-180" /></Button>
               </div>
             </div>
           )}
@@ -693,6 +734,11 @@ const AddProduct = () => {
                 Quick Tip: Using WebP format at 800x800px makes your store load
                 3x faster.
               </p>
+              <div className="flex justify-end pt-4 border-t border-slate-50">
+                <Button onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? "Publishing..." : "Save & Publish"}
+                </Button>
+              </div>
             </div>
           )}
 

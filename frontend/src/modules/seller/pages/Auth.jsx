@@ -912,7 +912,7 @@ const Auth = () => {
                               type="file"
                               id={doc.id}
                               className="hidden"
-                              accept="image/*,.pdf"
+                              accept="image/*,application/pdf"
                               onChange={(e) => handleDocumentChange(e, doc.id)}
                             />
                             <label

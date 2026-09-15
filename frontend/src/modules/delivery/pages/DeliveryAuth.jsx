@@ -87,6 +87,7 @@ const DeliveryAuth = () => {
   const [dlVerified, setDlVerified] = useState(null);
   const [panVerified, setPanVerified] = useState(null);
   const [aadharVerified, setAadharVerified] = useState(null);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     let interval;
@@ -375,11 +376,12 @@ const DeliveryAuth = () => {
                               <input
                                 type="text"
                                 value={signupName}
-                                onChange={(e) => setSignupName(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                onChange={(e) => { setSignupName(e.target.value); setErrors(prev => ({...prev, name: ''})); }}
+                                className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                                 placeholder="Enter your full name"
                               />
                             </div>
+                            {errors.name ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.name}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">As per government ID</p>}
                           </div>
 
                           <div className="space-y-1.5">
@@ -390,12 +392,13 @@ const DeliveryAuth = () => {
                               <input
                                 type="tel"
                                 value={signupPhone}
-                                onChange={(e) => setSignupPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                                onChange={(e) => { setSignupPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); setErrors(prev => ({...prev, phone: ''})); }}
                                 maxLength={10}
-                                className="w-full pl-24 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                className={`w-full pl-24 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.phone ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                                 placeholder="00000 00000"
                               />
                             </div>
+                            {errors.phone ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.phone}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">10-digit mobile number</p>}
                           </div>
 
                           <div className="space-y-1.5">
@@ -405,11 +408,12 @@ const DeliveryAuth = () => {
                               <input
                                 type="email"
                                 value={signupEmail}
-                                onChange={(e) => setSignupEmail(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                onChange={(e) => { setSignupEmail(e.target.value); setErrors(prev => ({...prev, email: ''})); }}
+                                className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.email ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                                 placeholder="example@gmail.com"
                               />
                             </div>
+                            {errors.email ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.email}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">Used for important updates and receipts</p>}
                           </div>
 
                           <div className="space-y-1.5">
@@ -418,21 +422,28 @@ const DeliveryAuth = () => {
                               <MapPin className="absolute left-4 top-4 text-gray-300 w-4 h-4" />
                               <textarea
                                 value={signupAddress}
-                                onChange={(e) => setSignupAddress(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all resize-none h-24"
+                                onChange={(e) => { setSignupAddress(e.target.value); setErrors(prev => ({...prev, address: ''})); }}
+                                className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all resize-none h-24 ${errors.address ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                                 placeholder="Complete building address..."
                               />
                             </div>
+                            {errors.address ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.address}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">Include flat number, street, and landmark</p>}
                           </div>
 
                           <button
                             onClick={() => {
-                              if (!signupName || !signupPhone || !signupEmail || !signupAddress || !profileImageFile) {
-                                toast.error("Please fill all personal information fields and upload photo");
+                              const newErrors = {};
+                              if (!profileImageFile) {
+                                toast.error("Please upload your profile photo");
                                 return;
                               }
-                              if (signupPhone.length !== 10) {
-                                toast.error("Please enter a valid 10-digit phone number");
+                              if (!signupName || signupName.trim().length < 3) newErrors.name = "Minimum 3 characters required";
+                              if (!signupPhone || signupPhone.length !== 10) newErrors.phone = "Must be exactly 10 digits";
+                              if (!signupEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) newErrors.email = "Invalid email address";
+                              if (!signupAddress || signupAddress.trim().length < 10) newErrors.address = "Please enter a detailed address";
+                              
+                              if (Object.keys(newErrors).length > 0) {
+                                setErrors(newErrors);
                                 return;
                               }
                               setSignupStep(2);
@@ -493,11 +504,12 @@ const DeliveryAuth = () => {
                               <input
                                 type="text"
                                 value={signupVehicleNumber}
-                                onChange={(e) => setSignupVehicleNumber(e.target.value.toUpperCase())}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                onChange={(e) => { setSignupVehicleNumber(e.target.value.toUpperCase()); setErrors(prev => ({...prev, vehicleNumber: ''})); }}
+                                className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.vehicleNumber ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                                 placeholder="KA 05 MN 8921"
                               />
                             </div>
+                            {errors.vehicleNumber ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.vehicleNumber}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">e.g., MH 01 AB 1234</p>}
                           </div>
 
                           <div className="space-y-1.5">
@@ -507,11 +519,12 @@ const DeliveryAuth = () => {
                               <input
                                 type="text"
                                 value={signupDLNumber}
-                                onChange={(e) => setSignupDLNumber(e.target.value.toUpperCase())}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                onChange={(e) => { setSignupDLNumber(e.target.value.toUpperCase()); setErrors(prev => ({...prev, dlNumber: ''})); }}
+                                className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.dlNumber ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                                 placeholder="DL-1420110012345"
                               />
                             </div>
+                            {errors.dlNumber ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.dlNumber}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">10 to 20 character driving license number</p>}
                           </div>
 
                           <div className="flex gap-4 pt-2">
@@ -523,12 +536,16 @@ const DeliveryAuth = () => {
                             </button>
                             <button
                               onClick={() => {
-                                if (!signupVehicleNumber) {
-                                  toast.error("Please enter your vehicle plate number");
-                                  return;
+                                const newErrors = {};
+                                if (!signupVehicleNumber || !/^[A-Z]{2}[-\s]?[0-9]{2}[-\s]?[A-Z]{1,2}[-\s]?[0-9]{4}$/.test(signupVehicleNumber.replace(/\s+/g, ' '))) {
+                                  newErrors.vehicleNumber = "Invalid format. Expected e.g., MH 01 AB 1234";
                                 }
-                                if (!signupDLNumber) {
-                                  toast.error("Please enter your driving license number");
+                                if (!signupDLNumber || !/^[A-Z0-9-/\s]{10,20}$/.test(signupDLNumber)) {
+                                  newErrors.dlNumber = "Invalid DL format";
+                                }
+                                
+                                if (Object.keys(newErrors).length > 0) {
+                                  setErrors(newErrors);
                                   return;
                                 }
                                 setSignupStep(3);
@@ -553,50 +570,55 @@ const DeliveryAuth = () => {
                             <input
                               type="text"
                               value={signupAadharNumber}
-                              onChange={(e) => setSignupAadharNumber(e.target.value.replace(/\D/g, "").slice(0, 12))}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all font-mono"
+                              onChange={(e) => { setSignupAadharNumber(e.target.value.replace(/\D/g, "").slice(0, 12)); setErrors(prev => ({...prev, aadhar: ''})); }}
+                              className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all font-mono ${errors.aadhar ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                               placeholder="0000 0000 0000"
                             />
+                            {errors.aadhar ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.aadhar}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">12-digit unique identification number</p>}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">PAN Card Number</label>
                             <input
                               type="text"
                               value={signupPanNumber}
-                              onChange={(e) => setSignupPanNumber(e.target.value.toUpperCase().slice(0, 10))}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all font-mono"
+                              onChange={(e) => { setSignupPanNumber(e.target.value.toUpperCase().slice(0, 10)); setErrors(prev => ({...prev, pan: ''})); }}
+                              className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all font-mono ${errors.pan ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                               placeholder="ABCDE1234F"
                             />
+                            {errors.pan ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.pan}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">10-character alphanumeric (e.g., ABCDE1234F)</p>}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Account Holder Name</label>
                             <input
                               type="text"
                               value={signupAccountHolder}
-                              onChange={(e) => setSignupAccountHolder(e.target.value.toUpperCase())}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                              onChange={(e) => { setSignupAccountHolder(e.target.value.toUpperCase()); setErrors(prev => ({...prev, accountName: ''})); }}
+                              className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.accountName ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                               placeholder="AS PER BANK RECORDS"
                             />
+                            {errors.accountName ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.accountName}</p> : null}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Account Number</label>
                             <input
                               type="text"
                               value={signupAccountNumber}
-                              onChange={(e) => setSignupAccountNumber(e.target.value.replace(/\D/g, ""))}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                              onChange={(e) => { setSignupAccountNumber(e.target.value.replace(/\D/g, "")); setErrors(prev => ({...prev, accountNumber: ''})); }}
+                              className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.accountNumber ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                               placeholder="000000000000"
                             />
+                            {errors.accountNumber ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.accountNumber}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">9-18 digit account number</p>}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">IFSC Code</label>
                             <input
                               type="text"
                               value={signupIfsc}
-                              onChange={(e) => setSignupIfsc(e.target.value.toUpperCase())}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                              onChange={(e) => { setSignupIfsc(e.target.value.toUpperCase()); setErrors(prev => ({...prev, ifsc: ''})); }}
+                              className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.ifsc ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                               placeholder="HDFC0001234"
                             />
+                            {errors.ifsc ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.ifsc}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">11-character bank IFSC (e.g., SBIN0001234)</p>}
                           </div>
 
                           <div className="flex gap-4 pt-2">
@@ -608,16 +630,25 @@ const DeliveryAuth = () => {
                             </button>
                             <button
                               onClick={() => {
-                                if (!signupAadharNumber || !signupPanNumber || !signupAccountHolder || !signupAccountNumber || !signupIfsc) {
-                                  toast.error("Please fill all bank and identification fields");
-                                  return;
+                                const newErrors = {};
+                                if (!signupAadharNumber || !/^\d{12}$/.test(signupAadharNumber)) {
+                                  newErrors.aadhar = "Aadhar number must be exactly 12 digits";
                                 }
-                                if (signupAadharNumber.length !== 12) {
-                                  toast.error("Aadhar number must be 12 digits");
-                                  return;
+                                if (!signupPanNumber || !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(signupPanNumber)) {
+                                  newErrors.pan = "Invalid PAN number format";
                                 }
-                                if (signupPanNumber.length !== 10) {
-                                  toast.error("PAN number must be 10 characters");
+                                if (!signupAccountHolder || signupAccountHolder.trim().length < 3) {
+                                  newErrors.accountName = "Invalid account holder name";
+                                }
+                                if (!signupAccountNumber || !/^\d{9,18}$/.test(signupAccountNumber)) {
+                                  newErrors.accountNumber = "Invalid account number length";
+                                }
+                                if (!signupIfsc || !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(signupIfsc)) {
+                                  newErrors.ifsc = "Invalid IFSC Code";
+                                }
+                                
+                                if (Object.keys(newErrors).length > 0) {
+                                  setErrors(newErrors);
                                   return;
                                 }
                                 setSignupStep(4);

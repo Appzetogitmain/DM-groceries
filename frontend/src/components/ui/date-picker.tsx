@@ -130,7 +130,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       {open && (
         <div
           className={cn(
-            "absolute z-50 top-full mt-2 w-[280px] max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-xl",
+            "absolute z-50 top-full mt-2 w-auto min-w-[280px] max-w-[95vw] rounded-xl border border-slate-200 bg-white shadow-xl",
             align === "right" ? "right-0" : "left-0",
             popupClassName
           )}

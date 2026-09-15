@@ -126,6 +126,8 @@ const ProductManagement = () => {
   const [isVariantsViewModalOpen, setIsVariantsViewModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [modalTab, setModalTab] = useState("general");
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewProduct, setPreviewProduct] = useState(null);
 
   const makeSku = (name, index = 1) => {
     const prefix = String(name || "")
@@ -574,7 +576,7 @@ const ProductManagement = () => {
               className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border-none rounded-xl text-xs font-semibold text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-[#1A4516]/5 transition-all outline-none"
             />
           </div>
-          <div className="flex gap-2 shrink-0 w-full lg:w-auto">
+          <div className="flex flex-wrap gap-2 shrink-0 w-full lg:w-auto items-center">
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
@@ -759,13 +761,24 @@ const ProductManagement = () => {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end space-x-2">
                       <button
+                        onClick={() => { setPreviewProduct(p); setIsPreviewModalOpen(true); }}
+                        className="p-1 hover:text-indigo-600 rounded-lg transition-all text-slate-500"
+                        title="Preview Product"
+                      >
+                        <HiOutlineEye className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={() => openEditModal(p)}
-                        className="p-1 hover:text-brand-600 rounded-lg transition-all text-slate-500">
+                        className="p-1 hover:text-brand-600 rounded-lg transition-all text-slate-500"
+                        title="Edit Product"
+                      >
                         <HiOutlinePencilSquare className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(p)}
-                        className="p-1 hover:text-rose-600 rounded-lg transition-all text-slate-500">
+                        className="p-1 hover:text-rose-600 rounded-lg transition-all text-slate-500"
+                        title="Delete Product"
+                      >
                         <HiOutlineTrash className="h-4 w-4" />
                       </button>
                     </div>
@@ -1434,6 +1447,59 @@ const ProductManagement = () => {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Preview Product Modal */}
+      <Modal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        title="Product Preview"
+        size="md"
+      >
+        {previewProduct && (
+          <div className="py-2">
+            <div className="flex items-start gap-4">
+              <div className="h-24 w-24 rounded-2xl border border-slate-100 overflow-hidden bg-slate-50 shrink-0">
+                <img src={previewProduct.mainImage || previewProduct.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400"} alt={previewProduct.name} className="h-full w-full object-cover" />
+              </div>
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <h3 className="text-lg font-bold text-slate-900 leading-tight break-words">{previewProduct.name}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="primary" className="text-[10px] px-2 py-0.5">{previewProduct.categoryId?.name || 'No Category'}</Badge>
+                  {previewProduct.brand && <span className="text-xs font-bold text-slate-500">{previewProduct.brand}</span>}
+                </div>
+                <p className="text-sm font-black text-slate-900 mt-2">
+                  ₹{previewProduct.salePrice > 0 ? previewProduct.salePrice : previewProduct.price}
+                  {previewProduct.salePrice > 0 && <span className="line-through text-slate-400 ml-2 text-xs">₹{previewProduct.price}</span>}
+                </p>
+                <p className="text-xs text-slate-600 mt-2 line-clamp-3">{previewProduct.description || "No description provided."}</p>
+              </div>
+            </div>
+            
+            {previewProduct.variants?.length > 0 && (
+                <div className="mt-6 border-t border-slate-100 pt-4">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-3">Variants ({previewProduct.variants.length})</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {previewProduct.variants.map((v, i) => (
+                            <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
+                                <span className="text-xs font-bold text-slate-700 truncate pr-2">{v.name}</span>
+                                <span className="text-xs font-black text-slate-900 shrink-0">₹{v.salePrice > 0 ? v.salePrice : v.price}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            
+            <div className="mt-8 flex justify-end">
+              <button
+                onClick={() => setIsPreviewModalOpen(false)}
+                className="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-xl hover:-translate-y-0.5 transition-all"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div >
   );

@@ -303,13 +303,7 @@ export class OrderReturnService {
       0,
     );
 
-    const totalProductPrice = order.paymentBreakdown?.productSubtotal || order.pricing?.subtotal || productRefundAmount;
-    const proportion = totalProductPrice > 0 ? productRefundAmount / totalProductPrice : 1;
-
-    const deliveryRefund = (order.paymentBreakdown?.deliveryFeeCharged || order.pricing?.deliveryFee || 0) * proportion;
-    const handlingRefund = (order.paymentBreakdown?.handlingFeeCharged || order.pricing?.platformFee || 0) * proportion;
-
-    const refundAmount = productRefundAmount + deliveryRefund + handlingRefund;
+    const refundAmount = productRefundAmount;
 
     const settings = await getOrCreateFinanceSettings();
     

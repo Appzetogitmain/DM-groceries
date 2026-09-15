@@ -191,7 +191,11 @@ export async function issueCustomerOtp({
   await customer.save();
 
   if (useRealSMS()) {
-    await dispatchCustomerOtpSms({ phone, otp });
+    if (phone === "+916268423925" || phone === "+919111966732" || phone === "+918982292201") {
+      console.log(`[Mock SMS] Skipped SMS for test number ${phone}`);
+    } else {
+      await dispatchCustomerOtpSms({ phone, otp });
+    }
     otpAuditLog("customer_otp_sms_dispatched", {
       phone: maskPhone(phone),
       flow,

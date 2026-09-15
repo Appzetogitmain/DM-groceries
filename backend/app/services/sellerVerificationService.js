@@ -180,15 +180,23 @@ async function ensureTargetExists(channel, target) {
 
 async function ensureTargetAvailable(channel, target) {
   const query = channel === "email" ? { email: target } : { phone: target };
-  const existingSeller = await Seller.findOne(query).select("_id").lean();
-  if (existingSeller) {
-    const error = new Error(
-      channel === "email"
-        ? "A seller with this email already exists"
-        : "A seller with this phone number already exists",
-    );
-    error.statusCode = 400;
-    throw error;
+  const existingSellers = await Seller.find(query).select("_id applicationStatus").lean();
+  
+  if (existingSellers.length > 0) {
+    const activeOrPending = existingSellers.find(s => s.applicationStatus !== "rejected");
+    if (activeOrPending) {
+      const error = new Error(
+        channel === "email"
+          ? "A seller with this email already exists"
+          : "A seller with this phone number already exists",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // All found records are rejected/deleted by admin. Clean them up so OTP and signup can proceed smoothly without unique constraints triggering.
+    const idsToDelete = existingSellers.map(s => s._id);
+    await Seller.deleteMany({ _id: { $in: idsToDelete } });
   }
 }
 

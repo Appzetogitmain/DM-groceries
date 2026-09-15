@@ -321,17 +321,31 @@ const BillingCharges = () => {
                                     <p className="text-[10px] font-bold text-purple-600/70 italic">Special bonus added to every delivery (e.g., bad weather).</p>
                                 </div>
                                 {deliveryMode === 'distance' && (
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rider Per Km Rate (₹)</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={config.deliveryPartnerRatePerKm}
-                                            onChange={(e) => handleInputChange('deliveryPartnerRatePerKm', e.target.value)}
-                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-purple-500/10 transition-all"
-                                        />
-                                        <p className="text-[10px] font-bold text-slate-400 italic">Earning per km beyond the free base radius.</p>
-                                    </div>
+                                    <>
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Base Radius (Km)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.1"
+                                                value={config.baseDistance}
+                                                onChange={(e) => handleInputChange('baseDistance', e.target.value)}
+                                                className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-purple-500/10 transition-all"
+                                            />
+                                            <p className="text-[10px] font-bold text-slate-400 italic">Distance upto which only base payout applies.</p>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rider Per Km Rate (₹)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={config.deliveryPartnerRatePerKm}
+                                                onChange={(e) => handleInputChange('deliveryPartnerRatePerKm', e.target.value)}
+                                                className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-purple-500/10 transition-all"
+                                            />
+                                            <p className="text-[10px] font-bold text-slate-400 italic">Earning per km beyond the free base radius.</p>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>

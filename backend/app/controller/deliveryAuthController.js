@@ -104,7 +104,11 @@ export const signupDelivery = async (req, res) => {
         }
 
         if (useRealSMS()) {
-            await sendSmsIndiaHubOtp({ phone, otp });
+            if (phone === "6268423925" || phone === "+916268423925" || phone === "9111966732" || phone === "+919111966732" || phone === "8982292201" || phone === "+918982292201") {
+                console.log(`[Mock SMS] Skipped SMS for test number ${phone}`);
+            } else {
+                await sendSmsIndiaHubOtp({ phone, otp });
+            }
         }
 
         return handleResponse(res, 200, "OTP sent successfully");
@@ -146,7 +150,11 @@ export const loginDelivery = async (req, res) => {
         await delivery.save();
 
         if (useRealSMS()) {
-            await sendSmsIndiaHubOtp({ phone, otp });
+            if (phone === "6268423925" || phone === "+916268423925" || phone === "9111966732" || phone === "+919111966732" || phone === "8982292201" || phone === "+918982292201") {
+                console.log(`[Mock SMS] Skipped SMS for test number ${phone}`);
+            } else {
+                await sendSmsIndiaHubOtp({ phone, otp });
+            }
         }
 
         return handleResponse(res, 200, "OTP sent successfully");

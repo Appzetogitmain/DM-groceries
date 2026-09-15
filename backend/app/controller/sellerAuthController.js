@@ -160,10 +160,18 @@ export const signupSeller = async (req, res) => {
             return handleResponse(res, 400, "Radius must be between 1 and 100 km");
         }
 
-        let seller = await Seller.findOne({ $or: [{ email }, { phone }] });
+        let existingSellers = await Seller.find({ $or: [{ email }, { phone }] });
 
-        if (seller) {
-            return handleResponse(res, 400, "Seller with this email or phone already exists");
+        if (existingSellers.length > 0) {
+            const activeOrPending = existingSellers.find(s => s.applicationStatus !== "rejected");
+            
+            if (activeOrPending) {
+                return handleResponse(res, 400, "Seller with this email or phone already exists");
+            }
+
+            // All matching records are rejected, so we clear them out to allow a fresh signup
+            const idsToDelete = existingSellers.map(s => s._id);
+            await Seller.deleteMany({ _id: { $in: idsToDelete } });
         }
 
         const parsedDocuments = parseDocumentsPayload(documents);
