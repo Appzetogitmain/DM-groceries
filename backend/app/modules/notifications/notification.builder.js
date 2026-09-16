@@ -93,7 +93,7 @@ function eventDefinition(eventType) {
         recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
         title: () => "Order Confirmed",
         body: (payload) => payload.isPaymentPending 
-          ? "Seller accepted your order! Please choose Pay Online or COD to dispatch it." 
+          ? "Seller accepted your order! Payment is required within 5 minutes." 
           : "Seller has confirmed your order.",
       };
     case NOTIFICATION_EVENTS.ORDER_PACKED:

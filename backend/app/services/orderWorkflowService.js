@@ -28,6 +28,8 @@ import {
   removeDeliveryTimeout,
   scheduleReturnPickupTimeout,
   removeReturnPickupTimeout,
+  schedulePaymentTimeoutJob as schedulePaymentTimeout,
+  removePaymentTimeoutJob as removePaymentTimeout,
 } from "./workflow/jobSchedulerPort.js";
 import {
   emitOrderStatusUpdate,
@@ -138,6 +140,14 @@ export async function removeReturnPickupTimeoutJob(orderId, attempt = 1) {
   return removeReturnPickupTimeout(orderId, attempt);
 }
 
+export async function schedulePaymentTimeoutJob(orderId) {
+  return schedulePaymentTimeout(orderId);
+}
+
+export async function removePaymentTimeoutJob(orderId) {
+  return removePaymentTimeout(orderId);
+}
+
 import Setting from "../models/setting.js";
 
 /**
@@ -163,15 +173,7 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
     throw err;
   }
 
-  let paymentTimeoutMinutes = 10;
-  try {
-    const settings = await Setting.findOne();
-    if (settings && settings.paymentTimeoutMinutes) {
-      paymentTimeoutMinutes = settings.paymentTimeoutMinutes;
-    }
-  } catch (e) {
-    logger.warn("Could not fetch paymentTimeoutMinutes from settings", { error: e });
-  }
+  const paymentTimeoutMinutes = 5; // Enforce 5 minutes limit for payment
 
   const isPaymentPending = (orderForCheck.paymentMode === "PENDING" || orderForCheck.paymentStatus === "AWAITING_PAYMENT_METHOD") && orderForCheck.paymentStatus !== "PAID";
 
@@ -252,6 +254,7 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
       },
       updated.customer?._id || updated.customer,
     );
+    await schedulePaymentTimeoutJob(updated.orderId);
   }
 
   emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CONFIRMED, {
@@ -273,6 +276,8 @@ export async function proceedToDeliverySearch(orderId, orderDoc = null) {
   const now = new Date();
   const deliveryMs = DEFAULT_DELIVERY_TIMEOUT_MS();
   
+  await removePaymentTimeoutJob(orderId);
+
   const updated = await Order.findOneAndUpdate(
     {
       orderId,
@@ -548,6 +553,47 @@ export async function processSellerTimeoutJob({ orderId }) {
     sellerId: updated.seller,
     customerMessage: "Your order was cancelled because seller did not accept in time.",
     sellerMessage: `Order #${updated.orderId} was cancelled due to timeout.`,
+  });
+}
+
+export async function processPaymentTimeoutJob({ orderId }) {
+  const now = new Date();
+  const order = await Order.findOne({ orderId, workflowVersion: { $gte: 2 } });
+  if (!order || order.workflowStatus !== WORKFLOW_STATUS.SELLER_ACCEPTED) return;
+
+  if (order.customerPaymentPendingExpiresAt && order.customerPaymentPendingExpiresAt > now) {
+    return;
+  }
+
+  const updated = await Order.findOneAndUpdate(
+    {
+      orderId,
+      workflowVersion: { $gte: 2 },
+      workflowStatus: WORKFLOW_STATUS.SELLER_ACCEPTED,
+    },
+    {
+      $set: {
+        workflowStatus: WORKFLOW_STATUS.CANCELLED,
+        status: "cancelled",
+        cancelledBy: "system",
+        cancelReason: "Payment timeout (5m)",
+      },
+    },
+    { new: true },
+  );
+
+  if (!updated) return;
+
+  await compensateOrderCancellation(updated, orderId);
+
+  emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.CANCELLED }, updated.customer);
+  emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CANCELLED, {
+    orderId: updated.orderId,
+    customerId: updated.customer,
+    userId: updated.customer,
+    sellerId: updated.seller,
+    customerMessage: "Your order was cancelled because payment was not completed in time.",
+    sellerMessage: `Order #${updated.orderId} was cancelled due to payment timeout.`,
   });
 }
 
@@ -840,9 +886,16 @@ export async function customerCancelV2(customerId, orderId, reason) {
     throw err;
   }
 
+  const isPaid = ["PAID", "CAPTURED", "COMPLETED"].includes(order.paymentStatus?.toUpperCase());
+  if (isPaid) {
+    const err = new Error("Order cannot be cancelled because payment is already completed.");
+    err.statusCode = 400;
+    throw err;
+  }
+
   const ws = resolveWorkflowStatus(order);
-  if (ws !== WORKFLOW_STATUS.SELLER_PENDING) {
-    const err = new Error("Order cannot be cancelled after confirmation");
+  if (ws === WORKFLOW_STATUS.OUT_FOR_DELIVERY || ws === WORKFLOW_STATUS.DELIVERED || ws === WORKFLOW_STATUS.CANCELLED) {
+    const err = new Error("Order cannot be cancelled at this stage");
     err.statusCode = 400;
     throw err;
   }
@@ -851,7 +904,6 @@ export async function customerCancelV2(customerId, orderId, reason) {
     {
       orderId,
       customer: customerId,
-      workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
     },
     {
       $set: {
@@ -871,6 +923,7 @@ export async function customerCancelV2(customerId, orderId, reason) {
   }
 
   await removeSellerTimeoutJob(orderId);
+  await removePaymentTimeoutJob(orderId);
   await compensateOrderCancellation(updated, orderId);
   emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.CANCELLED }, updated.customer);
   emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CANCELLED, {

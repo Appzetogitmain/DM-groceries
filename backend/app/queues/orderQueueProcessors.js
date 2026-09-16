@@ -2,12 +2,14 @@ import {
   sellerTimeoutQueue,
   deliveryTimeoutQueue,
   returnPickupTimeoutQueue,
+  paymentTimeoutQueue,
   JOB_NAMES,
 } from "./orderQueues.js";
 import {
   processSellerTimeoutJob,
   processDeliveryTimeoutJob,
   processReturnPickupTimeoutJob,
+  processPaymentTimeoutJob,
 } from "../services/orderWorkflowService.js";
 import { isRedisEnabled } from "../config/redis.js";
 import logger from "../services/logger.js";
@@ -183,6 +185,43 @@ export function registerOrderQueueProcessors() {
     }
   });
 
+  paymentTimeoutQueue.process(JOB_NAMES.PAYMENT_TIMEOUT, async (job) => {
+    const startTime = Date.now();
+    try {
+      logger.info('Processing payment timeout job', {
+        jobId: job.id,
+        jobType: JOB_NAMES.PAYMENT_TIMEOUT,
+        orderId: job.data.orderId,
+      });
+
+      await processPaymentTimeoutJob(job.data);
+
+      const duration = Date.now() - startTime;
+      logger.info('Payment timeout job completed', {
+        jobId: job.id,
+        jobType: JOB_NAMES.PAYMENT_TIMEOUT,
+        orderId: job.data.orderId,
+        duration,
+      });
+
+      incrementCounter('queue_jobs_total', { queue: 'payment-timeout', status: 'completed' });
+      recordHistogram('queue_job_duration_seconds', duration / 1000, { queue: 'payment-timeout' });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error('Payment timeout job failed', {
+        jobId: job.id,
+        jobType: JOB_NAMES.PAYMENT_TIMEOUT,
+        orderId: job.data.orderId,
+        duration,
+        error: error.message,
+        stack: error.stack,
+      });
+
+      incrementCounter('queue_jobs_total', { queue: 'payment-timeout', status: 'failed' });
+      throw error;
+    }
+  });
+
   // Queue event handlers
   sellerTimeoutQueue.on("failed", (job, err) => {
     logger.error('Seller timeout queue job failed', {
@@ -247,11 +286,33 @@ export function registerOrderQueueProcessors() {
     });
   });
 
+  paymentTimeoutQueue.on("failed", (job, err) => {
+    logger.error('Payment timeout queue job failed', {
+      jobId: job?.id,
+      jobType: JOB_NAMES.PAYMENT_TIMEOUT,
+      orderId: job?.data?.orderId,
+      error: err?.message,
+    });
+    emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_QUEUE_FAILURE, {
+      title: "Queue Job Failed",
+      message: `Payment timeout job ${job?.id} failed for order ${job?.data?.orderId}: ${err?.message}`,
+      queueName: "paymentTimeoutQueue"
+    });
+  });
+
+  paymentTimeoutQueue.on("completed", (job) => {
+    logger.debug('Payment timeout queue job completed', {
+      jobId: job?.id,
+      orderId: job?.data?.orderId,
+    });
+  });
+
   logger.info('Order queue processors registered', {
     queues: [
       JOB_NAMES.SELLER_TIMEOUT,
       JOB_NAMES.DELIVERY_TIMEOUT,
       JOB_NAMES.RETURN_PICKUP_TIMEOUT,
+      JOB_NAMES.PAYMENT_TIMEOUT,
     ]
   });
 }

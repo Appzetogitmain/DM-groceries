@@ -169,7 +169,7 @@ const AppRouter = () => {
                         { path: 'settings', element: <ProtectedRoute><SettingsPage /></ProtectedRoute> },
                         { path: 'help', element: <ProtectedRoute><SupportPage /></ProtectedRoute> },
                         { path: 'chat', element: <ProtectedRoute><ChatPage /></ProtectedRoute> },
-                        { path: 'checkout', element: <ProtectedRoute><CheckoutPage /></ProtectedRoute> },
+                        { path: 'checkout', element: <CheckoutPage /> },
                         { path: 'payment-status', element: <PaymentStatusPage /> },
                         { path: 'profile', element: <ProtectedRoute><ProfilePage /></ProtectedRoute> },
                         { path: 'profile/edit', element: <ProtectedRoute><EditProfilePage /></ProtectedRoute> },

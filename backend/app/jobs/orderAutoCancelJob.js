@@ -5,6 +5,7 @@ import {
   processSellerTimeoutJob,
   processDeliveryTimeoutJob,
   processReturnPickupTimeoutJob,
+  processPaymentTimeoutJob,
 } from "../services/orderWorkflowService.js";
 import { compensateOrderCancellation } from "../services/orderCompensation.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
@@ -88,6 +89,26 @@ const autoCancelExpiredOrders = async () => {
         await processReturnPickupTimeoutJob({ orderId: row.orderId, attempt });
       } catch (err) {
         logger.error('return-pickup timeout failed', {
+          jobName: 'orderAutoCancelJob',
+          orderId: row.orderId,
+          error: err.message,
+        });
+      }
+    }
+
+    const v2PaymentExpired = await Order.find({
+      workflowVersion: { $gte: 2 },
+      workflowStatus: WORKFLOW_STATUS.SELLER_ACCEPTED,
+      customerPaymentPendingExpiresAt: { $lte: now },
+    })
+      .select("orderId")
+      .lean();
+
+    for (const row of v2PaymentExpired) {
+      try {
+        await processPaymentTimeoutJob({ orderId: row.orderId });
+      } catch (err) {
+        logger.error('v2 payment timeout failed', {
           jobName: 'orderAutoCancelJob',
           orderId: row.orderId,
           error: err.message,
@@ -186,6 +207,7 @@ const autoCancelExpiredOrders = async () => {
       v2Expired.length +
       v2DeliveryExpired.length +
       returnPickupExpired.length +
+      v2PaymentExpired.length +
       paymentExpiredOrders.length +
       legacyExpired.length;
 
@@ -198,6 +220,7 @@ const autoCancelExpiredOrders = async () => {
         v2SellerExpired: v2Expired.length,
         v2DeliveryExpired: v2DeliveryExpired.length,
         returnPickupExpired: returnPickupExpired.length,
+        v2PaymentExpired: v2PaymentExpired.length,
         paymentExpired: paymentExpiredOrders.length,
         legacyExpired: legacyExpired.length,
         total: n

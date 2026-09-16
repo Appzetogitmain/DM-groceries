@@ -83,7 +83,7 @@ const CheckoutPage = () => {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries: placesLibrary,
   });
-  
+
   const autocompleteRef = useRef(null);
   const {
     cart,
@@ -183,7 +183,7 @@ const CheckoutPage = () => {
           .filter(Boolean)
           .join(", "),
         ...(typeof currentLocation.latitude === "number" &&
-        typeof currentLocation.longitude === "number"
+          typeof currentLocation.longitude === "number"
           ? { location: { lat: currentLocation.latitude, lng: currentLocation.longitude } }
           : {}),
       }));
@@ -217,7 +217,7 @@ const CheckoutPage = () => {
     if (cart.length === 0) {
       import("../../../assets/lottie/Empty box.json")
         .then((m) => setEmptyBoxData(m.default))
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [cart.length === 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -269,7 +269,9 @@ const CheckoutPage = () => {
     }
   }, [useWallet, user?.walletBalance, pricingPreview?.grandTotal]);
 
-  const finalAmountToPay = Math.max(0, (pricingPreview?.grandTotal || 0) - walletAmountToUse);
+  const finalAmountToPay = isAuthenticated 
+    ? Math.max(0, (pricingPreview?.grandTotal || 0) - walletAmountToUse)
+    : cartTotal;
 
   const buildAddressForOrder = () => {
     if (savedRecipient) {
@@ -396,8 +398,8 @@ const CheckoutPage = () => {
       } catch (e) {
         showToast(
           e?.__serverMsg ||
-            e?.message ||
-            "Could not fetch coordinates for this address. Delivery charges may not update.",
+          e?.message ||
+          "Could not fetch coordinates for this address. Delivery charges may not update.",
           "error",
         );
       }
@@ -494,7 +496,7 @@ const CheckoutPage = () => {
       } catch (e) {
         showToast(
           e.response?.data?.message ||
-            "Could not fetch coordinates for this address. Delivery charges may be inaccurate.",
+          "Could not fetch coordinates for this address. Delivery charges may be inaccurate.",
           "error",
         );
       }
@@ -538,7 +540,7 @@ const CheckoutPage = () => {
           .filter(Boolean)
           .join(", "),
         ...(typeof liveLocation.latitude === "number" &&
-        typeof liveLocation.longitude === "number"
+          typeof liveLocation.longitude === "number"
           ? { location: { lat: liveLocation.latitude, lng: liveLocation.longitude } }
           : {}),
       }));
@@ -555,7 +557,7 @@ const CheckoutPage = () => {
           .filter(Boolean)
           .join(", "),
         ...(typeof currentLocation.latitude === "number" &&
-        typeof currentLocation.longitude === "number"
+          typeof currentLocation.longitude === "number"
           ? { location: { lat: currentLocation.latitude, lng: currentLocation.longitude } }
           : {}),
       }));
@@ -752,8 +754,8 @@ const CheckoutPage = () => {
 
     const cartIds = new Set(cart.map((i) => i.id || i._id));
     customerApi
-      .getProducts({ 
-        categoryId, 
+      .getProducts({
+        categoryId,
         limit: 10,
         lat: currentLocation.latitude,
         lng: currentLocation.longitude
@@ -766,10 +768,15 @@ const CheckoutPage = () => {
           setRecommendedProducts(items.slice(0, 8));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [cartProductIdKey, currentLocation?.latitude, currentLocation?.longitude]);
 
   const handlePlaceOrder = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: { pathname: '/checkout' } } });
+      return;
+    }
+
     setIsPlacingOrder(true);
     try {
       const taxAmount = pricingPreview?.taxTotal || 0;
@@ -834,7 +841,7 @@ const CheckoutPage = () => {
       setIsPlacingOrder(false);
       showToast(
         error.response?.data?.message ||
-          "Failed to place order. Please try again.",
+        "Failed to place order. Please try again.",
         "error"
       );
     }
@@ -868,7 +875,7 @@ const CheckoutPage = () => {
       .then((r) => {
         if (r.data?.result) applyCancelled(r.data.result);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     const off = onOrderStatusUpdate(getToken, (order) => applyCancelled(order));
 
@@ -1097,8 +1104,8 @@ const CheckoutPage = () => {
                 amount={finalAmountToPay}
                 onSuccess={handlePlaceOrder}
                 isLoading={isPlacingOrder || isPreviewLoading}
-                disabled={!pricingPreview || !!previewError}
-                text={finalAmountToPay === 0 && !previewError ? "Place Free Order" : "Order Now"}
+                disabled={isAuthenticated && (!pricingPreview || !!previewError)}
+                text={!isAuthenticated ? "Login to Place Order" : (finalAmountToPay === 0 && !previewError ? "Place Free Order" : "Order Now")}
               />
               <p className="text-center text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-[0.1em]">
                 🔒 SSL encrypted secure checkout
@@ -1115,8 +1122,8 @@ const CheckoutPage = () => {
             amount={finalAmountToPay}
             onSuccess={handlePlaceOrder}
             isLoading={isPlacingOrder || isPreviewLoading}
-            disabled={!pricingPreview || !!previewError}
-            text={finalAmountToPay === 0 && !previewError ? "Place Free Order" : "Slide to Pay"}
+            disabled={isAuthenticated && (!pricingPreview || !!previewError)}
+            text={!isAuthenticated ? "Login to Place Order" : (finalAmountToPay === 0 && !previewError ? "Place Free Order" : "Slide to Pay")}
           />
         </div>
       </div>
@@ -1134,11 +1141,10 @@ const CheckoutPage = () => {
                 key={addr.id}
                 onClick={() => handleSelectSavedAddress(addr)}
                 disabled={isResolvingAddressCoords}
-                className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${
-                  currentAddress.id === addr.id
+                className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${currentAddress.id === addr.id
                     ? "border-primary bg-brand-50 shadow-sm"
                     : "border-slate-100 bg-white hover:border-slate-200"
-                }`}>
+                  }`}>
                 <div className="flex items-center gap-3 mb-2">
                   <div className={`p-2 rounded-full ${currentAddress.id === addr.id ? "bg-primary text-primary-foreground" : "bg-slate-100 text-slate-500"}`}>
                     <MapPin size={16} />
@@ -1190,7 +1196,7 @@ const CheckoutPage = () => {
                       if (autocompleteRef.current !== null) {
                         const place = autocompleteRef.current.getPlace();
                         const finalAddress = place?.formatted_address || place?.name;
-                        
+
                         if (place && finalAddress) {
                           const newForm = { address: finalAddress };
 
@@ -1200,7 +1206,7 @@ const CheckoutPage = () => {
                               lng: place.geometry.location.lng()
                             };
                           }
-                          
+
                           if (place.address_components) {
                             let city = "";
                             let pincode = "";
@@ -1217,8 +1223,8 @@ const CheckoutPage = () => {
                             }
                           }
 
-                          setEditAddressForm((prev) => ({ 
-                            ...prev, 
+                          setEditAddressForm((prev) => ({
+                            ...prev,
                             ...newForm
                           }));
                         }
@@ -1228,8 +1234,8 @@ const CheckoutPage = () => {
                     <Input
                       id="edit-address"
                       value={editAddressForm.address}
-                      onChange={(e) => setEditAddressForm((prev) => ({ 
-                        ...prev, 
+                      onChange={(e) => setEditAddressForm((prev) => ({
+                        ...prev,
                         address: e.target.value,
                         location: null,
                         placeId: null
@@ -1242,11 +1248,11 @@ const CheckoutPage = () => {
                   <Input
                     id="edit-address"
                     value={editAddressForm.address}
-                    onChange={(e) => setEditAddressForm((prev) => ({ 
-                        ...prev, 
-                        address: e.target.value,
-                        location: null,
-                        placeId: null
+                    onChange={(e) => setEditAddressForm((prev) => ({
+                      ...prev,
+                      address: e.target.value,
+                      location: null,
+                      placeId: null
                     }))}
                     className="h-10"
                     placeholder="House, street, area"
@@ -1268,10 +1274,10 @@ const CheckoutPage = () => {
                 <Input
                   id="edit-city"
                   value={editAddressForm.city}
-                  onChange={(e) => setEditAddressForm((prev) => ({ 
-                    ...prev, 
+                  onChange={(e) => setEditAddressForm((prev) => ({
+                    ...prev,
                     city: e.target.value,
-                    location: null 
+                    location: null
                   }))}
                   className="h-10"
                   placeholder="City - Pincode"

@@ -156,6 +156,9 @@ const OrderDetailPage = () => {
   const [returnImages, setReturnImages] = useState([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
   const fileInputRef = useRef(null);
   const [liveLocation, setLiveLocation] = useState(null);
   const [trail, setTrail] = useState([]);
@@ -778,6 +781,32 @@ const OrderDetailPage = () => {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    if (!cancelReason.trim()) {
+      toast.error("Please provide a reason for cancellation.");
+      return;
+    }
+
+    try {
+      setIsCancelling(true);
+      await customerApi.cancelOrder(order.orderId, { reason: cancelReason });
+      toast.success("Order cancelled successfully");
+      setShowCancelModal(false);
+      setCancelReason("");
+
+      const res = await customerApi.getOrderDetails(orderId);
+      setOrder(res.data.result);
+    } catch (error) {
+      console.error("Failed to cancel order:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to cancel order"
+      );
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const handleImageSelect = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -891,6 +920,10 @@ const OrderDetailPage = () => {
       </div>
     );
   }
+
+  const isPaid = ["PAID", "CAPTURED", "COMPLETED"].includes(order.paymentStatus?.toUpperCase());
+  const uncancelableStatuses = ["out_for_delivery", "delivered", "cancelled"];
+  const canCancel = !isPaid && !uncancelableStatuses.includes(order.status?.toLowerCase());
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white pb-16 font-sans">
@@ -1249,6 +1282,13 @@ const OrderDetailPage = () => {
             className="py-3.5 rounded-2xl bg-white border-2 border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 text-sm shadow-sm hover:shadow-md active:scale-[0.98]">
             <HelpCircle size={18} /> Help
           </button>
+          {canCancel && (
+            <button
+              onClick={() => setShowCancelModal(true)}
+              className="py-3.5 rounded-2xl bg-rose-50 border-2 border-rose-100 text-rose-600 font-bold hover:bg-rose-100 transition-all flex items-center justify-center gap-2 text-sm shadow-sm hover:shadow-md active:scale-[0.98] col-span-2">
+              <X size={18} /> Cancel Order
+            </button>
+          )}
         </motion.div>
 
         {/* Return Section - Only if applicable */}
@@ -1491,6 +1531,59 @@ const OrderDetailPage = () => {
                 className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-70 transition-all"
                 disabled={requestingReturn}>
                 {requestingReturn ? "Submitting..." : "Submit Request"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Cancel Order Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center px-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => !isCancelling && setShowCancelModal(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-4"
+          >
+            <h3 className="text-lg font-black text-rose-600 flex items-center gap-2">
+              <X size={24} /> Cancel Order
+            </h3>
+            <p className="text-sm text-slate-600 font-medium">
+              Are you sure you want to cancel this order?
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-600">
+                Reason for cancellation *
+              </label>
+              <textarea
+                rows={3}
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-500/20"
+                placeholder="Please tell us why you are cancelling..."
+                disabled={isCancelling}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => !isCancelling && setShowCancelModal(false)}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                disabled={isCancelling}>
+                Close
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-70 transition-all shadow-md shadow-rose-600/20"
+                disabled={isCancelling}>
+                {isCancelling ? "Cancelling..." : "Confirm Cancel"}
               </button>
             </div>
           </motion.div>

@@ -14,6 +14,7 @@ import {
   sellerTimeoutQueue,
   deliveryTimeoutQueue,
   returnPickupTimeoutQueue,
+  paymentTimeoutQueue,
   JOB_NAMES,
 } from "../../queues/orderQueues.js";
 import {
@@ -36,6 +37,10 @@ function deliveryJobId(orderId, attempt) {
 
 function returnPickupJobId(orderId, attempt) {
   return `order:${orderId}:return-pickup:${attempt}`;
+}
+
+function paymentJobId(orderId) {
+  return `order:${orderId}:payment`;
 }
 
 async function raceWithTimeout(promise, timeoutMs, timeoutMessage) {
@@ -237,6 +242,68 @@ async function removeReturnPickupTimeout(orderId, attempt = 1) {
   }
 }
 
+async function schedulePaymentTimeout(orderId) {
+  const delay = 5 * 60 * 1000; // 5 minutes
+  const addPromise = paymentTimeoutQueue
+    .add(
+      JOB_NAMES.PAYMENT_TIMEOUT,
+      { orderId },
+      {
+        delay,
+        jobId: paymentJobId(orderId),
+        removeOnComplete: true,
+      },
+    )
+    .catch((err) => {
+      logger.warn("schedulePaymentTimeoutJob add failed", {
+        scope: "schedulePaymentTimeoutJob",
+        orderId,
+        error: err.message,
+      });
+    });
+  const timeoutMs = BULL_ADD_TIMEOUT_MS();
+  try {
+    await raceWithTimeout(
+      addPromise,
+      timeoutMs,
+      `payment-timeout queue add exceeded ${timeoutMs}ms`,
+    );
+  } catch (e) {
+    logger.warn("schedulePaymentTimeoutJob timed out", {
+      scope: "schedulePaymentTimeoutJob",
+      orderId,
+      error: e.message,
+    });
+  }
+}
+
+async function removePaymentTimeout(orderId) {
+  const timeoutMs = BULL_ADD_TIMEOUT_MS();
+  const work = (async () => {
+    const job = await paymentTimeoutQueue.getJob(paymentJobId(orderId));
+    if (job) await job.remove();
+  })().catch((err) => {
+    logger.warn("removePaymentTimeoutJob get/remove failed", {
+      scope: "removePaymentTimeoutJob",
+      orderId,
+      error: err.message,
+    });
+  });
+  try {
+    await raceWithTimeout(
+      work,
+      timeoutMs,
+      `remove payment job exceeded ${timeoutMs}ms`,
+    );
+  } catch (e) {
+    logger.warn("removePaymentTimeoutJob timed out", {
+      scope: "removePaymentTimeoutJob",
+      orderId,
+      error: e.message,
+    });
+  }
+}
+
 export const bullJobScheduler = {
   scheduleSellerTimeout,
   removeSellerTimeout,
@@ -244,6 +311,8 @@ export const bullJobScheduler = {
   removeDeliveryTimeout,
   scheduleReturnPickupTimeout,
   removeReturnPickupTimeout,
+  schedulePaymentTimeout,
+  removePaymentTimeout,
 };
 
 export default bullJobScheduler;

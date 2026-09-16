@@ -94,10 +94,30 @@ export const CartProvider = ({ children }) => {
       // Cancel any pending guest-mode write that could otherwise overwrite
       // the authenticated state with stale guest data after login.
       clearTimeout(lsDebounceRef.current);
+      
+      const localCart = loadGuestCart();
       // The legacy guest cart is no longer authoritative for this user; drop
       // it so a future logout doesn't resurface another account's items.
       removeStorage(STORAGE_KEYS.CART);
-      fetchCart();
+      
+      const syncAndFetch = async () => {
+        if (localCart && localCart.length > 0) {
+          for (const item of localCart) {
+            try {
+              await customerApi.addToCart({
+                productId: item.id || item._id,
+                variantSku: String(item.variantSku || "").trim(),
+                quantity: item.quantity,
+              });
+            } catch (err) {
+              console.error("Error syncing guest cart item:", err);
+            }
+          }
+        }
+        await fetchCart();
+      };
+      
+      syncAndFetch();
     } else {
       setCart(loadGuestCart());
     }

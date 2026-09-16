@@ -317,11 +317,21 @@ export const cancelOrder = async (req, res) => {
       }
     }
 
-    if (order.status !== "pending") {
+    const isPaid = ["PAID", "CAPTURED", "COMPLETED"].includes(order.paymentStatus?.toUpperCase());
+    if (isPaid) {
       return handleResponse(
         res,
         400,
-        "Order cannot be cancelled after confirmation",
+        "Order cannot be cancelled because payment is already completed.",
+      );
+    }
+
+    const uncancelableStatuses = ["out_for_delivery", "delivered", "cancelled"];
+    if (uncancelableStatuses.includes(order.status?.toLowerCase())) {
+      return handleResponse(
+        res,
+        400,
+        "Order cannot be cancelled at this stage",
       );
     }
 
