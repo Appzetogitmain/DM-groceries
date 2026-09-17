@@ -221,7 +221,7 @@ const Dashboard = () => {
     <div className="bg-white min-h-screen pb-28 relative font-sans">
       
       {/* Deep Green Header Banner */}
-      <div className="bg-[#1A4516] text-white pt-3 pb-10 px-6 relative">
+      <div className="bg-[#1A4516] text-white pt-3 pb-10 px-6 relative sticky top-0 z-50">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <div
@@ -317,7 +317,7 @@ const Dashboard = () => {
       </AnimatePresence>
 
       {/* Main Content Area overlapping with rounded corners */}
-      <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-4 space-y-3 relative z-10">
+      <div className="bg-white rounded-t-[32px] -mt-5 pt-10 px-4 space-y-3 relative z-10">
         
         {/* Today's Overview Section */}
         <div>

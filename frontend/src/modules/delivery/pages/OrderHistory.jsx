@@ -150,10 +150,10 @@ const OrderHistory = () => {
   };
 
   return (
-    <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+    <div className="bg-white min-h-screen pb-28 relative font-sans">
       
       {/* Deep Green Header Banner */}
-      <div className="bg-[#1A4516] text-white pt-4 pb-12 px-6 relative">
+      <div className="bg-[#1A4516] text-white pt-4 pb-12 px-6 relative sticky top-0 z-50">
         <h1 className="text-lg font-black leading-tight tracking-tight mb-3">Order History</h1>
         
         {/* Search Input inside Green Header */}
@@ -173,7 +173,7 @@ const OrderHistory = () => {
       </div>
 
       {/* Main Content Area overlapping with rounded corners */}
-      <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-4 space-y-3.5 relative z-10">
+      <div className="bg-white rounded-t-[32px] -mt-5 pt-10 px-4 space-y-3.5 relative z-10">
         
         {/* Status Filters */}
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar snap-x snap-mandatory">

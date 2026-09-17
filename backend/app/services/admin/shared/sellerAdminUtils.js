@@ -88,6 +88,14 @@ export function formatSellerApplication(seller) {
       ? Math.min(100, 55 + docs.length * 12 + (seller.address ? 10 : 0))
       : 40,
     missingInfo,
+    dob: seller.dob,
+    bloodGroup: seller.bloodGroup,
+    locality: seller.locality,
+    pincode: seller.pincode,
+    city: seller.city,
+    state: seller.state,
+    serviceRadius: seller.serviceRadius,
+    bankDetails: seller.bankDetails || {},
   };
 }
 

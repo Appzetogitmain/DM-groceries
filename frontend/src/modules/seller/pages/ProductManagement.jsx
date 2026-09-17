@@ -316,6 +316,18 @@ const ProductManagement = () => {
         return;
       }
 
+      if (Number(formData.salePrice) > 0 && Number(formData.price) <= Number(formData.salePrice)) {
+        toast.error("Price must be strictly greater than Sale Price");
+        return;
+      }
+
+      for (const variant of formData.variants) {
+        if (Number(variant.salePrice) > 0 && Number(variant.price) <= Number(variant.salePrice)) {
+          toast.error(`Price must be strictly greater than Sale Price for variant "${variant.name || variant.sku}"`);
+          return;
+        }
+      }
+
       const data = new FormData();
       data.append("name", formData.name);
       data.append("slug", formData.slug);

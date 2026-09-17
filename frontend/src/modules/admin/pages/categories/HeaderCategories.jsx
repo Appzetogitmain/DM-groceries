@@ -152,7 +152,7 @@ const HeaderCategories = () => {
     const temp = newCategories[index];
     newCategories[index] = newCategories[index + direction];
     newCategories[index + direction] = temp;
-    
+
     const updatedCategories = newCategories.map((cat, i) => ({
       ...cat,
       sortOrder: (page - 1) * pageSize + i
@@ -501,7 +501,7 @@ const HeaderCategories = () => {
                         className="p-1 text-gray-500 hover:text-red-600 transition-colors">
                         <Trash className="w-5 h-5" />
                       </button>
-                      
+
                       {/* Reorder Arrows */}
                       <button
                         onClick={() => moveCategory(categories.findIndex(c => (c._id || c.id) === (cat._id || cat.id)), -1)}

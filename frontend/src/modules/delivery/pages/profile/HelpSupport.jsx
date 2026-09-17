@@ -50,7 +50,7 @@ const HelpSupport = () => {
   const supportPhoneUrl = supportPhone.replace(/[^0-9+]/g, '');
 
   return (
-    <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+    <div className="bg-white min-h-screen pb-28 relative font-sans">
       
       {/* Sticky Deep Green Header Banner */}
       <div className="bg-[#1A4516] text-white py-3 px-5 sticky top-0 z-40 shadow-sm flex items-center">
@@ -65,7 +65,7 @@ const HelpSupport = () => {
       </div>
 
       {/* Main Content Area overlapping with rounded corners */}
-      <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-4 space-y-4.5 relative z-10">
+      <div className="bg-white rounded-t-[32px] -mt-5 pt-10 px-4 space-y-4.5 relative z-10">
         
         <section className="grid grid-cols-2 gap-3.5 mt-5">
           <Card 

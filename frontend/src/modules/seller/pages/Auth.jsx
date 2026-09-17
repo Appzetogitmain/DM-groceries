@@ -72,6 +72,7 @@ const Auth = () => {
   const [signupStep, setSignupStep] = useState(() => getInitialState('sellerAuth_signupStep', 1));
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [activeUploadDoc, setActiveUploadDoc] = useState(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(() => getInitialState('sellerAuth_agreedToTerms', false));
   const { login } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
@@ -113,6 +114,10 @@ const Auth = () => {
   React.useEffect(() => {
     sessionStorage.setItem('sellerAuth_formData', JSON.stringify(formData));
   }, [formData]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('sellerAuth_agreedToTerms', JSON.stringify(agreedToTerms));
+  }, [agreedToTerms]);
 
   React.useEffect(() => {
     const timerId = setInterval(() => {
@@ -990,7 +995,7 @@ const Auth = () => {
                               type="file"
                               id={`pdf-${doc.id}`}
                               className="hidden"
-                              accept=".pdf, application/pdf"
+                              accept="application/pdf,.pdf"
                               onChange={(e) => handleDocumentChange(e, doc.id)}
                             />
                             <div
@@ -1028,6 +1033,26 @@ const Auth = () => {
                   </div>
                 )}
 
+                {/* Terms and conditions checkbox (Step 3 only) */}
+                {!isLogin && signupStep === 3 && (
+                  <div className="flex items-start gap-2.5 px-1 py-2">
+                    <input
+                      type="checkbox"
+                      id="agreeTerms"
+                      checked={agreedToTerms}
+                      onChange={(e) => setAgreedToTerms(e.target.checked)}
+                      className="mt-0.5 rounded border-gray-300 text-[#1A4516] focus:ring-[#1A4516] cursor-pointer"
+                    />
+                    <label htmlFor="agreeTerms" className="text-[10px] text-slate-500 font-medium leading-tight cursor-pointer">
+                      I have read and agree to the{" "}
+                      <span onClick={(e) => { e.preventDefault(); navigate('/seller/support'); }} className="text-[#1A4516] font-bold hover:underline">Support</span>
+                      {" "}&amp;{" "}
+                      <span onClick={(e) => { e.preventDefault(); navigate('/seller/privacy'); }} className="text-[#1A4516] font-bold hover:underline">Privacy Policy</span>
+                      .
+                    </label>
+                  </div>
+                )}
+
                 {/* Remember Me checkbox & Forgot password */}
                 {isLogin && (
                   <div className="flex items-center justify-between px-1 text-xs">
@@ -1059,7 +1084,7 @@ const Auth = () => {
                   )}
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || (!isLogin && signupStep === 3 && !agreedToTerms)}
                     className={`${!isLogin && signupStep > 1 ? "w-2/3" : "w-full"} bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer`}>
                     {isLoading
                       ? "WORKING..."
@@ -1111,13 +1136,6 @@ const Auth = () => {
                     </button>
                   </p>
                 )}
-                
-                <p className="text-center text-[10px] text-slate-400 font-semibold mt-1">
-                  By joining, you agree to our{" "}
-                  <span onClick={() => navigate('/seller/support')} className="text-[#1A4516] font-bold cursor-pointer hover:underline">Support</span>{" "}
-                  &amp;{" "}
-                  <span onClick={() => navigate('/seller/privacy')} className="text-[#1A4516] font-bold cursor-pointer hover:underline">Privacy Policy</span>
-                </p>
               </div>
             </motion.div>
           </AnimatePresence>

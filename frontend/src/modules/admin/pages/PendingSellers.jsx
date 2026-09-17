@@ -358,12 +358,68 @@ const PendingSellers = () => {
                                         </button>
 
                                         <div className="ds-section-spacing">
+                                            <div className="mb-6 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <HiOutlineMapPin className="h-5 w-5 text-brand-500" />
+                                                    <h4 className="text-sm font-bold text-slate-900">Registration Details</h4>
+                                                </div>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Date of Birth</p>
+                                                        <p className="text-xs font-semibold text-slate-700">{viewingSeller.dob || 'Not Provided'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Blood Group</p>
+                                                        <p className="text-xs font-semibold text-slate-700">{viewingSeller.bloodGroup || 'Not Provided'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Service Radius</p>
+                                                        <p className="text-xs font-semibold text-slate-700">{viewingSeller.serviceRadius ? `${viewingSeller.serviceRadius} km` : 'Not Provided'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Locality</p>
+                                                        <p className="text-xs font-semibold text-slate-700">{viewingSeller.locality || 'Not Provided'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">City / State</p>
+                                                        <p className="text-xs font-semibold text-slate-700">{[viewingSeller.city, viewingSeller.state].filter(Boolean).join(', ') || 'Not Provided'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pincode</p>
+                                                        <p className="text-xs font-semibold text-slate-700">{viewingSeller.pincode || 'Not Provided'}</p>
+                                                    </div>
+                                                    {viewingSeller.bankDetails?.accountNumber && (
+                                                        <>
+                                                            <div className="col-span-2 md:col-span-3 mt-2 mb-1 border-t border-slate-200/60 pt-3">
+                                                                <h5 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">Bank Details</h5>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Bank Name</p>
+                                                                <p className="text-xs font-semibold text-slate-700">{viewingSeller.bankDetails.bankName || 'N/A'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Account Number</p>
+                                                                <p className="text-xs font-semibold text-slate-700">{viewingSeller.bankDetails.accountNumber || 'N/A'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">IFSC Code</p>
+                                                                <p className="text-xs font-semibold text-slate-700">{viewingSeller.bankDetails.ifscCode || 'N/A'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Holder Name</p>
+                                                                <p className="text-xs font-semibold text-slate-700">{viewingSeller.bankDetails.accountHolderName || 'N/A'}</p>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+
                                             <div>
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <HiOutlineDocumentText className="h-5 w-5 text-brand-500" />
                                                     <h4 className="text-sm font-bold text-slate-900">Submitted Verification Documents</h4>
                                                 </div>
-                                                <p className="text-xs text-slate-400 font-medium">Check each document before final approval.</p>
+                                                <p className="text-xs text-slate-400 font-medium mb-4">Check each document before final approval.</p>
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -371,8 +427,8 @@ const PendingSellers = () => {
                                                     <div
                                                         key={doc.key}
                                                         className={`p-4 rounded-2xl border-2 transition-all group ${doc.isViewable
-                                                                ? 'border-slate-50 bg-slate-50/50 hover:bg-white hover:border-brand-100'
-                                                                : 'border-slate-100 bg-slate-50/70'
+                                                            ? 'border-slate-50 bg-slate-50/50 hover:bg-white hover:border-brand-100'
+                                                            : 'border-slate-100 bg-slate-50/70'
                                                             }`}
                                                     >
                                                         <div className="flex items-center justify-between gap-4">

@@ -50,10 +50,27 @@ const PendingDeliveryBoys = () => {
                 appliedDate: new Date(r.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
                 location: r.currentArea || 'Unknown',
                 vehicle: r.vehicleType,
-                documents: Object.keys(r.documents || {}).filter(key => r.documents[key]),
+                avatar: r.profileImage || null,
+                documents: Object.entries(r.documents || {})
+                    .filter(([, url]) => Boolean(url))
+                    .map(([key, url]) => ({
+                        label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                        url
+                    })),
                 status: r.isVerified ? 'approved' : 'pending_review',
                 experience: 'Not Specified', // Mock for now
-                preferredArea: r.currentArea || 'Not Specified'
+                preferredArea: r.currentArea || 'Not Specified',
+                dob: r.dob,
+                bloodGroup: r.bloodGroup,
+                address: r.address,
+                vehicleNumber: r.vehicleNumber,
+                drivingLicenseNumber: r.drivingLicenseNumber,
+                emergencyContacts: r.emergencyContacts || [],
+                bankDetails: {
+                    accountHolder: r.accountHolder,
+                    accountNumber: r.accountNumber,
+                    ifsc: r.ifsc
+                }
             }));
 
             setPendingRiders(mappedRiders);
@@ -245,10 +262,10 @@ return (
                                             <Badge variant={rider.status === 'pending_review' ? 'primary' : 'warning'} className="w-fit text-[8px] font-black uppercase">
                                                 {rider.status.replace('_', ' ')}
                                             </Badge>
-                                            <div className="flex gap-1">
+                                            <div className="flex flex-wrap gap-1">
                                                 {rider.documents.slice(0, 2).map((doc, i) => (
                                                     <div key={i} className="h-5 px-2 bg-slate-100 rounded-md text-[8px] font-bold text-slate-500 flex items-center">
-                                                        {doc}
+                                                        {doc.label}
                                                     </div>
                                                 ))}
                                                 {rider.documents.length > 2 && (
@@ -327,13 +344,7 @@ return (
                                         <MapPin className="h-4 w-4 text-slate-400" />
                                         <span className="text-xs font-bold">{viewingRider.preferredArea}</span>
                                     </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Experience</p>
-                                    <div className="flex items-center gap-2 text-slate-700">
-                                        <Calendar className="h-4 w-4 text-slate-400" />
-                                        <span className="text-xs font-bold">{viewingRider.experience}</span>
-                                    </div>
+
                                 </div>
                                 <div className="pt-6 border-t border-slate-200">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">System Confidence</p>
@@ -392,18 +403,91 @@ return (
                                 </div>
                             </div>
 
+                            <div className="mb-8 p-6 bg-slate-50 rounded-xl space-y-4">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Registration Details</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date of Birth</p>
+                                        <p className="text-sm font-bold text-slate-900">{viewingRider.dob || 'N/A'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Blood Group</p>
+                                        <p className="text-sm font-bold text-slate-900">{viewingRider.bloodGroup || 'N/A'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Driving License</p>
+                                        <p className="text-sm font-bold text-slate-900">{viewingRider.drivingLicenseNumber || 'N/A'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vehicle Number</p>
+                                        <p className="text-sm font-bold text-slate-900">{viewingRider.vehicleNumber || 'N/A'}</p>
+                                    </div>
+                                    <div className="space-y-1 col-span-2">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Address</p>
+                                        <p className="text-sm font-bold text-slate-900">{viewingRider.address || 'N/A'}</p>
+                                    </div>
+
+                                    {viewingRider.bankDetails?.accountNumber && (
+                                        <>
+                                            <div className="col-span-2 md:col-span-3 mt-2 border-t border-slate-200 pt-4">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Bank Details</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Account Holder</p>
+                                                <p className="text-sm font-bold text-slate-900">{viewingRider.bankDetails.accountHolder || 'N/A'}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Account Number</p>
+                                                <p className="text-sm font-bold text-slate-900">{viewingRider.bankDetails.accountNumber || 'N/A'}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">IFSC</p>
+                                                <p className="text-sm font-bold text-slate-900">{viewingRider.bankDetails.ifsc || 'N/A'}</p>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {viewingRider.emergencyContacts && viewingRider.emergencyContacts.length > 0 && (
+                                        <>
+                                            <div className="col-span-2 md:col-span-3 mt-2 border-t border-slate-200 pt-4">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Emergency Contacts</p>
+                                            </div>
+                                            {viewingRider.emergencyContacts.map((contact, idx) => (
+                                                <div key={idx} className="space-y-1">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact {idx + 1}</p>
+                                                    <p className="text-sm font-bold text-slate-900">{contact.name}</p>
+                                                    <p className="text-xs font-semibold text-slate-500">{contact.phone}</p>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="space-y-4 mb-14">
                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Submitted Documents ({viewingRider.documents.length})</h4>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {viewingRider.documents.map((doc, idx) => (
-                                        <div key={idx} className="group relative aspect-[4/3] bg-slate-100 rounded-[24px] overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                                                <FileSearch className="h-8 w-8 text-slate-400 group-hover:text-primary transition-colors" />
-                                                <p className="text-[9px] font-black text-slate-500 uppercase mt-2 text-center">{doc}</p>
+                                    {viewingRider.documents.map((doc, idx) => {
+                                        const isImage = doc.url.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp)$/) || doc.url.startsWith('data:image');
+                                        return (
+                                            <div key={idx} onClick={() => window.open(doc.url, '_blank')} className="group relative aspect-[4/3] bg-slate-100 rounded-[24px] overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                                                {isImage ? (
+                                                    <img src={doc.url} alt={doc.label} className="absolute inset-0 w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                                                        <FileSearch className="h-8 w-8 text-slate-400 group-hover:text-primary transition-colors" />
+                                                        <p className="text-[9px] font-black text-slate-500 uppercase mt-2 text-center">{doc.label}</p>
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/20 transition-colors" />
+                                                {isImage && (
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-6">
+                                                        <p className="text-[9px] font-black text-white uppercase truncate">{doc.label}</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/5 transition-colors" />
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
 

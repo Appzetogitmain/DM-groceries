@@ -78,6 +78,7 @@ const DeliveryAuth = () => {
   // OTP state
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [agreed, setAgreed] = useState(false);
+  const [agreedSignup, setAgreedSignup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(30);
 
@@ -181,7 +182,7 @@ const DeliveryAuth = () => {
   };
 
   const handleVerifyOtp = async () => {
-    if (otp.some((d) => d === "") || !agreed) return;
+    if (otp.some((d) => d === "")) return;
     setLoading(true);
     try {
       const phone = mode === "login" ? loginPhone : signupPhone;
@@ -748,7 +749,7 @@ const DeliveryAuth = () => {
                             </button>
                             <button
                               onClick={handleSendOtp}
-                              disabled={loading || !dlFile || !panFile || !aadharFile}
+                              disabled={loading || !dlFile || !panFile || !aadharFile || !agreedSignup}
                               className="flex-[2] py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               {loading ? (
@@ -763,12 +764,31 @@ const DeliveryAuth = () => {
                         </motion.div>
                       )}
 
-                      <p className="text-center text-xs text-gray-400 font-semibold pt-1">
-                        By joining, you agree to our{" "}
-                        <span onClick={() => navigate('/delivery/support')} className="text-brand-500 font-bold cursor-pointer hover:underline">Support</span>{" "}
-                        &amp;{" "}
-                        <span onClick={() => navigate('/delivery/privacy')} className="text-brand-500 font-bold cursor-pointer hover:underline">Privacy Policy</span>
-                      </p>
+                      {signupStep === 4 ? (
+                        <div className="flex items-start gap-2.5 px-1 py-2 mt-4">
+                          <input
+                            type="checkbox"
+                            id="agreeSignup"
+                            checked={agreedSignup}
+                            onChange={(e) => setAgreedSignup(e.target.checked)}
+                            className="mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                          />
+                          <label htmlFor="agreeSignup" className="text-[10px] text-gray-500 font-medium leading-tight cursor-pointer">
+                            I have read and agree to the{" "}
+                            <span onClick={(e) => { e.preventDefault(); navigate('/delivery/support'); }} className="text-brand-600 font-bold hover:underline">Support</span>
+                            {" "}&amp;{" "}
+                            <span onClick={(e) => { e.preventDefault(); navigate('/delivery/privacy'); }} className="text-brand-600 font-bold hover:underline">Privacy Policy</span>
+                            .
+                          </label>
+                        </div>
+                      ) : (
+                        <p className="text-center text-xs text-gray-400 font-semibold pt-1">
+                          By joining, you agree to our{" "}
+                          <span onClick={() => navigate('/delivery/support')} className="text-brand-500 font-bold cursor-pointer hover:underline">Support</span>{" "}
+                          &amp;{" "}
+                          <span onClick={() => navigate('/delivery/privacy')} className="text-brand-500 font-bold cursor-pointer hover:underline">Privacy Policy</span>
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -873,26 +893,10 @@ const DeliveryAuth = () => {
                     )}
                   </div>
 
-                  {/* Terms checkbox */}
-                  <div className="flex items-start gap-3 bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                    <input
-                      id="terms"
-                      type="checkbox"
-                      checked={agreed}
-                      onChange={(e) => setAgreed(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 accent-[#1A4516] cursor-pointer"
-                    />
-                    <label htmlFor="terms" className="text-xs text-gray-500 leading-relaxed cursor-pointer">
-                      I confirm my phone number is correct and I agree to the{" "}
-                      <span className="text-[#1A4516] font-bold">Terms of Service</span> &amp;{" "}
-                      <span className="text-[#1A4516] font-bold">Privacy Policy</span>.
-                    </label>
-                  </div>
-
                   {/* Verify Button */}
                   <button
                     onClick={handleVerifyOtp}
-                    disabled={!agreed || otp.some((d) => !d) || loading}
+                    disabled={otp.some((d) => !d) || loading}
                     className="w-full py-4 bg-[#1A4516] text-white rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-[#0f2d0f] hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? (

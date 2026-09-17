@@ -36,10 +36,10 @@ const VehicleInfo = () => {
   ];
 
   return (
-    <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+    <div className="bg-white min-h-screen pb-28 relative font-sans">
       
       {/* Deep Green Header Banner */}
-      <div className="bg-[#1A4516] text-white pt-4 pb-12 px-6 relative">
+      <div className="bg-[#1A4516] text-white pt-4 pb-12 px-6 relative sticky top-0 z-50">
         <div className="flex items-center">
           <button
             onClick={() => navigate(-1)}
@@ -53,7 +53,7 @@ const VehicleInfo = () => {
       </div>
 
       {/* Main Content Area overlapping with rounded corners */}
-      <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-5 space-y-4 relative z-10">
+      <div className="bg-white rounded-t-[32px] -mt-5 pt-10 px-5 space-y-4 relative z-10">
         
         {/* Vehicle Card */}
         <Card className="p-4 bg-gradient-to-br from-gray-900 to-[#123610] text-white border-none shadow-md rounded-2xl relative overflow-hidden">

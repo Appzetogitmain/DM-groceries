@@ -73,7 +73,8 @@ const ActiveDeliveryBoys = () => {
                 location: r.currentArea || 'Unknown',
                 lastSync: 'Now',
                 joinDate: new Date(r.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-                documents: r.documents || {}
+                avatar: r.profileImage || null,
+                documents: Object.fromEntries(Object.entries(r.documents || {}).filter(([, url]) => Boolean(url)))
             }));
 
             setRiders(mappedRiders);

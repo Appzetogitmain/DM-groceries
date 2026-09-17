@@ -165,6 +165,13 @@ const AddProduct = () => {
       return;
     }
 
+    for (const variant of formData.variants) {
+      if (Number(variant.salePrice) > 0 && Number(variant.price) <= Number(variant.salePrice)) {
+        toast.error(`Price must be strictly greater than Sale Price for variant "${variant.name || variant.sku}"`);
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       const data = new FormData();

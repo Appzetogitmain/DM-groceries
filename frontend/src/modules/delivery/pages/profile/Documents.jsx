@@ -110,7 +110,7 @@ const Documents = () => {
   };
 
   return (
-    <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+    <div className="bg-white min-h-screen pb-28 relative font-sans">
       
       {/* Sticky Deep Green Header Banner */}
       <div className="bg-[#1A4516] text-white py-3 px-5 sticky top-0 z-40 shadow-sm flex items-center">
@@ -133,7 +133,7 @@ const Documents = () => {
       />
 
       {/* Main Content Area overlapping with rounded corners */}
-      <div className="bg-white rounded-t-[32px] -mt-5 pt-4 px-4 space-y-3 relative z-10">
+      <div className="bg-white rounded-t-[32px] -mt-5 pt-10 px-4 space-y-3 relative z-10">
         {loading && <div className="text-center py-4 text-sm text-gray-500">Loading documents...</div>}
         {!loading && docs.map((doc) => (
           <Card key={doc.id} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm">

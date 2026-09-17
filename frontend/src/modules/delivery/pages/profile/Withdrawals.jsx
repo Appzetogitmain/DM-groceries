@@ -88,7 +88,7 @@ const Withdrawals = () => {
     };
 
     return (
-        <div className="bg-white min-h-screen pb-28 relative overflow-hidden font-sans">
+        <div className="bg-white min-h-screen pb-28 relative font-sans">
             
             {/* Sticky Deep Green Header Banner */}
             <div className="bg-[#1A4516] text-white py-3 px-5 sticky top-0 z-40 shadow-sm flex items-center">

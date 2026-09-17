@@ -39,6 +39,7 @@ import PromoMarquee from "../components/home/PromoMarquee";
 import QuickCategorySlider from "../components/home/QuickCategorySlider";
 import LowestPriceSection from "../components/home/LowestPriceSection";
 import OfferSections from "../components/home/OfferSections";
+import PullToRefresh from "../components/shared/PullToRefresh";
 
 const DEFAULT_CATEGORY_THEME = {
   gradient: "linear-gradient(to bottom, var(--primary), var(--brand-400))",
@@ -405,7 +406,8 @@ const Home = () => {
   };
 
   return (
-    <div className={`min-h-screen pt-[195px] md:pt-[210px] ${products.length === 0 && !isLoading ? "bg-white" : "bg-[#F5F7F8]"}`}>
+    <PullToRefresh onRefresh={() => fetchData({ forceRefresh: true })}>
+      <div className={`min-h-screen pt-[195px] md:pt-[210px] ${products.length === 0 && !isLoading ? "bg-white" : "bg-[#F5F7F8]"}`}>
       <div className={cn("contents", isProductDetailOpen && "hidden md:contents")}>
         <MainLocationHeader categories={categories} activeCategory={activeCategory} onCategorySelect={setActiveCategory} />
       </div>
@@ -454,7 +456,8 @@ const Home = () => {
           )}
         </>
       )}
-    </div>
+      </div>
+    </PullToRefresh>
   );
 };
 

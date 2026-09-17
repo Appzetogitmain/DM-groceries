@@ -68,7 +68,14 @@ const CATEGORIES = [
 ];
 
 const CustomerAuth = () => {
-    const [isLogin, setIsLogin] = useState(true);
+    const [isLogin, setIsLogin] = useState(() => {
+        const saved = sessionStorage.getItem('customerAuthIsLogin');
+        return saved ? saved === 'true' : true;
+    });
+
+    useEffect(() => {
+        sessionStorage.setItem('customerAuthIsLogin', String(isLogin));
+    }, [isLogin]);
     const [isLoading, setIsLoading] = useState(false);
     const [showOtp, setShowOtp] = useState(false);
     const [timer, setTimer] = useState(0);
@@ -79,13 +86,33 @@ const CustomerAuth = () => {
     const logoUrl = "/Logo.png";
     const navigate = useNavigate();
 
-    const [formData, setFormData] = useState({
-        phone: '',
-        otp: '',
-        name: '',
-        dob: '',
-        bloodGroup: ''
+    const [formData, setFormData] = useState(() => {
+        const saved = sessionStorage.getItem('customerAuthFormData');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error('Failed to parse saved auth form data');
+            }
+        }
+        return {
+            phone: '',
+            otp: '',
+            name: '',
+            dob: '',
+            bloodGroup: ''
+        };
     });
+
+    const [agreed, setAgreed] = useState(() => {
+        const saved = sessionStorage.getItem('customerAuthAgreed');
+        return saved === 'true';
+    });
+
+    useEffect(() => {
+        sessionStorage.setItem('customerAuthFormData', JSON.stringify(formData));
+        sessionStorage.setItem('customerAuthAgreed', String(agreed));
+    }, [formData, agreed]);
 
     const activeCategory = CATEGORIES[carouselIndex];
 
@@ -459,8 +486,8 @@ const CustomerAuth = () => {
 
                                         <button
                                             type="submit"
-                                            disabled={isLoading || timer > 0}
-                                            className={`w-full text-white py-5 rounded-[24px] text-xs font-black tracking-[4px] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase ${timer > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            disabled={isLoading || timer > 0 || !agreed}
+                                            className={`w-full text-white py-5 rounded-[24px] text-xs font-black tracking-[4px] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase ${timer > 0 || !agreed ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             style={{ backgroundColor: activeCategory.theme, boxShadow: `0 20px 40px ${activeCategory.shadow}` }}
                                         >
                                             {isLoading ? 'Verifying...' : timer > 0 ? `Wait ${timer}s` : 'Continue'}
@@ -469,27 +496,35 @@ const CustomerAuth = () => {
                                     </form>
 
                                     {/* Legal Agreement Footer */}
-                                    <div className="pt-2 flex flex-col items-center gap-1">
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center">
-                                            By continuing, you agree to our
-                                        </p>
-                                        <div className="flex items-center gap-1.5 underline decoration-gray-200 underline-offset-4">
-                                            <button 
-                                                onClick={() => navigate('/support')}
-                                                className="text-[10px] font-black uppercase tracking-widest hover:text-gray-900 transition-colors"
-                                                style={{ color: activeCategory.theme }}
-                                            >
-                                                Support
-                                            </button>
-                                            <span className="text-[8px] text-gray-300">•</span>
-                                            <button 
-                                                onClick={() => navigate('/privacy')}
-                                                className="text-[10px] font-black uppercase tracking-widest hover:text-gray-900 transition-colors"
-                                                style={{ color: activeCategory.theme }}
-                                            >
-                                                Privacy Policy
-                                            </button>
-                                        </div>
+                                    <div className="pt-2 flex items-center justify-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="agreeTerms"
+                                            checked={agreed}
+                                            onChange={(e) => setAgreed(e.target.checked)}
+                                            className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                                            style={{ accentColor: activeCategory.theme }}
+                                        />
+                                        <label htmlFor="agreeTerms" className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex flex-wrap items-center justify-center gap-x-1 cursor-pointer select-none">
+                                            <span>I agree to the</span>
+                                            <div className="flex items-center gap-1 underline decoration-gray-200 underline-offset-4">
+                                                <span
+                                                    onClick={(e) => { e.preventDefault(); navigate('/support'); }}
+                                                    className="hover:text-gray-900 transition-colors"
+                                                    style={{ color: activeCategory.theme }}
+                                                >
+                                                    Support
+                                                </span>
+                                                <span className="text-[8px] text-gray-300 no-underline">&amp;</span>
+                                                <span
+                                                    onClick={(e) => { e.preventDefault(); navigate('/privacy'); }}
+                                                    className="hover:text-gray-900 transition-colors"
+                                                    style={{ color: activeCategory.theme }}
+                                                >
+                                                    Privacy Policy
+                                                </span>
+                                            </div>
+                                        </label>
                                     </div>
                                 </motion.div>
                             ) : (

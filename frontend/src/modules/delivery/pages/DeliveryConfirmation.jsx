@@ -123,7 +123,7 @@ const DeliveryConfirmation = () => {
   return (
     <div className="bg-gray-50/50 min-h-screen flex flex-col p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6 pt-2">
+      <div className="flex justify-between items-center mb-6 pt-2 sticky top-0 z-50">
         <h1 className="ds-h2 text-gray-900">Confirm Delivery</h1>
         <div className="text-xs font-bold text-gray-400">Order: #{orderId}</div>
       </div>

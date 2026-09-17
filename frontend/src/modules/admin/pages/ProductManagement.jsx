@@ -429,7 +429,6 @@ const ProductManagement = () => {
                     {[
                         { key: 'all', label: 'All', count: moderationCounts.all },
                         { key: 'approved', label: 'Approved', count: moderationCounts.approved },
-                        { key: 'pending', label: 'Pending Approval', count: moderationCounts.pending },
                         { key: 'rejected', label: 'Rejected', count: moderationCounts.rejected },
                     ].map((item) => (
                         <button
