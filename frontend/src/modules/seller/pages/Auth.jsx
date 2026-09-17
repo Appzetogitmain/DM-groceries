@@ -26,6 +26,8 @@ import {
   EyeOff,
   Calendar,
   Droplets,
+  Camera,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import Lottie from "lottie-react";
@@ -69,6 +71,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [signupStep, setSignupStep] = useState(() => getInitialState('sellerAuth_signupStep', 1));
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [activeUploadDoc, setActiveUploadDoc] = useState(null);
   const { login } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
@@ -970,20 +973,28 @@ const Auth = () => {
                           <div key={doc.id} className="relative">
                             <input
                               type="file"
-                              id={doc.id}
+                              id={`camera-${doc.id}`}
                               className="hidden"
-                              accept=".pdf, application/pdf, image/*"
+                              accept="image/*"
+                              capture="environment"
                               onChange={(e) => handleDocumentChange(e, doc.id)}
                             />
-                            <label
-                              htmlFor={doc.id}
-                              onClick={(e) => {
-                                if (window.flutter_inappwebview) {
-                                  handleCameraCapture(e, (file) => {
-                                    setDocuments((prev) => ({ ...prev, [doc.id]: file }));
-                                  });
-                                }
-                              }}
+                            <input
+                              type="file"
+                              id={`gallery-${doc.id}`}
+                              className="hidden"
+                              accept="image/*"
+                              onChange={(e) => handleDocumentChange(e, doc.id)}
+                            />
+                            <input
+                              type="file"
+                              id={`pdf-${doc.id}`}
+                              className="hidden"
+                              accept=".pdf, application/pdf"
+                              onChange={(e) => handleDocumentChange(e, doc.id)}
+                            />
+                            <div
+                              onClick={() => setActiveUploadDoc(doc.id)}
                               className={`flex items-center justify-between p-3 rounded-lg border border-dashed transition-all cursor-pointer ${documents[doc.id]
                                 ? "border-emerald-200 bg-emerald-50/20"
                                 : "border-slate-200 bg-slate-50 hover:border-slate-300"
@@ -1009,7 +1020,7 @@ const Auth = () => {
                                   </p>
                                 </div>
                               </div>
-                            </label>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1126,6 +1137,81 @@ const Auth = () => {
           initialRadius={formData.radius}
         />
       )}
+
+      {/* Action Sheet for Document Upload */}
+      <AnimatePresence>
+        {activeUploadDoc && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveUploadDoc(null)}
+              className="fixed inset-0 bg-black/40 z-[100] backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-[101] bg-white rounded-t-3xl shadow-2xl p-6 pb-10 flex flex-col gap-3"
+            >
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-4" />
+              <h3 className="text-sm font-black text-slate-800 text-center uppercase tracking-wider mb-2">
+                Upload {REQUIRED_DOCUMENT_CONFIG.find(d => d.id === activeUploadDoc)?.label}
+              </h3>
+              
+              <button
+                type="button"
+                onClick={(e) => {
+                  if (window.flutter_inappwebview) {
+                    handleCameraCapture(e, (file) => {
+                      setDocuments((prev) => ({ ...prev, [activeUploadDoc]: file }));
+                      setActiveUploadDoc(null);
+                    });
+                  } else {
+                    document.getElementById(`camera-${activeUploadDoc}`).click();
+                    setActiveUploadDoc(null);
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-3 py-3.5 bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 rounded-xl font-bold transition-colors border border-slate-100"
+              >
+                <Camera className="w-5 h-5" /> Open Camera
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById(`gallery-${activeUploadDoc}`).click();
+                  setActiveUploadDoc(null);
+                }}
+                className="w-full flex items-center justify-center gap-3 py-3.5 bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 rounded-xl font-bold transition-colors border border-slate-100"
+              >
+                <ImageIcon className="w-5 h-5" /> Choose from Gallery
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById(`pdf-${activeUploadDoc}`).click();
+                  setActiveUploadDoc(null);
+                }}
+                className="w-full flex items-center justify-center gap-3 py-3.5 bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 rounded-xl font-bold transition-colors border border-slate-100"
+              >
+                <FileText className="w-5 h-5" /> Upload PDF File
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setActiveUploadDoc(null)}
+                className="w-full mt-2 py-3 text-slate-400 hover:text-slate-600 font-bold uppercase tracking-wider text-xs"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
