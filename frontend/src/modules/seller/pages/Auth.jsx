@@ -52,10 +52,22 @@ const REQUIRED_DOCUMENT_CONFIG = [
 ];
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const getInitialState = (key, defaultValue) => {
+    const saved = sessionStorage.getItem(key);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return defaultValue;
+      }
+    }
+    return defaultValue;
+  };
+
+  const [isLogin, setIsLogin] = useState(() => getInitialState('sellerAuth_isLogin', true));
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [signupStep, setSignupStep] = useState(1);
+  const [signupStep, setSignupStep] = useState(() => getInitialState('sellerAuth_signupStep', 1));
   const [isMapOpen, setIsMapOpen] = useState(false);
   const { login } = useAuth();
   const { settings } = useSettings();
@@ -67,7 +79,7 @@ const Auth = () => {
     phone: createInitialVerificationState(),
   });
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => getInitialState('sellerAuth_formData', {
     email: "",
     password: "",
     name: "",
@@ -85,7 +97,19 @@ const Auth = () => {
     address: "",
     dob: "",
     bloodGroup: "",
-  });
+  }));
+
+  React.useEffect(() => {
+    sessionStorage.setItem('sellerAuth_isLogin', JSON.stringify(isLogin));
+  }, [isLogin]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('sellerAuth_signupStep', JSON.stringify(signupStep));
+  }, [signupStep]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('sellerAuth_formData', JSON.stringify(formData));
+  }, [formData]);
 
   React.useEffect(() => {
     const timerId = setInterval(() => {
@@ -128,6 +152,31 @@ const Auth = () => {
 
   const getMissingRequiredDocuments = () =>
     REQUIRED_DOCUMENT_CONFIG.filter((doc) => !documents[doc.id]);
+
+  const handleCameraCapture = async (e, onFileCaptured) => {
+    if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+      e.preventDefault();
+      try {
+        const response = await window.flutter_inappwebview.callHandler("openCamera");
+        if (response && response.success) {
+          const byteString = atob(response.base64);
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([ab], { type: response.mimeType });
+          const file = new File([blob], response.fileName || "camera_image.jpg", {
+            type: response.mimeType,
+          });
+          onFileCaptured(file);
+        }
+      } catch (error) {
+        console.error("Camera handler error:", error);
+        toast.error("Failed to open camera");
+      }
+    }
+  };
 
   const updateVerificationState = (field, updates) => {
     setVerifications((prev) => ({
@@ -523,6 +572,17 @@ const Auth = () => {
               className="space-y-6 py-2">
               
               <div className="space-y-2">
+                {/* Mobile Logo (Visible only on mobile screens) */}
+                <div className="md:hidden flex justify-center mb-6">
+                  <div className="w-20 h-20 rounded-full p-1.5 flex items-center justify-center bg-white shadow-sm border border-slate-100">
+                    <img
+                      src="/Logo.png"
+                      alt="DM Groceries Logo"
+                      className="w-16 h-16 object-contain"
+                    />
+                  </div>
+                </div>
+                
                 <h1 className="text-2xl font-black text-slate-800 tracking-tight">
                   {isLogin ? "Welcome Back!" : "Seller Register"}
                 </h1>
@@ -912,11 +972,18 @@ const Auth = () => {
                               type="file"
                               id={doc.id}
                               className="hidden"
-                              accept="image/*,application/pdf"
+                              accept=".pdf, application/pdf, image/*"
                               onChange={(e) => handleDocumentChange(e, doc.id)}
                             />
                             <label
                               htmlFor={doc.id}
+                              onClick={(e) => {
+                                if (window.flutter_inappwebview) {
+                                  handleCameraCapture(e, (file) => {
+                                    setDocuments((prev) => ({ ...prev, [doc.id]: file }));
+                                  });
+                                }
+                              }}
                               className={`flex items-center justify-between p-3 rounded-lg border border-dashed transition-all cursor-pointer ${documents[doc.id]
                                 ? "border-emerald-200 bg-emerald-50/20"
                                 : "border-slate-200 bg-slate-50 hover:border-slate-300"
@@ -1046,10 +1113,6 @@ const Auth = () => {
         </div>
       </motion.div>
 
-      {/* Bottom Tagline */}
-      <div className="absolute bottom-6 flex items-center gap-4 text-slate-300 text-[10px] font-black uppercase tracking-[6px] pointer-events-none">
-        Empowering Business Digitalization
-      </div>
 
       {isMapOpen && (
         <MapPicker

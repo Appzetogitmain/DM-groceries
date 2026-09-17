@@ -288,10 +288,12 @@ export const LocationProvider = ({ children }) => {
     refreshAddresses();
   }, [refreshAddresses]);
 
-  // On mount: restore from cache if available. If not, auto-fetch live location.
+  // On mount: restore from cache if available for fast render, then auto-fetch live location.
   useEffect(() => {
     const parsed = getJSON(STORAGE_KEY, null);
     const addressName = parsed?.address || parsed?.name;
+    
+    // Set cached location initially for fast render
     if (parsed && addressName) {
       updateLocation(
         {
@@ -305,16 +307,18 @@ export const LocationProvider = ({ children }) => {
         },
         { persist: false, updateSavedHome: false },
       );
-    } else {
-      // Try to fetch live location if nothing is cached
-      fetchAndCacheLocation().catch(() => {
-        // If location fetch fails, persist the default immediately
+    } 
+
+    // Always attempt to fetch live location when the app opens
+    fetchAndCacheLocation().catch(() => {
+      // If location fetch fails and we have no cache, persist the default
+      if (!parsed || !addressName) {
         updateLocation(currentLocation, {
           persist: true,
           updateSavedHome: false,
         });
-      });
-    }
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
