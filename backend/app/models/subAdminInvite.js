@@ -48,7 +48,6 @@ const subAdminInviteSchema = new mongoose.Schema(
 // TTL index: auto-delete expired invite records after 15 minutes past expiresAt
 subAdminInviteSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Ensure only one active invite per email
-subAdminInviteSchema.index({ email: 1 }, { unique: true });
+// Ensure only one active invite per email (handled by unique: true on the field)
 
 export default mongoose.model("SubAdminInvite", subAdminInviteSchema);
