@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Card from "@shared/components/ui/Card";
 import Badge from "@shared/components/ui/Badge";
-import BlurFade from "@shared/components/ui/BlurFade";
+import { BlurFade } from "@/components/ui/blur-fade";
 import { formatOrderId } from "@/lib/utils";
 import Button from "@shared/components/ui/Button";
 import { sellerApi } from "../services/sellerApi";

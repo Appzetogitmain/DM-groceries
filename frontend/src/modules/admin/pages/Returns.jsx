@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Card from "@shared/components/ui/Card";
-import { Badge } from "@shared/components/ui/Badge";
+import Badge from "@shared/components/ui/Badge";
 import { formatOrderId } from "@/lib/utils";
 import Button from "@shared/components/ui/Button";
 import { adminApi } from "../services/adminApi";
