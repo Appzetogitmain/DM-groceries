@@ -361,7 +361,7 @@ const OrderDetail = () => {
                         <div className="space-y-6 text-left mt-6">
                             <div className="flex flex-col gap-2">
                                 <span className="text-[10px] font-bold text-slate-400 flex items-center gap-3">
-                                    <Mail className="h-3.5 w-3.5" /> {order.customer?.email}
+                                    <Mail className="h-3.5 w-3.5" /> {order.customer?.email || 'NA'}
                                 </span>
                                 <span className="text-[10px] font-bold text-slate-400 flex items-center gap-3">
                                     <Phone className="h-3.5 w-3.5" /> {order.customer?.phone}
