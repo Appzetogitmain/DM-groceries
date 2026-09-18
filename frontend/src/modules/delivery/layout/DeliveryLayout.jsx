@@ -21,6 +21,7 @@ import { saveDeliveryPartnerLocation } from "../utils/deliveryLastLocation";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
 import { showSystemNotification } from "@/core/firebase/pushClient";
+import AppZetoBridge, { NATIVE_PUSH_EVENT } from "@/lib/appZetoBridge";
 import orderAlertSound from "@/assets/sounds/order_alert.mp3";
 
 const getDeliveryToken = createSocketTokenReader(STORAGE_KEYS.AUTH_DELIVERY);
@@ -447,10 +448,30 @@ const DeliveryLayout = () => {
       }
       tick();
     };
+
+    const onNativePush = (eventOrMessage) => {
+      const message = eventOrMessage?.detail || eventOrMessage;
+      const type = String(message?.type || message?.event || message?.data?.eventType || "").toLowerCase();
+      const eventType = String(message?.data?.eventType || "").toUpperCase();
+      
+      const isRelevant = 
+        type.includes("order") || 
+        type === "push_received" || 
+        eventType === "NEW_DELIVERY_BROADCAST" || 
+        eventType === "NEW_RETURN_BROADCAST";
+      
+      if (isRelevant) {
+        console.log("[DeliveryLayout] Native push tap detected, waking up polling loop:", eventType);
+        wakeUp();
+      }
+    };
+
     if (typeof window !== "undefined") {
       window.addEventListener("focus", wakeUp);
       document.addEventListener("visibilitychange", wakeUp);
+      window.addEventListener(NATIVE_PUSH_EVENT, onNativePush);
     }
+    const unsubscribeNative = AppZetoBridge.subscribe(onNativePush);
 
     return () => {
       cancelled = true;
@@ -458,7 +479,9 @@ const DeliveryLayout = () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("focus", wakeUp);
         document.removeEventListener("visibilitychange", wakeUp);
+        window.removeEventListener(NATIVE_PUSH_EVENT, onNativePush);
       }
+      unsubscribeNative();
       if (availableOrdersRequestRef.current.controller) {
         availableOrdersRequestRef.current.controller.abort();
       }

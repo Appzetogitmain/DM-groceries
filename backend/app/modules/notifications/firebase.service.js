@@ -80,7 +80,12 @@ export async function sendFCM(tokens = [], payload = {}) {
     data.imageUrl = image;
   }
 
-  const isOrderAlert = data.eventType === "NEW_ORDER" || data.eventType === "order";
+  const isOrderAlert = 
+    data.eventType === "NEW_ORDER" || 
+    data.eventType === "order" || 
+    data.eventType === "NEW_DELIVERY_BROADCAST" || 
+    data.eventType === "NEW_RETURN_BROADCAST" ||
+    data.eventType === "RETURN_REQUESTED";
   const merged = {
     successCount: 0,
     failureCount: 0,

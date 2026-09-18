@@ -395,11 +395,26 @@ const DashboardLayout = ({ children, navItems, title }) => {
             const message = eventOrMessage?.detail || eventOrMessage;
             const type = String(message?.type || message?.event || message?.data?.eventType || "").toLowerCase();
             const data = message?.data || message || {};
+            const eventType = String(message?.data?.eventType || "").toUpperCase();
+
+            if (eventType === "RETURN_REQUESTED") {
+                console.log("[DashboardLayout] Native push for RETURN_REQUESTED:", data);
+                // The push payload might not have all fields, but we need orderId at least
+                if (data.orderId || data?.data?.orderId) {
+                    setNewReturnAlert({
+                        orderId: data.orderId || data?.data?.orderId,
+                        data: data.data || {}
+                    });
+                }
+                return;
+            }
+
             const looksLikeNewOrder =
                 type.includes("order") ||
                 type === "push_received" ||
                 type === "new_order" ||
                 Boolean(data.orderId || data?.data?.orderId);
+            
             if (!looksLikeNewOrder) return;
             const incoming = orderFromIncomingPayload(data);
             if (incoming) presentNewOrderAlert(incoming, { force: true });
