@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Filter,
 } from "lucide-react";
+import { formatOrderId } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import Card from "@/shared/components/ui/Card";
 import { deliveryApi } from "../services/deliveryApi";
@@ -234,7 +235,7 @@ const OrderHistory = () => {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 mb-0.5 min-w-0 flex-wrap">
                               <span className="font-bold text-gray-900 text-xs group-hover:text-[#1A4516] transition-colors break-all">
-                                #{order.orderId} {order.historyJobType === 'RETURN' ? <span className="text-amber-600">(Return)</span> : ''}
+                                #{formatOrderId(order.orderId)} {order.historyJobType === 'RETURN' ? <span className="text-amber-600">(Return)</span> : ''}
                               </span>
                               <span
                                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${

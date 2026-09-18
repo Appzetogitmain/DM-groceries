@@ -487,9 +487,10 @@ const LiveTrackingMap = memo(({
       )}
 
       {/* Location status indicator */}
-      {!riderLocation && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 bg-amber-50/95 text-amber-900 text-xs px-3 py-2 rounded-lg border border-amber-200 shadow-sm">
-          Waiting for rider location...
+      {!riderLocation && riderName && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 bg-amber-50/95 text-amber-900 text-[11px] px-3 py-1.5 rounded-full border border-amber-200 shadow-sm font-bold flex items-center gap-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+          Connecting to rider GPS...
         </div>
       )}
 

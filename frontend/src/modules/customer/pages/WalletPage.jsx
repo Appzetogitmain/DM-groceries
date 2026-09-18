@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownLeft, ChevronLeft, Wallet, X } from 'lucide-react';
 import { customerApi } from '../services/customerApi';
+import { formatOrderId } from '@/lib/utils';
 import { toast } from 'sonner';
 import { onNotificationNew } from '@core/services/orderSocket';
 import { useAuth } from '@core/context/AuthContext';
@@ -176,7 +177,7 @@ const WalletPage = () => {
                                             <h4 className="font-semibold text-slate-800 text-sm">{tx.title}</h4>
                                             <p className="text-[11px] text-slate-500">{formatDate(tx.date)}</p>
                                             {tx.orderId && (
-                                                <p className="text-[10px] text-slate-500">#{tx.orderId}</p>
+                                                <p className="text-[10px] text-slate-500">#{formatOrderId(tx.orderId)}</p>
                                             )}
                                         </div>
                                     </div>

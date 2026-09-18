@@ -4,6 +4,7 @@ import { Package, ChevronRight, Clock, CheckCircle, Loader2, ChevronLeft } from 
 import { customerApi } from '../services/customerApi';
 import { getOrderStatusLabel, getLegacyStatusFromOrder } from '@/shared/utils/orderStatus';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
+import { formatOrderId } from '@/lib/utils';
 
 const OrdersPage = () => {
     const navigate = useNavigate();
@@ -98,7 +99,7 @@ const OrdersPage = () => {
                                     </div>
                                     <div className="min-w-0">
                                         <h3 className="font-semibold text-[#1A4516] text-sm tracking-tight leading-snug">
-                                            Order #{order.orderId.slice(-6)}
+                                            Order #{formatOrderId(order.orderId)}
                                         </h3>
                                         <p className="mt-0.5 text-[11px] text-slate-500 font-medium leading-tight flex items-center flex-wrap gap-1">
                                             <span>

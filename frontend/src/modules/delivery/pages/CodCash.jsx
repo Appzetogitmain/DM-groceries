@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { IndianRupee, RotateCw } from "lucide-react";
+import { Calendar, ReceiptText, CircleDollarSign, Loader2, DollarSign, Wallet, TrendingUp, TrendingDown, ArrowRightLeft, RotateCw } from "lucide-react";
+import { formatOrderId } from "@/lib/utils";
 import { toast } from "sonner";
 import Card from "@/shared/components/ui/Card";
 import Button from "@/shared/components/ui/Button";
@@ -309,7 +310,7 @@ const CodCash = () => {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-900 truncate" title={`Order #${row.orderId}`}>
-                      Order #{row.orderId}
+                      Order #{formatOrderId(row.orderId)}
                     </p>
                     <p className="text-xs text-gray-600 truncate">
                       Collect {RUPEE}
@@ -349,7 +350,7 @@ const CodCash = () => {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-900 truncate" title={`Order #${row.orderId}`}>
-                      Order #{row.orderId}
+                      Order #{formatOrderId(row.orderId)}
                     </p>
                     <p className="text-xs text-gray-500 truncate">Submit to platform (net)</p>
                   </div>

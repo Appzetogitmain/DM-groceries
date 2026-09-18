@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "@/shared/components/ui/Button";
+import { formatOrderId } from "@/lib/utils";
 import Card from "@/shared/components/ui/Card";
 import confetti from "canvas-confetti";
 
@@ -104,7 +105,7 @@ const DeliveryConfirmation = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
           className="text-gray-500 mb-8">
-          Order #{orderId} has been delivered.
+          Order #{formatOrderId(orderId)} has been delivered.
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -125,7 +126,7 @@ const DeliveryConfirmation = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6 pt-2 sticky top-0 z-50">
         <h1 className="ds-h2 text-gray-900">Confirm Delivery</h1>
-        <div className="text-xs font-bold text-gray-400">Order: #{orderId}</div>
+        <div className="text-xs font-bold text-gray-400">Order: #{formatOrderId(orderId)}</div>
       </div>
 
       <div className="flex-1 space-y-6 max-w-lg mx-auto w-full">

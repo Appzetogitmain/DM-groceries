@@ -20,6 +20,7 @@ import Card from "@/shared/components/ui/Card";
 
 import { useAuth } from "@core/context/AuthContext";
 import { deliveryApi } from "../services/deliveryApi";
+import { formatOrderId } from "@/lib/utils";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -519,7 +520,7 @@ const Dashboard = () => {
                         </div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-white/90">Ongoing Order</span>
                       </div>
-                      <h3 className="text-xl font-black mb-1">#{ongoingOrder.orderId}</h3>
+                      <h3 className="text-xl font-black mb-1">#{formatOrderId(ongoingOrder.orderId)}</h3>
                       <p className="text-xs text-white/80 mb-5 truncate max-w-[80%] font-medium">
                         {ongoingOrder.historyJobType === 'RETURN' ? 'Return Pickup' : 'Delivery to Customer'}
                       </p>
@@ -572,7 +573,7 @@ const Dashboard = () => {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <span className="text-[10px] font-black text-[#1A4516]/60 uppercase tracking-widest mb-1 block">Return Task</span>
-                            <h4 className="font-bold text-gray-900">#{order.orderId}</h4>
+                            <h4 className="font-bold text-gray-900">#{formatOrderId(order.orderId)}</h4>
                           </div>
                           <div className="text-right">
                             <span className="block font-black text-[#1A4516] text-lg">₹{order.returnDeliveryCommission || 0}</span>

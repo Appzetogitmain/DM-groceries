@@ -35,6 +35,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { formatOrderId } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
@@ -469,7 +470,7 @@ const Dashboard = () => {
               {safeOrders.slice(0, 5).map((order) => (
                 <tr key={order.orderId} className="hover:bg-slate-50/50 transition-colors">
                   <td className="py-4 px-4 align-middle">
-                    <span className="text-sm font-semibold text-slate-900">{order.orderId}</span>
+                    <span className="text-sm font-semibold text-slate-900">#{formatOrderId(order.orderId)}</span>
                   </td>
                   <td className="py-4 px-4 align-middle">
                     <div className="flex items-center gap-3">

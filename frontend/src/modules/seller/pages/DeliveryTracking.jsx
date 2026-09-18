@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Card from "@shared/components/ui/Card";
 import Badge from "@shared/components/ui/Badge";
+import { formatOrderId } from "@/lib/utils";
+import MapComponent from "@shared/components/MapComponent";
 import {
   HiOutlineMagnifyingGlass,
   HiOutlineTruck,
@@ -337,7 +339,7 @@ const DeliveryTracking = () => {
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2 mb-0.5">
                                 <span className="text-[10px] font-black text-slate-900 tracking-tight">
-                                  #{dlv.orderId}
+                                  #{formatOrderId(dlv.orderId)}
                                 </span>
                                 <Badge
                                   variant={getStatusVariant(dlv.status)}

@@ -83,7 +83,7 @@ const SellerTransactions = () => {
                         minute: '2-digit'
                     }),
                     seller: t.user?.shopName || t.user?.name || 'Unknown',
-                    type: t.type === 'Seller Earning' ? 'sale' :
+                    type: (t.type === 'Seller Earning' || String(t.type).toLowerCase() === 'order payment') ? 'sale' :
                         (t.type === 'Withdrawal' || t.type === 'Payout') ? 'payout' :
                             t.type.toLowerCase(),
                     amount: t.amount,

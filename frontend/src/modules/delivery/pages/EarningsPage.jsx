@@ -354,9 +354,9 @@ const EarningsPage = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-xs text-gray-900">
-                        {String(txn.type || "").includes("Withdrawal") ? "-" : "+"}
+                        {String(txn.type || "").includes("Withdrawal") || Number(txn.amount || 0) < 0 ? "-" : "+"}
                         {RUPEE}
-                        {Number(txn.amount || 0).toLocaleString()}
+                        {Math.abs(Number(txn.amount || 0)).toLocaleString()}
                       </p>
                       <p
                         className={`text-[9px] font-bold ${

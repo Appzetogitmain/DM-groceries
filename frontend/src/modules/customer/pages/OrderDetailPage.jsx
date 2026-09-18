@@ -10,6 +10,7 @@ import OrderProgressTracker from "../components/order/OrderProgressTracker";
 import ReturnProgressTracker from "../components/order/ReturnProgressTracker";
 import DeliveryPartnerRating from "../components/order/DeliveryPartnerRating";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
+import { formatOrderId } from "@/lib/utils";
 import {
   ChevronLeft,
   Package,
@@ -938,7 +939,7 @@ const OrderDetailPage = () => {
         </button>
         <div className="flex-1 text-center">
           <h1 className="text-base font-bold text-[#1A4516]">Order</h1>
-          <p className="text-xs text-slate-500 font-medium">#{order.orderId.slice(-8)}</p>
+          <p className="text-xs text-slate-500 font-medium">#{formatOrderId(order.orderId)}</p>
         </div>
         <div className="w-10" />
       </div>

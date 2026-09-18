@@ -12,3 +12,12 @@ export function notificationImageUrl(notification) {
     const url = String(raw).trim();
     return /^https?:\/\//i.test(url) ? url : "";
 }
+
+/** 
+ * Format an Order ID to be user-friendly by returning its last 8 characters in uppercase.
+ */
+export function formatOrderId(orderId) {
+    if (!orderId) return '';
+    const idStr = String(orderId).trim();
+    return idStr.length > 8 ? idStr.slice(-8).toUpperCase() : idStr.toUpperCase();
+}

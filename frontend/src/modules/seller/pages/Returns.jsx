@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Card from "@shared/components/ui/Card";
 import Badge from "@shared/components/ui/Badge";
+import BlurFade from "@shared/components/ui/BlurFade";
+import { formatOrderId } from "@/lib/utils";
 import Button from "@shared/components/ui/Button";
 import { sellerApi } from "../services/sellerApi";
 import { useToast } from "@shared/components/ui/Toast";
@@ -11,7 +13,7 @@ import {
     HiOutlineCalendarDays,
     HiOutlineTruck,
 } from "react-icons/hi2";
-import { BlurFade } from "@/components/ui/blur-fade";
+
 import { MagicCard } from "@/components/ui/magic-card";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -382,7 +384,7 @@ const Returns = () => {
                                                     onClick={() => openDetails(ret)}
                                                 >
                                                     <p className="text-xs font-black text-slate-900 truncate">
-                                                        #{ret.orderId}
+                                                        #{formatOrderId(ret.orderId)}
                                                     </p>
                                                     <p className="text-xs font-semibold text-slate-600 mt-0.5 flex items-center gap-1">
                                                         <HiOutlineCalendarDays className="h-3 w-3 shrink-0" />
@@ -471,7 +473,7 @@ const Returns = () => {
                             <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-100 shrink-0">
                                 <div>
                                     <h3 className="text-base font-black text-slate-900">
-                                        Return for Order #{selectedReturn.orderId}
+                                        Return for Order #{formatOrderId(selectedReturn.orderId)}
                                     </h3>
                                     <div className="flex items-center space-x-2 mt-0.5">
                                         <Badge

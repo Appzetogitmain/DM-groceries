@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
 import { Loader2 } from "lucide-react";
 import DeliveryTrackingMap from "../components/DeliveryTrackingMap";
+import { formatOrderId } from "@/lib/utils";
 import DeliverySlideButton from "../components/DeliverySlideButton";
 import OtpInput from "../components/OtpInput";
 import ReturnPickupProofUpload from "../components/ReturnPickupProofUpload";
@@ -619,8 +620,7 @@ const OrderDetails = () => {
 
   if (!order) return null;
 
-  const orderShortId =
-    typeof order.orderId === "string" ? order.orderId.slice(-8) : order.orderId;
+  const orderShortId = formatOrderId(order.orderId);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white pb-28 font-sans">

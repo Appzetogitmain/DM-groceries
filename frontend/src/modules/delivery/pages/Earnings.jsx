@@ -13,8 +13,9 @@ import {
   Download,
   Info,
   Building2,
-  ArrowRight,
+  TrendingDown,
 } from "lucide-react";
+import { formatOrderId } from "@/lib/utils";
 import Modal from "@/shared/components/ui/Modal";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -308,7 +309,7 @@ const Earnings = () => {
                 >
                   <div>
                     <p className="text-sm font-bold text-gray-900">
-                      Order #{row.orderId}
+                      Order #{formatOrderId(row.orderId)}
                     </p>
                     <p className="text-xs text-gray-600">
                       Collect from customer • Gross {"\u20B9"}{Number(row.amountGross || 0).toLocaleString()}
@@ -327,7 +328,7 @@ const Earnings = () => {
                 >
                   <div>
                     <p className="text-sm font-bold text-gray-900">
-                      Order #{row.orderId}
+                      Order #{formatOrderId(row.orderId)}
                     </p>
                     <p className="text-xs text-gray-500">
                       Remit to platform â€¢ Net of commission
@@ -395,7 +396,7 @@ const Earnings = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-gray-900">{txn.type.includes('Withdrawal') ? '-' : '+'}{"\u20B9"}{txn.amount}</p>
+                    <p className="font-bold text-gray-900">{txn.type.includes('Withdrawal') || txn.amount < 0 ? '-' : '+'}{"\u20B9"}{Math.abs(txn.amount)}</p>
                     <p
                       className={`text-xs font-bold ${txn.status === "Settled" || txn.status === "Completed" ? "text-brand-500" : "text-yellow-500"}`}>
                       {txn.status}

@@ -30,6 +30,7 @@ import {
     MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatOrderId } from '@/lib/utils';
 import { useToast } from '@shared/components/ui/Toast';
 
 const OrderDetail = () => {
@@ -179,7 +180,7 @@ const OrderDetail = () => {
                     </button>
                     <div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Order #{order.orderId}</h1>
+                            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Order #{formatOrderId(order.orderId)}</h1>
                             <div className="relative inline-block w-44">
                                 <select
                                     value={order.status}
@@ -277,6 +278,12 @@ const OrderDetail = () => {
                                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Delivery Fee</span>
                                     <span className="text-sm font-bold text-brand-600">₹{order.pricing?.deliveryFee || 0}</span>
                                 </div>
+                                {(order.pricing?.tip > 0 || order.paymentBreakdown?.riderTipAmount > 0) && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Rider Tip</span>
+                                        <span className="text-sm font-bold text-emerald-600">₹{order.pricing?.tip || order.paymentBreakdown?.riderTipAmount}</span>
+                                    </div>
+                                )}
                                 <div className="h-px w-full bg-slate-200" />
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-black text-slate-900 uppercase tracking-tight">Total Payable</span>
@@ -565,7 +572,7 @@ const OrderDetail = () => {
                                     <div style={{ fontSize: "28px", fontWeight: "900", color: "#0f172a" }}>INVOICE</div>
                                 </td>
                                 <td width="50%" align="right" style={{ verticalAlign: "bottom" }}>
-                                    <div style={{ fontSize: "12px", fontWeight: "700", marginBottom: "4px" }}>Reference: <span style={{ color: "#2563eb" }}>#{order.orderId}</span></div>
+                                    <div style={{ fontSize: "12px", fontWeight: "700", marginBottom: "4px" }}>Reference: <span style={{ color: "#2563eb" }}>#{formatOrderId(order.orderId)}</span></div>
                                     <div style={{ fontSize: "10px", color: "#64748b", fontWeight: "700" }}>Issued: {new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
                                 </td>
                             </tr>
@@ -644,6 +651,12 @@ const OrderDetail = () => {
                                             <td align="left" style={{ fontSize: "12px", color: "#64748b", fontWeight: "700" }}>Logistics Cost</td>
                                             <td align="right" style={{ fontSize: "13px", fontWeight: "800", color: "#2563eb" }}>+ ₹{order.pricing?.deliveryFee || 0}</td>
                                         </tr>
+                                        {(order.pricing?.tip > 0 || order.paymentBreakdown?.riderTipAmount > 0) && (
+                                            <tr>
+                                                <td align="left" style={{ fontSize: "12px", color: "#64748b", fontWeight: "700" }}>Rider Tip</td>
+                                                <td align="right" style={{ fontSize: "13px", fontWeight: "800", color: "#10b981" }}>+ ₹{order.pricing?.tip || order.paymentBreakdown?.riderTipAmount}</td>
+                                            </tr>
+                                        )}
                                         <tr>
                                             <td colSpan="2" style={{ padding: "12px 0" }}><div style={{ height: "1px", backgroundColor: "#e2e8f0" }}></div></td>
                                         </tr>

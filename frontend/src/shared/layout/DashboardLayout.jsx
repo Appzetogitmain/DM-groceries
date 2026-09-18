@@ -10,10 +10,10 @@ import { useAuth } from "@core/context/AuthContext";
 import { motion, AnimatePresence } from 'framer-motion';
 import { BellRing, Check, X, Clock, Truck } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, formatOrderId } from '@/lib/utils';
 import SellerOrdersContext from '@/modules/seller/context/SellerOrdersContext';
 import SellerEarningsContext, { defaultEarnings } from '@/modules/seller/context/SellerEarningsContext';
-import { getOrderSocket, onSellerOrderNew, onReturnDropOtp, onSellerPickupOtp, onSellerDeliveryArrived, wakeOrderSocket } from '@/core/services/orderSocket';
+import { getOrderSocket, onSellerOrderNew, onReturnDropOtp, onSellerPickupOtp, onSellerDeliveryArrived, onSellerReturnRequested, wakeOrderSocket } from '@/core/services/orderSocket';
 import { createSocketTokenReader } from '@core/utils/authStorage';
 import { STORAGE_KEYS } from '@core/utils/storage';
 import { showSystemNotification } from '@/core/firebase/pushClient';
@@ -380,6 +380,17 @@ const DashboardLayout = ({ children, navItems, title }) => {
             });
         });
 
+        const unsubscribeSellerReturnRequested = onSellerReturnRequested(getToken, (payload) => {
+            console.log("[DashboardLayout] Received return requested event:", payload);
+            setNewReturnAlert(payload);
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(() => { });
+            showSystemNotification({
+                title: "New Return Request",
+                body: `Customer has requested a return for Order #${payload.orderId}.`
+            });
+        });
+
         const onNativePush = (eventOrMessage) => {
             const message = eventOrMessage?.detail || eventOrMessage;
             const type = String(message?.type || message?.event || message?.data?.eventType || "").toLowerCase();
@@ -403,6 +414,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
             unsubscribeDrop();
             unsubscribeSellerPickup();
             unsubscribeDeliveryArrived();
+            unsubscribeSellerReturnRequested();
             unsubscribeNative();
             window.removeEventListener(NATIVE_PUSH_EVENT, onNativePush);
         };
@@ -600,6 +612,45 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     >
                                         <Check className="h-5 w-5" />
                                         Accept
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* New Return Request Modal */}
+                {newReturnAlert && (
+                    <div className={overlayClass("z-[10000]")} style={overlayStyle}>
+                        <motion.div
+                            {...cardMotion}
+                            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-amber-100"
+                        >
+                            <div className="flex flex-col items-center text-center">
+                                <div className="h-20 w-20 bg-amber-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                    <BellRing className="h-10 w-10 text-amber-500" />
+                                </div>
+
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">New Return Request</h2>
+                                <p className="text-slate-600 font-medium mb-6">
+                                    Customer has requested a return for <span className="text-amber-500 font-bold">Order #{formatOrderId(newReturnAlert.orderId)}</span>.
+                                </p>
+
+                                <div className="flex gap-4 w-full">
+                                    <button
+                                        onClick={() => setNewReturnAlert(null)}
+                                        className="w-full py-4 rounded-2xl bg-slate-100 text-slate-600 font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-xs"
+                                    >
+                                        Dismiss
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setNewReturnAlert(null);
+                                            navigate('/seller/returns');
+                                        }}
+                                        className="w-full py-4 rounded-2xl bg-amber-500 text-white font-black hover:bg-amber-600 shadow-xl shadow-amber-500/20 transition-all active:scale-95 uppercase tracking-widest text-xs"
+                                    >
+                                        View Request
                                     </button>
                                 </div>
                             </div>
