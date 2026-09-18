@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Card from "@shared/components/ui/Card";
 import Badge from "@shared/components/ui/Badge";
 import { formatOrderId } from "@/lib/utils";
-import MapComponent from "@shared/components/MapComponent";
+
 import {
   HiOutlineMagnifyingGlass,
   HiOutlineTruck,

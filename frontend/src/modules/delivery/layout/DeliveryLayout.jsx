@@ -12,6 +12,7 @@ import {
   onDeliveryBroadcast,
   onDeliveryBroadcastWithdrawn,
 } from "@/core/services/orderSocket";
+import { shouldTreatDocumentAsVisible } from "@/core/utils/deviceUtils";
 import {
   loadHandledIncomingOrderIds,
   markIncomingOrderHandled,
@@ -393,10 +394,7 @@ const DeliveryLayout = () => {
     const tick = async () => {
       if (cancelled) return;
       if (activeOrderRef.current || suppressIncomingModal) return;
-      if (
-        typeof document !== "undefined" &&
-        document.visibilityState === "hidden"
-      ) {
+      if (!shouldTreatDocumentAsVisible()) {
         return;
       }
 
@@ -444,10 +442,7 @@ const DeliveryLayout = () => {
     // away instead of waiting for the next interval tick.
     const wakeUp = () => {
       if (cancelled) return;
-      if (
-        typeof document !== "undefined" &&
-        document.visibilityState !== "visible"
-      ) {
+      if (!shouldTreatDocumentAsVisible()) {
         return;
       }
       tick();
@@ -515,10 +510,7 @@ const DeliveryLayout = () => {
         // has the freshest coords when they mount.
         saveDeliveryPartnerLocation(lat, lng);
 
-        if (
-          typeof document !== "undefined" &&
-          document.visibilityState === "hidden"
-        ) {
+        if (!shouldTreatDocumentAsVisible()) {
           return;
         }
 
@@ -613,10 +605,7 @@ const DeliveryLayout = () => {
     const tick = async () => {
       if (cancelled) return;
       if (activeOrderRef.current || suppressIncomingModal) return;
-      if (
-        typeof document !== "undefined" &&
-        document.visibilityState === "hidden"
-      ) {
+      if (!shouldTreatDocumentAsVisible()) {
         return;
       }
 
@@ -677,10 +666,7 @@ const DeliveryLayout = () => {
 
     const wakeUp = () => {
       if (cancelled) return;
-      if (
-        typeof document !== "undefined" &&
-        document.visibilityState !== "visible"
-      ) {
+      if (!shouldTreatDocumentAsVisible()) {
         return;
       }
       tick();
