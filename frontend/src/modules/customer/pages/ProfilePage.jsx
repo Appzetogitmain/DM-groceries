@@ -82,13 +82,16 @@ const ProfilePage = () => {
                         <MenuItem icon={Wallet} label="My Wallet" rightText={`₹${user?.walletBalance || 0}`} path="/wallet" />
                         <MenuItem icon={Gift} label="My Rewards" path="/rewards" />
                         <MenuItem icon={Heart} label="My Wishlist" path="/wishlist" />
-                        <MenuItem icon={Users} label="Refer & Earn" />
                         <MenuItem icon={Bell} label="Notifications" />
                         <MenuItem icon={HelpCircle} label="Help & Support" path="/help" />
                         <MenuItem icon={Settings} label="Settings" path="/settings" />
                         <MenuItem icon={Bell} label="Test Push Notification" onClick={handleTestPushNotification} />
                         <MenuItem icon={LogOut} label="Delete Account" onClick={handleDeleteAccount} />
-                        <MenuItem icon={LogOut} label="Logout" onClick={logout} />
+                        <MenuItem icon={LogOut} label="Logout" onClick={() => {
+                            if (window.confirm("Are you sure you want to log out?")) {
+                                logout();
+                            }
+                        }} />
                     </div>
                 
                     <div className="text-center pt-8 pb-4">

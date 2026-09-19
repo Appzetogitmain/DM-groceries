@@ -1,40 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import Card from '@shared/components/ui/Card';
-import Button from '@shared/components/ui/Button';
 import Badge from '@shared/components/ui/Badge';
-import { HiOutlineUserAdd } from 'react-icons/hi';
 import { adminApi } from '../services/adminApi';
 import { toast } from 'sonner';
+import Pagination from '@shared/components/ui/Pagination';
+import { useNavigate } from 'react-router-dom';
 
 const UserManagement = () => {
+    const navigate = useNavigate();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const response = await adminApi.getUsers();
-                if (response.data.success) {
-                    setUsers(response.data.result.items);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+    const [total, setTotal] = useState(0);
+
+    const fetchUsers = async (requestedPage = 1) => {
+        try {
+            setLoading(true);
+            const params = { page: requestedPage, limit: pageSize };
+            const response = await adminApi.getUsers(params);
+            if (response.data.success) {
+                const payload = response.data.result || {};
+                const list = Array.isArray(payload.items) ? payload.items : (response.data.results || []);
+                setUsers(list);
+                if (typeof payload.total === 'number') {
+                    setTotal(payload.total);
+                } else {
+                    setTotal(list.length);
                 }
-            } catch (error) {
-                toast.error("Failed to load users");
-                console.error(error);
-            } finally {
-                setLoading(false);
+                setPage(requestedPage);
             }
-        };
-        fetchUsers();
-    }, []);
+        } catch (error) {
+            toast.error("Failed to load users");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchUsers(1);
+    }, [pageSize]);
 
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="ds-h1">Platform Users</h2>
-                <Button>
-                    <HiOutlineUserAdd className="mr-2 h-5 w-5" />
-                    Add Internal User
-                </Button>
             </div>
 
             <Card>
@@ -78,13 +90,32 @@ const UserManagement = () => {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">Manage</button>
+                                            <button 
+                                                onClick={() => navigate(`/admin/customers/${user.id}`)}
+                                                className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                                            >
+                                                Manage
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     )}
+                </div>
+                <div className="px-6 py-3 border-t border-gray-100">
+                    <Pagination
+                        page={page}
+                        totalPages={Math.ceil(total / pageSize) || 1}
+                        total={total}
+                        pageSize={pageSize}
+                        onPageChange={(p) => fetchUsers(p)}
+                        onPageSizeChange={(newSize) => {
+                            setPageSize(newSize);
+                            setPage(1);
+                        }}
+                        loading={loading}
+                    />
                 </div>
             </Card>
         </div>

@@ -15,11 +15,46 @@ const EditProfilePage = () => {
         phone: user?.phone || '',
         email: user?.email || '',
         bio: user?.bio || '',
-        dob: user?.dob || ''
+        dob: user?.dob || '',
+        avatar: user?.avatar || ''
     });
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleCameraClick = async () => {
+        // Check if we are running inside the Flutter app
+        if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+            try {
+                const result = await window.flutter_inappwebview.callHandler('openCamera');
+                if (result && result.success) {
+                    const imageUrl = `data:${result.mimeType};base64,${result.base64}`;
+                    setFormData(prev => ({ ...prev, avatar: imageUrl }));
+                } else {
+                    toast.error('Image capture cancelled or failed');
+                }
+            } catch (error) {
+                console.error("Camera handler error:", error);
+                toast.error('Camera not available');
+            }
+        } else {
+            // Fallback for normal web browser
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setFormData(prev => ({ ...prev, avatar: reader.result }));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            fileInput.click();
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -57,9 +92,17 @@ const EditProfilePage = () => {
                 <div className="flex flex-col items-center mb-8">
                     <div className="relative">
                         <div className="h-28 w-28 rounded-full bg-[#F5FBF5] border-4 border-white shadow-md flex items-center justify-center overflow-hidden">
-                            <User size={48} className="text-[#1A4516]/50" />
+                            {formData.avatar ? (
+                                <img src={formData.avatar} alt="Profile" className="h-full w-full object-cover" />
+                            ) : (
+                                <User size={48} className="text-[#1A4516]/50" />
+                            )}
                         </div>
-                        <button className="absolute bottom-0 right-0 p-2 bg-[#1A4516] text-white rounded-full border-2 border-white shadow-sm hover:bg-[#0a3000] transition-colors">
+                        <button 
+                            type="button"
+                            onClick={handleCameraClick}
+                            className="absolute bottom-0 right-0 p-2 bg-[#1A4516] text-white rounded-full border-2 border-white shadow-sm hover:bg-[#0a3000] transition-colors"
+                        >
                             <Camera size={18} />
                         </button>
                     </div>

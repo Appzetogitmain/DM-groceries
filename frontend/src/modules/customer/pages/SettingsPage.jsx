@@ -43,24 +43,22 @@ const SettingsPage = () => {
     };
     return (
         <div className="min-h-screen bg-white font-sans">
-            {/* Top Green Header */}
-            <div className="bg-[#1A4516] pt-6 pb-12 px-6 text-white relative">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
-                    >
-                        <ChevronLeft size={24} />
-                    </button>
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight">Settings</h1>
-                        <p className="text-white/80 text-xs mt-0.5 font-medium">Configure your app preferences</p>
-                    </div>
+            {/* White Header */}
+            <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-slate-200/60 mb-4 flex items-center gap-2">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="w-10 h-10 flex items-center justify-center hover:bg-slate-200/70 rounded-full transition-colors -ml-1"
+                >
+                    <ChevronLeft size={22} className="text-[#1A4516]" />
+                </button>
+                <div>
+                    <h1 className="text-xl font-semibold text-[#1A4516] tracking-tight">Settings</h1>
+                    <p className="text-[#1A4516]/70 text-xs font-medium mt-0.5">Configure your app preferences</p>
                 </div>
             </div>
 
-            {/* Overlapping White Container */}
-            <div className="bg-white rounded-t-[2.5rem] px-4 pt-6 pb-12 -mt-6 relative z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] space-y-5">
+            {/* Main Container */}
+            <div className="px-4 pt-2 pb-12 space-y-5">
                 
                 {/* General Section */}
                 <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">

@@ -32,6 +32,12 @@ export const LocationProvider = ({ children }) => {
   // Address list for drawer UI – will be hydrated from profile API.
   const [savedAddresses, setSavedAddresses] = useState([]);
 
+  // Track if user has explicitly provided or allowed location
+  const [hasSetLocation, setHasSetLocation] = useState(() => {
+    const parsed = getJSON(STORAGE_KEY, null);
+    return !!(parsed && (parsed.address || parsed.name));
+  });
+
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [locationError, setLocationError] = useState(null);
 
@@ -40,9 +46,12 @@ export const LocationProvider = ({ children }) => {
   // address actions should touch the saved list.
   const updateLocation = (
     newLoc,
-    { persist = true, updateSavedHome = false } = {},
+    { persist = true, updateSavedHome = false, isFallback = false } = {},
   ) => {
     setCurrentLocation(newLoc);
+    if (!isFallback) {
+      setHasSetLocation(true);
+    }
 
     if (updateSavedHome) {
       setSavedAddresses((prev) =>
@@ -198,11 +207,12 @@ export const LocationProvider = ({ children }) => {
           updateLocation(liveLocation, {
             persist: true,
             updateSavedHome: false,
+            isFallback: false,
           });
           resolve({ ok: true, location: liveLocation });
         } catch (err) {
           const loc = fallbackFromCoords(latitude, longitude);
-          updateLocation(loc, { persist: true, updateSavedHome: false });
+          updateLocation(loc, { persist: true, updateSavedHome: false, isFallback: true });
           resolve({
             ok: true,
             location: loc,
@@ -316,6 +326,7 @@ export const LocationProvider = ({ children }) => {
         updateLocation(currentLocation, {
           persist: true,
           updateSavedHome: false,
+          isFallback: true
         });
       }
     });
@@ -325,6 +336,7 @@ export const LocationProvider = ({ children }) => {
   const locationValue = useMemo(() => ({
     currentLocation,
     savedAddresses,
+    hasSetLocation,
     updateLocation,
     addAddress,
     refreshAddresses,
@@ -332,7 +344,7 @@ export const LocationProvider = ({ children }) => {
     locationError,
     refreshLocation: fetchAndCacheLocation,
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [currentLocation, savedAddresses, isFetchingLocation, locationError, refreshAddresses]);
+  }), [currentLocation, savedAddresses, hasSetLocation, isFetchingLocation, locationError, refreshAddresses]);
 
   return (
     <LocationContext.Provider value={locationValue}>

@@ -291,7 +291,11 @@ const Profile = () => {
             <LogOut size={20} className="mr-2" /> Delete Account
           </Button>
           <Button
-            onClick={logout}
+            onClick={() => {
+              if (window.confirm("Are you sure you want to log out?")) {
+                logout();
+              }
+            }}
             variant="outline"
             className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 py-6">
             <LogOut size={20} className="mr-2" /> Logout

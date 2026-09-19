@@ -23,6 +23,7 @@ import CheckoutPage from '../pages/CheckoutPage';
 import PaymentStatusPage from '../pages/PaymentStatusPage';
 import MilestoneRewards from '../pages/MilestoneRewards';
 import ScrollToTop from '../components/shared/ScrollToTop';
+import LocationRequiredModal from '../components/shared/LocationRequiredModal';
 import { WishlistProvider } from '../context/WishlistContext';
 import { CartProvider } from '../context/CartContext';
 import { CartAnimationProvider } from '../context/CartAnimationContext';
@@ -36,6 +37,7 @@ const CustomerRoutes = () => {
             <WishlistProvider>
                 <CartProvider>
                     <CartAnimationProvider>
+                        <LocationRequiredModal />
                         <ScrollToTop />
                         <Routes>
                             <Route path="/" element={<Home />} />

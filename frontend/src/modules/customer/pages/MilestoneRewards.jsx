@@ -36,14 +36,17 @@ const MilestoneRewards = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
-            <div className="bg-[#1A4516] pt-12 pb-6 px-4 text-white flex items-center sticky top-0 z-50 shadow-md">
-                <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors">
-                    <ChevronLeft size={24} />
+            <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-slate-200/60 mb-4 flex items-center gap-2">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="w-10 h-10 flex items-center justify-center hover:bg-slate-200/70 rounded-full transition-colors -ml-1"
+                >
+                    <ChevronLeft size={22} className="text-[#1A4516]" />
                 </button>
-                <h1 className="text-lg font-bold ml-2">My Rewards</h1>
+                <h1 className="text-xl font-semibold text-[#1A4516] tracking-tight">My Rewards</h1>
             </div>
             
-            <div className="p-4 space-y-6 mt-16 max-w-lg mx-auto">
+            <div className="p-4 space-y-6 max-w-lg mx-auto">
                 <div className="bg-gradient-to-r from-primary to-orange-500 rounded-2xl p-6 text-white shadow-lg">
                     <div className="flex items-center space-x-3 mb-2">
                         <Gift className="w-8 h-8" />
