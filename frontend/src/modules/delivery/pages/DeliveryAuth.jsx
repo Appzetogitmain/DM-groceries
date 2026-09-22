@@ -16,6 +16,7 @@ import {
   X,
   Camera,
   XCircle,
+  Image as ImageIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lottie from "lottie-react";
@@ -74,6 +75,27 @@ const DeliveryAuth = () => {
   const [aadharFile, setAadharFile] = useState(null);
   const [panFile, setPanFile] = useState(null);
   const [dlFile, setDlFile] = useState(null);
+  const [activeUploadDoc, setActiveUploadDoc] = useState(null);
+
+  const formatVehiclePlate = (val) => {
+    let v = val.replace(/[^A-Z0-9]/ig, '').toUpperCase();
+    let formatted = '';
+    if (v.length > 0) formatted += v.substring(0, 2);
+    if (v.length > 2) formatted += ' ' + v.substring(2, 4);
+    if (v.length > 4) formatted += ' ' + v.substring(4, 6);
+    if (v.length > 6) formatted += ' ' + v.substring(6, 10);
+    return formatted;
+  };
+
+  const formatDL = (val) => {
+    let v = val.replace(/[^A-Z0-9]/ig, '').toUpperCase();
+    let formatted = '';
+    if (v.length > 0) formatted += v.substring(0, 2);
+    if (v.length > 2) formatted += '-' + v.substring(2, 4);
+    if (v.length > 4) formatted += '-' + v.substring(4, 8);
+    if (v.length > 8) formatted += '-' + v.substring(8, 15);
+    return formatted;
+  };
 
   // OTP state
   const [otp, setOtp] = useState(["", "", "", ""]);
@@ -505,7 +527,7 @@ const DeliveryAuth = () => {
                               <input
                                 type="text"
                                 value={signupVehicleNumber}
-                                onChange={(e) => { setSignupVehicleNumber(e.target.value.toUpperCase()); setErrors(prev => ({...prev, vehicleNumber: ''})); }}
+                                onChange={(e) => { setSignupVehicleNumber(formatVehiclePlate(e.target.value)); setErrors(prev => ({...prev, vehicleNumber: ''})); }}
                                 className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.vehicleNumber ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                                 placeholder="KA 05 MN 8921"
                               />
@@ -520,7 +542,7 @@ const DeliveryAuth = () => {
                               <input
                                 type="text"
                                 value={signupDLNumber}
-                                onChange={(e) => { setSignupDLNumber(e.target.value.toUpperCase()); setErrors(prev => ({...prev, dlNumber: ''})); }}
+                                onChange={(e) => { setSignupDLNumber(formatDL(e.target.value)); setErrors(prev => ({...prev, dlNumber: ''})); }}
                                 className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.dlNumber ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                                 placeholder="DL-1420110012345"
                               />
@@ -538,11 +560,11 @@ const DeliveryAuth = () => {
                             <button
                               onClick={() => {
                                 const newErrors = {};
-                                if (!signupVehicleNumber || !/^[A-Z]{2}[-\s]?[0-9]{2}[-\s]?[A-Z]{1,2}[-\s]?[0-9]{4}$/.test(signupVehicleNumber.replace(/\s+/g, ' '))) {
+                                if (!signupVehicleNumber || !/^[A-Z]{2} [0-9]{2} [A-Z]{2} [0-9]{4}$/.test(signupVehicleNumber)) {
                                   newErrors.vehicleNumber = "Invalid format. Expected e.g., MH 01 AB 1234";
                                 }
-                                if (!signupDLNumber || !/^[A-Z0-9-/\s]{10,20}$/.test(signupDLNumber)) {
-                                  newErrors.dlNumber = "Invalid DL format";
+                                if (!signupDLNumber || !/^[A-Z]{2}-[0-9]{2}-[0-9]{4}-[0-9]{6,7}$/.test(signupDLNumber)) {
+                                  newErrors.dlNumber = "Invalid DL format. Expected SS-RR-YYYY-NNNNNNN";
                                 }
                                 
                                 if (Object.keys(newErrors).length > 0) {
@@ -612,10 +634,10 @@ const DeliveryAuth = () => {
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">IFSC Code</label>
-                            <input
-                              type="text"
-                              value={signupIfsc}
-                              onChange={(e) => { setSignupIfsc(e.target.value.toUpperCase()); setErrors(prev => ({...prev, ifsc: ''})); }}
+                              <input
+                                type="text"
+                                value={signupIfsc}
+                                onChange={(e) => { setSignupIfsc(e.target.value.toUpperCase().slice(0, 11)); setErrors(prev => ({...prev, ifsc: ''})); }}
                               className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.ifsc ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                               placeholder="HDFC0001234"
                             />
@@ -678,7 +700,21 @@ const DeliveryAuth = () => {
                               <div key={doc.id} className="relative">
                                 <input
                                   type="file"
-                                  id={doc.id}
+                                  id={`camera-${doc.id}`}
+                                  className="hidden"
+                                  accept="image/*"
+                                  capture="environment"
+                                  onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (doc.id === "dl") handleDLUpload(file);
+                                    else if (doc.id === "pan") handlePanUpload(file);
+                                    else if (doc.id === "aadhar") handleAadharUpload(file);
+                                    else doc.setter(file);
+                                  }}
+                                />
+                                <input
+                                  type="file"
+                                  id={`gallery-${doc.id}`}
                                   className="hidden"
                                   accept="image/*"
                                   onChange={(e) => {
@@ -689,18 +725,21 @@ const DeliveryAuth = () => {
                                     else doc.setter(file);
                                   }}
                                 />
-                                <label
-                                  htmlFor={doc.id}
-                                  onClick={(e) => {
-                                    if (window.flutter_inappwebview) {
-                                      handleCameraCapture(e, (file) => {
-                                        if (doc.id === "dl") handleDLUpload(file);
-                                        else if (doc.id === "pan") handlePanUpload(file);
-                                        else if (doc.id === "aadhar") handleAadharUpload(file);
-                                        else doc.setter(file);
-                                      });
-                                    }
+                                <input
+                                  type="file"
+                                  id={`pdf-${doc.id}`}
+                                  className="hidden"
+                                  accept="application/pdf,.pdf"
+                                  onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (doc.id === "dl") handleDLUpload(file);
+                                    else if (doc.id === "pan") handlePanUpload(file);
+                                    else if (doc.id === "aadhar") handleAadharUpload(file);
+                                    else doc.setter(file);
                                   }}
+                                />
+                                <div
+                                  onClick={() => setActiveUploadDoc(doc.id)}
                                   className={`flex items-center justify-between p-4 rounded-2xl border-2 border-dashed transition-all cursor-pointer ${doc.state
                                     ? "border-brand-200 bg-brand-50/50"
                                     : "border-gray-100 bg-gray-50 hover:border-brand-200 hover:bg-brand-50/30"
@@ -724,14 +763,15 @@ const DeliveryAuth = () => {
                                       type="button"
                                       onClick={(e) => {
                                         e.preventDefault();
+                                        e.stopPropagation();
                                         doc.setter(null);
                                       }}
-                                      className="p-1.5 hover:bg-brand-100 rounded-lg text-brand-600 transition-colors"
+                                      className="p-1.5 hover:bg-brand-100 rounded-lg text-brand-600 transition-colors z-10"
                                     >
                                       <X className="w-3.5 h-3.5" />
                                     </button>
                                   )}
-                                </label>
+                                </div>
                               </div>
                             ))}
                             <p className="text-[10px] text-gray-400 italic px-1 flex items-center gap-1.5">
@@ -929,6 +969,83 @@ const DeliveryAuth = () => {
           {appName} Partner Ecosystem • v1.0
         </p>
       </motion.div>
+
+      {/* Action Sheet for Document Upload */}
+      <AnimatePresence>
+        {activeUploadDoc && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveUploadDoc(null)}
+              className="fixed inset-0 bg-black/40 z-[100] backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-[101] bg-white rounded-t-3xl shadow-2xl p-6 pb-10 flex flex-col gap-3 max-w-[420px] mx-auto"
+            >
+              <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4" />
+              <h3 className="text-sm font-black text-gray-800 text-center uppercase tracking-wider mb-2">
+                Upload Document
+              </h3>
+              
+              <button
+                type="button"
+                onClick={(e) => {
+                  if (window.flutter_inappwebview) {
+                    handleCameraCapture(e, (file) => {
+                      if (activeUploadDoc === "dl") handleDLUpload(file);
+                      else if (activeUploadDoc === "pan") handlePanUpload(file);
+                      else if (activeUploadDoc === "aadhar") handleAadharUpload(file);
+                      setActiveUploadDoc(null);
+                    });
+                  } else {
+                    document.getElementById(`camera-${activeUploadDoc}`).click();
+                    setActiveUploadDoc(null);
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-3 py-3.5 bg-gray-50 hover:bg-brand-50 text-gray-700 hover:text-brand-700 rounded-xl font-bold transition-colors border border-gray-100"
+              >
+                <Camera className="w-5 h-5" /> Open Camera
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById(`gallery-${activeUploadDoc}`).click();
+                  setActiveUploadDoc(null);
+                }}
+                className="w-full flex items-center justify-center gap-3 py-3.5 bg-gray-50 hover:bg-brand-50 text-gray-700 hover:text-brand-700 rounded-xl font-bold transition-colors border border-gray-100"
+              >
+                <ImageIcon className="w-5 h-5" /> Choose from Gallery
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById(`pdf-${activeUploadDoc}`).click();
+                  setActiveUploadDoc(null);
+                }}
+                className="w-full flex items-center justify-center gap-3 py-3.5 bg-gray-50 hover:bg-brand-50 text-gray-700 hover:text-brand-700 rounded-xl font-bold transition-colors border border-gray-100"
+              >
+                <FileText className="w-5 h-5" /> Upload PDF File
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setActiveUploadDoc(null)}
+                className="w-full mt-2 py-3 text-gray-400 hover:text-gray-600 font-bold uppercase tracking-wider text-xs"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

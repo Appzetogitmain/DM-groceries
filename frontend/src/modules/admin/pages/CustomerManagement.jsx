@@ -95,11 +95,45 @@ const CustomerManagement = () => {
     }, [customers, searchTerm, filterStatus]);
 
     const handleExport = () => {
+        if (filteredCustomers.length === 0) {
+            toast.warning('No data to export');
+            return;
+        }
+
         setIsExporting(true);
-        setTimeout(() => {
-            setIsExporting(false);
+        try {
+            const headers = ['Customer ID', 'Name', 'Email', 'Phone', 'Total Orders', 'Total Spent', 'Status', 'Joined Date'];
+            const csvContent = [
+                headers.join(','),
+                ...filteredCustomers.map(c => [
+                    String(c.id || ''),
+                    String(c.name || '').replace(/,/g, ' '),
+                    String(c.email || '').replace(/,/g, ' '),
+                    String(c.phone || '').replace(/,/g, ' '),
+                    c.totalOrders || 0,
+                    c.totalSpent || 0,
+                    c.status || '',
+                    String(c.joinedDate || '').replace(/,/g, ' ')
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `customers-${filterStatus}-${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
             toast.success('Customer database exported successfully!');
-        }, 1500);
+        } catch (error) {
+            console.error('Export error:', error);
+            toast.error('Failed to export customers');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const getTimeAgo = (date) => {
@@ -134,10 +168,6 @@ const CustomerManagement = () => {
                         >
                             {isExporting ? <RotateCw className="ds-icon-sm animate-spin" /> : <Download className="ds-icon-sm" />}
                             {isExporting ? 'EXPORTING...' : 'EXPORT'}
-                        </button>
-                        <button className="ds-btn ds-btn-md bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                            <UserPlus className="ds-icon-sm" />
-                            NEW CUSTOMER
                         </button>
                     </>
                 }

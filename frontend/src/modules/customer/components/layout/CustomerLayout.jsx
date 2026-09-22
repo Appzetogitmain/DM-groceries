@@ -13,6 +13,7 @@ import { onReturnPickupOtp, onReturnDropOtp, onNotificationNew } from '@core/ser
 import { toast } from 'sonner';
 import { ShieldCheck, Package } from 'lucide-react';
 import { playNotificationSound } from '@/lib/soundUtils';
+import LocationRequiredModal from '../shared/LocationRequiredModal';
 
 const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = false, showCart: showCartProp, showBottomNav: showBottomNavProp }) => {
     const location = useLocation();
@@ -128,6 +129,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
 
             {showCart && <MiniCart />}
             <ProductDetailSheet />
+            <LocationRequiredModal />
 
             <div className="hidden md:block">
                 <Footer />

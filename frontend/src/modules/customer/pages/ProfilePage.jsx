@@ -23,15 +23,7 @@ const ProfilePage = () => {
         return raw;
     };
 
-    const handleTestPushNotification = async () => {
-        try {
-            await customerApi.testPushNotification();
-            toast.success("Test push notification sent!");
-        } catch (error) {
-            toast.error("Failed to send test push notification.");
-            console.error("Test push notification error:", error);
-        }
-    };
+
 
     const handleDeleteAccount = async () => {
         if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
@@ -54,11 +46,7 @@ const ProfilePage = () => {
                     <div className="flex items-center gap-4 flex-1 min-w-0 pr-2">
                         <div className="h-16 w-16 rounded-full bg-white/20 p-1 shrink-0">
                             <div className="h-full w-full rounded-full bg-white flex items-center justify-center overflow-hidden text-[#1A4516]">
-                                {user?.avatar ? (
-                                    <img src={user.avatar} alt="Profile" className="h-full w-full object-cover" />
-                                ) : (
-                                    <User size={28} />
-                                )}
+                                <User size={28} />
                             </div>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -89,7 +77,7 @@ const ProfilePage = () => {
                         <MenuItem icon={Bell} label="Notifications" />
                         <MenuItem icon={HelpCircle} label="Help & Support" path="/help" />
                         <MenuItem icon={Settings} label="Settings" path="/settings" />
-                        <MenuItem icon={Bell} label="Test Push Notification" onClick={handleTestPushNotification} />
+
                         <MenuItem icon={LogOut} label="Delete Account" onClick={handleDeleteAccount} />
                         <MenuItem icon={LogOut} label="Logout" onClick={() => {
                             if (window.confirm("Are you sure you want to log out?")) {

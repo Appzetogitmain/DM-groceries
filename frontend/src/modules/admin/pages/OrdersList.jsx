@@ -95,7 +95,24 @@ const OrdersList = () => {
             if (status !== 'all') params.status = status;
             if (searchTerm.trim()) params.search = searchTerm.trim();
             if (dateRange !== 'All Time') {
-                params.dateFilter = dateRange.toLowerCase().replace(/ /g, '_');
+                const now = new Date();
+                let start = new Date();
+                if (dateRange === 'Today') {
+                    start.setHours(0, 0, 0, 0);
+                } else if (dateRange === 'Yesterday') {
+                    start.setDate(now.getDate() - 1);
+                    start.setHours(0, 0, 0, 0);
+                    const end = new Date(start);
+                    end.setHours(23, 59, 59, 999);
+                    params.endDate = end.toISOString();
+                } else if (dateRange === 'Last 7 Days') {
+                    start.setDate(now.getDate() - 7);
+                    start.setHours(0, 0, 0, 0);
+                } else if (dateRange === 'This Month') {
+                    start.setDate(1);
+                    start.setHours(0, 0, 0, 0);
+                }
+                params.startDate = start.toISOString();
             }
             const response = await adminApi.getOrders(params);
             if (response.data.success) {
@@ -113,7 +130,7 @@ const OrdersList = () => {
                     workflowVersion: o.workflowVersion,
                     returnStatus: o.returnStatus,
                     date: new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-                    payment: o.payment?.method === 'cod' ? 'COD' : 'Digital',
+                    payment: (o.paymentMode === 'COD' || o.payment?.method === 'cash' || o.payment?.method === 'cod') ? 'COD' : 'Digital',
                 }));
                 setOrders(formatted);
                 setSummary({

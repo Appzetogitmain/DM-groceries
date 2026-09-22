@@ -136,9 +136,7 @@ export const updateCustomerProfile = async (req, res) => {
         }
 
         if (name !== undefined) customer.name = name;
-        if (email !== undefined) {
-            customer.email = email.trim() === "" ? undefined : email.trim();
-        }
+        if (email !== undefined) customer.email = email;
         if (addresses !== undefined) customer.addresses = addresses;
         if (dob !== undefined) customer.dob = dob;
         if (notificationsEnabled !== undefined) customer.notificationsEnabled = notificationsEnabled;

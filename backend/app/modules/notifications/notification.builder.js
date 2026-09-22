@@ -373,35 +373,24 @@ function eventDefinition(eventType) {
             payload.data?.note ? " Note: " + payload.data.note : ""
           }`,
       };
-    case NOTIFICATION_EVENTS.SUPPORT_TICKET_MESSAGE:
+    case NOTIFICATION_EVENTS.CUSTOMER_SUPPORT_REPLY:
       return {
-        multi: true,
-        definitions: [
-          {
-            role: NOTIFICATION_ROLES.ADMIN,
-            recipientIds: (payload) => {
-              const fromRole = String(payload.fromRole || "").toLowerCase();
-              if (fromRole === "admin") return [];
-              return normalizeIdList(payload.adminIds);
-            },
-            title: (payload) => {
-              const name = String(payload.userName || "Customer").trim() || "Customer";
-              return `Support message from ${name}`;
-            },
-            body: (payload) => truncateText(payload.messageText || "New message"),
-          },
-          {
-            role: NOTIFICATION_ROLES.CUSTOMER,
-            recipientIds: (payload) => {
-              const fromRole = String(payload.fromRole || "").toLowerCase();
-              if (fromRole !== "admin") return [];
-              return normalizeIdList(payload.userId || payload.customerId);
-            },
-            title: () => "Support reply",
-            body: (payload) => truncateText(payload.messageText || "New message"),
-          },
-        ],
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: () => "Support reply",
+        body: (payload) => truncateText(payload.messageText || "New message"),
       };
+    case NOTIFICATION_EVENTS.ADMIN_SUPPORT_TICKET:
+      return {
+        role: NOTIFICATION_ROLES.ADMIN,
+        recipientIds: (payload) => normalizeIdList(payload.adminIds),
+        title: (payload) => {
+          const name = String(payload.userName || "Customer").trim() || "Customer";
+          return `Support message from ${name}`;
+        },
+        body: (payload) => truncateText(payload.messageText || "New message"),
+      };
+    case NOTIFICATION_EVENTS.SUPPORT_TICKET_MESSAGE:
     case NOTIFICATION_EVENTS.PRODUCT_MODERATION_REQUEST:
       return {
         role: NOTIFICATION_ROLES.ADMIN,
@@ -596,7 +585,11 @@ function eventData(eventType, payload = {}, role) {
     };
   }
 
-  if (eventType === NOTIFICATION_EVENTS.SUPPORT_TICKET_MESSAGE) {
+  if (
+    eventType === NOTIFICATION_EVENTS.SUPPORT_TICKET_MESSAGE ||
+    eventType === NOTIFICATION_EVENTS.CUSTOMER_SUPPORT_REPLY ||
+    eventType === NOTIFICATION_EVENTS.ADMIN_SUPPORT_TICKET
+  ) {
     const ticketId = String(payload.ticketId || "").trim() || undefined;
     const link =
       role === NOTIFICATION_ROLES.ADMIN

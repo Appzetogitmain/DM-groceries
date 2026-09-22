@@ -47,7 +47,7 @@ export const createTicket = async (req, res) => {
         try {
             const savedMessage = newTicket.messages?.[newTicket.messages.length - 1];
             const adminIds = await getAdminIds();
-            emitNotificationEvent(NOTIFICATION_EVENTS.SUPPORT_TICKET_MESSAGE, {
+            emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_SUPPORT_TICKET, {
                 fromRole: "customer",
                 ticketId: newTicket._id,
                 messageId: savedMessage?._id,
@@ -171,7 +171,11 @@ export const replyToTicket = async (req, res) => {
                 payload.adminIds = await getAdminIds();
             }
 
-            emitNotificationEvent(NOTIFICATION_EVENTS.SUPPORT_TICKET_MESSAGE, payload);
+            const eventType = isAdmin 
+                ? NOTIFICATION_EVENTS.CUSTOMER_SUPPORT_REPLY 
+                : NOTIFICATION_EVENTS.ADMIN_SUPPORT_TICKET;
+
+            emitNotificationEvent(eventType, payload);
         } catch {
             // Best-effort; chat must work even if push is misconfigured.
         }

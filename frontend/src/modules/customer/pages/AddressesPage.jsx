@@ -315,8 +315,8 @@ const AddressesPage = () => {
             toast.error('Please enter the address');
             return false;
         }
-        if (form.landmark && !/^[A-Za-z\s]+$/.test(form.landmark.trim())) {
-            toast.error('Landmark should contain only alphabets');
+        if (form.landmark && !/^[A-Za-z0-9\s,\.\-]+$/.test(form.landmark.trim())) {
+            toast.error('Landmark should contain only alphabets and numbers');
             return false;
         }
         if (form.city && !/^[A-Za-z\s]+$/.test(form.city.trim())) {
@@ -697,7 +697,11 @@ const AddressesPage = () => {
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="phone">Phone Number</Label>
-                            <Input id="phone" placeholder="9876543210" maxLength={10} value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value.replace(/\D/g, '') }))} />
+                            <Input id="phone" placeholder="9876543210" value={addForm.phone} onChange={e => {
+                                let val = e.target.value.replace(/\D/g, '');
+                                if (val.startsWith('91') && val.length > 10) val = val.substring(2);
+                                setAddForm(f => ({ ...f, phone: val.substring(0, 10) }));
+                            }} />
                         </div>
                         
                         <div className="grid gap-2">
@@ -782,7 +786,11 @@ const AddressesPage = () => {
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="edit-phone">Phone Number</Label>
-                            <Input id="edit-phone" maxLength={10} value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value.replace(/\D/g, '') }))} />
+                            <Input id="edit-phone" value={editForm.phone} onChange={e => {
+                                let val = e.target.value.replace(/\D/g, '');
+                                if (val.startsWith('91') && val.length > 10) val = val.substring(2);
+                                setEditForm(f => ({ ...f, phone: val.substring(0, 10) }));
+                            }} />
                         </div>
                         
                         <div className="grid gap-2">
