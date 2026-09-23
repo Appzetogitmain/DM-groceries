@@ -1,43 +1,59 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Package, ChevronRight, Clock, CheckCircle, Loader2, ChevronLeft } from 'lucide-react';
 import { customerApi } from '../services/customerApi';
 import { getOrderStatusLabel, getLegacyStatusFromOrder } from '@/shared/utils/orderStatus';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
 import { formatOrderId } from '@/lib/utils';
+import { getOrderSocket, onOrderStatusUpdate } from '@/core/services/orderSocket';
+import { createSocketTokenReader } from "@core/utils/authStorage";
+import { STORAGE_KEYS } from "@core/utils/storage";
 
 const OrdersPage = () => {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const response = await customerApi.getMyOrders();
-                // Backend uses handleResponse():
-                // - arrays => { results: [...] }
-                // - objects => { result: { items: [...] } }
-                const payload = response?.data;
-                const items =
-                    payload?.result?.items ||
-                    payload?.results ||
-                    [];
-                setOrders(Array.isArray(items) ? items : []);
-            } catch (error) {
-                console.error("Failed to fetch orders:", error);
-                const apiMessage = error?.response?.data?.message;
-                // Orders page is a primary screen; surface failures instead of silently showing empty state.
-                if (apiMessage) {
-                    console.warn("[OrdersPage] API error:", apiMessage);
-                }
-            } finally {
-                setLoading(false);
+    const fetchOrders = useCallback(async () => {
+        try {
+            const response = await customerApi.getMyOrders();
+            // Backend uses handleResponse():
+            // - arrays => { results: [...] }
+            // - objects => { result: { items: [...] } }
+            const payload = response?.data;
+            const items =
+                payload?.result?.items ||
+                payload?.results ||
+                [];
+            setOrders(Array.isArray(items) ? items : []);
+        } catch (error) {
+            console.error("Failed to fetch orders:", error);
+            const apiMessage = error?.response?.data?.message;
+            // Orders page is a primary screen; surface failures instead of silently showing empty state.
+            if (apiMessage) {
+                console.warn("[OrdersPage] API error:", apiMessage);
             }
-        };
-
-        fetchOrders();
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchOrders();
+    }, [fetchOrders]);
+
+    useEffect(() => {
+        const getToken = createSocketTokenReader(STORAGE_KEYS.AUTH_CUSTOMER);
+        getOrderSocket(getToken);
+
+        const offStatus = onOrderStatusUpdate(getToken, () => {
+            fetchOrders();
+        });
+
+        return () => {
+            offStatus();
+        };
+    }, [fetchOrders]);
 
     if (loading) {
         return (

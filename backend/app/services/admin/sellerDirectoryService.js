@@ -56,6 +56,8 @@ export async function getSellerLocationsData({
     });
   }
 
+  const baseQuery = filters.length > 0 ? { $and: filters } : {};
+
   const [sellers, allSellersBase] = await Promise.all([
     Seller.find(baseQuery)
       .select(

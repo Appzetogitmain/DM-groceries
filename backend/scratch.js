@@ -1,6 +1,31 @@
-import dotenv from 'dotenv';
-dotenv.config();
-import { buildMessage } from './app/utils/smsHelpers.js';
-const msg = buildMessage('1234');
-console.log('MSG_LENGTH:', msg.length);
-console.log('MSG_CONTENT:', msg);
+import mongoose from 'mongoose';
+import Order from './app/models/order.js';
+
+async function test() {
+  await mongoose.connect(process.env.MONGO_URI);
+  const startDate = "2026-08-31";
+  const endDate = "2026-09-21";
+
+  const range = {};
+  if (startDate) {
+    range.$gte = new Date(startDate);
+  }
+  if (endDate) {
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    range.$lte = end;
+  }
+
+  const query = { createdAt: range };
+  console.log("Query:", query);
+  
+  const count = await Order.countDocuments(query);
+  console.log("Count:", count);
+
+  const allOrders = await Order.countDocuments({});
+  console.log("Total Orders in DB:", allOrders);
+  
+  process.exit(0);
+}
+
+test();

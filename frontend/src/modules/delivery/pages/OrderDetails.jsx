@@ -729,6 +729,16 @@ const OrderDetails = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-white truncate">{item.name}</p>
+                          {(item.variantName || item.variantSku || item.variantSlot) && (
+                            <div className="mt-1 mb-1.5">
+                              <div className="inline-flex items-center justify-center px-2 py-1 bg-[#F5FBF5] border-[1.5px] border-[#1A4516] rounded-md relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-2 h-2 bg-[#1A4516] rounded-bl-[3px]"></div>
+                                <span className="text-[#1A4516] font-black text-[10px] pr-1">
+                                  {item.variantName || item.variantSku || item.variantSlot}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                           <p className="text-[10px] text-brand-200 font-medium">Qty: {item.quantity}</p>
                         </div>
                       </div>
@@ -1102,7 +1112,19 @@ const OrderDetails = () => {
                         <span className="font-bold text-gray-500 mr-3 text-xs w-6 bg-white border border-gray-200 text-center rounded py-0.5">
                           x{item.quantity}
                         </span>
-                        <span className="text-gray-800 font-medium max-w-[130px] sm:max-w-[180px] truncate" title={item.name}>{item.name}</span>
+                        <div className="flex flex-col">
+                          <span className="text-gray-800 font-medium max-w-[130px] sm:max-w-[180px] truncate" title={item.name}>{item.name}</span>
+                          {(item.variantName || item.variantSku || item.variantSlot) && (
+                            <div className="mt-1">
+                              <div className="inline-flex items-center justify-center px-2.5 py-1 bg-[#F5FBF5] border-[1.5px] border-[#1A4516] rounded-md relative overflow-hidden" title={item.variantName || item.variantSku || item.variantSlot}>
+                                <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#1A4516] rounded-bl-[3px]"></div>
+                                <span className="text-[#1A4516] font-black text-[10px] pr-1 truncate max-w-[100px] sm:max-w-[140px]">
+                                  {item.variantName || item.variantSku || item.variantSlot}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <span className="font-bold text-gray-600 flex-shrink-0">Rs.{item.price * item.quantity}</span>
                     </div>

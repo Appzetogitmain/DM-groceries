@@ -41,7 +41,8 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
             exit={disableAnimation ? { opacity: 1 } : { opacity: 0, y: 10, scale: 0.95 }}
             transition={disableAnimation ? { duration: 0 } : { type: "spring", damping: 20, stiffness: 300 }}
             className={cn(
-                "bg-white rounded-b-2xl md:rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] md:border border-gray-100 overflow-hidden z-[200] max-h-[80vh] md:h-auto flex flex-col",
+                "bg-white rounded-b-2xl md:rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] md:border border-gray-100 overflow-hidden z-[200] flex flex-col",
+                "h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] md:h-auto md:max-h-[80vh]",
                 portaled
                     ? "fixed top-14 left-0 right-0 md:left-auto md:right-4 md:w-[380px]"
                     : "fixed md:absolute top-14 md:top-full left-0 md:left-auto md:right-0 mt-0 md:mt-4 w-full md:w-[380px]",

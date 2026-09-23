@@ -11,6 +11,7 @@ const Documents = () => {
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [activeUploadId, setActiveUploadId] = useState(null);
+  const [viewImage, setViewImage] = useState(null);
 
   const [docs, setDocs] = useState([
     { id: "aadhar", title: "Aadhar Card", status: "Pending", fileName: null, url: null },
@@ -176,7 +177,13 @@ const Documents = () => {
                   variant="outline" 
                   size="sm" 
                   className="w-full text-[10px] h-7 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg font-bold"
-                  onClick={() => window.open(doc.url, "_blank")}
+                  onClick={() => {
+                    if (doc.url.toLowerCase().includes('.pdf')) {
+                      window.open(doc.url, "_blank");
+                    } else {
+                      setViewImage(doc.url);
+                    }
+                  }}
                 >
                   View File
                 </Button>
@@ -185,6 +192,32 @@ const Documents = () => {
           </Card>
         ))}
       </div>
+
+      {/* Image Zoom Modal */}
+      {viewImage && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm transition-opacity"
+          onClick={() => setViewImage(null)}
+        >
+          <div className="relative max-w-full max-h-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-200">
+            <button 
+              className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors bg-black/50 rounded-full p-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                setViewImage(null);
+              }}
+            >
+              <XCircle size={24} />
+            </button>
+            <img 
+              src={viewImage} 
+              alt="Document Zoom" 
+              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

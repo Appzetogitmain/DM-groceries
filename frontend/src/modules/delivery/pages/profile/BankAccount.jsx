@@ -55,9 +55,20 @@ const BankAccount = () => {
   }, []);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    let formattedValue = value;
+
+    if (name === "accountHolder") {
+      formattedValue = value.toUpperCase();
+    } else if (name === "newAccount" || name === "confirmAccount") {
+      formattedValue = value.replace(/\D/g, "");
+    } else if (name === "ifscCode") {
+      formattedValue = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    }
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: formattedValue
     });
   };
 

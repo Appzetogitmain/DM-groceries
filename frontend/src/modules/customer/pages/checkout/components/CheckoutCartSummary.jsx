@@ -93,6 +93,12 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
           </div>
         </div>
       ))}
+      <div className="pt-3 border-t border-slate-100 flex justify-center mt-2">
+        <a href="/" className="flex items-center gap-2 text-[#1A4516] font-bold text-sm hover:underline py-1">
+          <Plus size={16} strokeWidth={3} />
+          Add more items
+        </a>
+      </div>
     </div>
   );
 });

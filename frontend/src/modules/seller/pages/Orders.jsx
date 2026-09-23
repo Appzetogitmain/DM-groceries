@@ -94,6 +94,7 @@ const Orders = () => {
             if (startDate) params.startDate = startDate;
             if (endDate) params.endDate = endDate;
 
+            console.log("Fetching orders with params:", params);
             const response = await sellerApi.getOrders(params);
 
             // Backend returns handleResponse(..., { items, page, limit, total, totalPages })
@@ -385,7 +386,7 @@ const Orders = () => {
                                     <input
                                         type="text"
                                         value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onChange={(e) => setSearchTerm(e.target.value.trimStart())}
                                         placeholder="Search by Order ID or Customer Name..."
                                         className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border-none rounded-lg text-sm font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-[#1A4516]/5 transition-all outline-none"
                                     />

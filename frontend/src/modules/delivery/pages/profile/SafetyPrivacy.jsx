@@ -152,8 +152,10 @@ const SafetyPrivacy = () => {
                 <Input 
                   placeholder="Phone Number" 
                   value={newContact.phone}
-                  onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
+                  onChange={(e) => setNewContact({...newContact, phone: e.target.value.replace(/\D/g, "")})}
                   className="mb-3 bg-white"
+                  type="tel"
+                  maxLength={15}
                 />
                 <div className="flex space-x-2">
                   <Button size="sm" onClick={handleAddContact} className="flex-1">Save</Button>

@@ -243,47 +243,37 @@ const Topbar = ({ onMenuClick }) => {
                 </form>
             </div>
 
-            <div className="flex items-center space-x-4">
-                <div className="relative" ref={notificationRef} data-seller-notifications="bell">
+            <div className="flex items-center space-x-4 relative z-50">
+                <div className="relative z-50" ref={notificationRef} data-seller-notifications="bell">
                     <button
-                        onClick={() => setShowNotifications((open) => {
-                            const next = !open;
-                            if (next) ignoreOutsideUntilRef.current = Date.now() + 500;
-                            return next;
-                        })}
+                        type="button"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowNotifications((prev) => !prev);
+                        }}
                         className={cn(
-                            "p-2 hover:bg-[#1A4516]/5 text-gray-500 hover:text-[#1A4516] rounded-xl transition-all duration-300 relative group",
+                            "p-2 hover:bg-[#1A4516]/5 text-gray-500 hover:text-[#1A4516] rounded-xl transition-all duration-300 relative group cursor-pointer",
                             showNotifications && "bg-[#1A4516]/5 text-[#1A4516]"
                         )}
                     >
-                        <HiOutlineBell className="h-5 w-5" />
+                        <HiOutlineBell className="h-5 w-5 pointer-events-none" />
                         {unreadCount > 0 && (
-                            <span className="absolute top-2 right-2 h-2 w-2 bg-rose-500 rounded-full ring-2 ring-white shadow-sm"></span>
+                            <span className="absolute top-2 right-2 h-2 w-2 bg-rose-500 rounded-full ring-2 ring-white shadow-sm pointer-events-none"></span>
                         )}
                     </button>
 
                     <AnimatePresence>
                         {showNotifications && (
-                            typeof document !== "undefined"
-                                ? createPortal(
-                                    <NotificationPopup
-                                        notifications={notifications}
-                                        onMarkAsRead={handleMarkAsRead}
-                                        onMarkAllAsRead={handleMarkAllAsRead}
-                                        onClose={() => setShowNotifications(false)}
-                                        disableAnimation={isFlutterWebView() || hasNativeFlutterBridge()}
-                                        portaled
-                                    />,
-                                    document.body,
-                                )
-                                : (
-                                    <NotificationPopup
-                                        notifications={notifications}
-                                        onMarkAsRead={handleMarkAsRead}
-                                        onMarkAllAsRead={handleMarkAllAsRead}
-                                        onClose={() => setShowNotifications(false)}
-                                    />
-                                )
+                            <NotificationPopup
+                                notifications={notifications}
+                                onMarkAsRead={handleMarkAsRead}
+                                onMarkAllAsRead={handleMarkAllAsRead}
+                                onClose={() => setShowNotifications(false)}
+                                disableAnimation={isFlutterWebView() || hasNativeFlutterBridge()}
+                            />
                         )}
                     </AnimatePresence>
                 </div>

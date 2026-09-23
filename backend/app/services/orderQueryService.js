@@ -60,12 +60,10 @@ function appendDateRange(query, { startDate, endDate }) {
 
   const range = {};
   if (startDate) {
-    range.$gte = new Date(startDate);
+    range.$gte = new Date(`${startDate}T00:00:00`);
   }
   if (endDate) {
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-    range.$lte = end;
+    range.$lte = new Date(`${endDate}T23:59:59`);
   }
 
   return {

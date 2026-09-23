@@ -1272,6 +1272,7 @@ export const getSellerOrders = async (req, res) => {
   try {
     const { id: userId, role } = req.user;
     const { startDate, endDate, status: statusParam } = req.query;
+    console.log("getSellerOrders req.query:", req.query);
 
     const { page, limit, skip } = getPagination(req, {
       defaultLimit: 25,

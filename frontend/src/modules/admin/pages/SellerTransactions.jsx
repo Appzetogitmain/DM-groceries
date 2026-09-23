@@ -118,11 +118,15 @@ const SellerTransactions = () => {
     }, [transactions]);
 
     const stats = useMemo(() => {
+        const totalGross = transactions.filter(t => t.type === 'sale').reduce((acc, t) => acc + t.amount, 0);
+        const totalCommission = transactions.filter(t => t.type === 'sale').reduce((acc, t) => acc + (t.commissionAmount || 0), 0);
+        const totalPayouts = Math.abs(transactions.filter(t => t.type === 'payout' && t.status !== 'failed').reduce((acc, t) => acc + t.amount, 0));
+        
         return {
-            totalGross: transactions.filter(t => t.type === 'sale').reduce((acc, t) => acc + t.amount, 0),
-            totalCommission: transactions.filter(t => t.type === 'sale').reduce((acc, t) => acc + (t.commissionAmount || 0), 0),
-            totalPayouts: Math.abs(transactions.filter(t => t.type === 'payout').reduce((acc, t) => acc + t.amount, 0)),
-            pendingSettlements: transactions.filter(t => t.status === 'pending').reduce((acc, t) => acc + Math.abs(t.amount), 0)
+            totalGross,
+            totalCommission,
+            totalPayouts,
+            pendingSettlements: Math.max(0, totalGross - totalCommission - totalPayouts)
         };
     }, [transactions]);
 

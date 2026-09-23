@@ -750,16 +750,20 @@ const CheckoutPage = () => {
       return;
     }
     const categoryId = cart[0]?.categoryId?._id || cart[0]?.categoryId;
-    if (!categoryId || !currentLocation?.latitude || !currentLocation?.longitude) return;
+    if (!categoryId) return;
 
     const cartIds = new Set(cart.map((i) => i.id || i._id));
-    customerApi
-      .getProducts({
+    const queryParams = {
         categoryId,
         limit: 10,
-        lat: currentLocation.latitude,
-        lng: currentLocation.longitude
-      })
+    };
+    if (currentLocation?.latitude && currentLocation?.longitude) {
+        queryParams.lat = currentLocation.latitude;
+        queryParams.lng = currentLocation.longitude;
+    }
+
+    customerApi
+      .getProducts(queryParams)
       .then((res) => {
         if (res.data?.success) {
           const items = (res.data.result?.items || [])

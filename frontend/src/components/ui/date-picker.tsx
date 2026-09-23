@@ -93,7 +93,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     if (isDisabled(date)) {
       return;
     }
-    const iso = date.toISOString().split("T")[0];
+    const iso = format(date, "yyyy-MM-dd");
     onChange(iso);
     setOpen(false);
   };

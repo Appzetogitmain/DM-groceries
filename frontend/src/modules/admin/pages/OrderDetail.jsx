@@ -278,10 +278,28 @@ const OrderDetail = () => {
                                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Delivery Fee</span>
                                     <span className="text-sm font-bold text-brand-600">₹{order.pricing?.deliveryFee || 0}</span>
                                 </div>
+                                {(order.pricing?.platformFee > 0 || order.paymentBreakdown?.handlingFeeCharged > 0) && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Handling Fee</span>
+                                        <span className="text-sm font-bold text-slate-600">₹{order.pricing?.platformFee || order.paymentBreakdown?.handlingFeeCharged}</span>
+                                    </div>
+                                )}
+                                {(order.pricing?.gst > 0 || order.pricing?.taxAmount > 0 || order.paymentBreakdown?.taxAmount > 0) && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Tax</span>
+                                        <span className="text-sm font-bold text-slate-600">₹{order.pricing?.gst || order.pricing?.taxAmount || order.paymentBreakdown?.taxAmount}</span>
+                                    </div>
+                                )}
                                 {(order.pricing?.tip > 0 || order.paymentBreakdown?.riderTipAmount > 0) && (
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Rider Tip</span>
                                         <span className="text-sm font-bold text-emerald-600">₹{order.pricing?.tip || order.paymentBreakdown?.riderTipAmount}</span>
+                                    </div>
+                                )}
+                                {(order.pricing?.discount > 0 || order.paymentBreakdown?.discountTotal > 0) && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">Coupon Discount</span>
+                                        <span className="text-sm font-bold text-emerald-600">-₹{order.pricing?.discount || order.paymentBreakdown?.discountTotal}</span>
                                     </div>
                                 )}
                                 <div className="h-px w-full bg-slate-200" />
@@ -311,28 +329,6 @@ const OrderDetail = () => {
                         </div>
                     </Card>
 
-                    {/* Logistical Nodes */}
-                    <Card className="border-none shadow-xl ring-1 ring-slate-100 bg-white rounded-xl p-6">
-                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-3">
-                            <Navigation className="h-4 w-4 text-brand-500" />
-                            Logistical Real-time State
-                        </h3>
-                        <div className="space-y-6 relative ml-4">
-                            <div className="absolute top-0 bottom-0 left-[7.5px] w-0.5 bg-slate-100" />
-                            <div className="flex gap-6 relative">
-                                <div className="h-4 w-4 rounded-full ring-4 ring-white z-10 mt-1 bg-brand-500 shadow-lg shadow-brand-200" />
-                                <div className="flex-1 pb-4">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <h4 className="text-xs font-black uppercase tracking-tight text-slate-900">
-                                            Status: {order.status.replace(/_/g, ' ')}
-                                        </h4>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase">{new Date(order.updatedAt).toLocaleTimeString()}</span>
-                                    </div>
-                                    <p className="text-[11px] font-bold text-slate-400 leading-relaxed italic">"System verified current logistical state as {order.status}."</p>
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
                 </div>
 
                 {/* Right Column */}
@@ -487,8 +483,15 @@ const OrderDetail = () => {
                         <div className="p-4 space-y-3">
                             <div className="flex items-center justify-between px-2">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer Paid</span>
-                                <span className="text-sm font-black text-slate-900">₹{order.paymentBreakdown?.grandTotal || 0}</span>
+                                <span className="text-sm font-black text-slate-900">₹{order.paymentBreakdown?.grandTotal || order.pricing?.total || 0}</span>
                             </div>
+                            
+                            {(order.paymentBreakdown?.discountTotal > 0 || order.pricing?.discount > 0) && (
+                                <div className="flex items-center justify-between px-2">
+                                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Coupon Discount</span>
+                                    <span className="text-xs font-bold text-emerald-600">-₹{order.paymentBreakdown?.discountTotal || order.pricing?.discount || 0}</span>
+                                </div>
+                            )}
                             
                             <div className="h-px w-full bg-slate-100 my-1" />
                             
@@ -657,6 +660,12 @@ const OrderDetail = () => {
                                                 <td align="right" style={{ fontSize: "13px", fontWeight: "800", color: "#10b981" }}>+ ₹{order.pricing?.tip || order.paymentBreakdown?.riderTipAmount}</td>
                                             </tr>
                                         )}
+                                        {(order.paymentBreakdown?.discountTotal > 0 || order.pricing?.discount > 0) && (
+                                            <tr>
+                                                <td align="left" style={{ fontSize: "12px", color: "#64748b", fontWeight: "700" }}>Coupon Discount</td>
+                                                <td align="right" style={{ fontSize: "13px", fontWeight: "800", color: "#10b981" }}>- ₹{order.paymentBreakdown?.discountTotal || order.pricing?.discount}</td>
+                                            </tr>
+                                        )}
                                         <tr>
                                             <td colSpan="2" style={{ padding: "12px 0" }}><div style={{ height: "1px", backgroundColor: "#e2e8f0" }}></div></td>
                                         </tr>
@@ -678,7 +687,7 @@ const OrderDetail = () => {
                                 This is a system-generated commercial invoice. No physical signature required.
                             </div>
                             <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "5px" }}>
-                                {settings?.appName || 'Noyo Kart'} • Customer Support: support@appzeto.com
+                                {settings?.appName || 'DM Groceries'} • Customer Support: {settings?.supportEmail || settings?.email || 'support@dmgroceries.com'}
                             </div>
                         </div>
                     </div>
