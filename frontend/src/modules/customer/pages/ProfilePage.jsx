@@ -74,7 +74,7 @@ const ProfilePage = () => {
                         <MenuItem icon={Wallet} label="My Wallet" rightText={`₹${user?.walletBalance || 0}`} path="/wallet" />
                         <MenuItem icon={Gift} label="My Rewards" path="/rewards" />
                         <MenuItem icon={Heart} label="My Wishlist" path="/wishlist" />
-                        <MenuItem icon={Bell} label="Notifications" />
+                        <MenuItem icon={Bell} label="Notifications" path="/notifications" />
                         <MenuItem icon={HelpCircle} label="Help & Support" path="/help" />
                         <MenuItem icon={Settings} label="Settings" path="/settings" />
 

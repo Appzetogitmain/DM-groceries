@@ -19,7 +19,7 @@ const NotificationsPage = () => {
         try {
             setLoading(true);
             const response = await customerApi.getNotifications();
-            const fetchedNotifications = response.data?.data?.notifications || [];
+            const fetchedNotifications = response.data?.result?.notifications || response.data?.data?.notifications || [];
             setNotifications(fetchedNotifications);
             
             // Auto mark as read if there are unread ones
@@ -117,7 +117,7 @@ const NotificationsPage = () => {
                                     </span>
                                 </div>
                                 <p className={`mt-1 text-sm ${notification.isRead ? "text-slate-500" : "text-slate-700"}`}>
-                                    {notification.message}
+                                    {notification.message || notification.body}
                                 </p>
                                 {imageUrl ? (
                                     <img
