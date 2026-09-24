@@ -172,6 +172,57 @@ const CashCollection = () => {
         }
     };
 
+    const handleExport = () => {
+        const dataToExport = activeTab === 'live_balances' ? ridersCashData : historyData;
+        if (!dataToExport || dataToExport.length === 0) {
+            toast.error("No data to export");
+            return;
+        }
+
+        try {
+            const headers = activeTab === 'live_balances' 
+                ? ['Rider ID', 'Name', 'Current Cash', 'Limit', 'Last Settled']
+                : ['Date', 'Rider', 'Amount', 'Method', 'Transaction ID'];
+                
+            const csvContent = [
+                headers.join(','),
+                ...dataToExport.map(row => {
+                    if (activeTab === 'live_balances') {
+                        return [
+                            row.id, 
+                            `"${row.name || ''}"`, 
+                            row.currentCash || 0, 
+                            row.limit || 0, 
+                            row.lastSettled || 'Never'
+                        ].join(',');
+                    } else {
+                        return [
+                            `"${new Date(row.date).toLocaleDateString()}"`,
+                            `"${row.rider || ''}"`,
+                            row.amount || 0,
+                            `"${row.method || ''}"`,
+                            row.id
+                        ].join(',');
+                    }
+                })
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `cash_ledger_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success("Ledger exported successfully");
+        } catch (error) {
+            console.error("Export failed:", error);
+            toast.error("Failed to export ledger");
+        }
+    };
+
     const handleSendMessage = async () => {
         if (!messageData.message.trim()) {
             toast.error("Message cannot be empty");
@@ -210,7 +261,10 @@ const CashCollection = () => {
                     <p className="ds-description mt-1">Manage physical cash collected by delivery partners and track settlements.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button className="flex items-center gap-2 px-5 py-3 bg-white ring-1 ring-slate-200 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm">
+                    <button 
+                        onClick={handleExport}
+                        className="flex items-center gap-2 px-5 py-3 bg-white ring-1 ring-slate-200 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+                    >
                         <Download className="h-4 w-4" />
                         EXPORT LEDGER
                     </button>
@@ -496,7 +550,7 @@ const CashCollection = () => {
                                                 <div>
                                                     <p className="text-xs font-black text-slate-900">{item.reference || item.id}</p>
                                                     <p className="text-[9px] font-bold text-slate-400 uppercase">
-                                                        {new Date(item.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        {new Date(item.date || item.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                                     </p>
                                                 </div>
                                             </div>
@@ -518,9 +572,6 @@ const CashCollection = () => {
                                 className="flex-1 py-4 bg-black  hover:bg-brand-700 text-primary-foreground rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-brand-100 transition-all active:scale-[0.98]"
                             >
                                 Trigger Settlement
-                            </button>
-                            <button className="p-4 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all active:scale-95">
-                                <Bell className="h-5 w-5" />
                             </button>
                         </div>
                     </div>

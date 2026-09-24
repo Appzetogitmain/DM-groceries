@@ -71,7 +71,7 @@ function buildSellerInventoryLink(productId) {
     : `${baseUrl}/seller/inventory`;
 }
 
-function eventDefinition(eventType) {
+function eventDefinition(eventType, payload = {}) {
   switch (eventType) {
     case NOTIFICATION_EVENTS.ORDER_PLACED:
       return {
@@ -629,7 +629,7 @@ function eventData(eventType, payload = {}, role) {
 }
 
 export function buildNotification(eventType, payload = {}) {
-  const result = eventDefinition(eventType);
+  const result = eventDefinition(eventType, payload);
   if (!result) return [];
 
   const definitions = result.multi ? result.definitions : [result];

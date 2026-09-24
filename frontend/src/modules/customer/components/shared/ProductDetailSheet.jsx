@@ -229,6 +229,34 @@ const ProductDetailSheet = () => {
     const quantity = cartItem ? cartItem.quantity : 0;
     const isWishlisted = selectedProduct ? isInWishlist(selectedProduct.id) : false;
 
+    // Fix Price mismatch: Always calculate the effective price exactly like the cart does
+    const getDisplayPrice = () => {
+        if (!selectedProduct) return 0;
+        if (!selectedVariant) {
+            const sp = Number(selectedProduct.salePrice || 0);
+            const p = Number(selectedProduct.price || 0);
+            return (sp > 0 && sp < p) ? sp : p;
+        }
+        const sp = Number(selectedVariant.salePrice || 0);
+        const p = Number(selectedVariant.price || selectedProduct.price || 0);
+        return (sp > 0 && sp < p) ? sp : p;
+    };
+
+    const getOriginalPrice = () => {
+        if (!selectedProduct) return null;
+        if (!selectedVariant) {
+            const sp = Number(selectedProduct.salePrice || 0);
+            const p = Number(selectedProduct.price || 0);
+            return (sp > 0 && sp < p) ? p : null;
+        }
+        const sp = Number(selectedVariant.salePrice || 0);
+        const p = Number(selectedVariant.price || selectedProduct.price || 0);
+        return (sp > 0 && sp < p) ? p : null;
+    };
+
+    const displayPrice = getDisplayPrice();
+    const originalPrice = getOriginalPrice();
+
     useEffect(() => {
         if (isOpen) {
             controls.start("visible");
@@ -374,16 +402,16 @@ const ProductDetailSheet = () => {
                                         </motion.button>
 
                                         {/* Discount Badge (center) */}
-                                        {(selectedProduct.originalPrice > selectedProduct.price) && (
-                                            <motion.div
-                                                initial={{ scale: 0, rotate: -10 }}
-                                                animate={{ scale: 1, rotate: 0 }}
-                                                transition={{ type: 'spring', delay: 0.2 }}
-                                                className="bg-gradient-to-r from-primary to-[var(--brand-400)] text-white text-[10px] font-[800] px-3 py-1.5 rounded-xl uppercase tracking-wider shadow-md shadow-brand-200/40"
-                                            >
-                                                {Math.round(((selectedProduct.originalPrice - selectedProduct.price) / selectedProduct.originalPrice) * 100)}% OFF
-                                            </motion.div>
-                                        )}
+                                            {(originalPrice) && (
+                                                <motion.div
+                                                    initial={{ scale: 0, rotate: -10 }}
+                                                    animate={{ scale: 1, rotate: 0 }}
+                                                    transition={{ type: 'spring', delay: 0.2 }}
+                                                    className="bg-gradient-to-r from-primary to-[var(--brand-400)] text-white text-[10px] font-[800] px-3 py-1.5 rounded-xl uppercase tracking-wider shadow-md shadow-brand-200/40"
+                                                >
+                                                    {Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}% OFF
+                                                </motion.div>
+                                            )}
 
                                         <motion.button
                                             whileHover={{ scale: 1.05 }}
@@ -474,14 +502,14 @@ const ProductDetailSheet = () => {
                                                 <Clock size={12} strokeWidth={2.5} className="text-primary" />
                                                 {selectedProduct.deliveryTime || '8-15 MINS'}
                                             </motion.div>
-                                            {selectedProduct.originalPrice > selectedProduct.price && (
+                                            {originalPrice && (
                                                 <motion.div
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: 0.15 }}
                                                     className="text-[10px] font-[700] text-primary bg-brand-50 px-3 py-1.5 rounded-lg border border-brand-200/50 uppercase tracking-wider"
                                                 >
-                                                    💰 Save ₹{selectedProduct.originalPrice - selectedProduct.price}
+                                                    💰 Save ₹{originalPrice - displayPrice}
                                                 </motion.div>
                                             )}
                                             <motion.div
@@ -526,15 +554,15 @@ const ProductDetailSheet = () => {
                                                 <div className="flex flex-col gap-1">
                                                     <div className="flex items-baseline gap-2">
                                                         <span className="text-[28px] lg:text-[32px] font-[800] text-primary tracking-tight leading-none">
-                                                            ₹{selectedProduct.price}
+                                                            ₹{displayPrice}
                                                         </span>
-                                                        {selectedProduct.originalPrice > selectedProduct.price && (
-                                                            <span className="text-[14px] text-gray-400 line-through font-[600]">₹{selectedProduct.originalPrice}</span>
+                                                        {originalPrice && (
+                                                            <span className="text-[14px] text-gray-400 line-through font-[600]">₹{originalPrice}</span>
                                                         )}
                                                     </div>
-                                                    {selectedProduct.originalPrice > selectedProduct.price && (
+                                                    {originalPrice && (
                                                         <span className="inline-flex w-fit items-center text-[10px] font-[800] text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
-                                                            {Math.round(((selectedProduct.originalPrice - selectedProduct.price) / selectedProduct.originalPrice) * 100)}% off
+                                                            {Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}% off
                                                         </span>
                                                     )}
                                                 </div>
@@ -1070,21 +1098,18 @@ const ProductDetailSheet = () => {
                             <div className="flex flex-col gap-3">
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex flex-col min-w-[80px]">
-                                        {((selectedVariant?.salePrice && selectedVariant.salePrice < selectedVariant.price) || 
-                                           (!selectedVariant && selectedProduct.originalPrice > selectedProduct.price)) && (
+                                        {originalPrice && (
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-medium text-gray-400 line-through decoration-gray-400/50">
-                                                    ₹{selectedVariant?.price || selectedProduct.originalPrice}
+                                                    ₹{originalPrice}
                                                 </span>
                                                 <span className="bg-red-50 text-red-500 text-[10px] font-black px-1.5 py-0.5 rounded leading-none">
-                                                    {selectedVariant
-                                                        ? Math.round(((selectedVariant.price - selectedVariant.salePrice) / selectedVariant.price) * 100)
-                                                        : Math.round(((selectedProduct.originalPrice - selectedProduct.price) / selectedProduct.originalPrice) * 100)}% OFF
+                                                    {Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}% OFF
                                                 </span>
                                             </div>
                                         )}
                                         <div className="text-2xl font-black text-[#1A1A1A] leading-none mt-1">
-                                            ₹{selectedVariant?.salePrice || selectedVariant?.price || selectedProduct.price}
+                                            ₹{displayPrice}
                                         </div>
                                         {currentStock <= 0 ? (
                                             <div className="text-red-500 font-bold text-xs mt-1">Out of stock</div>

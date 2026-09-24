@@ -208,7 +208,7 @@ const CustomerManagement = () => {
                             placeholder="Search by name, email or phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="ds-input pl-9"
+                            className="ds-input w-full !pl-9"
                         />
                     </div>
 

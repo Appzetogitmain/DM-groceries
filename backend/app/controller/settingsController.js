@@ -58,6 +58,8 @@ const ALLOWED_KEYS = [
   "onlineEnabled",
   "lowStockAlertsEnabled",
   "productApproval",
+  "platformFee",
+  "freeDeliveryThreshold",
 ];
 
 function flattenForMongoSet(prefix, value, target) {
@@ -139,6 +141,8 @@ const updateSettingsSchema = Joi.object({
   codEnabled: Joi.boolean(),
   onlineEnabled: Joi.boolean(),
   lowStockAlertsEnabled: Joi.boolean(),
+  platformFee: Joi.number().min(0).default(0),
+  freeDeliveryThreshold: Joi.number().min(0).default(0),
   productApproval: Joi.object({
     sellerCreateRequiresApproval: Joi.boolean(),
     sellerEditRequiresApproval: Joi.boolean(),
@@ -163,7 +167,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy deliveryTermsConditions deliveryPrivacyPolicy sellerTermsConditions sellerPrivacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval createdAt",
+            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy deliveryTermsConditions deliveryPrivacyPolicy sellerTermsConditions sellerPrivacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy platformFee freeDeliveryThreshold codEnabled onlineEnabled lowStockAlertsEnabled productApproval createdAt",
           )
           .lean();
         return existing || null;

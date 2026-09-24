@@ -58,6 +58,7 @@ function normalizeNotification(doc = {}) {
   const role = doc.role || roleFromRecipientModel(doc.recipientModel) || "customer";
   return {
     id: doc._id,
+    _id: doc._id,
     userId: doc.userId || doc.recipient,
     role,
     type: doc.type,

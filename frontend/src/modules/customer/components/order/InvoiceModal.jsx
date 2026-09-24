@@ -11,7 +11,63 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
     if (!order) return null;
 
     const handlePrint = () => {
-        window.print();
+        const printContent = document.getElementById('printable-invoice');
+        if (!printContent) return;
+
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+
+        // Copy stylesheets and style tags
+        const headTags = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style'))
+            .map(node => node.outerHTML)
+            .join('\n');
+
+        doc.write(`
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Invoice - ${formatOrderId ? formatOrderId(order.orderId) : (order.orderId || order.id)}</title>
+                    ${headTags}
+                    <style>
+                        body { 
+                            background: white !important; 
+                            margin: 0;
+                            padding: 20px;
+                        }
+                        #printable-invoice { 
+                            overflow: visible !important; 
+                            height: auto !important; 
+                            max-height: none !important; 
+                            padding: 0 !important;
+                        }
+                        /* Force Tailwind colors on print */
+                        * {
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                        @page {
+                            margin: 0.5cm;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${printContent.outerHTML}
+                </body>
+            </html>
+        `);
+        doc.close();
+
+        iframe.onload = () => {
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(() => document.body.removeChild(iframe), 1000);
+            }, 500);
+        };
     };
 
     // Helper to get a short product ID for display
@@ -20,6 +76,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
         if (!id) return null;
         return String(id).slice(-8).toUpperCase();
     };
+
 
     return (
         <AnimatePresence>
@@ -143,34 +200,6 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
                                     <Printer size={18} /> Print
                                 </button>
                             </div>
-
-                            <style>
-                                {`
-                                    @media print {
-                                        body * { visibility: hidden; }
-                                        #printable-invoice, #printable-invoice * { visibility: visible; }
-                                        #printable-invoice { 
-                                            position: absolute !important; 
-                                            left: 0 !important; 
-                                            top: 0 !important; 
-                                            width: 100% !important; 
-                                            -webkit-print-color-adjust: exact;
-                                            print-color-adjust: exact;
-                                        }
-                                        /* Prevent clipping and transform context issues */
-                                        .fixed, .relative, .absolute {
-                                            position: static !important;
-                                            transform: none !important;
-                                        }
-                                        .overflow-hidden {
-                                            overflow: visible !important;
-                                        }
-                                        .max-w-lg {
-                                            max-width: 100% !important;
-                                        }
-                                    }
-                                `}
-                            </style>
                         </motion.div>
                     </motion.div>
                 </>

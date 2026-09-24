@@ -44,7 +44,12 @@ const BillingCharges = () => {
                 ]);
 
                 if (platformRes.data?.success && platformRes.data.result) {
-                    // removed obsolete returnDeliveryCommission
+                    const ps = platformRes.data.result;
+                    setConfig((prev) => ({
+                        ...prev,
+                        platformFee: ps.platformFee ?? prev.platformFee,
+                        freeDeliveryThreshold: ps.freeDeliveryThreshold ?? prev.freeDeliveryThreshold,
+                    }));
                 }
 
                 if (deliveryRes.data?.success && deliveryRes.data.result) {
@@ -75,7 +80,10 @@ const BillingCharges = () => {
         try {
             setIsSaving(true);
             await Promise.all([
-                adminApi.updatePlatformSettings({}),
+                adminApi.updatePlatformSettings({
+                    platformFee: config.platformFee,
+                    freeDeliveryThreshold: config.freeDeliveryThreshold,
+                }),
                 adminApi.updateDeliveryFinanceSettings({
                     deliveryPricingMode: deliveryMode === 'fixed' ? 'fixed_price' : 'distance_based',
                     customerBaseDeliveryFee: config.baseCharge,

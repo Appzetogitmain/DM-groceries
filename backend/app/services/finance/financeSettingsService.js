@@ -16,6 +16,8 @@ const DEFAULT_FINANCE_SETTINGS = {
   handlingFeeStrategy: HANDLING_FEE_STRATEGY.HIGHEST_CATEGORY_FEE,
   codEnabled: true,
   onlineEnabled: true,
+  platformFee: 0,
+  freeDeliveryThreshold: 0,
 };
 
 export function normalizeFinanceSettings(raw = {}) {
@@ -53,6 +55,14 @@ export function normalizeFinanceSettings(raw = {}) {
   const handlingFeeStrategy =
     raw.handlingFeeStrategy || DEFAULT_FINANCE_SETTINGS.handlingFeeStrategy;
 
+  const platformFee = roundCurrency(
+    raw.platformFee ?? DEFAULT_FINANCE_SETTINGS.platformFee,
+  );
+
+  const freeDeliveryThreshold = roundCurrency(
+    raw.freeDeliveryThreshold ?? DEFAULT_FINANCE_SETTINGS.freeDeliveryThreshold,
+  );
+
   return {
     deliveryPricingMode,
     pricingMode: deliveryPricingMode,
@@ -69,6 +79,8 @@ export function normalizeFinanceSettings(raw = {}) {
     handlingFeeStrategy,
     codEnabled: raw.codEnabled ?? DEFAULT_FINANCE_SETTINGS.codEnabled,
     onlineEnabled: raw.onlineEnabled ?? DEFAULT_FINANCE_SETTINGS.onlineEnabled,
+    platformFee,
+    freeDeliveryThreshold,
   };
 }
 

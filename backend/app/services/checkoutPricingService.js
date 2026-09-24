@@ -192,6 +192,8 @@ function allocateCheckoutTipToSellerBreakdowns(
   });
 }
 
+import { getOrCreateFinanceSettings } from "./finance/financeSettingsService.js";
+
 async function computeGlobalHandlingFeeForCheckout(hydratedItems = [], { session = null } = {}) {
   const headerIds = Array.from(
     new Set(hydratedItems.map((item) => String(item?.headerCategoryId || "")).filter(Boolean)),
@@ -210,8 +212,11 @@ async function computeGlobalHandlingFeeForCheckout(hydratedItems = [], { session
   const categories = await categoryQuery;
   const categoryById = new Map(categories.map((category) => [String(category._id), category]));
 
+  const settings = await getOrCreateFinanceSettings({ session });
+
   const handling = calculateHandlingFee(hydratedItems, {
     handlingFeeStrategy: HANDLING_FEE_STRATEGY.HIGHEST_CATEGORY_FEE,
+    platformFee: settings.platformFee || 0,
     categoryById,
   });
 

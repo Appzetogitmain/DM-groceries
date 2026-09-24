@@ -150,6 +150,7 @@ function calculateHandlingForCategory({ type, value }, categorySubtotal) {
 export function calculateHandlingFee(cartItems, options = {}) {
   const {
     handlingFeeStrategy = HANDLING_FEE_STRATEGY.HIGHEST_CATEGORY_FEE,
+    platformFee = 0,
     categoryById = new Map(),
   } = options;
 
@@ -209,8 +210,14 @@ export function calculateHandlingFee(cartItems, options = {}) {
       .sort((a, b) => b.computedFee - a.computedFee)[0];
   }
 
+  if (platformFee > 0) {
+    totalHandlingFee = roundCurrency(platformFee);
+  } else {
+    totalHandlingFee = roundCurrency(totalHandlingFee);
+  }
+
   return {
-    handlingFeeCharged: roundCurrency(totalHandlingFee),
+    handlingFeeCharged: totalHandlingFee,
     handlingFeeStrategy,
     handlingCategoryUsed,
     categoryFees,
@@ -464,10 +471,15 @@ export async function generateOrderPaymentBreakdown({
 
   const handling = calculateHandlingFee(normalizedItems, {
     handlingFeeStrategy: effectiveHandlingStrategy,
+    platformFee: effectiveSettings.platformFee || 0,
     categoryById,
   });
   const delivery = calculateCustomerDeliveryFee(distanceKm, effectiveSettings);
   const rider = calculateRiderPayout(distanceKm, effectiveSettings);
+
+  if (effectiveSettings.freeDeliveryThreshold > 0 && productSubtotal >= effectiveSettings.freeDeliveryThreshold) {
+    delivery.deliveryFeeCharged = 0;
+  }
 
   const normalizedDiscount = roundCurrency(discountTotal || 0);
   const normalizedTax = roundCurrency(taxTotal || 0);

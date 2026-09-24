@@ -77,7 +77,8 @@ export async function getPendingSellerApplications({
 
   const missingInfo = allPendingForStats.filter((seller) => {
     const docs = formatSellerDocuments(seller.documents);
-    return !seller.address || docs.length < 3;
+    const hasPanCardOnly = !!seller.documents?.panCard;
+    return !seller.address || (!hasPanCardOnly && docs.length < 3) || (hasPanCardOnly && docs.length < 1);
   }).length;
 
   return {

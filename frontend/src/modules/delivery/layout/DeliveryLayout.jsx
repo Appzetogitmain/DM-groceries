@@ -11,6 +11,7 @@ import {
   getOrderSocket,
   onDeliveryBroadcast,
   onDeliveryBroadcastWithdrawn,
+  onNotificationNew,
 } from "@/core/services/orderSocket";
 import { shouldTreatDocumentAsVisible } from "@/core/utils/deviceUtils";
 import {
@@ -603,6 +604,25 @@ const DeliveryLayout = () => {
       }
     });
   }, [user?.isOnline]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    const getToken = getDeliveryToken;
+    return onNotificationNew(getToken, (payload) => {
+      if (payload && payload.title) {
+        toast.info(payload.title, { description: payload.body || undefined });
+        if (AppZetoBridge.isFlutterApp() || hasNativeFlutterBridge()) {
+            AppZetoBridge.showNativeNotification({
+                title: payload.title,
+                body: payload.body || '',
+                data: payload.data || {},
+            });
+        } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            showSystemNotification({ title: payload.title, body: payload.body || '' });
+        }
+      }
+    });
+  }, [user]);
 
   // Notifications safety-net polling.
   //
