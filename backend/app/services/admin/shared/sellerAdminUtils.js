@@ -2,6 +2,7 @@ const SELLER_DOC_LABELS = {
   tradeLicense: "Trade License",
   gstCertificate: "GST Certificate",
   idProof: "ID Proof",
+  panCard: "PAN Card",
   businessRegistration: "Business Registration",
   fssaiLicense: "FSSAI License",
   other: "Other Document",
@@ -59,7 +60,7 @@ export function formatSellerApplication(seller) {
   const docs = formatSellerDocuments(seller.documents);
   const documentFiles = formatSellerDocumentFiles(seller.documents);
   const createdAt = seller.createdAt ? new Date(seller.createdAt) : new Date();
-  const missingInfo = !seller.address || docs.length < 3;
+  const missingInfo = !seller.address || docs.length < 1;
 
   return {
     id: String(seller._id),

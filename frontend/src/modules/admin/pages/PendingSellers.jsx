@@ -49,7 +49,7 @@ const PendingSellers = () => {
             setSummaryStats({
                 totalApplications: payload.stats?.totalApplications ?? items.length,
                 receivedToday: payload.stats?.receivedToday ?? 0,
-                missingInfo: payload.stats?.missingInfo ?? items.filter((s) => (s.documents || []).length < 3).length,
+                missingInfo: payload.stats?.missingInfo ?? items.filter((s) => (s.documents || []).length < 1).length,
                 avgReviewTimeHours: payload.stats?.avgReviewTimeHours ?? 24
             });
         } catch (error) {

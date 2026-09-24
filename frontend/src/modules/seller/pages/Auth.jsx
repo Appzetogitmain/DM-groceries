@@ -51,6 +51,7 @@ const REQUIRED_DOCUMENT_CONFIG = [
   { id: "tradeLicense", label: "Trade License" },
   { id: "gstCertificate", label: "GST Certificate" },
   { id: "idProof", label: "ID Proof" },
+  { id: "panCard", label: "PAN Card" },
 ];
 
 const Auth = () => {
@@ -156,10 +157,19 @@ const Auth = () => {
     tradeLicense: null,
     gstCertificate: null,
     idProof: null,
+    panCard: null,
   });
 
-  const getMissingRequiredDocuments = () =>
-    REQUIRED_DOCUMENT_CONFIG.filter((doc) => !documents[doc.id]);
+  const [uploadMode, setUploadMode] = useState("pan_only");
+
+  const getMissingRequiredDocuments = () => {
+    if (uploadMode === "pan_only") {
+      return documents.panCard ? [] : [REQUIRED_DOCUMENT_CONFIG.find(d => d.id === "panCard")];
+    } else {
+      const comboDocs = REQUIRED_DOCUMENT_CONFIG.filter(d => d.id !== "panCard");
+      return comboDocs.filter(d => !documents[d.id]);
+    }
+  };
 
   const handleCameraCapture = async (e, onFileCaptured) => {
     if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
@@ -390,9 +400,9 @@ const Auth = () => {
         const missingRequiredDocuments = getMissingRequiredDocuments();
         if (missingRequiredDocuments.length > 0) {
           toast.error(
-            `Please upload all required documents: ${missingRequiredDocuments
-              .map((doc) => doc.label)
-              .join(", ")}`,
+            uploadMode === "pan_only" 
+              ? "Please upload your PAN Card."
+              : "Please upload Trade License, GST Certificate, and ID Proof."
           );
           return;
         }
@@ -465,6 +475,7 @@ const Auth = () => {
           tradeLicense: null,
           gstCertificate: null,
           idProof: null,
+          panCard: null,
         });
         setVerifications({
           email: createInitialVerificationState(),
@@ -973,9 +984,22 @@ const Auth = () => {
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3 ml-0.5">
                         Verification Documents
                       </p>
+                      {/* Upload Mode Selector */}
+                      <div className="flex gap-4 mb-4 mt-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="docType" checked={uploadMode === 'pan_only'} onChange={() => setUploadMode('pan_only')} className="w-3.5 h-3.5 text-brand-600 focus:ring-brand-500" />
+                          <span className="text-[11px] font-bold text-slate-700">PAN Card Only</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="docType" checked={uploadMode === 'combo'} onChange={() => setUploadMode('combo')} className="w-3.5 h-3.5 text-brand-600 focus:ring-brand-500" />
+                          <span className="text-[11px] font-bold text-slate-700">Trade License + GST + ID</span>
+                        </label>
+                      </div>
+
                       <div className="space-y-2.5">
-                        {REQUIRED_DOCUMENT_CONFIG.map((doc) => (
-                          <div key={doc.id} className="relative">
+                        {REQUIRED_DOCUMENT_CONFIG.filter(d => uploadMode === 'pan_only' ? d.id === 'panCard' : d.id !== 'panCard').map((doc, index) => (
+                          <React.Fragment key={doc.id}>
+                          <div className="relative">
                             <input
                               type="file"
                               id={`camera-${doc.id}`}
@@ -1027,6 +1051,7 @@ const Auth = () => {
                               </div>
                             </div>
                           </div>
+                          </React.Fragment>
                         ))}
                       </div>
                     </div>

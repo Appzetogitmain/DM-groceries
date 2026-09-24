@@ -23,6 +23,7 @@ const SELLER_DOCUMENT_FIELDS = {
     tradeLicense: "Trade License",
     gstCertificate: "GST Certificate",
     idProof: "ID Proof",
+    panCard: "PAN Card",
 };
 
 const REQUIRED_SELLER_DOCUMENT_FIELDS = Object.keys(SELLER_DOCUMENT_FIELDS);
@@ -59,6 +60,7 @@ const resolveSellerDocuments = (body = {}, parsedDocuments = {}) => {
         tradeLicense: body.tradeLicenseUrl || body.tradeLicense,
         gstCertificate: body.gstCertificateUrl || body.gstCertificate,
         idProof: body.idProofUrl || body.idProof,
+        panCard: body.panCardUrl || body.panCard,
     };
 
     for (const [field, candidate] of Object.entries(directFields)) {
@@ -71,10 +73,13 @@ const resolveSellerDocuments = (body = {}, parsedDocuments = {}) => {
     return resolved;
 };
 
-const getMissingRequiredSellerDocuments = (documents = {}) =>
-    REQUIRED_SELLER_DOCUMENT_FIELDS.filter(
-        (fieldName) => !isValidUploadedDocumentReference(documents[fieldName]),
+const getMissingRequiredSellerDocuments = (documents = {}) => {
+    const hasPan = isValidUploadedDocumentReference(documents.panCard);
+    const hasCombo = ["tradeLicense", "gstCertificate", "idProof"].every(
+        (field) => isValidUploadedDocumentReference(documents[field])
     );
+    return hasPan || hasCombo ? [] : ["missing_documents"];
+};
 
 /* ===============================
    SELLER SIGNUP
@@ -181,13 +186,10 @@ export const signupSeller = async (req, res) => {
         );
 
         if (missingRequiredDocuments.length > 0) {
-            const readableMissing = missingRequiredDocuments
-                .map((field) => SELLER_DOCUMENT_FIELDS[field] || field)
-                .join(", ");
             return handleResponse(
                 res,
                 400,
-                `All required documents must be uploaded: ${readableMissing}`
+                `Please upload either a PAN Card OR (Trade License + GST Certificate + ID Proof).`
             );
         }
 
