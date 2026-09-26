@@ -99,8 +99,28 @@ const ProductManagement = () => {
     }
   };
 
+  const [hasVariantsFeature, setHasVariantsFeature] = useState(false);
+  const [hasImagesFeature, setHasImagesFeature] = useState(false);
+
+  const fetchSubscription = async () => {
+    try {
+      const res = await sellerApi.getCurrentSubscription();
+      if (res.data?.success) {
+        const feats = res.data.result?.plan?.features || [];
+        const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
+        const hasVariants = feats.some(f => normalizeCode(f.code) === "PRODUCTVARIANTS" && f.status === "ACTIVE");
+        const hasImages = feats.some(f => normalizeCode(f.code) === "PRODUCTIMAGES" && f.status === "ACTIVE");
+        setHasVariantsFeature(hasVariants);
+        setHasImagesFeature(hasImages);
+      }
+    } catch (e) {
+      // fail silently
+    }
+  };
+
   React.useEffect(() => {
     fetchCategories();
+    fetchSubscription();
   }, []);
 
   const categories = dbCategories;
@@ -951,7 +971,7 @@ const ProductManagement = () => {
                     },
                     {
                       id: "variants",
-                      label: "Item Variants",
+                      label: "Pricing & Variants",
                       icon: HiOutlineSwatch,
                     },
                     {
@@ -1197,38 +1217,40 @@ const ProductManagement = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                          Gallery Photos
-                        </label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {(formData.galleryImages || []).slice(0, 4).map((img, idx) => (
-                            <div
-                              key={`${img}-${idx}`}
-                              className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden relative">
-                              <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                          {Array.from({ length: Math.max(0, 4 - (formData.galleryImages || []).length) }).map((_, idx) => (
-                            <div
-                              key={`upload-${idx}`}
-                              className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all cursor-pointer overflow-hidden relative">
-                              <input
-                                type="file"
-                                className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                onChange={(e) => handleImageUpload(e, "gallery")}
-                              />
-                              <div className="flex flex-col items-center">
-                                <HiOutlinePhoto className="h-8 w-8 text-slate-200" />
-                                <p className="text-[10px] text-slate-600 font-bold mt-2">UPLOAD</p>
+                      {hasImagesFeature && (
+                        <div className="space-y-3">
+                          <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
+                            Gallery Photos
+                          </label>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {(formData.galleryImages || []).slice(0, 4).map((img, idx) => (
+                              <div
+                                key={`${img}-${idx}`}
+                                className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden relative">
+                                <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                            {Array.from({ length: Math.max(0, 4 - (formData.galleryImages || []).length) }).map((_, idx) => (
+                              <div
+                                key={`upload-${idx}`}
+                                className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all cursor-pointer overflow-hidden relative">
+                                <input
+                                  type="file"
+                                  className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                  onChange={(e) => handleImageUpload(e, "gallery")}
+                                />
+                                <div className="flex flex-col items-center">
+                                  <HiOutlinePhoto className="h-8 w-8 text-slate-200" />
+                                  <p className="text-[10px] text-slate-600 font-bold mt-2">UPLOAD</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium">
+                            Existing gallery images are shown here. Uploading new images will append them to the gallery.
+                          </p>
                         </div>
-                        <p className="text-[10px] text-slate-500 font-medium">
-                          Existing gallery images are shown here. Uploading new images will append them to the gallery.
-                        </p>
-                      </div>
+                      )}
                     </div>
                   )}
 
@@ -1236,25 +1258,27 @@ const ProductManagement = () => {
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-bold">Product Variants</h4>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              variants: [
-                                ...prev.variants,
-                                {
-                                  id: Date.now(),
-                                  name: "",
-                                  price: "",
-                                  salePrice: "",
-                                  stock: "",
-                                  sku: makeSku(prev.name, prev.variants.length + 1),
-                                },
-                              ],
-                            }))
-                          }
-                          className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-[10px] font-bold">+ ADD</button>
+                        {hasVariantsFeature && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                variants: [
+                                  ...prev.variants,
+                                  {
+                                    id: Date.now(),
+                                    name: "",
+                                    price: "",
+                                    salePrice: "",
+                                    stock: "",
+                                    sku: makeSku(prev.name, prev.variants.length + 1),
+                                  },
+                                ],
+                              }))
+                            }
+                            className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-[10px] font-bold">+ ADD</button>
+                        )}
                       </div>
                       <div className="space-y-3">
                         {formData.variants.map((v, i) => (

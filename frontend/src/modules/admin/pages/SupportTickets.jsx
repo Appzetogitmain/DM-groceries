@@ -375,7 +375,7 @@ const SupportTickets = () => {
                                 placeholder="Search by ID or Name..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-2 border-slate-800/40 focus:border-slate-900 rounded-2xl text-xs font-bold outline-none transition-all"
+                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-2 border-slate-800/40 focus:border-slate-900 rounded-2xl text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none transition-all"
                             />
                         </div>
                     </div>
@@ -412,16 +412,16 @@ const SupportTickets = () => {
                                     >
                                         {t.priority}
                                     </Badge>
-                                    <span className={cn("text-[9px] font-bold opacity-60", selectedTicket?.id === t.id ? "text-white" : "text-slate-400")}>{t.date}</span>
+                                    <span className={cn("text-[9px] font-bold opacity-60", selectedTicket?.id === t.id ? "text-white" : "text-slate-500")}>{t.date}</span>
                                 </div>
-                                <h4 className="text-xs font-black truncate mb-1">{t.subject}</h4>
+                                <h4 className={cn("text-xs font-black truncate mb-1", selectedTicket?.id === t.id ? "text-white" : "text-slate-900")}>{t.subject || "No Subject"}</h4>
                                 <div className="flex items-center gap-2">
                                     <div className={cn("p-1 rounded-md", selectedTicket?.id === t.id ? "bg-white/10" : "bg-slate-100")}>
-                                        {t.userType === 'Customer' && <HiOutlineUser className="h-3 w-3" />}
-                                        {t.userType === 'Seller' && <HiOutlineBuildingStorefront className="h-3 w-3" />}
-                                        {t.userType === 'Rider' && <HiOutlineTruck className="h-3 w-3" />}
+                                        {t.userType === 'Customer' && <HiOutlineUser className={cn("h-3 w-3", selectedTicket?.id !== t.id && "text-slate-600")} />}
+                                        {t.userType === 'Seller' && <HiOutlineBuildingStorefront className={cn("h-3 w-3", selectedTicket?.id !== t.id && "text-slate-600")} />}
+                                        {t.userType === 'Rider' && <HiOutlineTruck className={cn("h-3 w-3", selectedTicket?.id !== t.id && "text-slate-600")} />}
                                     </div>
-                                    <span className={cn("text-[10px] font-bold", selectedTicket?.id === t.id ? "text-white/80" : "text-slate-500")}>
+                                    <span className={cn("text-[10px] font-bold", selectedTicket?.id === t.id ? "text-white/80" : "text-slate-600")}>
                                         {t.user} • {t.userType}
                                     </span>
                                 </div>
@@ -588,7 +588,7 @@ const SupportTickets = () => {
                                             }
                                         }}
                                         placeholder="Type your response here..."
-                                        className="flex-1 bg-transparent border-none outline-none p-3 text-sm font-bold resize-none min-h-[44px] max-h-[120px]"
+                                        className="flex-1 bg-transparent border-none outline-none p-3 text-sm font-bold text-slate-900 placeholder:text-slate-400 resize-none min-h-[44px] max-h-[120px]"
                                     />
                                     <button
                                         onClick={handleSendReply}

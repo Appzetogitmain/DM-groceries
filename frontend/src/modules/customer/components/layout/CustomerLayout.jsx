@@ -74,7 +74,13 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
             ), { duration: 15000, position: 'top-center' });
         });
 
-        const cleanupGeneralNotification = onNotificationNew(() => token, () => {
+        const cleanupGeneralNotification = onNotificationNew(() => token, (payload) => {
+            console.log('[CustomerLayout] Notification Received:', payload);
+            if (payload) {
+                toast.success(payload.title || 'New Message', { 
+                    description: payload.body || payload.message || 'You have received a new notification.' 
+                });
+            }
             playNotificationSound();
         });
 

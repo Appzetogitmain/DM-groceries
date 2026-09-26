@@ -49,6 +49,7 @@ import {
   allowRoles,
   requireApprovedSeller,
 } from "../middleware/authMiddleware.js";
+import requireFeature from "../middleware/subscriptionMiddleware.js";
 
 const router = express.Router();
 
@@ -116,6 +117,7 @@ router.get(
   verifyToken,
   allowRoles("admin", "seller"),
   requireApprovedSeller,
+  requireFeature("ORDER_MANAGEMENT"),
   getSellerOrders,
 );
 router.put(
@@ -123,6 +125,7 @@ router.put(
   verifyToken,
   allowRoles("admin", "seller"),
   requireApprovedSeller,
+  requireFeature("ORDER_MANAGEMENT"),
   updateOrderStatus,
 );
 router.get(
@@ -130,6 +133,7 @@ router.get(
   verifyToken,
   allowRoles("admin", "seller"),
   requireApprovedSeller,
+  requireFeature("RETURN_MANAGEMENT"),
   getSellerReturns,
 );
 router.put(
@@ -137,6 +141,7 @@ router.put(
   verifyToken,
   allowRoles("admin", "seller"),
   requireApprovedSeller,
+  requireFeature("RETURN_MANAGEMENT"),
   approveReturnRequest,
 );
 router.put(
@@ -144,12 +149,14 @@ router.put(
   verifyToken,
   allowRoles("admin", "seller"),
   requireApprovedSeller,
+  requireFeature("RETURN_MANAGEMENT"),
   rejectReturnRequest,
 );
 router.put(
   "/returns/:orderId/qc",
   verifyToken,
   allowRoles("admin", "seller"),
+  requireFeature("RETURN_MANAGEMENT"),
   updateReturnQcStatus,
 );
 router.put(
@@ -157,6 +164,7 @@ router.put(
   verifyToken,
   allowRoles("admin", "seller"),
   requireApprovedSeller,
+  requireFeature("RETURN_MANAGEMENT"),
   assignReturnDelivery,
 );
 

@@ -48,4 +48,13 @@ export const sellerApi = {
     rejectReturn: (orderId, data) => axiosInstance.put(`/orders/returns/${orderId}/reject`, data),
     assignReturnDelivery: (orderId, data) => axiosInstance.put(`/orders/returns/${orderId}/assign-delivery`, data),
     updateReturnQcStatus: (orderId, data) => axiosInstance.put(`/orders/returns/${orderId}/qc`, data),
+
+    // Subscriptions
+    getAvailablePlans: () => axiosInstance.get('/seller/subscriptions/plans'),
+    getCurrentSubscription: () => axiosInstance.get('/seller/subscriptions/current'),
+    getActiveOffers: (planId) => axiosInstance.get('/seller/subscriptions/offers', { params: { plan: planId } }),
+    getSubscriptionHistory: () => axiosInstance.get('/seller/subscriptions/history'),
+    createSubscriptionOrder: (data) => axiosInstance.post('/seller/subscriptions/create-order', data),
+    verifySubscriptionPayment: (data) => axiosInstance.post('/seller/subscriptions/verify-payment', data),
+    getPaymentHistory: () => axiosInstance.get('/seller/subscriptions/payments'),
 };

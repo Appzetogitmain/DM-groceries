@@ -95,11 +95,22 @@ const CustomerDetail = () => {
         showToast('Profile updated successfully', 'success');
     };
 
-    const handleSendNotif = () => {
+    const handleSendNotif = async () => {
         if (!notifMessage.trim()) return;
-        setIsNotifModalOpen(false);
-        setNotifMessage('');
-        showToast('Notification sent to user', 'success');
+        try {
+            await adminApi.sendDirectNotification({
+                userId: id,
+                userRole: 'customer',
+                title: 'Message from Admin',
+                message: notifMessage
+            });
+            setIsNotifModalOpen(false);
+            setNotifMessage('');
+            showToast('Notification sent to user', 'success');
+        } catch (error) {
+            console.error("Failed to send notification:", error);
+            showToast(error.response?.data?.message || 'Failed to send notification', 'error');
+        }
     };
 
     const handleRestrictAccount = () => {

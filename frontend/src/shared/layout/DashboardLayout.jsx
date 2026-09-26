@@ -102,6 +102,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const orderRingtoneRef = useRef(null);
     const ringtoneRetryTimerRef = useRef(null);
     const ringtoneUnlockHandlerRef = useRef(null);
+    const hasOrderNotificationsRef = useRef(false); // default false, will check plan
 
     const getOrderRingtone = () => {
         if (!orderRingtoneRef.current) {
@@ -114,6 +115,8 @@ const DashboardLayout = ({ children, navItems, title }) => {
     };
 
     const startOrderRingtone = () => {
+        if (!hasOrderNotificationsRef.current) return;
+        
         const audio = getOrderRingtone();
         audio.loop = true;
         audio.preload = 'auto';
@@ -175,11 +178,13 @@ const DashboardLayout = ({ children, navItems, title }) => {
         shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(order.orderId);
         newOrderAlertRef.current = order;
 
-        showSystemNotification({
-            title: "New Order Received!",
-            body: `You have a new order #${order.orderId} for ₹${order.pricing?.total || order.total || ""}`,
-            data: { orderId: order.orderId, eventType: "new_order" },
-        });
+        if (hasOrderNotificationsRef.current) {
+            showSystemNotification({
+                title: "New Order Received!",
+                body: `You have a new order #${order.orderId} for ₹${order.pricing?.total || order.total || ""}`,
+                data: { orderId: order.orderId, eventType: "new_order" },
+            });
+        }
         return true;
     };
 
@@ -210,6 +215,16 @@ const DashboardLayout = ({ children, navItems, title }) => {
             setOrdersLoading(false);
             return;
         }
+        
+        sellerApi.getCurrentSubscription().then(res => {
+            if (res.data?.success) {
+                const feats = res.data.result?.plan?.features || [];
+                const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
+                const hasIt = feats.some(f => normalizeCode(f.code) === "ORDERNOTIFICATIONS" && f.status === "ACTIVE");
+                hasOrderNotificationsRef.current = hasIt;
+            }
+        }).catch(() => {});
+        
         setOrdersLoading(true);
 
         const fetchOrders = async () => {

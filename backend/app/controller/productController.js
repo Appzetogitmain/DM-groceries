@@ -646,6 +646,29 @@ export const createProduct = async (req, res) => {
         });
       }
     }
+
+    // Check if seller has PRODUCT_VARIANTS feature
+    if (role === "seller" && req.subscription) {
+      const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
+      const hasVariantsFeature = req.subscription.plan?.features?.some(
+          (feature) => normalizeCode(feature.code) === "PRODUCTVARIANTS" && feature.status === "ACTIVE"
+      );
+      if (!hasVariantsFeature) {
+          // Allow only 1 variant (the base product pricing/stock)
+          if (Array.isArray(productData.variants) && productData.variants.length > 0) {
+              productData.variants = [productData.variants[0]];
+          } else {
+              productData.variants = [];
+          }
+      }
+      const hasImagesFeature = req.subscription.plan?.features?.some(
+          (feature) => normalizeCode(feature.code) === "PRODUCTIMAGES" && feature.status === "ACTIVE"
+      );
+      if (!hasImagesFeature) {
+          productData.galleryImages = [];
+      }
+    }
+
     if (typeof productData.tags === "string" && productData.tags.startsWith("[")) {
       try {
         productData.tags = JSON.parse(productData.tags);
@@ -823,6 +846,29 @@ export const updateProduct = async (req, res) => {
         });
       }
     }
+
+    // Check if seller has PRODUCT_VARIANTS feature
+    if (role === "seller" && req.subscription) {
+      const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
+      const hasVariantsFeature = req.subscription.plan?.features?.some(
+          (feature) => normalizeCode(feature.code) === "PRODUCTVARIANTS" && feature.status === "ACTIVE"
+      );
+      if (!hasVariantsFeature) {
+          // Allow only 1 variant (the base product pricing/stock)
+          if (Array.isArray(productData.variants) && productData.variants.length > 0) {
+              productData.variants = [productData.variants[0]];
+          } else {
+              productData.variants = [];
+          }
+      }
+      const hasImagesFeature = req.subscription.plan?.features?.some(
+          (feature) => normalizeCode(feature.code) === "PRODUCTIMAGES" && feature.status === "ACTIVE"
+      );
+      if (!hasImagesFeature) {
+          productData.galleryImages = [];
+      }
+    }
+
     if (typeof productData.tags === "string" && productData.tags.startsWith("[")) {
       try {
         productData.tags = JSON.parse(productData.tags);

@@ -17,6 +17,7 @@ import {
     optionalVerifyToken,
     requireApprovedSeller,
 } from "../middleware/authMiddleware.js";
+import requireFeature from "../middleware/subscriptionMiddleware.js";
 import multer from "multer";
 
 const storage = multer.memoryStorage();
@@ -29,8 +30,8 @@ router.get("/", optionalVerifyToken, getProducts);
 
 // Seller protected routes
 router.get("/seller/me", verifyToken, allowRoles("seller"), requireApprovedSeller, getSellerProducts);
-router.get("/stock-history", verifyToken, allowRoles("seller"), requireApprovedSeller, getStockHistory);
-router.post("/adjust-stock", verifyToken, allowRoles("seller"), requireApprovedSeller, adjustStock);
+router.get("/stock-history", verifyToken, allowRoles("seller"), requireApprovedSeller, requireFeature("INVENTORY_MANAGEMENT"), getStockHistory);
+router.post("/adjust-stock", verifyToken, allowRoles("seller"), requireApprovedSeller, requireFeature("INVENTORY_MANAGEMENT"), adjustStock);
 router.get("/moderation", verifyToken, allowRoles("admin"), getModerationProducts);
 router.patch("/moderation/:id/approve", verifyToken, allowRoles("admin"), approveProduct);
 router.patch("/moderation/:id/reject", verifyToken, allowRoles("admin"), rejectProduct);
@@ -41,6 +42,7 @@ router.post(
     verifyToken,
     allowRoles("seller", "admin"),
     requireApprovedSeller,
+    requireFeature("PRODUCT_LISTING"),
     upload.any(),
     createProduct
 );
@@ -50,6 +52,7 @@ router.put(
     verifyToken,
     allowRoles("seller", "admin"),
     requireApprovedSeller,
+    requireFeature("PRODUCT_LISTING"),
     upload.any(),
     updateProduct
 );

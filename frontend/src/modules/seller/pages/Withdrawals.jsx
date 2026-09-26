@@ -40,6 +40,27 @@ const Withdrawals = () => {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
+    const [isLocked, setIsLocked] = useState(false);
+    const [isCheckingPlan, setIsCheckingPlan] = useState(true);
+
+    React.useEffect(() => {
+        sellerApi.getCurrentSubscription().then(res => {
+            if (res.data?.success) {
+                const feats = res.data.result?.plan?.features || [];
+                const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
+                // The backend requires MONEY_WITHDRAWAL
+                const hasIt = feats.some(f => normalizeCode(f.code) === "MONEYWITHDRAWAL" && f.status === "ACTIVE");
+                if (!hasIt) setIsLocked(true);
+            } else {
+                setIsLocked(true);
+            }
+        }).catch(() => {
+            setIsLocked(true);
+        }).finally(() => {
+            setIsCheckingPlan(false);
+        });
+    }, []);
+
     const ledger = Array.isArray(data?.ledger) ? data.ledger : [];
     const withdrawalHistory = ledger.filter((t) => (t.type || '').toString() === 'Withdrawal');
 
@@ -132,8 +153,25 @@ const Withdrawals = () => {
         }
     };
 
-    if (loading) {
+    if (loading || isCheckingPlan) {
         return <div className="flex items-center justify-center h-screen font-black text-slate-600">LOADING WITHDRAWALS...</div>;
+    }
+
+    if (isLocked) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white rounded-2xl border border-slate-100 p-8 text-center space-y-6">
+                <div className="h-24 w-24 bg-rose-50 rounded-full flex items-center justify-center mb-4">
+                    <Wallet className="h-10 w-10 text-rose-500" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900">Feature Locked</h2>
+                <p className="text-slate-600 max-w-md mx-auto text-sm">
+                    You need the <strong>MONEY WITHDRAWAL</strong> feature to request payouts and manage your withdrawals. Upgrade your plan to access this tool.
+                </p>
+                <Button onClick={() => navigate('/seller/subscription')} className="px-8 py-3 bg-[#1A4516] hover:bg-[#133A10] text-white">
+                    Buy Subscription
+                </Button>
+            </div>
+        );
     }
 
     const balances = {

@@ -5,6 +5,7 @@ import { roundCurrency } from "../utils/money.js";
 import mongoose from "mongoose";
 import { invalidateSellerName } from "../services/entityNameCache.js";
 import Wallet from "../models/wallet.js";
+import Subscription from "../models/subscription.js";
 
 /* ===============================
    GET NEARBY SELLERS
@@ -186,8 +187,16 @@ export const updateSellerProfile = async (req, res) => {
     }
 
     if (radius !== undefined) {
-      if (radius < 1 || radius > 100)
-        return handleResponse(res, 400, "Radius must be between 1 and 100 km");
+      let maxRadius = 5;
+      const sub = await Subscription.findOne({ user: req.user.id });
+      if (sub && sub.plan && Array.isArray(sub.plan.features)) {
+          const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
+          const hasRadius = sub.plan.features.some(f => normalizeCode(f.code) === "CUSTOMDELIVERYRADIUS" && f.status === "ACTIVE");
+          if (hasRadius) maxRadius = 15;
+      }
+      if (radius < 1 || radius > maxRadius) {
+        return handleResponse(res, 400, `Your current plan allows a maximum delivery radius of ${maxRadius} km.`);
+      }
       seller.serviceRadius = Number(radius);
     }
 

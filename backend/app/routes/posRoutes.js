@@ -4,6 +4,7 @@ import {
   allowRoles,
   requireApprovedSeller,
 } from "../middleware/authMiddleware.js";
+import requireFeature from "../middleware/subscriptionMiddleware.js";
 import {
   lookupCustomer,
   createPosOrder,
@@ -16,7 +17,7 @@ import {
 const router = express.Router();
 
 // All POS routes require seller authentication and approval
-router.use(verifyToken, allowRoles("seller", "admin"), requireApprovedSeller);
+router.use(verifyToken, allowRoles("seller", "admin"), requireApprovedSeller, requireFeature("POS_BILLING"));
 
 // Customer lookup
 router.post("/customer/lookup", lookupCustomer);

@@ -75,17 +75,32 @@ const SellerProfile = () => {
     fetchData();
   }, []);
 
+  const [hasCustomRadius, setHasCustomRadius] = useState(false);
+
   const fetchData = async () => {
     try {
-      const [profileRes, statsRes] = await Promise.all([
+      const [profileRes, statsRes, subRes] = await Promise.all([
         sellerApi.getProfile(),
-        sellerApi.getStats()
+        sellerApi.getStats(),
+        sellerApi.getCurrentSubscription().catch(() => ({ data: { success: false } }))
       ]);
       
       const data = profileRes.data.result;
       setProfile(data);
       if (statsRes.data.success) {
         setStatsData(statsRes.data.result);
+      }
+      if (subRes.data?.success) {
+        const feats = subRes.data.result?.plan?.features || [];
+        const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
+        const hasIt = feats.some(f => normalizeCode(f.code) === "CUSTOMDELIVERYRADIUS" && f.status === "ACTIVE");
+        setHasCustomRadius(hasIt);
+        
+        // Clamp radius if it exceeds their current plan limits
+        const maxR = hasIt ? 15 : 5;
+        if (data.serviceRadius > maxR) {
+          data.serviceRadius = maxR;
+        }
       }
       
       setFormData({
@@ -891,6 +906,7 @@ const SellerProfile = () => {
             formData.lat ? { lat: formData.lat, lng: formData.lng } : null
           }
           initialRadius={formData.radius}
+          maxRadius={hasCustomRadius ? 15 : 5}
         />
       )}
     </motion.div>

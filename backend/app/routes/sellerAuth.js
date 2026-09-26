@@ -12,7 +12,17 @@ import {
 import { getSellerProfile, updateSellerProfile, requestWithdrawal, getNearbySellers } from "../controller/sellerController.js";
 import { getSellerStats, getSellerEarnings } from "../controller/sellerStatsController.js";
 import { getSellerWalletSummaryController } from "../controller/adminFinanceController.js";
+import {
+    getAvailablePlans,
+    getCurrentSubscription,
+    getActiveOffers,
+    getSubscriptionHistory,
+    createSubscriptionOrder,
+    verifySubscriptionPayment,
+    getPaymentHistory,
+} from "../controller/seller/sellerSubscriptionController.js";
 import { verifyToken, allowRoles } from "../middleware/authMiddleware.js";
+import requireFeature from "../middleware/subscriptionMiddleware.js";
 import {
     authRouteRateLimiter,
     createContentLengthGuard,
@@ -89,9 +99,20 @@ router.put(
 );
 
 // Analytics & Financials
-router.get("/stats", verifyToken, allowRoles("seller"), getSellerStats);
-router.get("/earnings", verifyToken, allowRoles("seller"), getSellerEarnings);
-router.get("/wallet/summary", verifyToken, allowRoles("seller"), getSellerWalletSummaryController);
-router.post("/request-withdrawal", verifyToken, allowRoles("seller"), requestWithdrawal);
+router.get("/stats", verifyToken, allowRoles("seller"), requireFeature("ANALYTICS_REPORTS"), getSellerStats);
+router.get("/earnings", verifyToken, allowRoles("seller"), requireFeature("ANALYTICS_REPORTS"), getSellerEarnings);
+router.get("/wallet/summary", verifyToken, allowRoles("seller"), requireFeature("MONEY_WITHDRAWAL"), getSellerWalletSummaryController);
+router.post("/request-withdrawal", verifyToken, allowRoles("seller"), requireFeature("MONEY_WITHDRAWAL"), requestWithdrawal);
+
+// ========================================
+// Subscription
+// ========================================
+router.get("/subscriptions/plans", verifyToken, allowRoles("seller"), getAvailablePlans);
+router.get("/subscriptions/current", verifyToken, allowRoles("seller"), getCurrentSubscription);
+router.get("/subscriptions/offers", verifyToken, allowRoles("seller"), getActiveOffers);
+router.get("/subscriptions/history", verifyToken, allowRoles("seller"), getSubscriptionHistory);
+router.post("/subscriptions/create-order", verifyToken, allowRoles("seller"), createSubscriptionOrder);
+router.post("/subscriptions/verify-payment", verifyToken, allowRoles("seller"), verifySubscriptionPayment);
+router.get("/subscriptions/payments", verifyToken, allowRoles("seller"), getPaymentHistory);
 
 export default router;

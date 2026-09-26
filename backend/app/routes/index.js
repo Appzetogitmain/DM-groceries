@@ -27,6 +27,7 @@ import milestoneCampaignRoute from "./milestoneCampaignRoutes.js";
 import customerMilestoneRoute from "./customerMilestoneRoutes.js";
 import sosRoute from "./sosRoutes.js";
 import posRoute from "./posRoutes.js";
+import subscriptionRoute from "./subscriptionRoutes.js";
 
 import express from "express";
 
@@ -45,6 +46,7 @@ const setupRoutes = (app) => {
     // Same router, two URL surfaces. Do not deduplicate without coordinated frontend changes.
     router.use("/admin/categories", categoryRoute);
     router.use("/admin/milestone-campaigns", milestoneCampaignRoute);
+    router.use("/admin/subscriptions", subscriptionRoute);
     router.use("/admin", adminRoute);
     router.use("/customer/milestones", customerMilestoneRoute);
     router.use("/seller", sellerRoute);

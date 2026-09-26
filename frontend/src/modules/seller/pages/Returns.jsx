@@ -104,6 +104,9 @@ const Returns = () => {
         }
     };
 
+    const [isLocked, setIsLocked] = useState(false);
+    const [lockedMessage, setLockedMessage] = useState("");
+
     const fetchReturns = async () => {
         try {
             setLoading(true);
@@ -115,7 +118,12 @@ const Returns = () => {
             setReturns(items || []);
         } catch (error) {
             console.error("Failed to fetch returns", error);
-            showToast("Failed to fetch return requests", "error");
+            if (error?.response?.status === 403) {
+                setIsLocked(true);
+                setLockedMessage(error.response.data?.message || "This feature is not available in your current plan");
+            } else {
+                showToast("Failed to fetch return requests", "error");
+            }
         } finally {
             setLoading(false);
         }
@@ -259,6 +267,30 @@ const Returns = () => {
             setAssigningPickup(false);
         }
     };
+
+    if (isLocked) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[75vh] text-center space-y-6 px-4">
+                <div className="h-24 w-24 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center shadow-inner">
+                    <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <div className="space-y-2 max-w-lg">
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">Feature Locked</h2>
+                    <p className="text-slate-500 font-medium text-lg leading-relaxed">
+                        {lockedMessage}
+                    </p>
+                </div>
+                <Button 
+                    onClick={() => window.location.href = '/seller/subscription'} 
+                    className="mt-4 text-sm font-black tracking-widest uppercase shadow-xl shadow-brand-500/20 px-8 py-4 rounded-xl hover:scale-105 transition-transform"
+                >
+                    View Subscription Plans
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-16">

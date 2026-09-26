@@ -40,7 +40,7 @@ const DataTable = ({ columns, data, onRowClick, className }) => {
                                         column.align === 'center' && 'text-center'
                                     )}
                                 >
-                                    {column.cell ? column.cell(row) : row[column.accessor]}
+                                    {column.render ? column.render(row[column.accessor], row) : (column.cell ? column.cell(row) : row[column.accessor])}
                                 </td>
                             ))}
                         </tr>

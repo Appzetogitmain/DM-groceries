@@ -44,6 +44,26 @@ const StockManagement = () => {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
 
+    const [isLocked, setIsLocked] = useState(false);
+    const [isCheckingPlan, setIsCheckingPlan] = useState(true);
+
+    React.useEffect(() => {
+        sellerApi.getCurrentSubscription().then(res => {
+            if (res.data?.success) {
+                const feats = res.data.result?.plan?.features || [];
+                const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
+                const hasIt = feats.some(f => normalizeCode(f.code) === "INVENTORYMANAGEMENT" && f.status === "ACTIVE");
+                if (!hasIt) setIsLocked(true);
+            } else {
+                setIsLocked(true);
+            }
+        }).catch(() => {
+            setIsLocked(true);
+        }).finally(() => {
+            setIsCheckingPlan(false);
+        });
+    }, []);
+
     const fetchInventory = async (silent = false, stockStatus) => {
         if (!silent) setIsLoading(true);
         try {
@@ -172,8 +192,25 @@ const StockManagement = () => {
         setIsAdjustModalOpen(true);
     };
 
-    if (isLoading && inventory.length === 0 && history.length === 0) {
+    if (isCheckingPlan || (isLoading && inventory.length === 0 && history.length === 0)) {
         return <div className="flex items-center justify-center h-screen font-black text-slate-600">LOADING STOCK DATA...</div>;
+    }
+
+    if (isLocked) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white rounded-2xl border border-slate-100 p-8 text-center space-y-6">
+                <div className="h-24 w-24 bg-rose-50 rounded-full flex items-center justify-center mb-4">
+                    <HiOutlineCube className="h-10 w-10 text-rose-500" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900">Feature Locked</h2>
+                <p className="text-slate-600 max-w-md mx-auto text-sm">
+                    You need the <strong>INVENTORY MANAGEMENT</strong> feature to monitor stock levels and track inventory movements. Upgrade your plan to access this tool.
+                </p>
+                <Button onClick={() => navigate('/seller/subscription')} className="px-8 py-3 bg-[#1A4516] hover:bg-[#133A10] text-white">
+                    Buy Subscription
+                </Button>
+            </div>
+        );
     }
 
     return (

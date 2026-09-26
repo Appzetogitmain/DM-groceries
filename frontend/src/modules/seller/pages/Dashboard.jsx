@@ -21,6 +21,7 @@ import {
   HiOutlinePhone,
   HiOutlineBanknotes,
   HiOutlineChevronDown,
+  HiOutlineCreditCard,
 } from "react-icons/hi2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -59,25 +60,37 @@ const Dashboard = () => {
   const [statsData, setStatsData] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [subLoading, setSubLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    const fetchStats = async () => {
+    const fetchStatsAndSub = async () => {
       try {
         setLoading(true);
-        const statsRes = await sellerApi.getStats();
+        setSubLoading(true);
+        
+        const [statsRes, subRes] = await Promise.all([
+          sellerApi.getStats().catch(() => ({ data: { success: false } })),
+          sellerApi.getCurrentSubscription().catch(() => ({ data: null }))
+        ]);
+
         if (cancelled) return;
         if (statsRes.data.success) setStatsData(statsRes.data.result);
+        setSubscription(subRes.data?.result);
       } catch (error) {
         if (!cancelled) {
           console.error("Dashboard Fetch Error:", error);
           toast.error("Failed to load dashboard data");
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setSubLoading(false);
+        }
       }
     };
-    fetchStats();
+    fetchStatsAndSub();
     return () => { cancelled = true; };
   }, []);
 
@@ -257,6 +270,26 @@ const Dashboard = () => {
 
   return (
     <div className="ds-section-spacing relative">
+      {!subLoading && (!subscription || subscription.status !== 'ACTIVE') && (
+        <div className="mb-6 p-4 rounded-xl border-2 border-red-200 bg-red-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2 bg-red-100 rounded-lg shrink-0">
+              <HiOutlineCreditCard className="w-6 h-6 text-red-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-red-900 text-lg">Subscription Required</h3>
+              <p className="text-red-700 text-sm mt-0.5">Your store operations are currently paused. Please select an active subscription plan to receive new orders.</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('/seller/subscription')}
+            className="whitespace-nowrap px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm transition-colors"
+          >
+            Choose a Plan
+          </button>
+        </div>
+      )}
+
       <PageHeader
         title="Dashboard"
         description="Welcome back! Here's what's happening with your store today."

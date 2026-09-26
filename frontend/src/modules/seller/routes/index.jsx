@@ -34,6 +34,7 @@ const POS = React.lazy(() => import("../pages/POS"));
 const PosSalesHistory = React.lazy(() => import("../pages/PosSalesHistory"));
 const SupportPage = React.lazy(() => import("../pages/SupportPage"));
 const PrivacyPage = React.lazy(() => import("../pages/PrivacyPage"));
+const Subscription = React.lazy(() => import("../pages/Subscription"));
 
 const navItems = [
   { label: "Dashboard", path: "/seller", icon: HiOutlineSquares2X2, end: true },
@@ -64,6 +65,7 @@ const navItems = [
   },
   { label: "POS Billing", path: "/seller/pos", icon: HiOutlineComputerDesktop },
   { label: "POS History", path: "/seller/pos-history", icon: HiOutlineComputerDesktop },
+  { label: "Subscription", path: "/seller/subscription", icon: HiOutlineCreditCard },
   { label: "Profile", path: "/seller/profile", icon: HiOutlineUser },
 ];
 
@@ -100,6 +102,7 @@ const SellerRoutes = () => {
         <Route path="/withdrawals" element={<Withdrawals />} />
         <Route path="/pos" element={<POS />} />
         <Route path="/pos-history" element={<PosSalesHistory />} />
+        <Route path="/subscription" element={<Subscription />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

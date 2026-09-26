@@ -82,7 +82,11 @@ const Analytics = () => {
         }
       } catch (error) {
         console.error("Analytics Fetch Error:", error);
-        toast.error("Failed to load analytics data");
+        if (error?.response?.status === 403) {
+           toast.error(error.response.data?.message || "This feature is not available in your current plan");
+        } else {
+           toast.error("Failed to load analytics data");
+        }
         setStatsData((prev) => prev ?? {
           overview: {},
           salesTrend: [],

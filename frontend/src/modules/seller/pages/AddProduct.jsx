@@ -128,6 +128,9 @@ const AddProduct = () => {
     });
   }, [formData.name]);
 
+  const [hasVariantsFeature, setHasVariantsFeature] = useState(false);
+  const [hasImagesFeature, setHasImagesFeature] = useState(false);
+
   React.useEffect(() => {
     const fetchCats = async () => {
       try {
@@ -141,7 +144,25 @@ const AddProduct = () => {
         setIsLoadingCats(false);
       }
     };
+    
+    const fetchSubscription = async () => {
+      try {
+        const res = await sellerApi.getCurrentSubscription();
+        if (res.data?.success) {
+          const feats = res.data.result?.plan?.features || [];
+          const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
+          const hasVariants = feats.some(f => normalizeCode(f.code) === "PRODUCTVARIANTS" && f.status === "ACTIVE");
+          const hasImages = feats.some(f => normalizeCode(f.code) === "PRODUCTIMAGES" && f.status === "ACTIVE");
+          setHasVariantsFeature(hasVariants);
+          setHasImagesFeature(hasImages);
+        }
+      } catch (e) {
+        // fail silently
+      }
+    };
+    
     fetchCats();
+    fetchSubscription();
   }, []);
 
   const categories = dbCategories;
@@ -287,7 +308,7 @@ const AddProduct = () => {
         <div className="md:w-64 bg-slate-50/50 border-r border-slate-100 p-4 space-y-1 overflow-y-auto">
           {[
             { id: "general", label: "General Info", icon: HiOutlineTag },
-            { id: "variants", label: "Item Variants", icon: HiOutlineSwatch },
+            { id: "variants", label: "Pricing & Variants", icon: HiOutlineSwatch },
             { id: "category", label: "Groups", icon: HiOutlineFolderOpen },
             { id: "media", label: "Photos", icon: HiOutlinePhoto },
           ].map((tab) => (
@@ -417,27 +438,29 @@ const AddProduct = () => {
                     Add different sizes, colors or weights.
                   </p>
                 </div>
-                <button
-                  onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      variants: [
-                        ...prev.variants,
-                        {
-                          id: Date.now(),
-                          name: "",
-                          price: "",
-                          salePrice: "",
-                          stock: "",
-                          sku: makeSku(prev.name, prev.variants.length + 1),
-                        },
-                      ],
-                    }))
-                  }
-                  className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-all">
-                  <HiOutlineSquaresPlus className="h-4 w-4" />
-                  <span>ADD VARIANT</span>
-                </button>
+                {hasVariantsFeature && (
+                  <button
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        variants: [
+                          ...prev.variants,
+                          {
+                            id: Date.now(),
+                            name: "",
+                            price: "",
+                            salePrice: "",
+                            stock: "",
+                            sku: makeSku(prev.name, prev.variants.length + 1),
+                          },
+                        ],
+                      }))
+                    }
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-all">
+                    <HiOutlineSquaresPlus className="h-4 w-4" />
+                    <span>ADD VARIANT</span>
+                  </button>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -705,37 +728,39 @@ const AddProduct = () => {
               </div>
 
               {/* Gallery Section */}
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                  Gallery Photos (Max 5)
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={i}
-                      className="aspect-square rounded-md border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all cursor-pointer relative overflow-hidden">
-                      {formData.galleryImages[i - 1] ? (
-                        <img
-                          src={formData.galleryImages[i - 1]}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <>
-                          <input
-                            type="file"
-                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                            onChange={(e) => handleImageUpload(e, "gallery")}
+              {hasImagesFeature && (
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
+                    Gallery Photos (Max 5)
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className="aspect-square rounded-md border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all cursor-pointer relative overflow-hidden">
+                        {formData.galleryImages[i - 1] ? (
+                          <img
+                            src={formData.galleryImages[i - 1]}
+                            className="w-full h-full object-cover"
                           />
-                          <HiOutlinePlus className="h-5 w-5 text-slate-200 group-hover:text-primary transition-colors" />
-                          <p className="text-[8px] font-bold text-slate-600 mt-1 uppercase tracking-widest group-hover:text-primary">
-                            Add
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                        ) : (
+                          <>
+                            <input
+                              type="file"
+                              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                              onChange={(e) => handleImageUpload(e, "gallery")}
+                            />
+                            <HiOutlinePlus className="h-5 w-5 text-slate-200 group-hover:text-primary transition-colors" />
+                            <p className="text-[8px] font-bold text-slate-600 mt-1 uppercase tracking-widest group-hover:text-primary">
+                              Add
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <p className="text-xs text-slate-600 font-medium italic text-center pt-4 border-t border-slate-50">
                 Quick Tip: Using WebP format at 800x800px makes your store load

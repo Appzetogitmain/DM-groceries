@@ -26,6 +26,7 @@ import {
   Store,
   Gift,
   Shield,
+  CreditCard,
 } from "lucide-react";
 
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
@@ -103,6 +104,11 @@ const AccessDenied = React.lazy(() => import("../pages/AccessDenied"));
 const SubAdminManagement = React.lazy(() => import("../pages/SubAdminManagement"));
 const CreateSubAdmin = React.lazy(() => import("../pages/CreateSubAdmin"));
 const EditSubAdmin = React.lazy(() => import("../pages/EditSubAdmin"));
+
+const SubscriptionPlans = React.lazy(() => import("../pages/subscriptions/SubscriptionPlans"));
+const SubscriptionFeatures = React.lazy(() => import("../pages/subscriptions/SubscriptionFeatures"));
+const SubscriptionOffers = React.lazy(() => import("../pages/subscriptions/SubscriptionOffers"));
+const SubscribersList = React.lazy(() => import("../pages/subscriptions/SubscribersList"));
 
 /**
  * Each navItem can optionally include a `section` key to enable
@@ -211,6 +217,18 @@ const navItems = [
     children: [
       { label: "All Customers", path: "/admin/customers" },
       { label: "Birthday Center", path: "/admin/birthdays" },
+    ],
+  },
+  {
+    label: "Subscriptions",
+    icon: CreditCard,
+    color: "violet",
+    section: "subscriptions",
+    children: [
+      { label: "Subscribers", path: "/admin/subscriptions/subscribers" },
+      { label: "Plans", path: "/admin/subscriptions/plans" },
+      { label: "Features", path: "/admin/subscriptions/features" },
+      { label: "Offers & Discounts", path: "/admin/subscriptions/offers" },
     ],
   },
   { label: "FAQs", path: "/admin/faqs", icon: HelpCircle, color: "pink", section: "faqs" },
@@ -479,6 +497,28 @@ const AdminRoutes = () => {
         <Route path="/birthdays" element={
           <PermissionGuard section="customers" action="view" fallback={AccessDenied}>
             <BirthdayCenter />
+          </PermissionGuard>
+        } />
+
+        {/* Subscriptions */}
+        <Route path="/subscriptions/subscribers" element={
+          <PermissionGuard section="subscriptions" action="view" fallback={AccessDenied}>
+            <SubscribersList />
+          </PermissionGuard>
+        } />
+        <Route path="/subscriptions/plans" element={
+          <PermissionGuard section="subscriptions" action="view" fallback={AccessDenied}>
+            <SubscriptionPlans />
+          </PermissionGuard>
+        } />
+        <Route path="/subscriptions/features" element={
+          <PermissionGuard section="subscriptions" action="view" fallback={AccessDenied}>
+            <SubscriptionFeatures />
+          </PermissionGuard>
+        } />
+        <Route path="/subscriptions/offers" element={
+          <PermissionGuard section="subscriptions" action="view" fallback={AccessDenied}>
+            <SubscriptionOffers />
           </PermissionGuard>
         } />
 
