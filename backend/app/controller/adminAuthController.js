@@ -6,6 +6,11 @@ import {
   loginAdminSchema,
   validateSchema,
 } from "../validation/adminAuthValidation.js";
+import {
+  issueAdminResetOtp,
+  verifyAdminResetOtpCode,
+  verifyAdminVerificationToken,
+} from "../services/adminVerificationService.js";
 
 const PUBLIC_ADMIN_SIGNUP_ENABLED = () =>
   process.env.ENABLE_PUBLIC_ADMIN_SIGNUP === "true";
@@ -138,6 +143,49 @@ export const loginAdmin = async (req, res) => {
       token,
       admin: sanitizeAdmin(admin),
     });
+  } catch (error) {
+    return handleResponse(res, error.statusCode || 500, error.message);
+  }
+};
+
+export const sendAdminResetOtp = async (req, res) => {
+  try {
+    const { channel, rawValue } = req.body;
+    if (!channel || !rawValue) return handleResponse(res, 400, "Channel and target value required");
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const result = await issueAdminResetOtp({ channel, rawValue, ipAddress });
+    return handleResponse(res, 200, "Reset OTP sent successfully", result);
+  } catch (error) {
+    return handleResponse(res, error.statusCode || 500, error.message);
+  }
+};
+
+export const verifyAdminResetOtp = async (req, res) => {
+  try {
+    const { channel, rawValue, otp } = req.body;
+    if (!channel || !rawValue || !otp) return handleResponse(res, 400, "Channel, target, and OTP required");
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const result = await verifyAdminResetOtpCode({ channel, rawValue, otp, ipAddress });
+    return handleResponse(res, 200, "OTP verified successfully", result);
+  } catch (error) {
+    return handleResponse(res, error.statusCode || 500, error.message);
+  }
+};
+
+export const resetAdminPassword = async (req, res) => {
+  try {
+    const { channel, rawValue, token, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 8) return handleResponse(res, 400, "Password must be at least 8 characters");
+
+    verifyAdminVerificationToken({ channel, rawValue, token, purpose: "admin_reset" });
+
+    const admin = await Admin.findOne({ email: rawValue.toLowerCase() });
+    if (!admin) return handleResponse(res, 404, "Admin not found");
+
+    admin.password = newPassword;
+    await admin.save();
+
+    return handleResponse(res, 200, "Password reset successfully");
   } catch (error) {
     return handleResponse(res, error.statusCode || 500, error.message);
   }

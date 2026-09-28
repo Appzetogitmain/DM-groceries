@@ -13,12 +13,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "../services/adminApi";
+import AdminForgotPasswordModal from "../components/AdminForgotPasswordModal";
 import sellerLoginImg from "../../../assets/SellerLogin.png";
 
 const AdminAuth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
   const { login } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
@@ -247,7 +249,7 @@ const AdminAuth = () => {
                 </label>
                 <button
                   type="button"
-                  onClick={() => toast.info("Password reset feature coming soon")}
+                  onClick={() => setShowForgotModal(true)}
                   className="text-[#1A4516] hover:underline"
                 >
                   Forgot Password?
@@ -276,6 +278,11 @@ const AdminAuth = () => {
           </div>
         </div>
       </motion.div>
+
+      <AdminForgotPasswordModal 
+        isOpen={showForgotModal} 
+        onClose={() => setShowForgotModal(false)} 
+      />
     </div>
   );
 };

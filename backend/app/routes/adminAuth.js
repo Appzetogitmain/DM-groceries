@@ -3,6 +3,9 @@ import {
     bootstrapAdmin,
     signupAdmin,
     loginAdmin,
+    sendAdminResetOtp,
+    verifyAdminResetOtp,
+    resetAdminPassword,
 } from "../controller/adminAuthController.js";
 import {
     getAdminProfile,
@@ -77,6 +80,9 @@ const smallAdminPayload = createContentLengthGuard(
 router.post("/bootstrap", adminBootstrapRateLimiter, smallAdminPayload, bootstrapAdmin);
 router.post("/signup", adminBootstrapRateLimiter, smallAdminPayload, signupAdmin);
 router.post("/login", authRouteRateLimiter, smallAdminPayload, loginAdmin);
+router.post("/forgot-password/send-otp", authRouteRateLimiter, smallAdminPayload, sendAdminResetOtp);
+router.post("/forgot-password/verify-otp", authRouteRateLimiter, smallAdminPayload, verifyAdminResetOtp);
+router.post("/reset-password", authRouteRateLimiter, smallAdminPayload, resetAdminPassword);
 
 // Profile routes (accessible by both super and sub admins)
 router.get(

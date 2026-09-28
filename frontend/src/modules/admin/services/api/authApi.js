@@ -13,6 +13,9 @@ export const adminAuthApi = {
     getProfile: () => axiosInstance.get('/admin/profile'),
     updateProfile: (data) => axiosInstance.put('/admin/profile', data),
     updatePassword: (data) => axiosInstance.put('/admin/profile/password', data),
+    sendResetOtp: (data) => axiosInstance.post('/admin/forgot-password/send-otp', data),
+    verifyResetOtp: (data) => axiosInstance.post('/admin/forgot-password/verify-otp', data),
+    resetPassword: (data) => axiosInstance.post('/admin/reset-password', data),
 };
 
 export default adminAuthApi;

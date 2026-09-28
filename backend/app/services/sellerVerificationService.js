@@ -244,10 +244,11 @@ export function verifySellerVerificationToken({ channel, rawValue, token, purpos
   const normalizedTarget = normalizeTarget(normalizedChannel, rawValue);
 
   if (!token) {
+    const actionText = purpose === SELLER_RESET_PURPOSE ? "reset password" : "signup";
     const error = new Error(
       normalizedChannel === "email"
-        ? "Email verification is required before signup"
-        : "Phone verification is required before signup",
+        ? `Email verification is required to ${actionText}`
+        : `Phone verification is required to ${actionText}`,
     );
     error.statusCode = 400;
     throw error;
@@ -504,7 +505,6 @@ export async function issueSellerResetOtp({
   }
 
   let otp = generateSellerOtp(normalizedChannel);
-  otp = "1234";
   const expiresAt = new Date(now.getTime() + OTP_EXPIRY_MINUTES() * 60 * 1000);
 
   if (!session) {
