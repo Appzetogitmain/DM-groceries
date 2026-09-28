@@ -258,7 +258,24 @@ const Auth = () => {
   };
 
   const handleDocumentChange = (e, docName) => {
-    setDocuments({ ...documents, [docName]: e.target.files[0] });
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (e.target.id.startsWith("pdf-")) {
+      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        toast.error("Invalid file type. Please select a valid PDF file.");
+        e.target.value = "";
+        return;
+      }
+    } else if (e.target.id.startsWith("gallery-") || e.target.id.startsWith("camera-")) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Invalid file type. Please select an image.");
+        e.target.value = "";
+        return;
+      }
+    }
+
+    setDocuments({ ...documents, [docName]: file });
   };
 
   const handleSendVerificationOtp = async (field) => {
@@ -1021,7 +1038,7 @@ const Auth = () => {
                               type="file"
                               id={`pdf-${doc.id}`}
                               className="hidden"
-                              accept="application/pdf,.pdf"
+                              accept="application/pdf"
                               onChange={(e) => handleDocumentChange(e, doc.id)}
                             />
                             <div
