@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Calendar, ReceiptText, CircleDollarSign, Loader2, DollarSign, Wallet, TrendingUp, TrendingDown, ArrowRightLeft, RotateCw } from "lucide-react";
+import { Calendar, ReceiptText, CircleDollarSign, Loader2, DollarSign, Wallet, TrendingUp, TrendingDown, ArrowRightLeft, RotateCw, IndianRupee } from "lucide-react";
 import { formatOrderId } from "@/lib/utils";
 import { toast } from "sonner";
 import Card from "@/shared/components/ui/Card";

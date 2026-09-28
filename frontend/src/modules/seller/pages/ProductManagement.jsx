@@ -21,6 +21,7 @@ import {
   HiOutlineFolderOpen,
   HiOutlineSwatch,
   HiOutlineSquaresPlus,
+  HiOutlineArrowLeft,
 } from "react-icons/hi2";
 import Modal from "@shared/components/ui/Modal";
 import { cn } from "@/lib/utils";
@@ -510,18 +511,27 @@ const ProductManagement = () => {
     <div className="space-y-6 pb-16">
 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            Product List
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors"
+            title="Go Back"
+          >
+            <HiOutlineArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              Product List
             <Badge
               variant="primary"
               className="text-[9px] px-1.5 py-0 font-bold tracking-wider uppercase">
               Live
             </Badge>
           </h1>
-          <p className="text-gray-500 mt-1">
-            Track your items, prices, and how many are left in stock.
-          </p>
+            <p className="text-gray-500 mt-1">
+              Track your items, prices, and how many are left in stock.
+            </p>
+          </div>
         </div>
         <button
           onClick={() => navigate("/seller/products/add")}

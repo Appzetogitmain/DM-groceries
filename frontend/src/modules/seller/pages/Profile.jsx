@@ -49,6 +49,7 @@ const SellerProfile = () => {
   const { refreshEarnings } = useSellerEarnings();
   const [profile, setProfile] = useState(null);
   const [statsData, setStatsData] = useState(null);
+  const [subscription, setSubscription] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -91,6 +92,7 @@ const SellerProfile = () => {
         setStatsData(statsRes.data.result);
       }
       if (subRes.data?.success) {
+        setSubscription(subRes.data.result);
         const feats = subRes.data.result?.plan?.features || [];
         const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
         const hasIt = feats.some(f => normalizeCode(f.code) === "CUSTOMDELIVERYRADIUS" && f.status === "ACTIVE");
@@ -838,33 +840,63 @@ const SellerProfile = () => {
       </Card>
 
       {/* ==================== SIXTH ROW (Membership Card) ==================== */}
-      <Card className="bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-700 text-white p-6 md:p-8 rounded-[20px] shadow-lg relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none translate-x-12 -translate-y-12">
-          <Zap size={180} />
-        </div>
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2 text-center md:text-left">
-            <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
-              Growth Partner Program
-            </span>
-            <h3 className="text-xl font-bold tracking-tight">Active Plan: Premium Seller Gold</h3>
-            <p className="text-white/80 text-xs font-medium">Plan Expires on: December 31, 2026</p>
-
-            <div className="flex flex-wrap gap-2 justify-center md:justify-start pt-2">
-              <span className="bg-white/10 px-2.5 py-0.5 rounded text-[10px] font-semibold">⚡ Priority Support</span>
-              <span className="bg-white/10 px-2.5 py-0.5 rounded text-[10px] font-semibold">⚡ 0% commission limit</span>
-              <span className="bg-white/10 px-2.5 py-0.5 rounded text-[10px] font-semibold">⚡ Dedicated Relationship Manager</span>
-            </div>
+      {subscription && subscription.plan ? (
+        <Card className="bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-700 text-white p-6 md:p-8 rounded-[20px] shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none translate-x-12 -translate-y-12">
+            <Zap size={180} />
           </div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2 text-center md:text-left">
+              <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
+                Seller Program
+              </span>
+              <h3 className="text-xl font-bold tracking-tight">Active Plan: {subscription.plan.name}</h3>
+              <p className="text-white/80 text-xs font-medium">
+                Plan Expires on: {subscription.endDate ? new Date(subscription.endDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "Never"}
+              </p>
 
-          <Button
-            type="button"
-            className="w-full md:w-auto bg-white text-yellow-800 hover:bg-slate-50 transition-all rounded-xl px-8 py-3.5 font-bold text-xs shadow-md whitespace-nowrap hover:scale-105 active:scale-95"
-          >
-            Renew Plan
-          </Button>
-        </div>
-      </Card>
+              <div className="flex flex-wrap gap-2 justify-center md:justify-start pt-2">
+                {(subscription.plan.features || []).slice(0, 4).map((f, i) => (
+                  <span key={i} className="bg-white/10 px-2.5 py-0.5 rounded text-[10px] font-semibold">
+                    ⚡ {f.name || f.code || "Premium Feature"}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              onClick={() => window.location.href = "/seller/subscription"}
+              className="w-full md:w-auto bg-white text-yellow-800 hover:bg-slate-50 transition-all rounded-xl px-8 py-3.5 font-bold text-xs shadow-md whitespace-nowrap hover:scale-105 active:scale-95"
+            >
+              {subscription.status === "ACTIVE" ? "Manage Plan" : "Renew Plan"}
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <Card className="bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 text-white p-6 md:p-8 rounded-[20px] shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none translate-x-12 -translate-y-12">
+            <Zap size={180} />
+          </div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2 text-center md:text-left">
+              <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
+                Basic Tier
+              </span>
+              <h3 className="text-xl font-bold tracking-tight">Active Plan: Free / Basic</h3>
+              <p className="text-white/80 text-xs font-medium">Upgrade to access premium features like 0% commission limit.</p>
+            </div>
+
+            <Button
+              type="button"
+              onClick={() => window.location.href = "/seller/subscription"}
+              className="w-full md:w-auto bg-white text-slate-900 hover:bg-slate-50 transition-all rounded-xl px-8 py-3.5 font-bold text-xs shadow-md whitespace-nowrap hover:scale-105 active:scale-95"
+            >
+              Upgrade Now
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* ==================== SEVENTH ROW (Quick Actions) ==================== */}
       <div className="space-y-4">
@@ -874,10 +906,8 @@ const SellerProfile = () => {
             { label: "Manage Products", icon: Award, path: "/seller/products" },
             { label: "Manage Orders", icon: ShoppingBag, path: "/seller/orders" },
             { label: "Wallet", icon: Wallet, path: "/seller/withdrawals" },
-            { label: "Membership", icon: Zap, path: "#" },
-            { label: "Reports", icon: BarChart3, path: "/seller/analytics" },
-            { label: "Support", icon: FileText, path: "/seller/support" },
-            { label: "Privacy", icon: Shield, path: "/seller/privacy" }
+            { label: "Membership", icon: Zap, path: "/seller/subscription" },
+            { label: "Reports", icon: BarChart3, path: "/seller/analytics" }
           ].map((act, idx) => (
             <motion.a
               href={act.path}
