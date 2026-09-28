@@ -31,17 +31,34 @@ const Documents = () => {
       const res = await deliveryApi.getProfile();
       const profile = res.data.result;
       
-      if (profile && profile.documents) {
+      if (profile) {
+        const pendingDocs = profile.pendingDocuments || {};
+        const verifiedDocs = profile.documents || {};
+        
         setDocs(prevDocs => prevDocs.map(doc => {
-          const docUrl = profile.documents[doc.id];
-          if (docUrl) {
-            // Extract filename from URL or use a generic name
+          // If there's a pending document for this type
+          if (pendingDocs[doc.id]) {
+            const docUrl = pendingDocs[doc.id];
+            const fileName = docUrl.split('/').pop() || `${doc.title} Document`;
+            let status = pendingDocs.status === "pending" ? "Pending" : pendingDocs.status === "rejected" ? "Rejected" : "Verified";
+            
+            return {
+              ...doc,
+              fileName: fileName,
+              url: docUrl,
+              status: status,
+              reason: pendingDocs.rejectionReason,
+            };
+          }
+          // Fallback to verified document if it exists
+          else if (verifiedDocs[doc.id]) {
+            const docUrl = verifiedDocs[doc.id];
             const fileName = docUrl.split('/').pop() || `${doc.title} Document`;
             return {
               ...doc,
               fileName: fileName,
               url: docUrl,
-              status: "Verified", // Assuming verified if it exists, since we don't have per-doc status in schema yet
+              status: "Verified",
             };
           }
           return doc;
@@ -70,8 +87,8 @@ const Documents = () => {
       formData.append(activeUploadId, file);
 
       toast.loading(`Uploading ${activeUploadId}...`, { id: "upload-doc" });
-      await deliveryApi.updateProfile(formData);
-      toast.success("Document updated successfully", { id: "upload-doc" });
+      await deliveryApi.updateDocuments(formData);
+      toast.success("Document updated successfully and sent for verification", { id: "upload-doc" });
       
       // Refresh docs
       fetchProfile();

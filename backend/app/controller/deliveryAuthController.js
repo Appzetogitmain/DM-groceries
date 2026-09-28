@@ -311,6 +311,82 @@ export const updateDeliveryProfile = async (req, res) => {
 };
 
 /* ===============================
+   UPDATE DOCUMENTS
+================================ */
+export const updateDeliveryDocuments = async (req, res) => {
+    try {
+        const deliveryId = req.user.id;
+
+        let delivery = await Delivery.findById(deliveryId);
+        if (!delivery) {
+            return handleResponse(res, 404, "Delivery partner not found");
+        }
+
+        let pendingDocuments = delivery.pendingDocuments || {};
+        
+        let hasNewUploads = false;
+        if (req.files && Array.isArray(req.files)) {
+            for (const file of req.files) {
+                const url = await uploadToCloudinary(file.buffer);
+                if (file.fieldname === "aadhar") pendingDocuments.aadhar = url;
+                if (file.fieldname === "pan") pendingDocuments.pan = url;
+                if (file.fieldname === "drivingLicense") pendingDocuments.drivingLicense = url;
+                if (file.fieldname === "rcBook") pendingDocuments.rcBook = url;
+                if (file.fieldname === "policeClearance") pendingDocuments.policeClearance = url;
+                if (file.fieldname === "bankPassbook") pendingDocuments.bankPassbook = url;
+                hasNewUploads = true;
+            }
+        }
+
+        if (hasNewUploads) {
+            pendingDocuments.status = "pending";
+            pendingDocuments.rejectionReason = "";
+            delivery.pendingDocuments = pendingDocuments;
+            await delivery.save();
+        }
+
+        return handleResponse(res, 200, "Documents submitted for verification", delivery);
+    } catch (error) {
+        console.error("Update Delivery Documents Error:", error);
+        return handleResponse(res, 500, "Internal Server Error");
+    }
+};
+
+/* ===============================
+   UPDATE VEHICLE INFO
+================================ */
+export const updateDeliveryVehicleInfo = async (req, res) => {
+    try {
+        const deliveryId = req.user.id;
+        const { vehicleType, vehicleNumber, drivingLicenseNumber } = req.body;
+
+        let delivery = await Delivery.findById(deliveryId);
+        if (!delivery) {
+            return handleResponse(res, 404, "Delivery partner not found");
+        }
+
+        let pendingVehicleInfo = delivery.pendingVehicleInfo || {};
+        
+        pendingVehicleInfo = {
+            ...pendingVehicleInfo,
+            vehicleType: vehicleType || pendingVehicleInfo.vehicleType || delivery.vehicleType,
+            vehicleNumber: vehicleNumber || pendingVehicleInfo.vehicleNumber || delivery.vehicleNumber,
+            drivingLicenseNumber: drivingLicenseNumber || pendingVehicleInfo.drivingLicenseNumber || delivery.drivingLicenseNumber,
+            status: "pending",
+            rejectionReason: ""
+        };
+
+        delivery.pendingVehicleInfo = pendingVehicleInfo;
+        await delivery.save();
+
+        return handleResponse(res, 200, "Vehicle info submitted for verification", delivery);
+    } catch (error) {
+        console.error("Update Delivery Vehicle Info Error:", error);
+        return handleResponse(res, 500, "Internal Server Error");
+    }
+};
+
+/* ===============================
    DELETE ACCOUNT
 ================================ */
 export const deleteDeliveryAccount = async (req, res) => {

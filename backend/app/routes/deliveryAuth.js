@@ -5,6 +5,8 @@ import {
   verifyDeliveryOTP,
   getDeliveryProfile,
   updateDeliveryProfile,
+  updateDeliveryDocuments,
+  updateDeliveryVehicleInfo,
   deleteDeliveryAccount,
 } from "../controller/deliveryAuthController.js";
 import {
@@ -37,6 +39,8 @@ router.post("/verify-otp", verifyDeliveryOTP);
 // Profile routes
 router.get("/profile", verifyToken, getDeliveryProfile);
 router.put("/profile", verifyToken, upload.any(), updateDeliveryProfile);
+router.put("/profile/documents", verifyToken, upload.any(), updateDeliveryDocuments);
+router.put("/profile/vehicle-info", verifyToken, updateDeliveryVehicleInfo);
 router.delete("/profile/delete", verifyToken, deleteDeliveryAccount);
 router.get("/stats", verifyToken, getDeliveryStats);
 router.get("/earnings", verifyToken, getDeliveryEarnings);

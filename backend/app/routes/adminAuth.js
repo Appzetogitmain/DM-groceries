@@ -13,8 +13,14 @@ import {
     updateAdminPassword,
     getAdminStats,
     getDeliveryPartners,
+    getPendingDeliveryDocuments,
     approveDeliveryPartner,
     rejectDeliveryPartner,
+    approveDeliveryDocuments,
+    rejectDeliveryDocuments,
+    getPendingDeliveryVehicleInfo,
+    approveDeliveryVehicleInfo,
+    rejectDeliveryVehicleInfo,
     getActiveFleet,
     getAdminWalletData,
     getDeliveryTransactions,
@@ -257,6 +263,56 @@ router.delete(
     allowRoles("admin"),
     requirePermission("delivery", "delete"),
     rejectDeliveryPartner
+);
+
+router.get(
+    "/delivery-partners/pending-documents",
+    verifyToken,
+    allowRoles("admin"),
+    requirePermission("delivery", "view"),
+    getPendingDeliveryDocuments
+);
+
+router.patch(
+    "/delivery-partners/:id/approve-documents",
+    verifyToken,
+    allowRoles("admin"),
+    requirePermission("delivery", "create"),
+    approveDeliveryDocuments
+);
+
+router.patch(
+    "/delivery-partners/:id/reject-documents",
+    verifyToken,
+    allowRoles("admin"),
+    requirePermission("delivery", "create"),
+    rejectDeliveryDocuments
+);
+
+router.get(
+    "/delivery-partners/pending-vehicle-info",
+    verifyToken,
+    allowRoles("admin"),
+    requirePermission("delivery", "view"),
+    getPendingDeliveryVehicleInfo
+);
+
+router.get("/delivery-partners/pending-vehicle-info-test", getPendingDeliveryVehicleInfo);
+
+router.patch(
+    "/delivery-partners/:id/approve-vehicle-info",
+    verifyToken,
+    allowRoles("admin"),
+    requirePermission("delivery", "create"),
+    approveDeliveryVehicleInfo
+);
+
+router.patch(
+    "/delivery-partners/:id/reject-vehicle-info",
+    verifyToken,
+    allowRoles("admin"),
+    requirePermission("delivery", "create"),
+    rejectDeliveryVehicleInfo
 );
 
 router.get("/active-fleet", verifyToken, allowRoles("admin"), requirePermission("delivery", "view"), getActiveFleet);

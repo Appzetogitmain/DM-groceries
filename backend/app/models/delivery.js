@@ -63,6 +63,16 @@ const deliverySchema = new mongoose.Schema(
             bankPassbook: { type: String },
         },
 
+        pendingDocuments: {
+            aadhar: { type: String },
+            pan: { type: String },
+            drivingLicense: { type: String },
+            policeClearance: { type: String },
+            bankPassbook: { type: String },
+            status: { type: String, enum: ['none', 'pending', 'rejected'], default: 'none' },
+            rejectionReason: { type: String },
+        },
+
         emergencyContacts: [
             {
                 name: { type: String, required: true },
@@ -85,9 +95,35 @@ const deliverySchema = new mongoose.Schema(
             trim: true,
         },
 
+        vehicleModel: {
+            type: String,
+            trim: true,
+        },
+
+        vehicleColor: {
+            type: String,
+            trim: true,
+        },
+
+        fuelType: {
+            type: String,
+            trim: true,
+        },
+
         drivingLicenseNumber: {
             type: String,
             trim: true,
+        },
+
+        pendingVehicleInfo: {
+            vehicleType: { type: String },
+            vehicleModel: { type: String },
+            vehicleNumber: { type: String },
+            vehicleColor: { type: String },
+            fuelType: { type: String },
+            drivingLicenseNumber: { type: String },
+            status: { type: String, enum: ['none', 'pending', 'rejected'], default: 'none' },
+            rejectionReason: { type: String },
         },
 
         currentArea: {

@@ -11,6 +11,18 @@ export const adminDeliveryApi = {
         axiosInstance.patch(`/admin/delivery-partners/approve/${id}`),
     rejectDeliveryPartner: (id) =>
         axiosInstance.delete(`/admin/delivery-partners/reject/${id}`),
+    getPendingDeliveryDocuments: (params) =>
+        axiosInstance.get('/admin/delivery-partners/pending-documents', { params }),
+    approveDeliveryDocuments: (id) =>
+        axiosInstance.patch(`/admin/delivery-partners/${id}/approve-documents`),
+    rejectDeliveryDocuments: (id, data) =>
+        axiosInstance.patch(`/admin/delivery-partners/${id}/reject-documents`, data),
+    getPendingDeliveryVehicleInfo: (params) =>
+        axiosInstance.get('/admin/delivery-partners/pending-vehicle-info', { params }),
+    approveDeliveryVehicleInfo: (id) =>
+        axiosInstance.patch(`/admin/delivery-partners/${id}/approve-vehicle-info`),
+    rejectDeliveryVehicleInfo: (id, data) =>
+        axiosInstance.patch(`/admin/delivery-partners/${id}/reject-vehicle-info`, data),
     getActiveFleet: (params) =>
         axiosInstance.get('/admin/active-fleet', { params }),
     getDeliveryReviews: (params) =>

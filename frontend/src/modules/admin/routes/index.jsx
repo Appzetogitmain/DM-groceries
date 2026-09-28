@@ -57,6 +57,12 @@ const ActiveDeliveryBoys = React.lazy(
 const PendingDeliveryBoys = React.lazy(
   () => import("../pages/PendingDeliveryBoys"),
 );
+const DeliveryDocumentApprovals = React.lazy(
+  () => import("../pages/DeliveryDocumentApprovals"),
+);
+const DeliveryVehicleApprovals = React.lazy(
+  () => import("../pages/DeliveryVehicleApprovals"),
+);
 const DeliveryFunds = React.lazy(() => import("../pages/DeliveryFunds"));
 const DeliveryReviewsPage = React.lazy(() => import("../pages/DeliveryReviewsPage"));
 const AdminWallet = React.lazy(() => import("../pages/AdminWallet"));
@@ -181,6 +187,8 @@ const navItems = [
     children: [
       { label: "Active Drivers", path: "/admin/delivery-boys/active" },
       { label: "Waiting for Review", path: "/admin/delivery-boys/pending" },
+      { label: "Document Approvals", path: "/admin/delivery-boys/document-approvals" },
+      { label: "Vehicle Info Approvals", path: "/admin/delivery-boys/vehicle-approvals" },
       { label: "Track Drivers", path: "/admin/tracking" },
       { label: "Send Money", path: "/admin/delivery-funds" },
       { label: "Delivery Reviews", path: "/admin/delivery-reviews" },
@@ -443,6 +451,16 @@ const AdminRoutes = () => {
         <Route path="/delivery-boys/pending" element={
           <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
             <PendingDeliveryBoys />
+          </PermissionGuard>
+        } />
+        <Route path="/delivery-boys/document-approvals" element={
+          <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
+            <DeliveryDocumentApprovals />
+          </PermissionGuard>
+        } />
+        <Route path="/delivery-boys/vehicle-approvals" element={
+          <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
+            <DeliveryVehicleApprovals />
           </PermissionGuard>
         } />
         <Route path="/tracking" element={

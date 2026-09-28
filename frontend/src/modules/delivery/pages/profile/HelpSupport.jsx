@@ -129,12 +129,7 @@ const HelpSupport = () => {
           </div>
         </section>
 
-        <div className="text-center pt-4">
-          <p className="text-gray-400 text-xs">Still need help?</p>
-          <Button variant="link" className="text-[#1A4516] font-bold text-xs p-0 h-auto mt-1 hover:underline">
-            View All FAQs
-          </Button>
-        </div>
+
       </div>
     </div>
   );

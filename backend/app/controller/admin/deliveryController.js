@@ -124,6 +124,168 @@ export const rejectDeliveryPartner = async (req, res) => {
   }
 };
 
+export const getPendingDeliveryDocuments = async (req, res) => {
+  try {
+    const { page, limit, skip } = getPagination(req, {
+      defaultLimit: 25,
+      maxLimit: 200,
+    });
+
+    const query = { "pendingDocuments.status": "pending" };
+
+    const [partners, total] = await Promise.all([
+      Delivery.find(query)
+        .select("name phone pendingDocuments documents")
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Delivery.countDocuments(query),
+    ]);
+
+    return handleResponse(res, 200, "Pending documents fetched", {
+      items: partners,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+    });
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+export const approveDeliveryDocuments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const delivery = await Delivery.findById(id);
+
+    if (!delivery || !delivery.pendingDocuments || delivery.pendingDocuments.status !== "pending") {
+      return handleResponse(res, 404, "No pending documents found");
+    }
+
+    if (!delivery.documents) delivery.documents = {};
+
+    // Copy fields
+    const fieldsToCopy = ["aadhar", "pan", "drivingLicense", "policeClearance", "bankPassbook"];
+    fieldsToCopy.forEach(field => {
+      if (delivery.pendingDocuments[field]) {
+        delivery.documents[field] = delivery.pendingDocuments[field];
+      }
+    });
+
+    delivery.pendingDocuments.status = "none";
+    delivery.pendingDocuments.rejectionReason = "";
+
+    await delivery.save();
+
+    return handleResponse(res, 200, "Documents approved successfully");
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+export const rejectDeliveryDocuments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const delivery = await Delivery.findById(id);
+
+    if (!delivery || !delivery.pendingDocuments || delivery.pendingDocuments.status !== "pending") {
+      return handleResponse(res, 404, "No pending documents found");
+    }
+
+    delivery.pendingDocuments.status = "rejected";
+    delivery.pendingDocuments.rejectionReason = reason || "Rejected by admin";
+
+    await delivery.save();
+
+    return handleResponse(res, 200, "Documents rejected");
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+export const getPendingDeliveryVehicleInfo = async (req, res) => {
+  try {
+    const { page, limit, skip } = getPagination(req, {
+      defaultLimit: 25,
+      maxLimit: 200,
+    });
+
+    const query = { "pendingVehicleInfo.status": "pending" };
+
+    const [partners, total] = await Promise.all([
+      Delivery.find(query)
+        .select("name phone pendingVehicleInfo vehicleType vehicleModel vehicleNumber vehicleColor fuelType drivingLicenseNumber")
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Delivery.countDocuments(query),
+    ]);
+
+    return handleResponse(res, 200, "Pending vehicle info fetched", {
+      items: partners,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+    });
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+export const approveDeliveryVehicleInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const delivery = await Delivery.findById(id);
+
+    if (!delivery || !delivery.pendingVehicleInfo || delivery.pendingVehicleInfo.status !== "pending") {
+      return handleResponse(res, 404, "No pending vehicle info found");
+    }
+
+    // Copy fields
+    const fieldsToCopy = ["vehicleType", "vehicleModel", "vehicleNumber", "vehicleColor", "fuelType", "drivingLicenseNumber"];
+    fieldsToCopy.forEach(field => {
+      if (delivery.pendingVehicleInfo[field]) {
+        delivery[field] = delivery.pendingVehicleInfo[field];
+      }
+    });
+
+    delivery.pendingVehicleInfo.status = "none";
+    delivery.pendingVehicleInfo.rejectionReason = "";
+
+    await delivery.save();
+
+    return handleResponse(res, 200, "Vehicle info approved successfully");
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+export const rejectDeliveryVehicleInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const delivery = await Delivery.findById(id);
+
+    if (!delivery || !delivery.pendingVehicleInfo || delivery.pendingVehicleInfo.status !== "pending") {
+      return handleResponse(res, 404, "No pending vehicle info found");
+    }
+
+    delivery.pendingVehicleInfo.status = "rejected";
+    delivery.pendingVehicleInfo.rejectionReason = reason || "Rejected by admin";
+
+    await delivery.save();
+
+    return handleResponse(res, 200, "Vehicle info rejected");
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
 export const getActiveFleet = async (req, res) => {
   try {
     const { page, limit, skip } = getPagination(req, {
