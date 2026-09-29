@@ -750,12 +750,12 @@ const CheckoutPage = () => {
       setRecommendedProducts([]);
       return;
     }
-    const categoryId = cart[0]?.categoryId?._id || cart[0]?.categoryId;
-    if (!categoryId) return;
+    const sellerId = cart[0]?.sellerId;
+    if (!sellerId) return;
 
     const cartIds = new Set(cart.map((i) => i.id || i._id));
     const queryParams = {
-        categoryId,
+        sellerId,
         limit: 10,
     };
     if (currentLocation?.latitude && currentLocation?.longitude) {
@@ -767,7 +767,7 @@ const CheckoutPage = () => {
       .getProducts(queryParams)
       .then((res) => {
         if (res.data?.success) {
-          const items = (res.data.result?.items || [])
+          const items = (res.data.result?.items || res.data.results || [])
             .map((p) => ({ ...p, id: p._id, image: p.image || p.mainImage }))
             .filter((p) => !cartIds.has(p.id));
           setRecommendedProducts(items.slice(0, 8));

@@ -14,12 +14,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@shared/components/ui/Toast';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
+import { customerApi } from '../services/customerApi';
+import ProductCard from '../components/shared/ProductCard';
 
 const CartPage = () => {
     const { cart, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
     const { showToast } = useToast();
     const itemCount = cart.reduce((count, item) => count + item.quantity, 0);
     const [emptyBoxData, setEmptyBoxData] = useState(null);
+    const [recommendedProducts, setRecommendedProducts] = useState([]);
 
     // Dynamically load empty-box Lottie when cart is empty
     useEffect(() => {
@@ -29,6 +32,25 @@ const CartPage = () => {
                 .catch(() => {});
         }
     }, [cart.length === 0]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Fetch recommended products from the same vendor
+    useEffect(() => {
+        if (cart.length > 0) {
+            const sellerId = cart[0].sellerId;
+            if (sellerId) {
+                customerApi.getProducts({ sellerId, limit: 10 }).then(res => {
+                    if (res.data?.success) {
+                        const items = res.data.result?.items || res.data.results || [];
+                        const cartProductIds = new Set(cart.map(item => item.id || item._id));
+                        const filtered = items.filter(p => !cartProductIds.has(p.id || p._id));
+                        setRecommendedProducts(filtered);
+                    }
+                }).catch(console.error);
+            }
+        } else {
+            setRecommendedProducts([]);
+        }
+    }, [cart]);
 
     const handleRemove = (id, name, variantSku = "") => {
         removeFromCart(id, variantSku);
@@ -150,6 +172,22 @@ const CartPage = () => {
                                     Clear Cart
                                 </button>
                             </div>
+                            
+                            {/* You Might Also Like Section */}
+                            {recommendedProducts.length > 0 && (
+                                <div className="mt-8 bg-white/80 rounded-[1.5rem] border border-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-5">
+                                    <h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight mb-4">
+                                        You might also like
+                                    </h3>
+                                    <div className="flex gap-4 overflow-x-auto pb-4 snap-x no-scrollbar -mx-5 px-5 md:mx-0 md:px-0">
+                                        {recommendedProducts.map(product => (
+                                            <div key={product.id || product._id} className="flex-shrink-0 w-[140px] md:w-[160px] snap-start">
+                                                <ProductCard product={product} compact={true} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </section>
 
                         <aside className="lg:sticky lg:top-28 h-fit">
