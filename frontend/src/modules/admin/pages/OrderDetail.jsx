@@ -241,8 +241,11 @@ const OrderDetail = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    {order.items.map((item) => (
-                                        <tr key={item._id} className="group hover:bg-slate-50/30 transition-all">
+                                    {order.items.map((item, idx) => {
+                                        const returnedItem = Array.isArray(order.returnItems) ? order.returnItems.find(ri => ri.itemIndex === idx || (ri.product && item.product && ri.product === (item.product?._id || item.product))) : null;
+                                        const isReturned = !!returnedItem;
+                                        return (
+                                        <tr key={item._id} className={`group transition-all ${isReturned ? 'bg-amber-50/50' : 'hover:bg-slate-50/30'}`}>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-4">
                                                     <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center ds-h1 shadow-inner border border-slate-100 group-hover:scale-110 transition-transform overflow-hidden">
@@ -253,18 +256,29 @@ const OrderDetail = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-sm font-black text-slate-900">{item.name}</h4>
+                                                        <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                                                            {item.name}
+                                                            {isReturned && (
+                                                                <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                                    Returned
+                                                                </span>
+                                                            )}
+                                                        </h4>
                                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {item.product?._id || item.product}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5 text-center text-sm font-bold text-slate-600">₹{item.price}</td>
-                                            <td className="px-6 py-5 text-center">
+                                            <td className="px-6 py-5 text-center flex flex-col items-center justify-center gap-1">
                                                 <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black text-slate-700">x{item.quantity}</span>
+                                                {isReturned && returnedItem.quantity !== item.quantity && (
+                                                    <span className="text-[10px] font-bold text-amber-600">Ret: {returnedItem.quantity}</span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-5 text-right text-sm font-black text-slate-900">₹{item.price * item.quantity}</td>
                                         </tr>
-                                    ))}
+                                        )
+                                    })}
                                 </tbody>
                             </table>
                         </div>

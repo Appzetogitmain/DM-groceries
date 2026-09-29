@@ -1192,10 +1192,13 @@ const OrderDetailPage = () => {
             Order Items
           </h3>
           <div className="space-y-3">
-            {order.items.map((item, idx) => (
+            {order.items.map((item, idx) => {
+              const returnedItem = Array.isArray(returnDetails?.returnItems) ? returnDetails.returnItems.find(ri => ri.itemIndex === idx || (ri.product && item.product && ri.product === item.product)) : null;
+              const isReturned = !!returnedItem;
+              return (
               <div
                 key={idx}
-                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                className={`flex items-center gap-3 p-3 rounded-2xl transition-colors ${isReturned ? 'bg-amber-50/50' : 'hover:bg-slate-50'}`}>
                 <div className="h-14 w-14 bg-slate-50 rounded-xl overflow-hidden flex-shrink-0 border border-slate-100">
                   <img
                     src={applyCloudinaryTransform(item.image)}
@@ -1205,11 +1208,16 @@ const OrderDetailPage = () => {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-slate-800 text-sm mb-0.5 truncate">
+                  <h4 className="font-semibold text-slate-800 text-sm mb-0.5 truncate flex items-center gap-2">
                     {item.name}
+                    {isReturned && (
+                      <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        Returned
+                      </span>
+                    )}
                   </h4>
                   <p className="text-slate-500 text-xs font-medium">
-                    Qty: {item.quantity}
+                    Qty: {item.quantity} {isReturned && returnedItem.quantity !== item.quantity ? <span className="text-amber-600 font-bold ml-1">(Returned: {returnedItem.quantity})</span> : ''}
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -1218,7 +1226,7 @@ const OrderDetailPage = () => {
                   </p>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </motion.div>
 

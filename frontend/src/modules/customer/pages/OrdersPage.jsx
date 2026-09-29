@@ -102,7 +102,14 @@ const OrdersPage = () => {
                             <div className="flex justify-between items-start gap-3 mb-3.5">
                                 <div className="flex gap-3.5 flex-1 min-w-0">
                                     <div className="h-12 w-12 rounded-xl overflow-hidden flex items-center justify-center bg-slate-50 ring-1 ring-slate-200/90 shrink-0">
-                                        {order.items[0]?.image ? (
+                                        {(order.returnStatus && order.returnStatus !== "none" && order.returnItems?.[0]?.image) ? (
+                                            <img
+                                                src={applyCloudinaryTransform(order.returnItems[0].image)}
+                                                alt={order.returnItems[0]?.name || 'Return thumbnail'}
+                                                loading="lazy"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : order.items[0]?.image ? (
                                             <img
                                                 src={applyCloudinaryTransform(order.items[0].image)}
                                                 alt={order.items[0]?.name || 'Order thumbnail'}

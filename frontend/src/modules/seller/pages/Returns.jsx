@@ -659,7 +659,7 @@ const Returns = () => {
                                         <div className="space-y-1.5 flex flex-col h-full group">
                                             <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner group-hover:border-slate-300 transition-colors">
                                                 <img
-                                                    src={selectedReturn.items?.[0]?.image || "https://placehold.co/400x400/f8fafc/64748b?text=Original"}
+                                                    src={selectedReturn.returnItems?.[0]?.image || selectedReturn.items?.[0]?.image || "https://placehold.co/400x400/f8fafc/64748b?text=Original"}
                                                     alt="Original"
                                                     className="h-full w-full object-cover"
                                                 />

@@ -718,7 +718,7 @@ const OrderDetails = () => {
                     Items to pick up
                   </p>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar-dark text-left">
-                    {(order.returnItems || order.items)?.map((item, i) => (
+                    {(isReturn ? order.returnItems : order.items)?.map((item, i) => (
                       <div key={i} className="flex items-center gap-3 bg-white/10 p-2 rounded-xl border border-white/5">
                         <div className="h-12 w-12 rounded-lg bg-white overflow-hidden flex-shrink-0">
                           <img
@@ -1080,7 +1080,7 @@ const OrderDetails = () => {
               <div>
                 <span>Order Items</span>
                 <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                  {order.items?.length || 0} items
+                  {(isReturn ? order.returnItems : order.items)?.length || 0} items
                 </span>
               </div>
             </div>
@@ -1130,8 +1130,12 @@ const OrderDetails = () => {
                     </div>
                   ))}
                   <div className="pt-3 mt-2 border-t border-gray-200 flex justify-between items-center">
-                    <span className="text-gray-500 text-sm">Total Bill</span>
-                    <span className="text-lg font-bold text-gray-900">Rs.{order.pricing?.total}</span>
+                    <span className="text-gray-500 text-sm">{isReturn ? "Refund Value" : "Total Bill"}</span>
+                    <span className="text-lg font-bold text-gray-900">
+                      Rs.{isReturn 
+                        ? (order.returnRefundAmount || order.returnItems?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0) 
+                        : order.pricing?.total}
+                    </span>
                   </div>
                 </div>
               </motion.div>

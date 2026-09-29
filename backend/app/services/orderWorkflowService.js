@@ -692,12 +692,15 @@ export async function processDeliveryTimeoutJob({ orderId, attempt }) {
  */
 function returnPickupBroadcastPayloadFromOrder(order, extra = {}) {
   const meta = order.returnSearchMeta || {};
-  const items = Array.isArray(order.items)
-    ? order.items.map((item) => ({
-        name: item.name,
-        quantity: item.quantity,
-        image: item.image || item.thumbnail,
-      }))
+  const items = (Array.isArray(order.returnItems) && order.returnItems.length > 0)
+    ? order.returnItems.map((item) => {
+        const originalItem = Array.isArray(order.items) && item.itemIndex != null ? order.items[item.itemIndex] : {};
+        return {
+          name: item.name,
+          quantity: item.quantity,
+          image: originalItem.image || originalItem.thumbnail || null,
+        };
+      })
     : [];
   const seller =
     order.seller && typeof order.seller === "object" && order.seller !== null

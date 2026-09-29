@@ -164,6 +164,7 @@ const DeliveryLayout = () => {
     const total = typeof p.total === "number" ? p.total : Number(p.total) || 0;
     const dropLabel = typeof p.drop === "string" ? p.drop : String(p.drop);
     const earnings = payload.commission ?? (typeof p.earnings === "number" ? p.earnings : Math.round(total * 0.1));
+    const isReturnPickup = payload.type === "RETURN_PICKUP" || payload.isReturnPickup === true;
     setActiveOrder({
       id: payload.orderId,
       mongoId: undefined,
@@ -174,8 +175,8 @@ const DeliveryLayout = () => {
       value: total,
       earnings: earnings,
       expiresAt: payload.deliverySearchExpiresAt || null,
-      isReturnPickup: payload.type === "RETURN_PICKUP" || payload.isReturnPickup === true,
-      items: payload.items || [],
+      isReturnPickup: isReturnPickup,
+      items: isReturnPickup ? (payload.returnItems || payload.items || []) : (payload.items || []),
     });
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
@@ -227,7 +228,7 @@ const DeliveryLayout = () => {
       earnings: earnings,
       expiresAt: newOrder.deliverySearchExpiresAt || newOrder.returnSearchExpiresAt || null,
       isReturnPickup,
-      items: newOrder.items || [],
+      items: isReturnPickup ? (newOrder.returnItems || newOrder.items || []) : (newOrder.items || []),
     });
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {

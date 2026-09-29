@@ -100,6 +100,7 @@ export class OrderReturnService {
         400,
       );
     }
+    let initialRefundAmount = 0;
     const selectedItems = [];
     for (const entry of items) {
       const { itemIndex, quantity } = entry || {};
@@ -125,6 +126,7 @@ export class OrderReturnService {
         itemIndex,
         status: "requested",
       });
+      initialRefundAmount += (original.price || 0) * qty;
     }
 
     order.returnStatus = "return_requested";
@@ -133,6 +135,7 @@ export class OrderReturnService {
     order.returnConditionAssurance = Boolean(conditionAssurance);
     order.returnImages = Array.isArray(images) ? images.slice(0, 5) : [];
     order.returnItems = selectedItems;
+    order.returnRefundAmount = initialRefundAmount;
     order.returnRequestedAt = now;
     order.returnEligibleAt = now;
     order.returnWindowExpiresAt = null;

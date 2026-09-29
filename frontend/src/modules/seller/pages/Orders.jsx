@@ -893,22 +893,35 @@ const Orders = () => {
 
                                         <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-3 sm:mb-4">Items Ordered ({selectedOrder.items.length})</h4>
                                         <div className="space-y-3 max-h-52 sm:max-h-64 overflow-y-auto pr-1">
-                                            {selectedOrder.items.map((item, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-3 bg-white ring-1 ring-slate-100 rounded-2xl group hover:shadow-md transition-all">
+                                            {selectedOrder.items.map((item, idx) => {
+                                                const returnedItem = Array.isArray(selectedOrder.returnItems) ? selectedOrder.returnItems.find(ri => ri.itemIndex === idx || (ri.product && item.product && ri.product === item.product)) : null;
+                                                const isReturned = !!returnedItem;
+                                                return (
+                                                <div key={idx} className={`flex items-center justify-between p-3 ring-1 ring-slate-100 rounded-2xl group transition-all ${isReturned ? 'bg-amber-50/50 hover:shadow-md' : 'bg-white hover:shadow-md'}`}>
                                                     <div className="flex items-center gap-4">
                                                         <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-50 ring-1 ring-slate-200">
                                                             <img src={item.image} alt={item.name} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-xs font-bold text-slate-900">{item.name}</p>
-                                                            <p className="text-xs font-semibold text-slate-600 mt-0.5">₹{item.price.toFixed(2)} × {item.qty}</p>
+                                                            <p className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                                                                {item.name}
+                                                                {isReturned && (
+                                                                    <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                                        Returned
+                                                                    </span>
+                                                                )}
+                                                            </p>
+                                                            <p className="text-xs font-semibold text-slate-600 mt-0.5">
+                                                                ₹{item.price.toFixed(2)} × {item.qty} {isReturned && returnedItem.quantity !== item.qty ? <span className="text-amber-600 font-bold ml-1">(Returned: {returnedItem.quantity})</span> : ''}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="text-xs font-black text-slate-900">₹{(item.price * item.qty).toFixed(2)}</p>
                                                     </div>
                                                 </div>
-                                            ))}
+                                                )
+                                            })}
                                         </div>
                                     </div>
 
