@@ -165,6 +165,7 @@ const OrderDetailPage = () => {
   const [trail, setTrail] = useState([]);
   const [routePolyline, setRoutePolyline] = useState(null);
   const [handoffOtp, setHandoffOtp] = useState(null);
+  const [showPaymentReminder, setShowPaymentReminder] = useState(false);
   const [clockTick, setClockTick] = useState(Date.now());
   const returnWindowMinutes = useMemo(() => {
     // If settings defines a very short window (like 1 min) during testing, override it to 2 days
@@ -436,6 +437,33 @@ const OrderDetailPage = () => {
       offRoute && offRoute();
     };
   }, [canonicalOrderId]);
+
+  // Payment Reminder Logic
+  useEffect(() => {
+    if (order?.workflowStatus === 'SELLER_ACCEPTED' && order?.customerPaymentPendingExpiresAt) {
+      const expiresAt = new Date(order.customerPaymentPendingExpiresAt).getTime();
+      const checkReminder = () => {
+        const now = Date.now();
+        const remaining = expiresAt - now;
+        // Total time is 5 minutes (300,000ms). If less than or equal to 3 minutes (180,000ms) 
+        // are remaining, then 2 minutes have passed.
+        if (remaining > 0 && remaining <= 3 * 60 * 1000) {
+            setShowPaymentReminder(true);
+        } else {
+            setShowPaymentReminder(false);
+        }
+      };
+
+      // Check immediately
+      checkReminder();
+
+      // Check every 5 seconds
+      const intervalId = setInterval(checkReminder, 5000);
+      return () => clearInterval(intervalId);
+    } else {
+        setShowPaymentReminder(false);
+    }
+  }, [order?.workflowStatus, order?.customerPaymentPendingExpiresAt]);
 
   useEffect(() => {
     const iv = setInterval(() => setClockTick(Date.now()), 30000);
@@ -1586,6 +1614,61 @@ const OrderDetailPage = () => {
                 disabled={isCancelling}>
                 {isCancelling ? "Cancelling..." : "Confirm Cancel"}
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Payment Reminder Modal */}
+      {showPaymentReminder && (
+        <div className="fixed inset-0 z-[700] flex items-center justify-center px-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            onClick={() => setShowPaymentReminder(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative z-10 w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden"
+          >
+            <div className="bg-gradient-to-br from-[#1A4516] to-[#2C6E26] p-6 text-center relative overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl"></div>
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+              
+              <div className="relative z-10">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mb-4 shadow-inner">
+                  <CreditCard size={32} className="text-white animate-bounce" />
+                </div>
+                <h2 className="text-2xl font-black text-white tracking-wider uppercase drop-shadow-md">
+                  PAYMENT
+                </h2>
+                <h3 className="text-xs font-bold text-green-100/80 uppercase tracking-widest mt-1">
+                  Required to Proceed
+                </h3>
+              </div>
+            </div>
+            
+            <div className="p-6 text-center space-y-5">
+              <div className="bg-[#F5FBF5] rounded-2xl p-4 border border-[#1A4516]/10">
+                <p className="text-sm text-[#1A4516] font-medium leading-relaxed">
+                  The seller has <span className="font-bold">accepted</span> your order! Please complete your payment within the next few minutes.
+                </p>
+              </div>
+              
+              <div className="pt-2">
+                <button
+                  onClick={() => {
+                    setShowPaymentReminder(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="w-full bg-[#1A4516] text-white py-4 rounded-2xl text-sm font-bold hover:bg-[#0a3000] transition-all shadow-lg shadow-[#1A4516]/30 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <CreditCard size={18} />
+                  Complete Payment Now
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>

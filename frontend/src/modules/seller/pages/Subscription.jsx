@@ -25,7 +25,6 @@ const Subscription = () => {
     const [plans, setPlans] = useState([]);
     const [offers, setOffers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [viewingPlans, setViewingPlans] = useState(false);
     
     // Checkout state
     const [selectedPlan, setSelectedPlan] = useState(null);
@@ -44,12 +43,11 @@ const Subscription = () => {
             const subRes = await sellerApi.getCurrentSubscription();
             if (subRes.data?.result) {
                 setCurrentSub(subRes.data.result);
-                setViewingPlans(false);
             } else {
                 setCurrentSub(null);
-                setViewingPlans(true);
-                await fetchPlans();
             }
+            // Always fetch all plans so the seller can see/upgrade
+            await fetchPlans();
         } catch (error) {
             toast.error(error.message || "Failed to load subscription details");
         } finally {
@@ -60,7 +58,7 @@ const Subscription = () => {
     const fetchPlans = async () => {
         try {
             const res = await sellerApi.getAvailablePlans();
-            setPlans(res.data?.results || []);
+            setPlans(res.data?.results || res.data?.result || []);
         } catch (error) {
             toast.error("Failed to load plans");
         }
@@ -74,11 +72,6 @@ const Subscription = () => {
         } catch (error) {
             console.error("Failed to load offers", error);
         }
-    };
-
-    const handleUpgradeClick = async () => {
-        await fetchPlans();
-        setViewingPlans(true);
     };
 
     const handleSelectPlan = (plan) => {
@@ -181,7 +174,7 @@ const Subscription = () => {
                 description="Manage your seller plan and feature access"
             />
 
-            {!viewingPlans && currentSub && (
+            {currentSub && (
                 <div className="space-y-6">
                     <Card className="overflow-hidden border-2 border-primary-100">
                         <div className="bg-primary-50 p-6 border-b border-primary-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -192,7 +185,7 @@ const Subscription = () => {
                                 </div>
                                 <p className="text-gray-600 mt-1">Billing Cycle: <span className="font-medium text-gray-900">{currentSub.billingCycle}</span></p>
                             </div>
-                            <Button onClick={handleUpgradeClick} className="flex items-center gap-2">
+                            <Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-2">
                                 <Crown className="w-4 h-4" /> Change / Upgrade Plan
                             </Button>
                         </div>
@@ -246,28 +239,33 @@ const Subscription = () => {
                 </div>
             )}
 
-            {viewingPlans && (
+            {plans.length > 0 && (
                 <div className="space-y-6">
                     {currentSub && (
-                        <Button variant="ghost" onClick={() => setViewingPlans(false)} className="mb-4">
-                            &larr; Back to Current Subscription
-                        </Button>
+                        <div className="border-t border-gray-200 pt-6 mt-6"></div>
                     )}
                     
                     <div className="text-center max-w-2xl mx-auto mb-10">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Choose the right plan for your business</h2>
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                            {currentSub ? 'Upgrade or Change Your Plan' : 'Choose the right plan for your business'}
+                        </h2>
                         <p className="text-gray-600">Select a subscription plan to unlock features and scale your sales.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {plans.map((plan) => (
-                            <div key={plan._id} className="relative flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
-                                {plan.orderLimit === null && (
+                            <div key={plan._id} className={`relative flex flex-col bg-white rounded-2xl border-2 shadow-sm hover:shadow-lg transition-shadow overflow-hidden ${currentSub?.plan?._id === plan._id ? 'border-primary-500 ring-2 ring-primary-200' : 'border-gray-200'}`}>
+                                {currentSub?.plan?._id === plan._id && (
+                                    <div className="absolute top-0 left-0 right-0 bg-primary-500 text-white text-xs font-bold text-center py-1">
+                                        CURRENT PLAN
+                                    </div>
+                                )}
+                                {plan.orderLimit === null && !(currentSub?.plan?._id === plan._id) && (
                                     <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
                                         <Zap className="w-3 h-3" /> BEST VALUE
                                     </div>
                                 )}
-                                <div className="p-6 md:p-8 border-b border-gray-100 flex-1">
+                                <div className={`p-6 md:p-8 border-b border-gray-100 flex-1 ${currentSub?.plan?._id === plan._id ? 'pt-10' : ''}`}>
                                     <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                                     <div className="flex items-baseline gap-2 mb-6">
                                         <span className="text-4xl font-extrabold text-gray-900">₹{plan.monthlyPrice}</span>

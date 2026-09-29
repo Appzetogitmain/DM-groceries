@@ -535,7 +535,7 @@ export async function processSellerTimeoutJob({ orderId }) {
         workflowStatus: WORKFLOW_STATUS.CANCELLED,
         status: "cancelled",
         cancelledBy: "system",
-        cancelReason: "Seller timeout (60s)",
+        cancelReason: "Seller timeout (5m)",
       },
     },
     { new: true },

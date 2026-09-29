@@ -37,7 +37,7 @@ const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({ orderId,
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
             className="text-slate-500 font-medium mb-8">
-            #{orderId?.slice(-6)} — waiting for the seller to accept (60s). If
+            #{orderId?.slice(-6)} — waiting for the seller to accept (5m). If
             they don&apos;t, the order will cancel automatically.
             <br />
             Redirecting to order details…

@@ -8,7 +8,7 @@ import BottomNav from './BottomNav';
 import { sellerApi } from '@/modules/seller/services/sellerApi';
 import { useAuth } from "@core/context/AuthContext";
 import { motion, AnimatePresence } from 'framer-motion';
-import { BellRing, Check, X, Clock, Truck } from 'lucide-react';
+import { BellRing, Check, X, Clock, Truck, AlertTriangle, ArrowUpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn, formatOrderId } from '@/lib/utils';
 import SellerOrdersContext from '@/modules/seller/context/SellerOrdersContext';
@@ -85,6 +85,10 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    // Order Limit state
+    const [orderLimitAlert, setOrderLimitAlert] = useState(null); // null | '90_PERCENT' | 'REACHED'
+    const orderLimitAlertShownRef = useRef(false); // prevent showing on every re-render
+
     // Shared data for seller – single source, avoids duplicate API calls
     const [sellerOrders, setSellerOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
@@ -114,14 +118,15 @@ const DashboardLayout = ({ children, navItems, title }) => {
         return orderRingtoneRef.current;
     };
 
-    const startOrderRingtone = () => {
-        if (!hasOrderNotificationsRef.current) return;
+    const startOrderRingtone = (forceUrgent = false) => {
+        if (!hasOrderNotificationsRef.current && !forceUrgent) return;
         
         const audio = getOrderRingtone();
         audio.loop = true;
         audio.preload = 'auto';
         audio.muted = false;
-        audio.volume = 1;
+        audio.volume = forceUrgent ? 1 : 0.8;
+        audio.playbackRate = forceUrgent ? 1.5 : 1.0;
         audio.play().catch(() => { });
 
         if (!ringtoneRetryTimerRef.current) {
@@ -218,10 +223,36 @@ const DashboardLayout = ({ children, navItems, title }) => {
         
         sellerApi.getCurrentSubscription().then(res => {
             if (res.data?.success) {
-                const feats = res.data.result?.plan?.features || [];
+                const sub = res.data.result;
+                const feats = sub?.plan?.features || [];
                 const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[_ ]/g, "");
                 const hasIt = feats.some(f => normalizeCode(f.code) === "ORDERNOTIFICATIONS" && f.status === "ACTIVE");
                 hasOrderNotificationsRef.current = hasIt;
+
+                // Check order limit usage
+                if (sub && sub.orderLimit !== null && sub.orderLimit !== undefined && sub.orderLimit > 0 && !orderLimitAlertShownRef.current) {
+                    const usage = sub.ordersUsed || 0;
+                    const limit = sub.orderLimit;
+                    const percentage = (usage / limit) * 100;
+                    
+                    if (percentage >= 100) {
+                        setOrderLimitAlert({
+                            type: 'REACHED',
+                            planName: sub.planSnapshot?.name || sub.plan?.name || 'Current',
+                            ordersUsed: usage,
+                            orderLimit: limit,
+                        });
+                        orderLimitAlertShownRef.current = true;
+                    } else if (percentage >= 90) {
+                        setOrderLimitAlert({
+                            type: '90_PERCENT',
+                            planName: sub.planSnapshot?.name || sub.plan?.name || 'Current',
+                            ordersUsed: usage,
+                            orderLimit: limit,
+                        });
+                        orderLimitAlertShownRef.current = true;
+                    }
+                }
             }
         }).catch(() => {});
         
@@ -524,6 +555,10 @@ const DashboardLayout = ({ children, navItems, title }) => {
         const timer = setInterval(() => {
             const next = secondsLeftUntilSellerExpiry(newOrderAlertRef.current);
             setTimeLeft(next);
+            if (next <= 180) {
+                // Ensure ringtone plays urgently
+                startOrderRingtone(true);
+            }
             if (next <= 0) {
                 clearInterval(timer);
                 setNewOrderAlert(null);
@@ -590,61 +625,122 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const overlayTree = (
             <AnimatePresence>
                 {newOrderAlert && (
-                    <div className={overlayClass("z-[9999]")} style={overlayStyle}>
+                    <div className={overlayClass(newOrderAlert && timeLeft <= 180 ? "z-[9999] bg-[#0a3000]/90" : "z-[9999]")} style={overlayStyle}>
                         <motion.div
                             {...cardMotion}
-                            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100"
+                            className={cn(
+                                "rounded-3xl p-8 max-w-md w-full shadow-2xl border relative overflow-hidden",
+                                timeLeft <= 180
+                                    ? "bg-gradient-to-br from-[#1A4516] to-[#2C6E26] border-[#2C6E26]" 
+                                    : "bg-white border-slate-100"
+                            )}
                         >
-                            <div className="flex flex-col items-center text-center">
-                                <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
-                                    <BellRing className="h-10 w-10 text-primary" />
-                                </div>
+                            {timeLeft <= 180 ? (
+                                <div className="flex flex-col items-center text-center relative z-10">
+                                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                                    <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
 
-                                <h2 className="text-2xl font-black text-slate-900 mb-2">New Order Received!</h2>
-                                <p className="text-slate-600 font-medium mb-6">
-                                    You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span>
-                                    {(newOrderAlert.pricing?.total || newOrderAlert.total) ? (
-                                        <> for <span className="text-slate-900 font-bold">₹{newOrderAlert.pricing?.total || newOrderAlert.total}</span></>
-                                    ) : null}
-                                </p>
+                                    <div className="h-24 w-24 bg-white/20 rounded-full flex items-center justify-center mb-6 animate-bounce shadow-inner backdrop-blur-sm">
+                                        <BellRing className="h-12 w-12 text-white" />
+                                    </div>
 
-                                {/* Timer Bar — width from real server deadline */}
-                                <div className="w-full bg-slate-100 h-2 rounded-full mb-8 overflow-hidden">
-                                    <div
-                                        className={cn(
-                                            "h-full transition-[width] duration-1000 ease-linear",
-                                            timeLeft < 15 ? "bg-rose-500" : "bg-primary",
-                                        )}
-                                        style={{
-                                            width: `${acceptWindowTotalRef.current > 0 ? (timeLeft / acceptWindowTotalRef.current) * 100 : 0}%`,
-                                        }}
-                                    />
-                                </div>
+                                    <h2 className="text-3xl font-black text-white tracking-widest uppercase mb-2 drop-shadow-md">
+                                        ORDER
+                                    </h2>
+                                    <h3 className="text-sm font-bold text-green-100/80 uppercase tracking-widest mb-6">
+                                        ACTION REQUIRED
+                                    </h3>
+                                    
+                                    <p className="text-green-50 font-medium mb-8 text-lg">
+                                        You have a pending order <span className="font-bold text-white">#{newOrderAlert.orderId}</span> that needs your attention immediately. Please Accept or Reject.
+                                    </p>
 
-                                <div className="flex items-center gap-4 text-sm font-bold mb-8">
-                                    <Clock className={cn("h-4 w-4", timeLeft < 15 ? "text-rose-500 animate-pulse" : "text-slate-600")} />
-                                    <span className={timeLeft < 15 ? "text-rose-500" : "text-slate-600"}>
-                                        Accept within {timeLeft} {timeLeft === 1 ? "second" : "seconds"}
-                                    </span>
-                                </div>
+                                    {/* Timer Bar */}
+                                    <div className="w-full bg-[#0a3000]/50 h-2 rounded-full mb-6 overflow-hidden">
+                                        <div
+                                            className="h-full bg-white transition-[width] duration-1000 ease-linear"
+                                            style={{
+                                                width: `${acceptWindowTotalRef.current > 0 ? (timeLeft / acceptWindowTotalRef.current) * 100 : 0}%`,
+                                            }}
+                                        />
+                                    </div>
 
-                                <div className="grid grid-cols-2 gap-4 w-full">
-                                    <button
-                                        onClick={() => handleDeclineOrder(newOrderAlert.orderId)}
-                                        className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
-                                    >
-                                        <X className="h-5 w-5" />
-                                        Decline
-                                    </button>
-                                    <button
-                                        onClick={() => handleAcceptOrder(newOrderAlert.orderId)}
-                                        className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95"
-                                    >
-                                        <Check className="h-5 w-5" />
-                                        Accept
-                                    </button>
+                                    <div className="flex items-center gap-4 text-sm font-bold mb-8">
+                                        <Clock className="h-5 w-5 text-white animate-pulse" />
+                                        <span className="text-white text-lg">
+                                            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')} remaining
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 w-full">
+                                        <button
+                                            onClick={() => handleDeclineOrder(newOrderAlert.orderId)}
+                                            className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-white/10 text-white font-bold hover:bg-white/20 transition-colors border border-white/20"
+                                        >
+                                            <X className="h-5 w-5" />
+                                            Reject
+                                        </button>
+                                        <button
+                                            onClick={() => handleAcceptOrder(newOrderAlert.orderId)}
+                                            className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-white text-[#1A4516] font-black hover:bg-[#F5FBF5] shadow-xl shadow-black/20 transition-all active:scale-95 text-lg"
+                                        >
+                                            <Check className="h-6 w-6" />
+                                            ACCEPT
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="flex flex-col items-center text-center">
+                                    <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                                        <BellRing className="h-10 w-10 text-primary" />
+                                    </div>
+
+                                    <h2 className="text-2xl font-black text-slate-900 mb-2">New Order Received!</h2>
+                                    <p className="text-slate-600 font-medium mb-6">
+                                        You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span>
+                                        {(newOrderAlert.pricing?.total || newOrderAlert.total) ? (
+                                            <> for <span className="text-slate-900 font-bold">₹{newOrderAlert.pricing?.total || newOrderAlert.total}</span></>
+                                        ) : null}
+                                    </p>
+
+                                    {/* Timer Bar — width from real server deadline */}
+                                    <div className="w-full bg-slate-100 h-2 rounded-full mb-8 overflow-hidden">
+                                        <div
+                                            className={cn(
+                                                "h-full transition-[width] duration-1000 ease-linear",
+                                                timeLeft < 15 ? "bg-rose-500" : "bg-primary",
+                                            )}
+                                            style={{
+                                                width: `${acceptWindowTotalRef.current > 0 ? (timeLeft / acceptWindowTotalRef.current) * 100 : 0}%`,
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center gap-4 text-sm font-bold mb-8">
+                                        <Clock className={cn("h-4 w-4", timeLeft < 15 ? "text-rose-500 animate-pulse" : "text-slate-600")} />
+                                        <span className={timeLeft < 15 ? "text-rose-500" : "text-slate-600"}>
+                                            Accept within {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 w-full">
+                                        <button
+                                            onClick={() => handleDeclineOrder(newOrderAlert.orderId)}
+                                            className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
+                                        >
+                                            <X className="h-5 w-5" />
+                                            Decline
+                                        </button>
+                                        <button
+                                            onClick={() => handleAcceptOrder(newOrderAlert.orderId)}
+                                            className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95"
+                                        >
+                                            <Check className="h-5 w-5" />
+                                            Accept
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
                     </div>
                 )}
@@ -797,6 +893,106 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                 >
                                     Dismiss Alert
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* Order Limit Alert Modals */}
+                {orderLimitAlert && orderLimitAlert.type === 'REACHED' && (
+                    <div className={overlayClass("z-[10001]")} style={overlayStyle}>
+                        <motion.div
+                            {...cardMotion}
+                            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100 relative overflow-hidden"
+                        >
+                            {/* Decorative background */}
+                            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 via-orange-500 to-red-500"></div>
+                            
+                            <div className="flex flex-col items-center text-center pt-4">
+                                <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                    <AlertTriangle className="h-10 w-10 text-red-500" />
+                                </div>
+
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">Order Limit Reached</h2>
+                                <p className="text-slate-600 font-medium mb-4">
+                                    Your <span className="text-[#1A4516] font-bold">{orderLimitAlert.planName} Plan</span> order limit has been reached.
+                                    Upgrade to Gold or Platinum to continue accepting orders.
+                                </p>
+
+                                {/* Usage Bar */}
+                                <div className="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden">
+                                    <div className="h-full bg-red-500 rounded-full" style={{ width: '100%' }}></div>
+                                </div>
+                                <p className="text-xs text-slate-500 font-semibold mb-6">
+                                    {orderLimitAlert.ordersUsed} / {orderLimitAlert.orderLimit} orders used
+                                </p>
+
+                                <div className="grid grid-cols-2 gap-4 w-full">
+                                    <button
+                                        onClick={() => setOrderLimitAlert(null)}
+                                        className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
+                                    >
+                                        Upgrade
+                                    </button>
+                                    <button
+                                        onClick={() => { setOrderLimitAlert(null); navigate('/seller/subscription'); }}
+                                        className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#1A4516] to-[#2C6E26] text-white font-bold hover:opacity-90 shadow-xl shadow-[#1A4516]/20 transition-all active:scale-95"
+                                    >
+                                        <ArrowUpCircle className="h-5 w-5" />
+                                        View Plans
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {orderLimitAlert && orderLimitAlert.type === '90_PERCENT' && (
+                    <div className={overlayClass("z-[10001]")} style={overlayStyle}>
+                        <motion.div
+                            {...cardMotion}
+                            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100 relative overflow-hidden"
+                        >
+                            {/* Decorative background */}
+                            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400"></div>
+                            
+                            <div className="flex flex-col items-center text-center pt-4">
+                                <div className="h-20 w-20 bg-amber-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                    <AlertTriangle className="h-10 w-10 text-amber-500" />
+                                </div>
+
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">90% Order Limit</h2>
+                                <p className="text-slate-600 font-medium mb-4">
+                                    You've reached <span className="text-amber-600 font-bold">90%</span> of your monthly order limit.
+                                    Upgrade to Gold to accept more orders and get additional visibility.
+                                </p>
+
+                                {/* Usage Bar */}
+                                <div className="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-500"
+                                        style={{ width: `${Math.min((orderLimitAlert.ordersUsed / orderLimitAlert.orderLimit) * 100, 100)}%` }}
+                                    ></div>
+                                </div>
+                                <p className="text-xs text-slate-500 font-semibold mb-6">
+                                    {orderLimitAlert.ordersUsed} / {orderLimitAlert.orderLimit} orders used
+                                </p>
+
+                                <div className="grid grid-cols-2 gap-4 w-full">
+                                    <button
+                                        onClick={() => setOrderLimitAlert(null)}
+                                        className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
+                                    >
+                                        Later
+                                    </button>
+                                    <button
+                                        onClick={() => { setOrderLimitAlert(null); navigate('/seller/subscription'); }}
+                                        className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#1A4516] to-[#2C6E26] text-white font-bold hover:opacity-90 shadow-xl shadow-[#1A4516]/20 transition-all active:scale-95"
+                                    >
+                                        <ArrowUpCircle className="h-5 w-5" />
+                                        Upgrade to Gold
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
