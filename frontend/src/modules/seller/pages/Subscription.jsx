@@ -347,7 +347,7 @@ const Subscription = () => {
                                             <div>
                                                 <p className="font-bold text-sm text-gray-900">{offer.name}</p>
                                                 <p className="text-xs text-green-600 font-medium">
-                                                    Save {offer.discountType === 'PERCENTAGE' ? `${offer.discountValue}%` : `₹${offer.discountValue}`}
+                                                    Save {offer.discountType === 'PERCENTAGE' ? `${offer.discountValue}%` : `₹${selectedCycle === 'YEARLY' ? offer.discountValue * 12 : offer.discountValue}`}
                                                 </p>
                                             </div>
                                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedOffer === offer._id ? 'border-green-500 bg-green-500' : 'border-gray-300'}`}>
@@ -372,7 +372,11 @@ const Subscription = () => {
                                 if (offer.discountType === 'PERCENTAGE') {
                                     discount = Math.round((basePrice * offer.discountValue) / 100);
                                 } else {
-                                    discount = Math.min(offer.discountValue, basePrice);
+                                    let calculatedDiscount = offer.discountValue;
+                                    if (selectedCycle === 'YEARLY') {
+                                        calculatedDiscount = offer.discountValue * 12;
+                                    }
+                                    discount = Math.min(calculatedDiscount, basePrice);
                                 }
                                 return (
                                     <div className="flex justify-between text-green-400 text-sm">
@@ -393,7 +397,11 @@ const Subscription = () => {
                                         if (offer.discountType === 'PERCENTAGE') {
                                             discount = Math.round((basePrice * offer.discountValue) / 100);
                                         } else {
-                                            discount = Math.min(offer.discountValue, basePrice);
+                                            let calculatedDiscount = offer.discountValue;
+                                            if (selectedCycle === 'YEARLY') {
+                                                calculatedDiscount = offer.discountValue * 12;
+                                            }
+                                            discount = Math.min(calculatedDiscount, basePrice);
                                         }
                                         return Math.max(0, basePrice - discount);
                                     })()}

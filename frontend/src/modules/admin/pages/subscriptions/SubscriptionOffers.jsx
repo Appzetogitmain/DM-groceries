@@ -24,7 +24,7 @@ const SubscriptionOffers = () => {
         name: '', 
         offerType: 'PLAN_DISCOUNT', 
         plan: '', 
-        discountType: 'FLAT', 
+        discountType: 'FIXED', 
         discountValue: '', 
         startDate: getTodayStr(), 
         endDate: getNextWeekStr(), 
@@ -79,7 +79,7 @@ const SubscriptionOffers = () => {
                 name: '', 
                 offerType: 'PLAN_DISCOUNT', 
                 plan: plans.length > 0 ? plans[0]._id : '', 
-                discountType: 'FLAT', 
+                discountType: 'FIXED', 
                 discountValue: '', 
                 startDate: getTodayStr(), 
                 endDate: getNextWeekStr(), 
@@ -253,7 +253,7 @@ const SubscriptionOffers = () => {
                                 onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
                                 required
                             >
-                                <option value="FLAT">Flat Amount (₹)</option>
+                                <option value="FIXED">Flat Amount (₹)</option>
                                 <option value="PERCENTAGE">Percentage (%)</option>
                             </select>
                         </FormField>

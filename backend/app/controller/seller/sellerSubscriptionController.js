@@ -158,7 +158,11 @@ export const createSubscriptionOrder = async (req, res) => {
                 if (offerDoc.discountType === "PERCENTAGE") {
                     discountAmount = Math.round((originalAmount * offerDoc.discountValue) / 100);
                 } else {
-                    discountAmount = Math.min(offerDoc.discountValue, originalAmount);
+                    let calculatedDiscount = offerDoc.discountValue;
+                    if (billingCycle === "YEARLY") {
+                        calculatedDiscount = offerDoc.discountValue * 12;
+                    }
+                    discountAmount = Math.min(calculatedDiscount, originalAmount);
                 }
             }
         }
