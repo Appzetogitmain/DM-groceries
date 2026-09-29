@@ -117,7 +117,7 @@ const ProductCard = React.memo(
     );
 
     const handleAddToCart = React.useCallback(
-      (e) => {
+      async (e) => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -129,29 +129,31 @@ const ProductCard = React.memo(
           return;
         }
 
-        if (imageRef.current) {
-          animateAddToCart(
-            imageRef.current.getBoundingClientRect(),
-            product.image,
-          );
-        }
         const currentStock = defaultVariant ? defaultVariant.stock : (product?.stock || 0);
         if (currentStock <= 0) {
           showToast("This item is currently out of stock", "error");
           return;
         }
 
-        addToCart({
+        const added = await addToCart({
           ...product,
           variantSku: variantKey,
           variantName: defaultVariant?.name || "",
         });
+        if (added === false) return; // vendor-conflict popup was shown instead
+
+        if (imageRef.current) {
+          animateAddToCart(
+            imageRef.current.getBoundingClientRect(),
+            product.image,
+          );
+        }
         
         if (isWishlistPage && isWishlisted) {
           toggleWishlistGlobal(product);
         }
       },
-      [animateAddToCart, product, addToCart, variantKey, defaultVariant?.name, openProduct, isWishlistPage, isWishlisted, toggleWishlistGlobal],
+      [animateAddToCart, product, addToCart, variantKey, defaultVariant?.name, openProduct, isWishlistPage, isWishlisted, toggleWishlistGlobal, defaultVariant, showToast],
     );
 
     const handleIncrement = React.useCallback(

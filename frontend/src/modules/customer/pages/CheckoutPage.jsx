@@ -644,8 +644,9 @@ const CheckoutPage = () => {
     }
   };
 
-  const handleAddToCart = (product) => {
-    addToCart(product);
+  const handleAddToCart = async (product) => {
+    const added = await addToCart(product);
+    if (added === false) return;
     showToast(`${product.name} added to cart!`, "success");
   };
 

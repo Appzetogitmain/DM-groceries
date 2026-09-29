@@ -303,16 +303,17 @@ const ProductDetailSheet = () => {
         );
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         const currentStock = selectedVariant?.stock !== undefined ? selectedVariant.stock : selectedProduct?.stock || 0;
         if (currentStock <= 0) {
             showToast("This item is currently out of stock", "error");
             return;
         }
-        addToCart({
+        const added = await addToCart({
             ...selectedProduct,
             variantSku: String(selectedVariant?.sku || selectedVariant?.name || "").trim(),
         });
+        if (added === false) return; // vendor-conflict popup was shown instead
         showToast(`${selectedProduct.name} added to cart`, 'success');
         
         if (isWishlistPage) {

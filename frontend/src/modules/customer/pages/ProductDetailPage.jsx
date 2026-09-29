@@ -296,12 +296,13 @@ const ProductDetailPage = () => {
                             </div>
                         ) : (
                             <Button
-                                onClick={() => {
+                                onClick={async () => {
                                     if (product.stock <= 0) {
                                         showToast("This item is currently out of stock", "error");
                                         return;
                                     }
-                                    addToCart(product);
+                                    const added = await addToCart(product);
+                                    if (added === false) return;
                                     showToast(`${product.name} added to cart`, 'success');
                                 }}
                                 className="h-16 w-full sm:w-64 bg-primary hover:bg-[var(--brand-400)] text-white text-lg font-black rounded-2xl shadow-xl transition-all hover:-translate-y-1"

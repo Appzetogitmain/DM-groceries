@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useRef 
 import { customerApi } from "../services/customerApi";
 import { useAuth } from "../../../core/context/AuthContext";
 import { getJSON, setJSON, remove as removeStorage, STORAGE_KEYS } from "@core/utils/storage";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const CartContext = createContext();
 
@@ -14,6 +16,23 @@ const loadGuestCart = () => {
   return parsed;
 };
 
+/**
+ * Reliably extract a plain-string seller ID from any format:
+ *   - populated object: { _id: "abc", shopName: "..." } → "abc"
+ *   - raw ObjectId (after JSON): "abc" → "abc"
+ *   - undefined / null → ""
+ */
+const extractSellerId = (item) => {
+  // Try item.sellerId first, then item.productId?.sellerId (for raw cart shapes)
+  const raw = item?.sellerId ?? item?.productId?.sellerId ?? null;
+  if (!raw) return "";
+  if (typeof raw === "object" && raw !== null) {
+    // Populated object like { _id: "...", shopName: "..." }
+    return String(raw._id || raw.id || "");
+  }
+  return String(raw);
+};
+
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
@@ -23,6 +42,7 @@ export const CartProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const pendingRequestsRef = React.useRef(0);
   const lsDebounceRef = useRef(null);
+  const [pendingVendorProduct, setPendingVendorProduct] = useState(null);
 
   // Clear cart locally when user logs out is handled by the useEffect dependency on isAuthenticated
   const normalizeBackendCart = (items) => {
@@ -34,6 +54,7 @@ export const CartProvider = ({ children }) => {
       return {
         ...product,
         id: product?._id, // Normalize ID
+        sellerId: extractSellerId(product), // Always store as plain string
         quantity: item.quantity,
         variantSku: variantKey,
         variantName,
@@ -140,7 +161,7 @@ export const CartProvider = ({ children }) => {
     };
   }, [cart, isAuthenticated]);
 
-  const addToCart = async (product) => {
+  const performAddToCart = async (product) => {
     const variantSku = String(product?.variantSku || product?.variantName || "").trim();
     const id = product.id || product._id;
     const key = `${id}::${variantSku || ""}`;
@@ -164,6 +185,7 @@ export const CartProvider = ({ children }) => {
         {
           ...product,
           id,
+          sellerId: extractSellerId(product), // Always store as plain string
           variantSku,
           variantName,
           price,
@@ -193,6 +215,41 @@ export const CartProvider = ({ children }) => {
         }
       }
     }
+  };
+
+  /**
+   * addToCart — public API.
+   * Returns `true` if the item was added (or queued for adding).
+   * Returns `false` if the vendor-conflict popup was shown instead
+   * (so callers like ProductDetailSheet can skip their success toast).
+   */
+  const addToCart = async (product) => {
+    // Check if adding product from a different vendor/seller
+    if (cart.length > 0) {
+      const existingSellerId = extractSellerId(cart[0]);
+      const newSellerId = extractSellerId(product);
+
+      if (existingSellerId && newSellerId && existingSellerId !== newSellerId) {
+        // Different vendor detected → show confirmation popup
+        setPendingVendorProduct(product);
+        return false; // blocked — popup shown
+      }
+    }
+    
+    await performAddToCart(product);
+    return true; // added successfully
+  };
+
+  const confirmVendorReplace = async () => {
+    if (!pendingVendorProduct) return;
+    const productToAdd = pendingVendorProduct;
+    setPendingVendorProduct(null);
+    await clearCart();
+    await performAddToCart(productToAdd);
+  };
+
+  const cancelVendorReplace = () => {
+    setPendingVendorProduct(null);
   };
 
   const removeFromCart = async (productId, variantSku = "") => {
@@ -313,6 +370,24 @@ export const CartProvider = ({ children }) => {
   return (
     <CartContext.Provider value={cartValue}>
       {children}
+      <Dialog open={!!pendingVendorProduct} onOpenChange={(open) => !open && cancelVendorReplace()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Replace cart items?</DialogTitle>
+            <DialogDescription>
+              Do you want to replace your current cart? Your cart currently contains items from a different store.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-2">
+            <Button variant="outline" onClick={cancelVendorReplace}>
+              No
+            </Button>
+            <Button variant="default" className="bg-[#1A4516] hover:bg-[#1A4516]/90 text-white" onClick={confirmVendorReplace}>
+              Yes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </CartContext.Provider>
   );
 };
