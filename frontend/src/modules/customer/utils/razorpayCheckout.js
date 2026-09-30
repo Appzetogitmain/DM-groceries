@@ -1,14 +1,24 @@
 const RAZORPAY_SCRIPT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 
-const loadRazorpayScript = () =>
-  new Promise((resolve) => {
-    if (window.Razorpay) return resolve(true);
-    const script = document.createElement("script");
-    script.src = RAZORPAY_SCRIPT_SRC;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
+let scriptPromise = null;
+
+// Call early (e.g. on page mount) so the popup opens instantly on tap.
+export const loadRazorpayScript = () => {
+  if (window.Razorpay) return Promise.resolve(true);
+  if (!scriptPromise) {
+    scriptPromise = new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = RAZORPAY_SCRIPT_SRC;
+      script.onload = () => resolve(true);
+      script.onerror = () => {
+        scriptPromise = null;
+        resolve(false);
+      };
+      document.body.appendChild(script);
+    });
+  }
+  return scriptPromise;
+};
 
 /**
  * Opens the Razorpay Checkout modal for a backend-created Razorpay order.

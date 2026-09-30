@@ -621,6 +621,9 @@ export async function verifyPaymentStatus({
   merchantOrderId,
   userId,
   correlationId = null,
+  // Already-authenticated gateway result (e.g. signature-verified Checkout
+  // callback); skips the slow round-trips to the gateway API.
+  presetStatus = null,
 }) {
   const payment = await Payment.findOne({ gatewayOrderId: merchantOrderId });
   if (!payment) {
@@ -637,7 +640,7 @@ export async function verifyPaymentStatus({
   }
 
   const provider = getActivePaymentProvider();
-  const statusResp = await provider.getPaymentStatus({ merchantOrderId });
+  const statusResp = presetStatus || (await provider.getPaymentStatus({ merchantOrderId }));
   const nextStatus = provider.mapStatusToInternal(statusResp.state);
 
   await transitionPaymentState(payment, {
@@ -708,6 +711,12 @@ export async function confirmRazorpayCheckoutPayment({
     merchantOrderId: payment.gatewayOrderId,
     userId,
     correlationId,
+    presetStatus: {
+      state: "paid",
+      transactionId: razorpayPaymentId,
+      responseCode: "paid",
+      gatewayResponse: { razorpayOrderId, razorpayPaymentId, verifiedBy: "checkout_signature" },
+    },
   });
 }
 

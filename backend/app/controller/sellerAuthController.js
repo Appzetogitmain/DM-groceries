@@ -24,6 +24,7 @@ const SELLER_DOCUMENT_FIELDS = {
     gstCertificate: "GST Certificate",
     idProof: "ID Proof",
     panCard: "PAN Card",
+    aadharCard: "Aadhar Card",
 };
 
 const REQUIRED_SELLER_DOCUMENT_FIELDS = Object.keys(SELLER_DOCUMENT_FIELDS);
@@ -61,6 +62,7 @@ const resolveSellerDocuments = (body = {}, parsedDocuments = {}) => {
         gstCertificate: body.gstCertificateUrl || body.gstCertificate,
         idProof: body.idProofUrl || body.idProof,
         panCard: body.panCardUrl || body.panCard,
+        aadharCard: body.aadharCardUrl || body.aadharCard || body.idProofUrl || body.idProof,
     };
 
     for (const [field, candidate] of Object.entries(directFields)) {
@@ -70,15 +72,21 @@ const resolveSellerDocuments = (body = {}, parsedDocuments = {}) => {
         }
     }
 
+    // Mirror aadharCard into idProof if idProof is empty so older systems recognize it
+    if (resolved.aadharCard && !resolved.idProof) {
+        resolved.idProof = resolved.aadharCard;
+    }
+
     return resolved;
 };
 
 const getMissingRequiredSellerDocuments = (documents = {}) => {
     const hasPan = isValidUploadedDocumentReference(documents.panCard);
+    const hasAadhar = isValidUploadedDocumentReference(documents.aadharCard) || isValidUploadedDocumentReference(documents.idProof);
     const hasCombo = ["tradeLicense", "gstCertificate", "idProof"].every(
         (field) => isValidUploadedDocumentReference(documents[field])
     );
-    return hasPan || hasCombo ? [] : ["missing_documents"];
+    return (hasPan && hasAadhar) || hasPan || hasCombo ? [] : ["missing_documents"];
 };
 
 /* ===============================
@@ -189,7 +197,7 @@ export const signupSeller = async (req, res) => {
             return handleResponse(
                 res,
                 400,
-                `Please upload either a PAN Card OR (Trade License + GST Certificate + ID Proof).`
+                `Please upload either (PAN Card + Aadhar Card) OR (Trade License + GST Certificate + ID Proof).`
             );
         }
 

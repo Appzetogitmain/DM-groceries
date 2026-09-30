@@ -31,19 +31,21 @@ class ErrorBoundary extends Component {
 
                         <div className="space-y-3">
                             <button
+                                type="button"
                                 onClick={() => window.location.reload()}
-                                className="w-full bg-primary hover:bg-[#0a6d1a] text-white font-semibold py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-100"
+                                style={{ backgroundColor: '#1A4516', color: '#ffffff' }}
+                                className="w-full bg-[#1A4516] hover:bg-[#133A10] text-white font-bold py-3.5 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#1A4516]/25 cursor-pointer active:scale-98"
                             >
-                                <RefreshCw className="w-5 h-5" />
-                                Refresh Page
+                                <RefreshCw className="w-5 h-5 text-white" />
+                                <span className="text-white font-bold text-sm tracking-wide">Refresh Page</span>
                             </button>
 
                             <a
                                 href="/"
-                                className="w-full bg-white border-2 border-gray-100 hover:border-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
+                                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3.5 px-6 rounded-2xl border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                             >
-                                <Home className="w-5 h-5" />
-                                Back to Home
+                                <Home className="w-5 h-5 text-slate-700" />
+                                <span className="text-slate-800 font-bold text-sm tracking-wide">Back to Home</span>
                             </a>
                         </div>
 

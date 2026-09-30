@@ -32,7 +32,7 @@ import {
   X,
 } from "lucide-react";
 import { customerApi } from "../services/customerApi";
-import { openRazorpayCheckout } from "../utils/razorpayCheckout";
+import { openRazorpayCheckout, loadRazorpayScript } from "../utils/razorpayCheckout";
 import { toast } from "sonner";
 import { useSettings } from "@/core/context/SettingsContext";
 import { subscribeToOrderLocation, subscribeToOrderTrail, subscribeToOrderRoute } from "@/core/services/trackingClient";
@@ -197,6 +197,10 @@ const OrderDetailPage = () => {
   } = useOrderIdentifiers(orderId, order);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    loadRazorpayScript();
+  }, []);
   // Pure helper for resolving the lookup id from a freshly-fetched order
   // before React state has settled (e.g. inside the initial fetch effect).
   const resolveOrderLookupId = (ord) =>

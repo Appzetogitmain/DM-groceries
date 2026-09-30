@@ -3,6 +3,7 @@ const SELLER_DOC_LABELS = {
   gstCertificate: "GST Certificate",
   idProof: "ID Proof",
   panCard: "PAN Card",
+  aadharCard: "Aadhar Card",
   businessRegistration: "Business Registration",
   fssaiLicense: "FSSAI License",
   other: "Other Document",

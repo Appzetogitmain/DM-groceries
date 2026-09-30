@@ -527,12 +527,12 @@ const DeliveryAuth = () => {
                               <input
                                 type="text"
                                 value={signupVehicleNumber}
-                                onChange={(e) => { setSignupVehicleNumber(formatVehiclePlate(e.target.value)); setErrors(prev => ({...prev, vehicleNumber: ''})); }}
-                                className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.vehicleNumber ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
-                                placeholder="KA 05 MN 8921"
+                                onChange={(e) => { setSignupVehicleNumber(e.target.value.toUpperCase()); setErrors(prev => ({...prev, vehicleNumber: ''})); }}
+                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+                                placeholder="e.g., MH 02 AB 1234"
                               />
                             </div>
-                            {errors.vehicleNumber ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.vehicleNumber}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">e.g., MH 01 AB 1234</p>}
+                            <p className="text-[10px] text-gray-400 font-semibold ml-1">e.g., MH 01 AB 1234</p>
                           </div>
 
                           <div className="space-y-1.5">
@@ -560,9 +560,6 @@ const DeliveryAuth = () => {
                             <button
                               onClick={() => {
                                 const newErrors = {};
-                                if (!signupVehicleNumber || !/^[A-Z]{2} [0-9]{2} [A-Z]{2} [0-9]{4}$/.test(signupVehicleNumber)) {
-                                  newErrors.vehicleNumber = "Invalid format. Expected e.g., MH 01 AB 1234";
-                                }
                                 if (!signupDLNumber || !/^[A-Z]{2}-[0-9]{2}-[0-9]{4}-[0-9]{6,7}$/.test(signupDLNumber)) {
                                   newErrors.dlNumber = "Invalid DL format. Expected SS-RR-YYYY-NNNNNNN";
                                 }
