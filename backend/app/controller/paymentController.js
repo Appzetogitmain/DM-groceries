@@ -44,6 +44,7 @@ export const createPaymentOrder = async (req, res) => {
       {
         payment: result.payment,
         redirectUrl: result.redirectUrl,
+        checkout: result.checkout || null,
         merchantOrderId: result.payment.gatewayOrderId,
       },
     );

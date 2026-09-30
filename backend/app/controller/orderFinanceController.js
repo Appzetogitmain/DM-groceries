@@ -59,13 +59,15 @@ export const selectPaymentMethod = async (req, res) => {
       order.paymentMode = "ONLINE";
       await order.save();
 
-      const { payment, redirectUrl } = await createPaymentOrderForOrderRef({
+      const { payment, redirectUrl, checkout } = await createPaymentOrderForOrderRef({
         orderRef: orderId,
         userId,
       });
 
       return handleResponse(res, 200, "Payment session created", {
         redirectUrl,
+        checkout: checkout || null,
+        merchantOrderId: payment.gatewayOrderId,
         paymentId: payment._id,
       });
     } else if (mode === "COD") {

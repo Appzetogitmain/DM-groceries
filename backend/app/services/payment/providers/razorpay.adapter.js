@@ -30,37 +30,38 @@ export class RazorpayAdapter extends PaymentProviderPort {
     return PAYMENT_GATEWAY.RAZORPAY;
   }
 
-  async initiatePayment({ merchantOrderId, amountPaise, redirectUrl, callbackUrl }) {
+  async initiatePayment({ merchantOrderId, amountPaise, redirectUrl }) {
     const client = getRazorpayClient();
-    
-    // Create a payment link using reference_id to store our merchantOrderId
-    let response;
+
+    // Standard Checkout (Orders API): the frontend opens the Razorpay modal,
+    // which launches UPI apps correctly. Payment Links used a hosted page where
+    // `phonepe://` intents failed with ERR_UNKNOWN_URL_SCHEME.
+    let order;
     try {
-      response = await client.paymentLink.create({
+      order = await client.orders.create({
         amount: amountPaise,
         currency: "INR",
-        accept_partial: false,
-        reference_id: merchantOrderId,
-        description: "Order Payment",
-        callback_url: redirectUrl,
-        callback_method: "get"
+        receipt: merchantOrderId,
+        notes: { merchantOrderId },
       });
     } catch (e) {
       // Razorpay SDK errors carry `statusCode` + `error.description` but no
       // `message`, which made the API respond with an empty message.
-      const description = e?.error?.description || e?.message || "Payment gateway error";
-      const err = new Error(
-        e?.error?.code === "RATE_LIMIT_EXCEEDED"
-          ? `Payment gateway limit reached (${description}). Please choose Cash on Delivery or try again later.`
-          : description,
-      );
+      const err = new Error(e?.error?.description || e?.message || "Payment gateway error");
       err.statusCode = e?.statusCode || 502;
       throw err;
     }
 
     return {
-      redirectUrl: response.short_url,
-      gatewayResponse: response,
+      redirectUrl,
+      checkout: {
+        provider: "razorpay",
+        keyId: String(process.env.RAZORPAY_KEY_ID || "").trim(),
+        razorpayOrderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+      },
+      gatewayResponse: order,
     };
   }
 
@@ -68,22 +69,31 @@ export class RazorpayAdapter extends PaymentProviderPort {
     const client = getRazorpayClient();
     
     // Find the payment link by reference_id
-    const response = await client.paymentLink.all({ reference_id: merchantOrderId });
-    
-    const items = response.payment_links || response.items;
-    if (!items || items.length === 0) {
-       const err = new Error("Payment link not found");
-       err.statusCode = 404;
-       throw err;
+    const found = await client.orders.all({ receipt: merchantOrderId });
+    const order = (found.items || []).find((o) => o.receipt === merchantOrderId);
+    if (!order) {
+      const err = new Error("Razorpay order not found");
+      err.statusCode = 404;
+      throw err;
     }
 
-    const paymentLink = items.find(item => item.reference_id === merchantOrderId) || items[0];
-    
+    const paymentsResp = await client.orders.fetchPayments(order.id);
+    const payments = paymentsResp.items || [];
+    const captured = payments.find((p) => p.status === "captured");
+
+    if (order.status === "paid" || captured) {
+      return {
+        state: "paid",
+        transactionId: (captured || payments[0])?.id || order.id,
+        responseCode: "paid",
+        gatewayResponse: order,
+      };
+    }
     return {
-      state: paymentLink.status,
-      transactionId: paymentLink.id, // using payment link id as transaction id for now
-      responseCode: paymentLink.status,
-      gatewayResponse: paymentLink,
+      state: order.status, // created | attempted
+      transactionId: order.id,
+      responseCode: order.status,
+      gatewayResponse: order,
     };
   }
 
@@ -102,24 +112,29 @@ export class RazorpayAdapter extends PaymentProviderPort {
       throw err;
     }
     
-    const paymentLink = jsonPayload.payload?.payment_link?.entity;
-    if (!paymentLink) {
-        // Just return a generic parsed response if payment link is not present
-        // (Could be another type of event).
-        return {
-           eventId: crypto.randomUUID(), // Fallback
-           raw: jsonPayload
-        };
+    const paymentEntity = jsonPayload.payload?.payment?.entity;
+    const orderEntity = jsonPayload.payload?.order?.entity;
+    const merchantOrderId =
+      paymentEntity?.notes?.merchantOrderId ||
+      orderEntity?.receipt ||
+      orderEntity?.notes?.merchantOrderId;
+    const isPaid =
+      jsonPayload.event === "order.paid" || jsonPayload.event === "payment.captured";
+    if (!merchantOrderId || !isPaid) {
+      // Other events (e.g. payment.failed) are per-attempt; the customer can
+      // retry in the same checkout, so they must not cancel the order.
+      return {
+        eventId: jsonPayload.id || crypto.randomUUID(),
+        raw: jsonPayload,
+      };
     }
 
-    const stableEventId = jsonPayload.id || crypto.randomUUID();
-
     return {
-      eventId: stableEventId,
-      merchantOrderId: paymentLink.reference_id,
-      state: paymentLink.status,
-      transactionId: paymentLink.id,
-      responseCode: paymentLink.status,
+      eventId: jsonPayload.id || crypto.randomUUID(),
+      merchantOrderId,
+      state: "paid",
+      transactionId: paymentEntity?.id || orderEntity?.id,
+      responseCode: "paid",
       raw: jsonPayload,
     };
   }

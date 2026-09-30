@@ -32,6 +32,7 @@ import {
   X,
 } from "lucide-react";
 import { customerApi } from "../services/customerApi";
+import { openRazorpayCheckout } from "../utils/razorpayCheckout";
 import { toast } from "sonner";
 import { useSettings } from "@/core/context/SettingsContext";
 import { subscribeToOrderLocation, subscribeToOrderTrail, subscribeToOrderRoute } from "@/core/services/trackingClient";
@@ -895,8 +896,12 @@ const OrderDetailPage = () => {
       const response = await customerApi.createPaymentOrder({
         orderRef: paymentRef,
       });
-      if (response.data.success && response.data.result?.redirectUrl) {
-        window.location.href = response.data.result.redirectUrl;
+      const result = response.data.result;
+      if (response.data.success && result?.checkout) {
+        const { paid } = await openRazorpayCheckout({ checkout: result.checkout });
+        if (paid) navigate(`/payment-status?merchantOrderId=${result.merchantOrderId}`);
+      } else if (response.data.success && result?.redirectUrl) {
+        window.location.href = result.redirectUrl;
       } else {
         toast.error(response.data.message || "Failed to initiate payment");
       }
@@ -923,7 +928,11 @@ const OrderDetailPage = () => {
           ? (order.checkoutGroupId || order.orderId)
           : order.orderId;
       const response = await customerApi.selectPaymentMethod(paymentRef, { paymentMode: method });
-      if (method === "ONLINE" && response.data.result?.redirectUrl) {
+      if (method === "ONLINE" && response.data.result?.checkout) {
+        const { checkout, merchantOrderId: merchantRef } = response.data.result;
+        const { paid } = await openRazorpayCheckout({ checkout });
+        if (paid) navigate(`/payment-status?merchantOrderId=${merchantRef}`);
+      } else if (method === "ONLINE" && response.data.result?.redirectUrl) {
         window.location.href = response.data.result.redirectUrl;
       } else if (method === "COD") {
         toast.success(response.data.message || "Payment method updated");

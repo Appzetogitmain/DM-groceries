@@ -9,6 +9,7 @@ import Setting from "../models/setting.js";
 import { ORDER_PAYMENT_STATUS } from "../constants/finance.js";
 import {
   PAYMENT_EVENT_SOURCE,
+  PAYMENT_GATEWAY,
   PAYMENT_STATUS,
   canTransitionPaymentStatus,
 } from "../constants/payment.js";
@@ -519,6 +520,7 @@ export async function createPaymentOrderForOrderRef({
       return {
         payment: existingForKey,
         redirectUrl: existingForKey.rawGatewayResponse?.redirectUrl,
+        checkout: existingForKey.rawGatewayResponse?.checkout || null,
         duplicate: true,
       };
     }
@@ -531,10 +533,17 @@ export async function createPaymentOrderForOrderRef({
     },
   }).sort({ createdAt: -1 });
 
-  if (existingOpenPayment && existingOpenPayment.rawGatewayResponse?.redirectUrl) {
+  // Razorpay payments created before the Orders/Checkout switch only hold a
+  // hosted payment-link URL, which doesn't work reliably; don't reuse those.
+  const reusable =
+    existingOpenPayment?.rawGatewayResponse?.redirectUrl &&
+    (existingOpenPayment.gatewayName !== PAYMENT_GATEWAY.RAZORPAY ||
+      existingOpenPayment.rawGatewayResponse?.checkout);
+  if (reusable) {
     return {
       payment: existingOpenPayment,
       redirectUrl: existingOpenPayment.rawGatewayResponse.redirectUrl,
+      checkout: existingOpenPayment.rawGatewayResponse.checkout || null,
       duplicate: true,
     };
   }
@@ -574,6 +583,7 @@ export async function createPaymentOrderForOrderRef({
     correlationId,
     rawGatewayResponse: {
       redirectUrl: initResult.redirectUrl,
+      checkout: initResult.checkout || null,
       merchantOrderId: merchantOrderId,
       amount: amountPaise,
     },
@@ -599,7 +609,12 @@ export async function createPaymentOrderForOrderRef({
     provider: provider.providerName,
   });
 
-  return { payment, redirectUrl: initResult.redirectUrl, duplicate: false };
+  return {
+    payment,
+    redirectUrl: initResult.redirectUrl,
+    checkout: initResult.checkout || null,
+    duplicate: false,
+  };
 }
 
 export async function verifyPaymentStatus({
