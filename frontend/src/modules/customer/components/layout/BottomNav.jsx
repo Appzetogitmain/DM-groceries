@@ -14,7 +14,7 @@ const BottomNav = () => {
     const location = useLocation();
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-[500] bg-white border-t border-gray-100 flex items-center justify-around h-[70px] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="fixed bottom-0 left-0 right-0 z-[500] bg-white border-t border-gray-100 flex items-center justify-around min-h-[70px] pt-2 md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
             {navItems.map((item) => {
                 const isActive = location.pathname === item.path ||
                     (item.path !== '/' && location.pathname.startsWith(item.path));

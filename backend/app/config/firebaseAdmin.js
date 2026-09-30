@@ -50,6 +50,14 @@ console.log(serviceAccount.private_key.substring(0, 30));
 export const getFirebaseRealtimeDb = () => {
   const app = getFirebaseAdminApp();
   if (!app) return null;
-  return admin.database(app);
+  const dbUrl = process.env.FIREBASE_DATABASE_URL || app.options?.databaseURL;
+  if (!dbUrl) {
+    return null;
+  }
+  try {
+    return admin.database(app);
+  } catch (err) {
+    return null;
+  }
 };
 

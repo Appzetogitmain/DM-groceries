@@ -10,7 +10,7 @@ import OrderProgressTracker from "../components/order/OrderProgressTracker";
 import ReturnProgressTracker from "../components/order/ReturnProgressTracker";
 import DeliveryPartnerRating from "../components/order/DeliveryPartnerRating";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
-import { formatOrderId } from "@/lib/utils";
+import { formatOrderId, cn } from "@/lib/utils";
 import {
   ChevronLeft,
   Package,
@@ -550,6 +550,9 @@ const OrderDetailPage = () => {
     order.workflowStatus === "SELLER_ACCEPTED" &&
     (order.paymentMode === "PENDING" || order.paymentStatus === "AWAITING_PAYMENT_METHOD");
 
+  const isOnlinePaymentEnabled = settings?.onlineEnabled !== false;
+  const isCodEnabled = settings?.codEnabled !== false;
+
   const sellerLocation = coordsToLatLng(order?.seller?.location?.coordinates);
   const baseRoutePhase = getTrackingRoutePhase(order);
   // If we don't have a live rider yet, default to showing the delivery route (store to customer) preview
@@ -910,6 +913,10 @@ const OrderDetailPage = () => {
   const handleSelectPaymentMethod = async (method) => {
     try {
       if (!order) return;
+      if (method === "ONLINE" && !isOnlinePaymentEnabled) {
+        toast.error("Online payment is currently disabled. Please select Cash on Delivery.");
+        return;
+      }
       setIsProcessingPayment(true);
       const paymentRef =
         Number(order.checkoutGroupSize || 1) > 1
@@ -991,23 +998,37 @@ const OrderDetailPage = () => {
               <p className="text-xs text-[#1A4516] font-medium leading-relaxed mb-4">
                 The seller has accepted your order! Please select how you would like to pay <span className="font-bold">₹{order.pricing.total}</span> to proceed.
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handleSelectPaymentMethod("ONLINE")}
-                  disabled={isProcessingPayment}
-                  className="bg-[#1A4516] text-white px-4 py-3 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md flex flex-col items-center justify-center gap-1 disabled:opacity-70"
-                >
-                  <CreditCard size={18} />
-                  Pay Online
-                </button>
-                <button
-                  onClick={() => handleSelectPaymentMethod("COD")}
-                  disabled={isProcessingPayment}
-                  className="bg-white text-[#1A4516] border-2 border-[#1A4516] px-4 py-3 rounded-xl text-xs font-bold hover:bg-slate-50 active:scale-95 transition-all shadow-sm flex flex-col items-center justify-center gap-1 disabled:opacity-70"
-                >
-                  <MapPin size={18} />
-                  Cash on Delivery
-                </button>
+              {!isOnlinePaymentEnabled && (
+                <div className="mb-3 px-3.5 py-2.5 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-xs font-semibold flex items-center gap-2">
+                  <span>⚠️ Online payment is currently offline. Please choose Cash on Delivery.</span>
+                </div>
+              )}
+              <div className={cn("grid gap-3", isOnlinePaymentEnabled && isCodEnabled ? "grid-cols-2" : "grid-cols-1")}>
+                {isOnlinePaymentEnabled && (
+                  <button
+                    onClick={() => handleSelectPaymentMethod("ONLINE")}
+                    disabled={isProcessingPayment}
+                    className="bg-[#1A4516] text-white px-4 py-3 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md flex flex-col items-center justify-center gap-1 disabled:opacity-70"
+                  >
+                    <CreditCard size={18} />
+                    Pay Online
+                  </button>
+                )}
+                {isCodEnabled && (
+                  <button
+                    onClick={() => handleSelectPaymentMethod("COD")}
+                    disabled={isProcessingPayment}
+                    className={cn(
+                      "px-4 py-3 rounded-xl text-xs font-bold active:scale-95 transition-all shadow-sm flex flex-col items-center justify-center gap-1 disabled:opacity-70",
+                      isOnlinePaymentEnabled
+                        ? "bg-white text-[#1A4516] border-2 border-[#1A4516] hover:bg-slate-50"
+                        : "bg-[#1A4516] text-white hover:bg-[#0a3000]"
+                    )}
+                  >
+                    <MapPin size={18} />
+                    Cash on Delivery
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
@@ -1023,24 +1044,39 @@ const OrderDetailPage = () => {
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <CreditCard size={64} className="text-[#1A4516]" />
             </div>
-            <div className="relative z-10 flex items-center justify-between gap-4">
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="w-2 h-2 rounded-full bg-[#1A4516] animate-pulse" />
                   <h3 className="text-sm font-black text-[#1A4516] uppercase tracking-tight">Payment Required</h3>
                 </div>
                 <p className="text-xs text-[#1A4516] font-medium leading-relaxed">
-                  Complete your payment of <span className="font-bold">₹{order.pricing.total}</span> to proceed with this order.
+                  {isOnlinePaymentEnabled
+                    ? `Complete your payment of ₹${order.pricing.total} to proceed with this order.`
+                    : `Online payment is temporarily disabled. Please switch to Cash on Delivery (₹${order.pricing.total}) to proceed.`}
                 </p>
               </div>
-              {/*
-              <button
-                onClick={handleRetryPayment}
-                className="bg-[#1A4516] text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md shrink-0"
-              >
-                Pay Now <ArrowRight size={14} />
-              </button>
-              */}
+              <div className="flex items-center gap-2 shrink-0">
+                {isOnlinePaymentEnabled ? (
+                  <button
+                    onClick={() => handleSelectPaymentMethod("ONLINE")}
+                    disabled={isProcessingPayment}
+                    className="bg-[#1A4516] text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md flex items-center gap-1.5 disabled:opacity-70"
+                  >
+                    <CreditCard size={14} />
+                    Pay Now
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSelectPaymentMethod("COD")}
+                    disabled={isProcessingPayment}
+                    className="bg-[#1A4516] text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md flex items-center gap-1.5 disabled:opacity-70"
+                  >
+                    <MapPin size={14} />
+                    Switch to COD
+                  </button>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

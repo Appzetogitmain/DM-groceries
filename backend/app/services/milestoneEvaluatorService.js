@@ -117,17 +117,16 @@ export const evaluateCustomerMilestones = async (customerId, orderId = null) => 
                     rewardDetails = `Coupon Code: ${coupon.code}`;
                 } else if (campaign.rewardType === "wallet_credit") {
                     // Credit Wallet
-                    const amount = campaign.walletConfig?.amount || 0;
+                    const amount = Number(campaign.walletConfig?.amount || 0);
                     if (amount > 0) {
-                        const trx = await creditWallet(
-                            customerId,
-                            OWNER_TYPE.CUSTOMER,
+                        const trx = await creditWallet({
+                            ownerType: OWNER_TYPE.CUSTOMER,
+                            ownerId: customerId,
                             amount,
-                            "milestone_reward",
-                            `Reward for ${campaign.name}`,
-                            null
-                        );
-                        progressDoc.transactionId = trx?._id?.toString();
+                            ledgerType: "milestone_reward",
+                            ledgerDescription: `Reward for ${campaign.name}`,
+                        });
+                        progressDoc.transactionId = trx?.wallet?._id?.toString() || trx?.ledgerEntry?._id?.toString() || null;
                         rewardDetails = `₹${amount} Wallet Credit`;
                     }
                 }

@@ -1,4 +1,5 @@
 import Order from "../models/order.js";
+import Setting from "../models/setting.js";
 import handleResponse from "../utils/helper.js";
 import {
   checkoutPreviewSchema,
@@ -50,6 +51,11 @@ export const selectPaymentMethod = async (req, res) => {
     const mode = String(paymentMode).trim().toUpperCase();
 
     if (mode === "ONLINE") {
+      const setting = await Setting.findOne();
+      if (setting && setting.onlineEnabled === false) {
+        return handleResponse(res, 400, "Online payment is currently disabled. Please select Cash on Delivery.");
+      }
+
       order.paymentMode = "ONLINE";
       await order.save();
 
@@ -63,6 +69,11 @@ export const selectPaymentMethod = async (req, res) => {
         paymentId: payment._id,
       });
     } else if (mode === "COD") {
+      const setting = await Setting.findOne();
+      if (setting && setting.codEnabled === false) {
+        return handleResponse(res, 400, "Cash on Delivery is currently disabled.");
+      }
+
       order.paymentMode = "COD";
       order.paymentStatus = ORDER_PAYMENT_STATUS.PENDING_CASH_COLLECTION;
       order.payment.method = "cash";

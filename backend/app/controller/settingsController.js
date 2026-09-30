@@ -56,6 +56,7 @@ const ALLOWED_KEYS = [
   "handlingFeeStrategy",
   "codEnabled",
   "onlineEnabled",
+  "sellerSubscriptionOnlineEnabled",
   "lowStockAlertsEnabled",
   "productApproval",
   "platformFee",
@@ -140,6 +141,7 @@ const updateSettingsSchema = Joi.object({
   ),
   codEnabled: Joi.boolean(),
   onlineEnabled: Joi.boolean(),
+  sellerSubscriptionOnlineEnabled: Joi.boolean(),
   lowStockAlertsEnabled: Joi.boolean(),
   platformFee: Joi.number().min(0).default(0),
   freeDeliveryThreshold: Joi.number().min(0).default(0),
@@ -156,6 +158,12 @@ const updateSettingsSchema = Joi.object({
  */
 export const getPublicSettings = async (req, res) => {
   try {
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+    });
+
     const tenantId = req.tenantId ?? null;
     const filter = tenantId
       ? { tenantId }
@@ -167,7 +175,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy deliveryTermsConditions deliveryPrivacyPolicy sellerTermsConditions sellerPrivacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy platformFee freeDeliveryThreshold codEnabled onlineEnabled lowStockAlertsEnabled productApproval createdAt",
+            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy deliveryTermsConditions deliveryPrivacyPolicy sellerTermsConditions sellerPrivacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy platformFee freeDeliveryThreshold codEnabled onlineEnabled sellerSubscriptionOnlineEnabled lowStockAlertsEnabled productApproval createdAt",
           )
           .lean();
         return existing || null;
@@ -180,6 +188,10 @@ export const getPublicSettings = async (req, res) => {
       settings = created.toObject();
       await invalidate("cache:platform:settings:*");
     }
+
+    settings.onlineEnabled = settings.onlineEnabled !== undefined ? Boolean(settings.onlineEnabled) : true;
+    settings.sellerSubscriptionOnlineEnabled = settings.sellerSubscriptionOnlineEnabled !== undefined ? Boolean(settings.sellerSubscriptionOnlineEnabled) : true;
+    settings.codEnabled = settings.codEnabled !== undefined ? Boolean(settings.codEnabled) : true;
 
     settings.productApproval = normalizeProductApprovalConfig(settings || {});
 
@@ -219,7 +231,7 @@ export const updateSettings = async (req, res) => {
       : { $or: [{ tenantId: null }, { tenantId: { $exists: false } }] };
     const toSet = {};
     for (const [key, v] of Object.entries(value)) {
-      if (v === undefined) continue;
+      if (v === undefined || !Object.prototype.hasOwnProperty.call(payload, key)) continue;
       flattenForMongoSet(key, v, toSet);
     }
     if (Object.keys(toSet).length === 0) {

@@ -19,7 +19,9 @@ import {
     Linkedin,
     Youtube,
     Loader2,
-    X
+    X,
+    Zap,
+    Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@shared/components/ui/Toast';
@@ -38,6 +40,7 @@ const AdminSettings = () => {
     const { refetch } = useSettings();
     const { showToast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
+    const [togglingField, setTogglingField] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('general');
     const [logoUploading, setLogoUploading] = useState(false);
@@ -80,6 +83,9 @@ const AdminSettings = () => {
         returnEligibilityDelayMinutes: 2,
         returnDeliveryCommission: 0,
         lowStockAlertsEnabled: true,
+        codEnabled: true,
+        onlineEnabled: true,
+        sellerSubscriptionOnlineEnabled: true,
         productApproval: {
             sellerCreateRequiresApproval: false,
             sellerEditRequiresApproval: false,
@@ -100,6 +106,9 @@ const AdminSettings = () => {
                         returnWindowMinutes: data.returnWindowMinutes ?? 2880,
                         returnEligibilityDelayMinutes: data.returnEligibilityDelayMinutes ?? 2,
                         returnDeliveryCommission: data.returnDeliveryCommission ?? 0,
+                        onlineEnabled: data.onlineEnabled !== undefined ? Boolean(data.onlineEnabled) : true,
+                        sellerSubscriptionOnlineEnabled: data.sellerSubscriptionOnlineEnabled !== undefined ? Boolean(data.sellerSubscriptionOnlineEnabled) : true,
+                        codEnabled: data.codEnabled !== undefined ? Boolean(data.codEnabled) : true,
                     }));
                 }
             } catch (error) {
@@ -110,7 +119,7 @@ const AdminSettings = () => {
             }
         };
         fetchSettings();
-    }, [showToast]);
+    }, []);
 
     const handleSave = async () => {
         try {
@@ -141,6 +150,36 @@ const AdminSettings = () => {
 
     const handleInputChange = (field, value) => {
         setSettings(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleTogglePaymentSetting = async (field, label) => {
+        const nextValue = settings[field] === false ? true : false;
+        
+        // Optimistic UI update
+        setSettings(prev => ({ ...prev, [field]: nextValue }));
+        setTogglingField(field);
+
+        try {
+            const res = await adminApi.updateSettings({ [field]: nextValue });
+            const updated = res.data?.result ?? res.data;
+            if (updated) {
+                setSettings(prev => ({
+                    ...prev,
+                    ...updated,
+                    [field]: updated[field] !== undefined ? Boolean(updated[field]) : nextValue,
+                    productApproval: normalizeProductApprovalConfig(updated),
+                }));
+            }
+            await refetch({ forceRefresh: true });
+            showToast(`${label} ${nextValue ? 'turned ON' : 'turned OFF'} successfully`, 'success');
+        } catch (error) {
+            console.error(`Failed to update ${field}`, error);
+            // Revert on failure
+            setSettings(prev => ({ ...prev, [field]: !nextValue }));
+            showToast(`Failed to update ${label}: ${error.response?.data?.message || error.message}`, 'error');
+        } finally {
+            setTogglingField(null);
+        }
     };
 
     const handleProductApprovalToggle = (field) => {
@@ -207,6 +246,7 @@ const AdminSettings = () => {
 
     const tabs = [
         { id: 'general', label: 'General', icon: Settings },
+        { id: 'payments', label: 'Payment Methods', icon: CreditCard },
         { id: 'branding', label: 'Branding', icon: Globe },
         { id: 'legal', label: 'Legal & Contact', icon: Building2 },
         { id: 'social', label: 'Social & Apps', icon: Share2 },
@@ -428,6 +468,176 @@ const AdminSettings = () => {
                                 </div>
                             </div>
                         </Card>
+                    )}
+
+                    {/* Payment Settings */}
+                    {activeTab === 'payments' && (
+                        <div className="space-y-6">
+                            <Card className="border-none shadow-xl ring-1 ring-slate-100 bg-white rounded-xl overflow-hidden">
+                                <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div>
+                                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                                            <CreditCard className="h-4 w-4 text-emerald-600" />
+                                            Payment Methods & Gateways
+                                        </h3>
+                                        <p className="text-xs font-bold text-slate-500 mt-1">
+                                            Control online payment and cash collection availability across customer and seller panels.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleSave}
+                                        disabled={isSaving || Boolean(togglingField)}
+                                        className={cn(
+                                            "flex items-center gap-2 px-5 py-2.5 bg-black text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 shrink-0 self-start sm:self-auto",
+                                            isSaving ? "opacity-70 cursor-wait" : "hover:bg-slate-800"
+                                        )}
+                                    >
+                                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                        {isSaving ? "Saving..." : "Save Payment Settings"}
+                                    </button>
+                                </div>
+                                <div className="p-8 space-y-6">
+                                    {/* Customer Online Payment Toggle */}
+                                    <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-slate-300">
+                                        <div className="space-y-1.5 flex-1">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700">
+                                                    <CreditCard className="h-5 w-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-black text-slate-900">Customer Online Payment</p>
+                                                    <span className={cn(
+                                                        "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                                        settings.onlineEnabled !== false ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                                                    )}>
+                                                        {settings.onlineEnabled !== false ? "● Online Payment Active" : "○ Online Payment Disabled"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs font-medium text-slate-600 leading-relaxed mt-2">
+                                                Allow customers to pay online using cards, UPI, and net banking (Razorpay / PhonePe) for checkout and order completion. When disabled, customers must choose Cash on Delivery (COD).
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            role="switch"
+                                            disabled={togglingField === 'onlineEnabled'}
+                                            aria-checked={settings.onlineEnabled !== false}
+                                            onClick={() => handleTogglePaymentSetting('onlineEnabled', 'Customer Online Payment')}
+                                            className={cn(
+                                                "relative inline-flex h-8 w-16 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20",
+                                                settings.onlineEnabled !== false ? "bg-emerald-600" : "bg-slate-300",
+                                                togglingField === 'onlineEnabled' && "opacity-60 cursor-wait"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "inline-flex items-center justify-center h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200",
+                                                    settings.onlineEnabled !== false ? "translate-x-9" : "translate-x-1"
+                                                )}
+                                            >
+                                                {togglingField === 'onlineEnabled' && (
+                                                    <Loader2 className="h-3 w-3 text-emerald-600 animate-spin" />
+                                                )}
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    {/* Seller Panel Subscription Online Payment Toggle */}
+                                    <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-slate-300">
+                                        <div className="space-y-1.5 flex-1">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="p-2 rounded-xl bg-indigo-100 text-indigo-700">
+                                                    <Zap className="h-5 w-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-black text-slate-900">Seller Subscription Online Payment</p>
+                                                    <span className={cn(
+                                                        "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                                        settings.sellerSubscriptionOnlineEnabled !== false ? "bg-indigo-100 text-indigo-800" : "bg-rose-100 text-rose-800"
+                                                    )}>
+                                                        {settings.sellerSubscriptionOnlineEnabled !== false ? "● Online Payment Active" : "○ Online Payment Disabled"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs font-medium text-slate-600 leading-relaxed mt-2">
+                                                Allow sellers to purchase and renew subscription plans online via Razorpay. When turned off, online payment is locked in the seller panel, while free plans remain active.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            role="switch"
+                                            disabled={togglingField === 'sellerSubscriptionOnlineEnabled'}
+                                            aria-checked={settings.sellerSubscriptionOnlineEnabled !== false}
+                                            onClick={() => handleTogglePaymentSetting('sellerSubscriptionOnlineEnabled', 'Seller Subscription Online Payment')}
+                                            className={cn(
+                                                "relative inline-flex h-8 w-16 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20",
+                                                settings.sellerSubscriptionOnlineEnabled !== false ? "bg-indigo-600" : "bg-slate-300",
+                                                togglingField === 'sellerSubscriptionOnlineEnabled' && "opacity-60 cursor-wait"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "inline-flex items-center justify-center h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200",
+                                                    settings.sellerSubscriptionOnlineEnabled !== false ? "translate-x-9" : "translate-x-1"
+                                                )}
+                                            >
+                                                {togglingField === 'sellerSubscriptionOnlineEnabled' && (
+                                                    <Loader2 className="h-3 w-3 text-indigo-600 animate-spin" />
+                                                )}
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    {/* Customer COD Toggle */}
+                                    <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-slate-300">
+                                        <div className="space-y-1.5 flex-1">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="p-2 rounded-xl bg-amber-100 text-amber-700">
+                                                    <Banknote className="h-5 w-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-black text-slate-900">Cash on Delivery (COD)</p>
+                                                    <span className={cn(
+                                                        "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                                        settings.codEnabled !== false ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800"
+                                                    )}>
+                                                        {settings.codEnabled !== false ? "● COD Active" : "○ COD Disabled"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs font-medium text-slate-600 leading-relaxed mt-2">
+                                                Allow customers to pay in cash upon receiving their order from the delivery partner.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            role="switch"
+                                            disabled={togglingField === 'codEnabled'}
+                                            aria-checked={settings.codEnabled !== false}
+                                            onClick={() => handleTogglePaymentSetting('codEnabled', 'Cash on Delivery')}
+                                            className={cn(
+                                                "relative inline-flex h-8 w-16 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20",
+                                                settings.codEnabled !== false ? "bg-amber-600" : "bg-slate-300",
+                                                togglingField === 'codEnabled' && "opacity-60 cursor-wait"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "inline-flex items-center justify-center h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200",
+                                                    settings.codEnabled !== false ? "translate-x-9" : "translate-x-1"
+                                                )}
+                                            >
+                                                {togglingField === 'codEnabled' && (
+                                                    <Loader2 className="h-3 w-3 text-amber-600 animate-spin" />
+                                                )}
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </Card>
+                        </div>
                     )}
 
                     {/* Branding Settings */}

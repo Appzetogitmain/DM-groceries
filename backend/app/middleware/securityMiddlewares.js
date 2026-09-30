@@ -25,45 +25,64 @@ const ADMIN_BOOTSTRAP_RATE_LIMIT_WINDOW_MS = () =>
 const ADMIN_BOOTSTRAP_RATE_LIMIT_MAX = () =>
   parseInt(process.env.ADMIN_BOOTSTRAP_RATE_LIMIT_MAX || "10", 10);
 
-export const globalApiRateLimiter = createRateLimiter({
-  namespace: "global",
-  windowMs: GLOBAL_RATE_LIMIT_WINDOW_MS(),
-  max: GLOBAL_RATE_LIMIT_MAX(),
-  keyGenerator: byIp,
-  message: "Too many requests from this IP. Please retry shortly.",
-});
+// Rate limiters — disabled in development to avoid false 429s from shared
+// localhost IP across multiple apps and nodemon restarts sharing the same
+// in-memory localStore. Re-enable in production by setting ENABLE_RATE_LIMITING=true.
+const IS_RATE_LIMITING_ENABLED =
+  process.env.ENABLE_RATE_LIMITING === "true" ||
+  process.env.NODE_ENV === "production";
 
-export const authRouteRateLimiter = createRateLimiter({
-  namespace: "auth",
-  windowMs: AUTH_RATE_LIMIT_WINDOW_MS(),
-  max: AUTH_RATE_LIMIT_MAX(),
-  keyGenerator: byIp,
-  message: "Too many authentication requests. Please wait and retry.",
-});
+const passthrough = (_req, _res, next) => next();
 
-export const otpRouteRateLimiter = createRateLimiter({
-  namespace: "otp",
-  windowMs: OTP_RATE_LIMIT_WINDOW_MS(),
-  max: OTP_RATE_LIMIT_MAX(),
-  keyGenerator: byIp,
-  message: "Too many OTP requests. Please wait before retrying.",
-});
+export const globalApiRateLimiter = IS_RATE_LIMITING_ENABLED
+  ? createRateLimiter({
+      namespace: "global",
+      windowMs: GLOBAL_RATE_LIMIT_WINDOW_MS(),
+      max: GLOBAL_RATE_LIMIT_MAX(),
+      keyGenerator: byIp,
+      message: "Too many requests from this IP. Please retry shortly.",
+    })
+  : passthrough;
 
-export const paymentRouteRateLimiter = createRateLimiter({
-  namespace: "payment",
-  windowMs: PAYMENT_RATE_LIMIT_WINDOW_MS(),
-  max: PAYMENT_RATE_LIMIT_MAX(),
-  keyGenerator: byUserOrIp,
-  message: "Too many payment requests. Please wait before retrying.",
-});
+export const authRouteRateLimiter = IS_RATE_LIMITING_ENABLED
+  ? createRateLimiter({
+      namespace: "auth",
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS(),
+      max: AUTH_RATE_LIMIT_MAX(),
+      keyGenerator: byIp,
+      message: "Too many authentication requests. Please wait and retry.",
+    })
+  : passthrough;
 
-export const adminBootstrapRateLimiter = createRateLimiter({
-  namespace: "admin_bootstrap",
-  windowMs: ADMIN_BOOTSTRAP_RATE_LIMIT_WINDOW_MS(),
-  max: ADMIN_BOOTSTRAP_RATE_LIMIT_MAX(),
-  keyGenerator: byIp,
-  message: "Too many admin bootstrap attempts. Please wait before retrying.",
-});
+export const otpRouteRateLimiter = IS_RATE_LIMITING_ENABLED
+  ? createRateLimiter({
+      namespace: "otp",
+      windowMs: OTP_RATE_LIMIT_WINDOW_MS(),
+      max: OTP_RATE_LIMIT_MAX(),
+      keyGenerator: byIp,
+      message: "Too many OTP requests. Please wait before retrying.",
+    })
+  : passthrough;
+
+export const paymentRouteRateLimiter = IS_RATE_LIMITING_ENABLED
+  ? createRateLimiter({
+      namespace: "payment",
+      windowMs: PAYMENT_RATE_LIMIT_WINDOW_MS(),
+      max: PAYMENT_RATE_LIMIT_MAX(),
+      keyGenerator: byUserOrIp,
+      message: "Too many payment requests. Please wait before retrying.",
+    })
+  : passthrough;
+
+export const adminBootstrapRateLimiter = IS_RATE_LIMITING_ENABLED
+  ? createRateLimiter({
+      namespace: "admin_bootstrap",
+      windowMs: ADMIN_BOOTSTRAP_RATE_LIMIT_WINDOW_MS(),
+      max: ADMIN_BOOTSTRAP_RATE_LIMIT_MAX(),
+      keyGenerator: byIp,
+      message: "Too many admin bootstrap attempts. Please wait before retrying.",
+    })
+  : passthrough;
 
 export function createContentLengthGuard(maxBytes, message = "Payload too large") {
   const safeMax = Math.max(1024, Number(maxBytes || 1024 * 1024));

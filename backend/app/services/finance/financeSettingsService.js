@@ -4,6 +4,7 @@ import {
   HANDLING_FEE_STRATEGY,
 } from "../../constants/finance.js";
 import { roundCurrency } from "../../utils/money.js";
+import { invalidate } from "../cacheService.js";
 
 const DEFAULT_FINANCE_SETTINGS = {
   deliveryPricingMode: DELIVERY_PRICING_MODE.DISTANCE_BASED,
@@ -16,6 +17,7 @@ const DEFAULT_FINANCE_SETTINGS = {
   handlingFeeStrategy: HANDLING_FEE_STRATEGY.HIGHEST_CATEGORY_FEE,
   codEnabled: true,
   onlineEnabled: true,
+  sellerSubscriptionOnlineEnabled: true,
   platformFee: 0,
   freeDeliveryThreshold: 0,
 };
@@ -79,6 +81,7 @@ export function normalizeFinanceSettings(raw = {}) {
     handlingFeeStrategy,
     codEnabled: raw.codEnabled ?? DEFAULT_FINANCE_SETTINGS.codEnabled,
     onlineEnabled: raw.onlineEnabled ?? DEFAULT_FINANCE_SETTINGS.onlineEnabled,
+    sellerSubscriptionOnlineEnabled: raw.sellerSubscriptionOnlineEnabled ?? DEFAULT_FINANCE_SETTINGS.sellerSubscriptionOnlineEnabled,
     platformFee,
     freeDeliveryThreshold,
   };
@@ -111,6 +114,7 @@ export async function updateDeliveryFinanceSettings(payload, { session } = {}) {
   if (session) options.session = session;
 
   const updated = await Setting.findOneAndUpdate(query, { $set: normalized }, options);
+  await invalidate("cache:platform:settings:*");
   return normalizeFinanceSettings(updated.toObject?.() || updated);
 }
 

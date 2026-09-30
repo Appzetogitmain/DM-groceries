@@ -503,4 +503,4 @@ async function main() {
 }
 
 // Start the application
-main();
+main();// nodemon restart trigger

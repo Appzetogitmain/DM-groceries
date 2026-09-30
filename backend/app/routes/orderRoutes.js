@@ -117,7 +117,6 @@ router.get(
   verifyToken,
   allowRoles("admin", "seller"),
   requireApprovedSeller,
-  requireFeature("ORDER_MANAGEMENT"),
   getSellerOrders,
 );
 router.put(
@@ -133,7 +132,6 @@ router.get(
   verifyToken,
   allowRoles("admin", "seller"),
   requireApprovedSeller,
-  requireFeature("RETURN_MANAGEMENT"),
   getSellerReturns,
 );
 router.put(

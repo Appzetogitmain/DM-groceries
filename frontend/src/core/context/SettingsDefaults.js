@@ -38,6 +38,7 @@ export const DEFAULT_SETTINGS = {
   handlingFeeStrategy: "highest_category_fee",
   codEnabled: true,
   onlineEnabled: true,
+  sellerSubscriptionOnlineEnabled: true,
   lowStockAlertsEnabled: true,
   productApproval: {
     sellerCreateRequiresApproval: false,

@@ -1,4 +1,5 @@
 import axiosInstance from '@core/api/axios';
+import { invalidateCache } from '@core/api/dedupe';
 
 /**
  * Admin platform / delivery / centralized settings endpoints.
@@ -11,12 +12,23 @@ export const adminSettingsApi = {
 
     getDeliveryFinanceSettings: () =>
         axiosInstance.get('/admin/settings/delivery'),
-    updateDeliveryFinanceSettings: (data) =>
-        axiosInstance.put('/admin/settings/delivery', data),
+    updateDeliveryFinanceSettings: async (data) => {
+        const res = await axiosInstance.put('/admin/settings/delivery', data);
+        invalidateCache('/settings');
+        return res;
+    },
 
     // Centralized settings (public GET, admin PUT)
-    getSettings: () => axiosInstance.get('/settings'),
-    updateSettings: (data) => axiosInstance.put('/settings', data),
+    getSettings: (params = {}) =>
+        axiosInstance.get('/settings', {
+            params: { ...params, _t: Date.now() },
+            headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+        }),
+    updateSettings: async (data) => {
+        const res = await axiosInstance.put('/settings', data);
+        invalidateCache('/settings');
+        return res;
+    },
     uploadSettingsImage: (formData, type = 'logo') =>
         axiosInstance.post(`/settings/upload?type=${type}`, formData),
 };

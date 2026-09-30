@@ -29,7 +29,7 @@ const getDeliveryToken = createSocketTokenReader(STORAGE_KEYS.AUTH_DELIVERY);
 
 /** Match server `deliverySearchExpiresAt` — progress bar + countdown stay aligned when modal opens late. */
 function secondsLeftUntilDeliveryExpiry(expiresAt) {
-  if (!expiresAt) return 60;
+  if (!expiresAt) return 300;
   const ms = new Date(expiresAt).getTime() - Date.now();
   return Math.max(0, Math.ceil(ms / 1000));
 }
@@ -40,8 +40,8 @@ const DeliveryLayout = () => {
   const { user } = useAuth();
 
   const [activeOrder, setActiveOrder] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [acceptWindowTotal, setAcceptWindowTotal] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [acceptWindowTotal, setAcceptWindowTotal] = useState(300);
   const shownOrderIdsRef = useRef(new Set());
   const activeOrderRef = useRef(null);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -54,6 +54,7 @@ const DeliveryLayout = () => {
   const orderRingtoneRef = useRef(null);
   const ringtoneRetryTimerRef = useRef(null);
   const ringtoneUnlockHandlerRef = useRef(null);
+  const hasPlayedUrgentReminderRef = useRef(false);
 
   const getOrderRingtone = () => {
     if (!orderRingtoneRef.current) {
@@ -145,8 +146,9 @@ const DeliveryLayout = () => {
     const isReturn = payload.type === "RETURN_PICKUP" || payload.isReturnPickup === true;
     const trackingId = isReturn ? `${payload.orderId}-return` : payload.orderId;
 
-    if (activeOrderRef.current) return true;
-    if (shownOrderIdsRef.current.has(trackingId)) return true;
+    const isUrgent = payload.urgentReminder === true;
+    if (activeOrderRef.current && activeOrderRef.current.id !== payload.orderId) return true;
+    if (shownOrderIdsRef.current.has(trackingId) && !isUrgent) return true;
     const p = payload.preview;
     if (
       !p ||
@@ -181,8 +183,8 @@ const DeliveryLayout = () => {
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       showSystemNotification({
-        title: "New Order Request!",
-        body: `You have a new delivery request for ₹${earnings} earnings.`
+        title: isUrgent ? "URGENT: Order needs a driver!" : "New Order Request!",
+        body: isUrgent ? `Last call! Earn ₹${earnings} for this nearby order.` : `You have a new delivery request for ₹${earnings} earnings.`
       });
     }
 
@@ -241,6 +243,7 @@ const DeliveryLayout = () => {
 
   useEffect(() => {
     if (activeOrder) {
+      hasPlayedUrgentReminderRef.current = false;
       startOrderRingtone();
       return undefined;
     }
@@ -778,6 +781,16 @@ const DeliveryLayout = () => {
     const timer = setInterval(() => {
       const next = secondsLeftUntilDeliveryExpiry(activeOrderRef.current?.expiresAt);
       setTimeLeft(next);
+      if (next <= 120 && !hasPlayedUrgentReminderRef.current) {
+        hasPlayedUrgentReminderRef.current = true;
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          showSystemNotification({
+            title: "URGENT: Order needs a driver!",
+            body: `Last call! Earn ₹${activeOrderRef.current?.earnings || ''} for this nearby order.`
+          });
+        }
+        startOrderRingtone();
+      }
       if (next <= 0) {
         clearInterval(timer);
         if (!acceptInFlightRef.current) {

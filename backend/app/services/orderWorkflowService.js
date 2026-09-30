@@ -47,8 +47,7 @@ import { emitNotificationEvent } from "../modules/notifications/notification.emi
 import logger from "./logger.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
 
-const DELIVERY_SEARCH_MAX_ATTEMPTS = () =>
-  parseInt(process.env.DELIVERY_SEARCH_MAX_ATTEMPTS || "3", 10);
+const DELIVERY_SEARCH_MAX_ATTEMPTS = () => parseInt(process.env.DELIVERY_SEARCH_MAX_ATTEMPTS || "1", 10);
 
 const DELIVERY_RADIUS_MULTIPLIER = () =>
   parseFloat(process.env.DELIVERY_RADIUS_MULTIPLIER || "1.5");
@@ -678,10 +677,7 @@ export async function processDeliveryTimeoutJob({ orderId, attempt }) {
     customerId: updated.customer,
     userId: updated.customer,
     sellerId: updated.seller,
-    customerMessage:
-      "Order was cancelled because no delivery partner was available.",
-    sellerMessage:
-      `Order #${updated.orderId} was cancelled because no delivery partner was available.`,
+    customerMessage: "We are sorry. I do not find a delivery driver so I cannot deliver your order.", sellerMessage: `Order #${updated.orderId} was cancelled because no delivery driver was found in time.`,
   });
 }
 

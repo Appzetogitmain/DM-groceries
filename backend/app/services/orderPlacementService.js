@@ -3,6 +3,7 @@ import Cart from "../models/cart.js";
 import CheckoutGroup from "../models/checkoutGroup.js";
 import Order from "../models/order.js";
 import User from "../models/customer.js";
+import Setting from "../models/setting.js";
 import Transaction from "../models/transaction.js";
 import Coupon from "../models/coupon.js";
 import { WORKFLOW_STATUS, DEFAULT_SELLER_TIMEOUT_MS } from "../constants/orderWorkflow.js";
@@ -362,6 +363,14 @@ export async function placeOrderAtomic({
     });
 
     const paymentMode = normalizePaymentMode(normalizedPayload.paymentMode);
+    if (paymentMode === "ONLINE") {
+      const setting = await Setting.findOne({}, null, { session });
+      if (setting && setting.onlineEnabled === false) {
+        const error = new Error("Online payment is currently disabled by administrator");
+        error.statusCode = 400;
+        throw error;
+      }
+    }
     const normalizedAddress = normalizeAddress(normalizedPayload.address);
     const idempotencyKeyExpiry = idempotencyKey
       ? new Date(Date.now() + IDEMPOTENCY_RECORD_TTL_MS)

@@ -348,7 +348,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             data-lenis-prevent
             style={{ overscrollBehavior: "contain" }}
-            className="fixed bottom-0 left-0 right-0 bg-[#F3F4F6] rounded-t-[32px] z-[610] max-h-[90vh] overflow-y-auto outline-none shadow-2xl pb-8">
+            className="fixed bottom-0 left-0 right-0 bg-[#F3F4F6] rounded-t-[32px] z-[610] max-h-[90vh] overflow-y-auto outline-none shadow-2xl pb-[calc(env(safe-area-inset-bottom)+2rem)]">
             {/* Header */}
             <div className="sticky top-0 bg-[#F3F4F6] px-6 pt-6 pb-4 flex flex-col gap-4 z-20">
               <div className="flex items-center justify-between">

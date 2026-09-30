@@ -226,7 +226,7 @@ const CheckoutPage = () => {
       id: "pending",
       label: "Pay after seller accepts",
       icon: Clock,
-      sublabel: "Choose Online or Cash later",
+      sublabel: settings?.onlineEnabled !== false ? "Choose Online or Cash later" : "Cash on Delivery",
     },
   ];
 
@@ -1121,7 +1121,7 @@ const CheckoutPage = () => {
       </div>
 
       {/* Sticky Footer — Mobile Only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 rounded-t-3xl">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 rounded-t-3xl">
         <div className="max-w-4xl mx-auto">
           <SlideToPay
             amount={finalAmountToPay}

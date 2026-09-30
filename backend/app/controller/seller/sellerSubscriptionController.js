@@ -2,6 +2,7 @@ import SubscriptionPlan from "../../models/subscriptionPlan.js";
 import SubscriptionOffer from "../../models/subscriptionOffer.js";
 import Subscription from "../../models/subscription.js";
 import SubscriptionPayment from "../../models/subscriptionPayment.js";
+import Setting from "../../models/setting.js";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import { handleResponse } from "../../utils/helper.js";
@@ -205,6 +206,12 @@ export const createSubscriptionOrder = async (req, res) => {
                 subscription,
                 paymentRequired: false,
             });
+        }
+
+        // Check if subscription online payment is enabled by admin
+        const setting = await Setting.findOne();
+        if (setting && setting.sellerSubscriptionOnlineEnabled === false) {
+            return handleResponse(res, 400, "Online payment for seller subscriptions is currently disabled by administrator.");
         }
 
         // Create Razorpay Order

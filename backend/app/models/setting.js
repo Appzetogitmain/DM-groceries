@@ -203,6 +203,10 @@ const settingSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        sellerSubscriptionOnlineEnabled: {
+            type: Boolean,
+            default: true,
+        },
         lowStockAlertsEnabled: {
             type: Boolean,
             default: true,

@@ -5,6 +5,7 @@ import Order from "../models/order.js";
 import CheckoutGroup from "../models/checkoutGroup.js";
 import Payment from "../models/payment.js";
 import PaymentWebhookEvent from "../models/paymentWebhookEvent.js";
+import Setting from "../models/setting.js";
 import { ORDER_PAYMENT_STATUS } from "../constants/finance.js";
 import {
   PAYMENT_EVENT_SOURCE,
@@ -495,6 +496,13 @@ export async function createPaymentOrderForOrderRef({
   idempotencyKey = null,
   correlationId = null,
 }) {
+  const setting = await Setting.findOne();
+  if (setting && setting.onlineEnabled === false) {
+    const err = new Error("Online payment is currently disabled by administrator");
+    err.statusCode = 400;
+    throw err;
+  }
+
   const target = await resolvePaymentTarget(orderRef);
   validatePaymentEligibility(target, userId);
   const primaryOrder = target.primaryOrder;

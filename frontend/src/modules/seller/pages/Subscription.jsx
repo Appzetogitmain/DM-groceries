@@ -4,6 +4,8 @@ import { CheckCircle2, Crown, Zap, AlertCircle, ShoppingBag, Loader2 } from 'luc
 import { sellerApi } from '../services/sellerApi';
 import { toast } from 'sonner';
 import { useAuth } from '@core/context/AuthContext';
+import { useSettings } from '@core/context/SettingsContext';
+import { cn } from '@/lib/utils';
 
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -21,6 +23,8 @@ const loadRazorpayScript = () => {
 
 const Subscription = () => {
     const { user } = useAuth();
+    const { settings } = useSettings();
+    const isSubscriptionOnlineEnabled = settings?.sellerSubscriptionOnlineEnabled !== false;
     const [currentSub, setCurrentSub] = useState(null);
     const [plans, setPlans] = useState([]);
     const [offers, setOffers] = useState([]);
@@ -105,6 +109,12 @@ const Subscription = () => {
                 toast.success("Subscription activated successfully!");
                 setCheckoutModalOpen(false);
                 init(); // Reload state
+                return;
+            }
+
+            if (!isSubscriptionOnlineEnabled) {
+                toast.error("Online payment for subscriptions is currently turned off by admin.");
+                setProcessing(false);
                 return;
             }
 
@@ -241,6 +251,15 @@ const Subscription = () => {
 
             {plans.length > 0 && (
                 <div className="space-y-6">
+                    {!isSubscriptionOnlineEnabled && (
+                        <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-4 flex items-center gap-3 text-amber-900 mb-6">
+                            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                            <div className="text-xs font-medium leading-relaxed">
+                                <span className="font-bold">Online Payment Notice:</span> Online payment for subscription plans is temporarily turned off by the administrator. Free plans can be activated immediately. For paid plans, please contact admin support.
+                            </div>
+                        </div>
+                    )}
+
                     {currentSub && (
                         <div className="border-t border-gray-200 pt-6 mt-6"></div>
                     )}
@@ -409,13 +428,45 @@ const Subscription = () => {
                             </div>
                         </div>
 
-                        <Button 
-                            className="w-full justify-center py-3 text-lg" 
-                            onClick={handleCheckout} 
-                            loading={processing}
-                        >
-                            Proceed to Payment
-                        </Button>
+                        {(() => {
+                            const basePrice = selectedCycle === 'MONTHLY' ? selectedPlan.monthlyPrice : selectedPlan.yearlyPrice;
+                            let discount = 0;
+                            if (selectedOffer) {
+                                const offer = offers.find(o => o._id === selectedOffer);
+                                if (offer) {
+                                    if (offer.discountType === 'PERCENTAGE') {
+                                        discount = Math.round((basePrice * offer.discountValue) / 100);
+                                    } else {
+                                        let calculatedDiscount = offer.discountValue;
+                                        if (selectedCycle === 'YEARLY') {
+                                            calculatedDiscount = offer.discountValue * 12;
+                                        }
+                                        discount = Math.min(calculatedDiscount, basePrice);
+                                    }
+                                }
+                            }
+                            const finalPrice = Math.max(0, basePrice - discount);
+                            const isPaid = finalPrice > 0;
+                            const isBlocked = isPaid && !isSubscriptionOnlineEnabled;
+
+                            return (
+                                <div className="space-y-2">
+                                    <Button 
+                                        className={cn("w-full justify-center py-3 text-lg", isBlocked && "opacity-60 cursor-not-allowed bg-slate-400 hover:bg-slate-400")} 
+                                        onClick={handleCheckout} 
+                                        loading={processing}
+                                        disabled={isBlocked || processing}
+                                    >
+                                        {isBlocked ? "Online Payment Disabled" : (isPaid ? "Proceed to Payment" : "Activate Free Plan")}
+                                    </Button>
+                                    {isBlocked && (
+                                        <p className="text-xs text-rose-600 font-medium text-center">
+                                            Online payment for subscriptions is currently turned off by admin. Please contact support.
+                                        </p>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
             </Modal>

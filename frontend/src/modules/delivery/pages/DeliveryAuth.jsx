@@ -986,7 +986,7 @@ const DeliveryAuth = () => {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 z-[101] bg-white rounded-t-3xl shadow-2xl p-6 pb-10 flex flex-col gap-3 max-w-[420px] mx-auto"
+              className="fixed bottom-0 left-0 right-0 z-[101] bg-white rounded-t-3xl shadow-2xl p-6 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] flex flex-col gap-3 max-w-[420px] mx-auto"
             >
               <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4" />
               <h3 className="text-sm font-black text-gray-800 text-center uppercase tracking-wider mb-2">

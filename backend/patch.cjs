@@ -1,0 +1,6 @@
+const fs=require('fs');
+let c=fs.readFileSync('app/services/orderWorkflowService.js','utf8');
+c=c.replace(/const DELIVERY_SEARCH_MAX_ATTEMPTS = \(\) =>\r?\n\s*parseInt\(process\.env\.DELIVERY_SEARCH_MAX_ATTEMPTS \|\| "3", 10\);/, 'const DELIVERY_SEARCH_MAX_ATTEMPTS = () => parseInt(process.env.DELIVERY_SEARCH_MAX_ATTEMPTS || "5", 10);');
+c=c.replace(/customerMessage:\r?\n\s*"Order was cancelled because no delivery partner was available\.",\r?\n\s*sellerMessage:\r?\n\s*`Order #\$\{updated\.orderId\} was cancelled because no delivery partner was available\.`,/, 'customerMessage: "We are sorry. I do not find a delivery driver so I cannot deliver your order.", sellerMessage: `Order #${updated.orderId} was cancelled because no delivery driver was found in time.`,');
+c=c.replace(/await emitDeliveryBroadcastForSeller\(\r?\n\s*orderRich\.seller,\r?\n\s*deliveryBroadcastPayloadFromOrder\(orderRich, \{\r?\n\s*retryAttempt: currentAttempt \+ 1,\r?\n\s*\}\),\r?\n\s*\);/g, 'const extraPayload={retryAttempt: currentAttempt + 1}; if (maxAttempts - currentAttempt === 2) extraPayload.urgentReminder = true; await emitDeliveryBroadcastForSeller(orderRich.seller, deliveryBroadcastPayloadFromOrder(orderRich, extraPayload));');
+fs.writeFileSync('app/services/orderWorkflowService.js',c);

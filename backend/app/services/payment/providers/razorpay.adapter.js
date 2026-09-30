@@ -34,15 +34,29 @@ export class RazorpayAdapter extends PaymentProviderPort {
     const client = getRazorpayClient();
     
     // Create a payment link using reference_id to store our merchantOrderId
-    const response = await client.paymentLink.create({
-      amount: amountPaise,
-      currency: "INR",
-      accept_partial: false,
-      reference_id: merchantOrderId,
-      description: "Order Payment",
-      callback_url: redirectUrl,
-      callback_method: "get"
-    });
+    let response;
+    try {
+      response = await client.paymentLink.create({
+        amount: amountPaise,
+        currency: "INR",
+        accept_partial: false,
+        reference_id: merchantOrderId,
+        description: "Order Payment",
+        callback_url: redirectUrl,
+        callback_method: "get"
+      });
+    } catch (e) {
+      // Razorpay SDK errors carry `statusCode` + `error.description` but no
+      // `message`, which made the API respond with an empty message.
+      const description = e?.error?.description || e?.message || "Payment gateway error";
+      const err = new Error(
+        e?.error?.code === "RATE_LIMIT_EXCEEDED"
+          ? `Payment gateway limit reached (${description}). Please choose Cash on Delivery or try again later.`
+          : description,
+      );
+      err.statusCode = e?.statusCode || 502;
+      throw err;
+    }
 
     return {
       redirectUrl: response.short_url,

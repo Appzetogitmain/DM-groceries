@@ -141,7 +141,15 @@ function normalizeEmail(value) {
 }
 
 function normalizePhone(value) {
-  const phone = String(value || "").replace(/\D/g, "").slice(0, 10);
+  let phone = String(value || "").replace(/\D/g, "");
+  if (phone.length === 12 && phone.startsWith("91")) {
+    phone = phone.slice(2);
+  } else if (phone.length === 11 && phone.startsWith("0")) {
+    phone = phone.slice(1);
+  } else if (phone.length > 10) {
+    phone = phone.slice(-10);
+  }
+
   if (!/^\d{10}$/.test(phone)) {
     const error = new Error("Please enter a valid 10-digit phone number");
     error.statusCode = 400;
