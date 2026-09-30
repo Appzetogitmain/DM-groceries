@@ -1,6 +1,7 @@
 import handleResponse from "../utils/helper.js";
 import {
   createPaymentOrderForOrderRef,
+  confirmRazorpayCheckoutPayment,
   verifyPaymentStatus as verifyPaymentStatusService,
   processWebhook,
 } from "../services/paymentService.js";
@@ -89,6 +90,28 @@ export const verifyPaymentStatus = async (req, res) => {
     });
   } catch (error) {
     return handleResponse(res, error.statusCode || 500, error.message);
+  }
+};
+
+export const confirmRazorpayPayment = async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return handleResponse(res, 400, "Missing payment verification fields");
+    }
+    const verification = await confirmRazorpayCheckoutPayment({
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      razorpaySignature: razorpay_signature,
+      userId: req.user?.id,
+      correlationId: req.correlationId || null,
+    });
+    return handleResponse(res, 200, "Payment verified", {
+      status: verification.status,
+      payment: verification.payment,
+    });
+  } catch (error) {
+    return handleResponse(res, error.statusCode || 500, resolvePaymentErrorMessage(error));
   }
 };
 

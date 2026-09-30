@@ -44,6 +44,8 @@ import {
   ResponsiveContainer,
   CartesianGrid
 } from "recharts";
+import { useLocation, useSearchParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const SellerProfile = () => {
   const { refreshEarnings } = useSellerEarnings();
@@ -72,11 +74,43 @@ const SellerProfile = () => {
     }
   });
 
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const [highlightBank, setHighlightBank] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
 
   const [hasCustomRadius, setHasCustomRadius] = useState(false);
+
+  useEffect(() => {
+    const shouldEditBank = searchParams.get("edit") === "bank" || location.state?.editBank;
+    if (shouldEditBank && !isLoading) {
+      setIsEditing(true);
+      setHighlightBank(true);
+
+      const timer = setTimeout(() => {
+        const bankCard = document.getElementById("bank-details-card");
+        if (bankCard) {
+          bankCard.scrollIntoView({ behavior: "smooth", block: "center" });
+          const firstInput = bankCard.querySelector("input[name='bankName']") || bankCard.querySelector("input");
+          if (firstInput) {
+            firstInput.focus();
+          }
+        }
+      }, 350);
+
+      const highlightTimer = setTimeout(() => {
+        setHighlightBank(false);
+      }, 5000);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(highlightTimer);
+      };
+    }
+  }, [searchParams, location.state, isLoading]);
 
   const fetchData = async () => {
     try {
@@ -596,12 +630,37 @@ const SellerProfile = () => {
       </div>
 
       {/* ==================== BANK DETAILS ROW ==================== */}
-      <Card className="p-6 md:p-8 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[20px] bg-white transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.05)] mb-8">
-        <div className="flex justify-between items-center mb-6 border-b border-slate-50 pb-3">
-          <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <Wallet size={18} className="text-[#154D1A]" />
-            Bank Details
-          </h3>
+      <Card
+        id="bank-details-card"
+        className={cn(
+          "p-6 md:p-8 border shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[20px] bg-white transition-all duration-500 mb-8",
+          highlightBank
+            ? "border-emerald-500 ring-4 ring-emerald-500/20 bg-emerald-50/10 shadow-lg shadow-emerald-500/10"
+            : "border-slate-100 hover:shadow-[0_8px_30px_rgba(0,0,0,0.05)]"
+        )}
+      >
+        <div className="flex justify-between items-center mb-6 border-b border-slate-50 pb-3 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Wallet size={18} className="text-[#154D1A]" />
+              Bank Details
+            </h3>
+            {highlightBank && (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full animate-pulse">
+                Fill details for withdrawals
+              </span>
+            )}
+          </div>
+          {isEditing && (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSaving}
+              className="bg-[#154D1A] hover:bg-[#103b14] text-white rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+            >
+              {isSaving ? "Saving..." : <><Save size={13} /> Save Bank Details</>}
+            </Button>
+          )}
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

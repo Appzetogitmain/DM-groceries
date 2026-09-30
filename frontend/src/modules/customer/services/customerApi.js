@@ -96,6 +96,8 @@ export const customerApi = {
   // Payments
   createPaymentOrder: (data) =>
     axiosInstance.post("/payments/create-order", data),
+  confirmRazorpayPayment: (data) =>
+    axiosInstance.post("/payments/razorpay/confirm", data),
   verifyPaymentStatus: (id) => axiosInstance.get(`/payments/status/${id}`),
   selectPaymentMethod: (orderId, data) => 
     axiosInstance.post(`/orders/${orderId}/select-payment`, data),

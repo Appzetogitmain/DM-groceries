@@ -34,7 +34,7 @@ export const openRazorpayCheckout = async ({ checkout, prefill = {}, description
       description,
       prefill,
       theme: { color: "#1A4516" },
-      handler: () => resolve({ paid: true }),
+      handler: (response) => resolve({ paid: true, response }),
       modal: { ondismiss: () => resolve({ paid: false }) },
     });
     rzp.on("payment.failed", (resp) => {

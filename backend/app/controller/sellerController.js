@@ -78,6 +78,25 @@ export const requestWithdrawal = async (req, res) => {
       return handleResponse(res, 400, "Please enter a valid amount");
     }
 
+    const seller = await Seller.findById(sellerId).select("bankDetails");
+    if (!seller) {
+      return handleResponse(res, 404, "Seller not found");
+    }
+
+    const hasBankDetails = Boolean(
+      seller.bankDetails &&
+      seller.bankDetails.accountNumber &&
+      seller.bankDetails.accountNumber.trim().length > 0
+    );
+
+    if (!hasBankDetails) {
+      return handleResponse(
+        res,
+        400,
+        "Please add your bank account details in your profile before requesting a withdrawal"
+      );
+    }
+
     const wallet = await Wallet.findOne({ ownerId: sellerId, ownerType: "SELLER" });
     if (!wallet) {
       return handleResponse(res, 404, "Wallet not found");
@@ -102,6 +121,9 @@ export const requestWithdrawal = async (req, res) => {
       amount: -Math.abs(amount),
       status: "Pending",
       reference: `WDR-${Date.now()}`,
+      meta: {
+        bankDetails: seller.bankDetails,
+      },
     });
 
     // 3. Update Wallet balances

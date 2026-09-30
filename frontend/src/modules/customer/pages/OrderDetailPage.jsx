@@ -886,6 +886,23 @@ const OrderDetailPage = () => {
     setReturnImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Opens Razorpay Checkout, confirms the signed result with the backend, then
+  // lands on the status page (which keeps polling if confirmation is delayed).
+  const payWithCheckout = async (checkout, merchantOrderId) => {
+    const { paid, response } = await openRazorpayCheckout({ checkout });
+    if (!paid) return;
+    try {
+      await customerApi.confirmRazorpayPayment({
+        razorpay_order_id: response?.razorpay_order_id,
+        razorpay_payment_id: response?.razorpay_payment_id,
+        razorpay_signature: response?.razorpay_signature,
+      });
+    } catch (err) {
+      console.warn("[OrderDetailPage] Payment confirm failed, falling back to polling:", err);
+    }
+    navigate(`/payment-status?merchantOrderId=${merchantOrderId}`);
+  };
+
   const handleRetryPayment = async () => {
     try {
       if (!order) return;
@@ -898,8 +915,7 @@ const OrderDetailPage = () => {
       });
       const result = response.data.result;
       if (response.data.success && result?.checkout) {
-        const { paid } = await openRazorpayCheckout({ checkout: result.checkout });
-        if (paid) navigate(`/payment-status?merchantOrderId=${result.merchantOrderId}`);
+        await payWithCheckout(result.checkout, result.merchantOrderId);
       } else if (response.data.success && result?.redirectUrl) {
         window.location.href = result.redirectUrl;
       } else {
@@ -930,8 +946,7 @@ const OrderDetailPage = () => {
       const response = await customerApi.selectPaymentMethod(paymentRef, { paymentMode: method });
       if (method === "ONLINE" && response.data.result?.checkout) {
         const { checkout, merchantOrderId: merchantRef } = response.data.result;
-        const { paid } = await openRazorpayCheckout({ checkout });
-        if (paid) navigate(`/payment-status?merchantOrderId=${merchantRef}`);
+        await payWithCheckout(checkout, merchantRef);
       } else if (method === "ONLINE" && response.data.result?.redirectUrl) {
         window.location.href = response.data.result.redirectUrl;
       } else if (method === "COD") {

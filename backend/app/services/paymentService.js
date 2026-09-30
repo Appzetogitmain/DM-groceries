@@ -670,6 +670,47 @@ export async function verifyPaymentStatus({
   };
 }
 
+/**
+ * Confirms a Razorpay Checkout success callback (same HMAC check the seller
+ * subscription flow uses), then syncs state from Razorpay. This makes payment
+ * confirmation immediate and independent of webhooks (which can't reach localhost).
+ */
+export async function confirmRazorpayCheckoutPayment({
+  razorpayOrderId,
+  razorpayPaymentId,
+  razorpaySignature,
+  userId,
+  correlationId = null,
+}) {
+  const secret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+    .digest("hex");
+  const given = Buffer.from(String(razorpaySignature || ""));
+  const want = Buffer.from(expected);
+  if (given.length !== want.length || !crypto.timingSafeEqual(given, want)) {
+    const err = new Error("Invalid payment signature");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const payment = await Payment.findOne({
+    "rawGatewayResponse.checkout.razorpayOrderId": razorpayOrderId,
+  });
+  if (!payment) {
+    const err = new Error("Payment attempt not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return verifyPaymentStatus({
+    merchantOrderId: payment.gatewayOrderId,
+    userId,
+    correlationId,
+  });
+}
+
 export async function processWebhook({
   rawBody,
   authorization,

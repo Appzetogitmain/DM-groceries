@@ -2,6 +2,7 @@ import express from "express";
 import {
   createPaymentOrder,
   verifyPaymentStatus,
+  confirmRazorpayPayment,
   handlePhonePeWebhook,
   handleRazorpayWebhook,
 } from "../controller/paymentController.js";
@@ -30,6 +31,17 @@ paymentRoute.get(
   verifyToken,
   paymentRouteRateLimiter,
   verifyPaymentStatus,
+);
+
+/**
+ * Razorpay Checkout success callback (signature verified server-side).
+ * Auth: Required
+ */
+paymentRoute.post(
+  "/razorpay/confirm",
+  verifyToken,
+  paymentRouteRateLimiter,
+  confirmRazorpayPayment,
 );
 
 /**

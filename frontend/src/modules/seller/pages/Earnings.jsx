@@ -365,7 +365,13 @@ const Earnings = () => {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
                     Select Bank Account
                   </label>
-                  <div className="p-4 border border-slate-200 rounded-lg flex items-center gap-4 cursor-pointer hover:border-[#1A4516] hover:bg-emerald-50/10 transition-all group">
+                  <div
+                    onClick={() => {
+                      setIsWithdrawModalOpen(false);
+                      navigate('/seller/profile?edit=bank', { state: { editBank: true } });
+                    }}
+                    className="p-4 border border-slate-200 rounded-lg flex items-center gap-4 cursor-pointer hover:border-[#1A4516] hover:bg-emerald-50/10 transition-all group"
+                  >
                     <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">
                       <Building2 className="h-5 w-5" />
                     </div>

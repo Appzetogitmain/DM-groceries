@@ -126,8 +126,25 @@ const Withdrawals = () => {
         toast.success('Receipt downloaded');
     };
 
+    const hasBankDetails = Boolean(
+        data?.bankDetails?.accountNumber &&
+        data.bankDetails.accountNumber.trim().length > 0
+    );
+
+    const handleGoToBankDetails = () => {
+        setIsModalOpen(false);
+        navigate('/seller/profile?edit=bank', { state: { editBank: true } });
+    };
+
     const handleSubmitRequest = async (e) => {
         e.preventDefault();
+
+        if (!hasBankDetails) {
+            toast.error('Please add your bank account details in your profile before requesting a withdrawal.');
+            handleGoToBankDetails();
+            return;
+        }
+
         const settled = Number(data?.balances?.settledBalance ?? 0);
         const pending = Math.abs(Number(data?.balances?.pendingPayouts ?? 0));
         const available = Math.max(0, settled - pending);
@@ -363,16 +380,55 @@ const Withdrawals = () => {
                             </div>
                         </div>
 
-                        <div className="p-4 bg-brand-50/50 rounded-2xl border border-brand-100/50 space-y-3">
-                            <p className="text-[10px] font-black text-brand-600 uppercase tracking-widest mb-1">Transfer Destination</p>
+                        <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={handleGoToBankDetails}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handleGoToBankDetails();
+                                }
+                            }}
+                            className={cn(
+                                "p-4 rounded-2xl border transition-all cursor-pointer group select-none",
+                                hasBankDetails
+                                    ? "bg-brand-50/50 border-brand-100/50 hover:bg-brand-50 hover:border-brand-300"
+                                    : "bg-amber-50/70 border-amber-200 hover:bg-amber-100/80 hover:border-amber-300"
+                            )}
+                            title={hasBankDetails ? "Click to view or edit bank details in profile" : "Click to add bank details in profile"}
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <p className={cn(
+                                    "text-[10px] font-black uppercase tracking-widest",
+                                    hasBankDetails ? "text-brand-600" : "text-amber-800"
+                                )}>
+                                    Transfer Destination
+                                </p>
+                                <span className={cn(
+                                    "text-[10px] font-bold flex items-center gap-1 transition-colors",
+                                    hasBankDetails
+                                        ? "text-brand-700 group-hover:text-brand-900"
+                                        : "text-amber-800 underline group-hover:text-amber-950 font-black"
+                                )}>
+                                    {hasBankDetails ? "Edit in Profile" : "Add Bank Details"}
+                                    <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                                </span>
+                            </div>
+
                             <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                    <Building2 className="h-5 w-5 text-brand-400" />
+                                <div className={cn(
+                                    "h-10 w-10 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-105",
+                                    hasBankDetails ? "bg-white text-brand-500" : "bg-amber-100 text-amber-700"
+                                )}>
+                                    <Building2 className="h-5 w-5" />
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-xs font-black text-slate-900 uppercase">{data?.bankDetails?.bankName || 'No Bank Added'}</p>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-black text-slate-900 uppercase truncate">
+                                        {data?.bankDetails?.bankName || 'No Bank Added'}
+                                    </p>
                                     <div className="flex flex-col gap-0.5 mt-1">
-                                        {data?.bankDetails?.accountNumber ? (
+                                        {hasBankDetails ? (
                                             <>
                                                 <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
                                                     A/C: {data.bankDetails.accountNumber}
@@ -382,29 +438,68 @@ const Withdrawals = () => {
                                                 </p>
                                             </>
                                         ) : (
-                                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
-                                                Add bank details in profile
+                                            <p className="text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
+                                                Click here to add bank details in profile
                                             </p>
                                         )}
                                         {data?.bankDetails?.accountHolderName && (
-                                            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-tighter mt-0.5">
+                                            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-tighter mt-0.5 truncate">
                                                 NAME: {data.bankDetails.accountHolderName}
                                             </p>
                                         )}
                                     </div>
                                 </div>
-                                <ArrowRight className="h-4 w-4 text-slate-300" />
+                                <div className={cn(
+                                    "h-8 w-8 rounded-full flex items-center justify-center transition-all shadow-sm shrink-0",
+                                    hasBankDetails
+                                        ? "bg-white text-slate-400 group-hover:bg-brand-500 group-hover:text-white"
+                                        : "bg-amber-200 text-amber-900 group-hover:bg-amber-500 group-hover:text-white"
+                                )}>
+                                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                                </div>
                             </div>
                         </div>
+
+                        {!hasBankDetails && (
+                            <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl flex items-start gap-2.5 text-amber-900 text-xs">
+                                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                                <div className="flex-1">
+                                    <p className="font-bold text-[11px] uppercase tracking-wide text-amber-900">
+                                        Bank details required
+                                    </p>
+                                    <p className="text-[11px] text-amber-700 mt-0.5">
+                                        Withdrawal requests cannot be submitted without active bank details. Please link your account.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={handleGoToBankDetails}
+                                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-black text-amber-900 underline hover:text-amber-950"
+                                    >
+                                        Go to Bank Details in Profile <ArrowRight className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-3 pt-4">
                         <button
                             type="submit"
-                            disabled={isSubmitting || !data?.bankDetails?.accountNumber}
-                            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-slate-800 disabled:opacity-50 transition-all active:scale-95"
+                            disabled={isSubmitting || !hasBankDetails}
+                            className={cn(
+                                "w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all",
+                                hasBankDetails
+                                    ? "bg-slate-900 text-white hover:bg-slate-800 active:scale-95"
+                                    : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                            )}
                         >
-                            {isSubmitting ? <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'SUBMIT REQUEST'}
+                            {isSubmitting ? (
+                                <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                            ) : !hasBankDetails ? (
+                                'ADD BANK DETAILS TO SUBMIT'
+                            ) : (
+                                'SUBMIT REQUEST'
+                            )}
                         </button>
                         <button
                             type="button"
