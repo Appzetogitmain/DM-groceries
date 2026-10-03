@@ -17,6 +17,7 @@ import {
   HiOutlineArrowPath,
   HiOutlineDocumentText,
   HiOutlineTrash,
+  HiOutlineCheckCircle,
 } from "react-icons/hi2";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -601,12 +602,12 @@ const ActiveSellers = () => {
 
                     <div className="space-y-3">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                        Store Health
+                        Store Health & Verification
                       </p>
                       <div className="p-4 bg-white rounded-2xl ring-1 ring-slate-100">
                         <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                          <span>Verification</span>
-                          <span className="text-brand-600">Verified</span>
+                          <span>Status</span>
+                          <span className="text-brand-600">Verified & Active</span>
                         </div>
                         <div className="flex items-center justify-between text-xs font-bold text-slate-600 mt-3">
                           <span>Joined</span>
@@ -616,10 +617,19 @@ const ActiveSellers = () => {
                           <span>Service radius</span>
                           <span>{selectedSeller.serviceRadius || 5} km</span>
                         </div>
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-600 mt-3">
-                          <span>Last order</span>
-                          <span>{selectedSeller.lastOrderLabel || "No orders yet"}</span>
-                        </div>
+                      </div>
+
+                      {/* Required Documents Guide */}
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                        <h5 className="text-[10px] font-bold text-slate-900 mb-3 uppercase tracking-wider">
+                          Verified Documents ({selectedSeller.sellerType === 'registered_business' ? 'Registered Business' : 'Individual'})
+                        </h5>
+                        <ul className="text-xs font-semibold text-slate-700 space-y-2">
+                          <li className="flex items-center gap-2"><HiOutlineCheckCircle className="h-4 w-4 text-green-500" /> PAN Card</li>
+                          <li className="flex items-center gap-2"><HiOutlineCheckCircle className="h-4 w-4 text-green-500" /> Aadhaar Card</li>
+                          <li className="flex items-center gap-2"><HiOutlineCheckCircle className="h-4 w-4 text-green-500" /> Trade Licence</li>
+                          <li className="flex items-center gap-2 text-slate-500 pl-6 text-[10px] uppercase tracking-wider font-bold">GST Certificate — Applicable/Optional</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
