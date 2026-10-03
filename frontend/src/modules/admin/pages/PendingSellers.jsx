@@ -430,6 +430,18 @@ const PendingSellers = () => {
                                                     <h4 className="text-sm font-bold text-slate-900">Submitted Verification Documents</h4>
                                                 </div>
                                                 <p className="text-xs text-slate-400 font-medium mb-4">Check each document before final approval.</p>
+
+                                                <div className="mb-6 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                                    <h5 className="text-[10px] font-bold text-slate-900 mb-3 uppercase tracking-wider">
+                                                        Required Documents Guide ({viewingSeller.sellerType === 'registered_business' ? 'Registered Business' : 'Individual'})
+                                                    </h5>
+                                                    <ul className="text-xs font-semibold text-slate-700 space-y-2">
+                                                        <li className="flex items-center gap-2"><HiOutlineCheckCircle className="h-4 w-4 text-green-500" /> PAN Card</li>
+                                                        <li className="flex items-center gap-2"><HiOutlineCheckCircle className="h-4 w-4 text-green-500" /> Aadhaar Card</li>
+                                                        <li className="flex items-center gap-2"><HiOutlineCheckCircle className="h-4 w-4 text-green-500" /> Trade Licence</li>
+                                                        <li className="flex items-center gap-2 text-slate-500 pl-6 text-[10px] uppercase tracking-wider font-bold">GST Certificate — Applicable/Optional</li>
+                                                    </ul>
+                                                </div>
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
