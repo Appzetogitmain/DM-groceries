@@ -62,8 +62,17 @@ export const paymentReminderQueue = isRedisEnabled()
     })
   : createNoopQueue();
 
+export const sellerReminderQueue = isRedisEnabled()
+  ? new Bull("seller-reminder", {
+      redis: redisOpts,
+      createClient: createBullRedisClient,
+      settings: queueSettings,
+    })
+  : createNoopQueue();
+
 export const JOB_NAMES = {
   SELLER_TIMEOUT: "seller-timeout",
+  SELLER_REMINDER: "seller-reminder",
   DELIVERY_TIMEOUT: "delivery-timeout",
   RETURN_PICKUP_TIMEOUT: "return-pickup-timeout",
   PAYMENT_TIMEOUT: "payment-timeout",

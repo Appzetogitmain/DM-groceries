@@ -290,6 +290,80 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* 50% Order Limit Warning Banner */}
+      {!subLoading && subscription && subscription.status === 'ACTIVE' && subscription.isHalfUsed && !subscription.isNearLimit && !subscription.isLimitReached && (
+        <div className="mb-6 p-4 rounded-xl border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg shrink-0">
+              <ShoppingBag className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-blue-900 text-base">📊 50% Order Limit Reached</h3>
+              <p className="text-blue-800 text-sm mt-0.5">
+                You have used <span className="font-bold">{subscription.usagePercentage}%</span> of your {subscription.billingCycle?.toLowerCase()} order limit
+                ({subscription.ordersUsed}/{subscription.orderLimit}).
+                <span className="font-bold"> {subscription.remainingOrders}</span> orders remaining.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('/seller/subscription')}
+            className="whitespace-nowrap px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm transition-colors"
+          >
+            View Plan
+          </button>
+        </div>
+      )}
+
+      {/* 90% Order Limit Warning Banner */}
+      {!subLoading && subscription && subscription.status === 'ACTIVE' && subscription.isNearLimit && !subscription.isLimitReached && (
+        <div className="mb-6 p-4 rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg shrink-0">
+              <ShoppingBag className="w-6 h-6 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-amber-900 text-base">⚠️ Order Limit Almost Reached</h3>
+              <p className="text-amber-800 text-sm mt-0.5">
+                You have used <span className="font-bold">{subscription.usagePercentage}%</span> of your {subscription.billingCycle?.toLowerCase()} order limit
+                ({subscription.ordersUsed}/{subscription.orderLimit}).
+                Only <span className="font-bold">{subscription.remainingOrders}</span> orders remaining. Please consider upgrading your plan.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('/seller/subscription')}
+            className="whitespace-nowrap px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm transition-colors"
+          >
+            Upgrade Plan
+          </button>
+        </div>
+      )}
+
+      {/* Order Limit Reached Banner */}
+      {!subLoading && subscription && subscription.status === 'ACTIVE' && subscription.isLimitReached && (
+        <div className="mb-6 p-4 rounded-xl border-2 border-red-300 bg-gradient-to-r from-red-50 to-rose-50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2 bg-red-100 rounded-lg shrink-0">
+              <ShoppingBag className="w-6 h-6 text-red-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-red-900 text-base">🚫 Order Limit Reached</h3>
+              <p className="text-red-800 text-sm mt-0.5">
+                You have used all <span className="font-bold">{subscription.orderLimit}</span> orders in your current plan.
+                New orders will be blocked until you upgrade. Please upgrade your plan immediately.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('/seller/subscription')}
+            className="whitespace-nowrap px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm transition-colors"
+          >
+            Upgrade Now
+          </button>
+        </div>
+      )}
+
       <PageHeader
         title="Dashboard"
         description="Welcome back! Here's what's happening with your store today."
@@ -324,6 +398,61 @@ const Dashboard = () => {
           </Card>
         ))}
       </div>
+
+      {/* Subscription Order Usage */}
+      {!subLoading && subscription && subscription.status === 'ACTIVE' && subscription.orderLimit !== null && subscription.orderLimit !== undefined && (
+        <div className="mt-4">
+          <Card className="!p-0 overflow-hidden">
+            <div className="p-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-slate-600" />
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Order Usage — {subscription.planSnapshot?.name || subscription.plan?.name}</h3>
+                </div>
+                <button 
+                  onClick={() => navigate('/seller/subscription')}
+                  className="text-xs text-primary-600 font-semibold hover:underline"
+                >
+                  View Plan →
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                <div className="text-center p-3 bg-blue-50 rounded-xl">
+                  <p className="text-2xl font-extrabold text-blue-700">{subscription.ordersUsed || 0}</p>
+                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-1">Used Orders</p>
+                </div>
+                <div className="text-center p-3 bg-slate-50 rounded-xl">
+                  <p className="text-2xl font-extrabold text-slate-700">{subscription.orderLimit}</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">Total Limit</p>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-xl">
+                  <p className="text-2xl font-extrabold text-green-700">{subscription.remainingOrders ?? (subscription.orderLimit - (subscription.ordersUsed || 0))}</p>
+                  <p className="text-[10px] font-bold text-green-500 uppercase tracking-wider mt-1">Remaining</p>
+                </div>
+                <div className="text-center p-3 bg-amber-50 rounded-xl">
+                  <p className={cn("text-2xl font-extrabold", (subscription.usagePercentage || 0) >= 90 ? "text-red-600" : "text-amber-700")}>
+                    {subscription.usagePercentage ?? Math.round(((subscription.ordersUsed || 0) / subscription.orderLimit) * 100)}%
+                  </p>
+                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mt-1">Usage</p>
+                </div>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div 
+                  className={cn(
+                    "h-2.5 rounded-full transition-all duration-500",
+                    (subscription.usagePercentage || 0) >= 100 ? "bg-red-500" :
+                    (subscription.usagePercentage || 0) >= 90 ? "bg-amber-500" :
+                    "bg-primary-500"
+                  )} 
+                  style={{ width: `${Math.min(subscription.usagePercentage || Math.round(((subscription.ordersUsed || 0) / subscription.orderLimit) * 100), 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

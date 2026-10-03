@@ -30,6 +30,12 @@ export const scheduleSellerTimeout = (orderId) =>
 export const removeSellerTimeout = (orderId) =>
   jobScheduler.removeSellerTimeout(orderId);
 
+export const scheduleSellerReminder = (orderId) =>
+  jobScheduler.scheduleSellerReminder(orderId);
+
+export const removeSellerReminder = (orderId) =>
+  jobScheduler.removeSellerReminder(orderId);
+
 export const scheduleDeliveryTimeout = (orderId, attempt = 1) =>
   jobScheduler.scheduleDeliveryTimeout(orderId, attempt);
 

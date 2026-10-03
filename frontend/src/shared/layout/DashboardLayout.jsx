@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { cn, formatOrderId } from '@/lib/utils';
 import SellerOrdersContext from '@/modules/seller/context/SellerOrdersContext';
 import SellerEarningsContext, { defaultEarnings } from '@/modules/seller/context/SellerEarningsContext';
-import { getOrderSocket, onSellerOrderNew, onReturnDropOtp, onSellerPickupOtp, onSellerDeliveryArrived, onSellerReturnRequested, wakeOrderSocket } from '@/core/services/orderSocket';
+import { getOrderSocket, onSellerOrderNew, onSellerOrderReminder, onSellerOrderCancelled, onReturnDropOtp, onSellerPickupOtp, onSellerDeliveryArrived, onSellerReturnRequested, wakeOrderSocket } from '@/core/services/orderSocket';
 import { createSocketTokenReader } from '@core/utils/authStorage';
 import { STORAGE_KEYS } from '@core/utils/storage';
 import { showSystemNotification } from '@/core/firebase/pushClient';
@@ -25,6 +25,9 @@ import {
     shouldTreatDocumentAsVisible,
 } from '@/core/utils/deviceUtils';
 import orderAlertSound from '@/assets/sounds/order_alert.mp3';
+
+const SELLER_REMINDER_TEXT = "New order is waiting for your response. Please Accept or Reject the order.";
+const SELLER_TIMEOUT_TEXT = "Order cancelled because no response was received within 5 minutes.";
 
 const POLL_INTERVAL_MS = 15000;
 const WEBVIEW_POLL_INTERVAL_MS = 5000;
@@ -393,6 +396,24 @@ const DashboardLayout = ({ children, navItems, title }) => {
             if (fetchOrdersRef.current) fetchOrdersRef.current();
         });
 
+        // ~1 min without a response: bring the alert (and ringtone) back.
+        const unsubscribeSellerReminder = onSellerOrderReminder(getToken, (payload) => {
+            const incoming = orderFromIncomingPayload(payload);
+            if (incoming) presentNewOrderAlert(incoming, { force: true });
+            if (hasOrderNotificationsRef.current) startOrderRingtone(true);
+            toast.warning(payload?.message || SELLER_REMINDER_TEXT);
+        });
+
+        // Server auto-cancelled (or cancelled) the order: close the alert and say why.
+        const unsubscribeSellerCancelled = onSellerOrderCancelled(getToken, (payload) => {
+            if (newOrderAlertRef.current?.orderId === payload?.orderId) {
+                stopOrderRingtone();
+                setNewOrderAlert(null);
+            }
+            toast.error(payload?.message || SELLER_TIMEOUT_TEXT);
+            if (fetchOrdersRef.current) fetchOrdersRef.current();
+        });
+
         const unsubscribeDrop = onReturnDropOtp(getToken, (payload) => {
             console.log("[DashboardLayout] Received return drop OTP:", payload);
             setReturnDropOtpAlert(payload);
@@ -472,6 +493,8 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
         return () => {
             unsubscribeSellerNew();
+            unsubscribeSellerReminder();
+            unsubscribeSellerCancelled();
             unsubscribeDrop();
             unsubscribeSellerPickup();
             unsubscribeDeliveryArrived();
@@ -562,7 +585,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
             if (next <= 0) {
                 clearInterval(timer);
                 setNewOrderAlert(null);
-                toast.error("Order timed out!");
+                toast.error(SELLER_TIMEOUT_TEXT);
             }
         }, 1000);
 
@@ -645,14 +668,14 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     </div>
 
                                     <h2 className="text-3xl font-black text-white tracking-widest uppercase mb-2 drop-shadow-md">
-                                        ORDER
+                                        Order Arrived
                                     </h2>
                                     <h3 className="text-sm font-bold text-green-100/80 uppercase tracking-widest mb-6">
-                                        ACTION REQUIRED
+                                        Please Accept or Reject
                                     </h3>
-                                    
+
                                     <p className="text-green-50 font-medium mb-8 text-lg">
-                                        You have a pending order <span className="font-bold text-white">#{newOrderAlert.orderId}</span> that needs your attention immediately. Please Accept or Reject.
+                                        Order <span className="font-bold text-white">#{newOrderAlert.orderId}</span> is still waiting for your response. It will be cancelled automatically if you don't Accept or Reject it in time.
                                     </p>
 
                                     {/* Timer Bar */}

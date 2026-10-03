@@ -286,7 +286,7 @@ async function startHttpServer() {
  */
 async function startQueueWorkers() {
   const { registerOrderQueueProcessors } = await import("./app/queues/orderQueueProcessors.js");
-  const { sellerTimeoutQueue, deliveryTimeoutQueue, returnPickupTimeoutQueue } = await import("./app/queues/orderQueues.js");
+  const { sellerTimeoutQueue, sellerReminderQueue, deliveryTimeoutQueue, returnPickupTimeoutQueue } = await import("./app/queues/orderQueues.js");
   const { registerNotificationQueueProcessors } = await import(
     "./app/modules/notifications/notification.worker.js"
   );
@@ -299,6 +299,7 @@ async function startQueueWorkers() {
 
   // Register queues for graceful shutdown
   registerBullQueue(sellerTimeoutQueue);
+  registerBullQueue(sellerReminderQueue);
   registerBullQueue(deliveryTimeoutQueue);
   registerBullQueue(returnPickupTimeoutQueue);
   registerBullQueue(notificationQueue);

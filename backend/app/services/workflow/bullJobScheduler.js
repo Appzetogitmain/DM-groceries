@@ -12,6 +12,7 @@
 
 import {
   sellerTimeoutQueue,
+  sellerReminderQueue,
   deliveryTimeoutQueue,
   returnPickupTimeoutQueue,
   paymentTimeoutQueue,
@@ -20,6 +21,7 @@ import {
 } from "../../queues/orderQueues.js";
 import {
   DEFAULT_SELLER_TIMEOUT_MS,
+  DEFAULT_SELLER_REMINDER_MS,
   DEFAULT_DELIVERY_TIMEOUT_MS,
   DEFAULT_RETURN_PICKUP_TIMEOUT_MS,
 } from "../../constants/orderWorkflow.js";
@@ -30,6 +32,10 @@ const BULL_ADD_TIMEOUT_MS = () =>
 
 function sellerJobId(orderId) {
   return `order:${orderId}:seller`;
+}
+
+function sellerReminderJobId(orderId) {
+  return `order:${orderId}:seller-reminder`;
 }
 
 function deliveryJobId(orderId, attempt) {
@@ -86,6 +92,67 @@ async function scheduleSellerTimeout(orderId) {
   } catch (e) {
     logger.warn("scheduleSellerTimeoutJob timed out", {
       scope: "scheduleSellerTimeoutJob",
+      orderId,
+      error: e.message,
+    });
+  }
+}
+
+async function scheduleSellerReminder(orderId) {
+  const addPromise = sellerReminderQueue
+    .add(
+      JOB_NAMES.SELLER_REMINDER,
+      { orderId },
+      {
+        delay: DEFAULT_SELLER_REMINDER_MS(),
+        jobId: sellerReminderJobId(orderId),
+        removeOnComplete: true,
+      },
+    )
+    .catch((err) => {
+      logger.warn("scheduleSellerReminderJob add failed", {
+        scope: "scheduleSellerReminderJob",
+        orderId,
+        error: err.message,
+      });
+    });
+  const timeoutMs = BULL_ADD_TIMEOUT_MS();
+  try {
+    await raceWithTimeout(
+      addPromise,
+      timeoutMs,
+      `seller-reminder queue add exceeded ${timeoutMs}ms`,
+    );
+  } catch (e) {
+    logger.warn("scheduleSellerReminderJob timed out", {
+      scope: "scheduleSellerReminderJob",
+      orderId,
+      error: e.message,
+    });
+  }
+}
+
+async function removeSellerReminder(orderId) {
+  const timeoutMs = BULL_ADD_TIMEOUT_MS();
+  const work = (async () => {
+    const job = await sellerReminderQueue.getJob(sellerReminderJobId(orderId));
+    if (job) await job.remove();
+  })().catch((err) => {
+    logger.warn("removeSellerReminderJob get/remove failed", {
+      scope: "removeSellerReminderJob",
+      orderId,
+      error: err.message,
+    });
+  });
+  try {
+    await raceWithTimeout(
+      work,
+      timeoutMs,
+      `remove seller reminder job exceeded ${timeoutMs}ms`,
+    );
+  } catch (e) {
+    logger.warn("removeSellerReminderJob timed out", {
+      scope: "removeSellerReminderJob",
       orderId,
       error: e.message,
     });
@@ -374,6 +441,8 @@ async function removePaymentReminder(orderId) {
 export const bullJobScheduler = {
   scheduleSellerTimeout,
   removeSellerTimeout,
+  scheduleSellerReminder,
+  removeSellerReminder,
   scheduleDeliveryTimeout,
   removeDeliveryTimeout,
   scheduleReturnPickupTimeout,

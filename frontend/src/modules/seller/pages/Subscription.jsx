@@ -186,6 +186,67 @@ const Subscription = () => {
 
             {currentSub && (
                 <div className="space-y-6">
+                    {/* 50% Order Limit Warning Banner */}
+                    {currentSub.isHalfUsed && !currentSub.isNearLimit && !currentSub.isLimitReached && (
+                        <div className="p-4 rounded-xl border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                            <div className="flex items-start sm:items-center gap-3">
+                                <div className="p-2 bg-blue-100 rounded-lg shrink-0">
+                                    <AlertCircle className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-blue-900 text-base">📊 50% Order Limit Reached</h3>
+                                    <p className="text-blue-800 text-sm mt-0.5">
+                                        You have used <span className="font-bold">{currentSub.usagePercentage}%</span> of your {currentSub.billingCycle?.toLowerCase()} order limit.
+                                        <span className="font-bold"> {currentSub.remainingOrders}</span> of your order limit is remaining.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 90% Order Limit Warning Banner */}
+                    {currentSub.isNearLimit && !currentSub.isLimitReached && (
+                        <div className="p-4 rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                            <div className="flex items-start sm:items-center gap-3">
+                                <div className="p-2 bg-amber-100 rounded-lg shrink-0">
+                                    <AlertCircle className="w-6 h-6 text-amber-600" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-amber-900 text-base">⚠️ Order Limit Almost Reached</h3>
+                                    <p className="text-amber-800 text-sm mt-0.5">
+                                        You have used <span className="font-bold">{currentSub.usagePercentage}%</span> of your {currentSub.billingCycle?.toLowerCase()} order limit.
+                                        Only <span className="font-bold">{currentSub.remainingOrders}</span> of your order limit is remaining.
+                                        Please consider upgrading your plan.
+                                    </p>
+                                </div>
+                            </div>
+                            <Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-2 whitespace-nowrap bg-amber-600 hover:bg-amber-700">
+                                <Crown className="w-4 h-4" /> Upgrade Plan
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Order Limit Reached Banner */}
+                    {currentSub.isLimitReached && (
+                        <div className="p-4 rounded-xl border-2 border-red-300 bg-gradient-to-r from-red-50 to-rose-50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                            <div className="flex items-start sm:items-center gap-3">
+                                <div className="p-2 bg-red-100 rounded-lg shrink-0">
+                                    <AlertCircle className="w-6 h-6 text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-red-900 text-base">🚫 Order Limit Reached</h3>
+                                    <p className="text-red-800 text-sm mt-0.5">
+                                        You have used all <span className="font-bold">{currentSub.orderLimit}</span> orders in your current plan.
+                                        New orders will be blocked. Please upgrade your plan immediately.
+                                    </p>
+                                </div>
+                            </div>
+                            <Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-2 whitespace-nowrap bg-red-600 hover:bg-red-700">
+                                <Crown className="w-4 h-4" /> Upgrade Now
+                            </Button>
+                        </div>
+                    )}
+
                     <Card className="overflow-hidden border-2 border-primary-100">
                         <div className="bg-primary-50 p-6 border-b border-primary-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div>
@@ -212,7 +273,7 @@ const Subscription = () => {
                                 <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Order Limit Usage</p>
                                 <div className="flex items-center gap-2">
                                     <ShoppingBag className="w-5 h-5 text-gray-400" />
-                                    {currentSub.orderLimit === null ? (
+                                    {currentSub.orderLimit === null || currentSub.orderLimit === undefined ? (
                                         <span className="text-lg font-semibold text-gray-900">Unlimited</span>
                                     ) : (
                                         <div className="w-full">
@@ -221,7 +282,12 @@ const Subscription = () => {
                                             </p>
                                             <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                                                 <div 
-                                                    className={`h-1.5 rounded-full ${currentSub.ordersUsed >= currentSub.orderLimit ? 'bg-red-500' : 'bg-primary-500'}`} 
+                                                    className={cn(
+                                                        "h-1.5 rounded-full transition-all",
+                                                        (currentSub.usagePercentage || 0) >= 100 ? 'bg-red-500' :
+                                                        (currentSub.usagePercentage || 0) >= 90 ? 'bg-amber-500' :
+                                                        'bg-primary-500'
+                                                    )}
                                                     style={{ width: `${Math.min((currentSub.ordersUsed / currentSub.orderLimit) * 100, 100)}%` }}
                                                 ></div>
                                             </div>
@@ -230,6 +296,37 @@ const Subscription = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Detailed Order Usage Stats */}
+                        {currentSub.orderLimit !== null && currentSub.orderLimit !== undefined && (
+                            <div className="px-6 pb-6">
+                                <div className="border-t border-gray-100 pt-4">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <div className="text-center p-3 bg-blue-50 rounded-xl">
+                                            <p className="text-xl font-extrabold text-blue-700">{currentSub.ordersUsed || 0}</p>
+                                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-1">Used Orders</p>
+                                        </div>
+                                        <div className="text-center p-3 bg-slate-50 rounded-xl">
+                                            <p className="text-xl font-extrabold text-slate-700">{currentSub.orderLimit}</p>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">Total Limit</p>
+                                        </div>
+                                        <div className="text-center p-3 bg-green-50 rounded-xl">
+                                            <p className="text-xl font-extrabold text-green-700">{currentSub.remainingOrders ?? Math.max(0, currentSub.orderLimit - (currentSub.ordersUsed || 0))}</p>
+                                            <p className="text-[10px] font-bold text-green-500 uppercase tracking-wider mt-1">Remaining</p>
+                                        </div>
+                                        <div className="text-center p-3 bg-amber-50 rounded-xl">
+                                            <p className={cn(
+                                                "text-xl font-extrabold",
+                                                (currentSub.usagePercentage || 0) >= 90 ? "text-red-600" : "text-amber-700"
+                                            )}>
+                                                {currentSub.usagePercentage ?? Math.round(((currentSub.ordersUsed || 0) / currentSub.orderLimit) * 100)}%
+                                            </p>
+                                            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mt-1">Usage</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </Card>
 
                     <div>
