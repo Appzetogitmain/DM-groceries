@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import Notification from "./notification.model.js";
 import NotificationPreference from "./preference.model.js";
+import Admin from "../../models/admin.js";
 import { buildNotification } from "./notification.builder.js";
 import {
   DEFAULT_DEDUP_TTL_SECONDS,
@@ -208,12 +209,35 @@ function emitInAppNotificationDelta(notification, notificationDoc, eventType) {
   }
 }
 
+/**
+ * The builder uses the placeholder recipient `admin_broadcast` for admin events
+ * that don't carry explicit `adminIds`. It is not a valid ObjectId, so the
+ * Notification insert used to fail and the event was silently dropped. Expand
+ * it to one notification per real admin.
+ */
+async function expandAdminBroadcast(notifications) {
+  if (!notifications.some((n) => n.userId === "admin_broadcast")) return notifications;
+  const admins = await Admin.find().select("_id").lean();
+  const out = [];
+  for (const n of notifications) {
+    if (n.userId !== "admin_broadcast") {
+      out.push(n);
+      continue;
+    }
+    for (const admin of admins) {
+      const id = String(admin._id);
+      out.push({ ...n, userId: id, recipient: id });
+    }
+  }
+  return out;
+}
+
 export async function notify(eventType, payload = {}) {
   if (!NOTIFICATIONS_ENABLED()) {
     return { enqueued: 0, skipped: 0, duplicates: 0, notificationIds: [] };
   }
 
-  const notifications = buildNotification(eventType, payload);
+  const notifications = await expandAdminBroadcast(buildNotification(eventType, payload));
   if (!notifications.length) {
     return { enqueued: 0, skipped: 0, duplicates: 0, notificationIds: [] };
   }

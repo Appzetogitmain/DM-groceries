@@ -6,6 +6,7 @@ import Seller from "../models/seller.js";
 import { generatePosReceiptNumber } from "../constants/posConstants.js";
 import { reserveStockForItems } from "./stockService.js";
 import { generateUniquePublicOrderId } from "./orderIdService.js";
+import { incrementOrderUsageAndAlert } from "../middleware/subscriptionMiddleware.js";
 
 export async function lookupOrCreateCustomer({ phone, name }) {
   let customer = await User.findOne({ phone });
@@ -172,6 +173,9 @@ export async function createPosOrder({
 
     await session.commitTransaction();
     session.endSession();
+
+    // POS orders are instantly delivered — increment subscription order count (fire-and-forget)
+    incrementOrderUsageAndAlert(sellerId).catch(() => {});
 
     return order;
   } catch (error) {

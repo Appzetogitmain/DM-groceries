@@ -278,6 +278,20 @@ export function onSellerOrderNew(getToken, handler) {
   return () => s.off("order:new", handler);
 }
 
+export function onSellerOrderReminder(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("order:reminder", handler);
+  return () => s.off("order:reminder", handler);
+}
+
+export function onSellerOrderCancelled(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("order:cancelled", handler);
+  return () => s.off("order:cancelled", handler);
+}
+
 export function onSellerDeliveryArrived(getToken, handler) {
   const s = getOrderSocket(getToken);
   if (!s || typeof handler !== "function") return () => {};

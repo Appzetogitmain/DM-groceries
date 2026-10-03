@@ -2,6 +2,7 @@ import {
   NOTIFICATION_EVENTS,
   NOTIFICATION_ROLES,
   ROLE_TO_RECIPIENT_MODEL,
+  roleFromEvent,
 } from "./notification.constants.js";
 
 function normalizeId(value) {
@@ -545,6 +546,26 @@ function eventDefinition(eventType, payload = {}) {
         recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
         title: (payload) => payload.title || "Price Drop Alert! 📉",
         body: (payload) => payload.message || "Great news! A product you've been watching just got cheaper.",
+      };
+    case NOTIFICATION_EVENTS.SELLER_ORDER_LIMIT_WARNING:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: (payload) => {
+           const pct = payload.orderLimit > 0 ? Math.round(((payload.ordersUsed || 0) / payload.orderLimit) * 100) : 0;
+           return pct >= 90 ? "⚠️ Order Limit Almost Reached" : "📊 50% Order Limit Reached";
+        },
+        body: (payload) => {
+          const used = payload.ordersUsed || 0;
+          const limit = payload.orderLimit || 0;
+          const remaining = Math.max(0, limit - used);
+          const pct = limit > 0 ? Math.round((used / limit) * 100) : 0;
+          if (pct >= 90) {
+             return `You have used ${pct}% of your order limit (${used}/${limit}). Only ${remaining} orders remaining. Please consider upgrading your plan.`;
+          } else {
+             return `You have used half of your order limit (${used}/${limit}). ${remaining} orders remaining.`;
+          }
+        },
       };
     default:
       if (eventType && typeof eventType === 'string') {

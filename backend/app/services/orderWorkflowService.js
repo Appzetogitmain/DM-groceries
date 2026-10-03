@@ -24,6 +24,8 @@ import { getRedisClient } from "../config/redis.js";
 import {
   scheduleSellerTimeout,
   removeSellerTimeout,
+  scheduleSellerReminder,
+  removeSellerReminder,
   scheduleDeliveryTimeout,
   removeDeliveryTimeout,
   scheduleReturnPickupTimeout,
@@ -44,10 +46,16 @@ import {
 } from "./orderSocketEmitter.js";
 import { distanceMeters } from "../utils/geoUtils.js";
 import { applyDeliveredSettlement } from "./orderSettlement.js";
+import { incrementOrderUsageAndAlert } from "../middleware/subscriptionMiddleware.js";
 import { requireCanonicalOrderId } from "../utils/orderLookup.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import logger from "./logger.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
+
+const SELLER_REMINDER_MESSAGE =
+  "New order is waiting for your response. Please Accept or Reject the order.";
+const SELLER_TIMEOUT_SELLER_MESSAGE =
+  "Order cancelled because no response was received within 5 minutes.";
 
 const DELIVERY_SEARCH_MAX_ATTEMPTS = () => parseInt(process.env.DELIVERY_SEARCH_MAX_ATTEMPTS || "1", 10);
 
@@ -104,6 +112,7 @@ export function resolveWorkflowStatus(order) {
 export async function afterPlaceOrderV2(orderDoc) {
   const orderId = orderDoc.orderId;
   await scheduleSellerTimeoutJob(orderId);
+  await scheduleSellerReminder(orderId);
   emitToSeller(orderDoc.seller?.toString(), {
     event: "order:new",
     payload: {
@@ -122,6 +131,8 @@ export async function scheduleSellerTimeoutJob(orderId) {
 }
 
 export async function removeSellerTimeoutJob(orderId) {
+  // The reminder is only meaningful while the seller timeout is running.
+  await removeSellerReminder(orderId);
   return removeSellerTimeout(orderId);
 }
 
@@ -554,16 +565,69 @@ export async function processSellerTimeoutJob({ orderId }) {
 
   if (!updated) return;
 
+  await removeSellerReminder(orderId);
   await compensateOrderCancellation(updated, orderId);
 
   emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.CANCELLED }, updated.customer);
+  // Tell the seller's open app too, so any alert modal closes with the reason.
+  emitToSeller(updated.seller?.toString(), {
+    event: "order:cancelled",
+    payload: {
+      orderId: updated.orderId,
+      reason: "seller_timeout",
+      message: SELLER_TIMEOUT_SELLER_MESSAGE,
+    },
+  });
   emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CANCELLED, {
     orderId: updated.orderId,
     customerId: updated.customer,
     userId: updated.customer,
     sellerId: updated.seller,
-    customerMessage: "Your order was cancelled because seller did not accept in time.",
-    sellerMessage: `Order #${updated.orderId} was cancelled due to timeout.`,
+    customerMessage:
+      "Your order was cancelled because the seller did not respond within the required time.",
+    sellerMessage: SELLER_TIMEOUT_SELLER_MESSAGE,
+  });
+  emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_CANCELLED_ORDER, {
+    orderId: updated.orderId,
+    sellerId: updated.seller,
+    title: "Order auto-cancelled: seller did not respond",
+    message: `Order #${updated.orderId} was auto-cancelled because the seller did not accept or reject it within 5 minutes.`,
+  });
+}
+
+/**
+ * ~1 minute after a new order, nudge the seller if they haven't answered.
+ * `sellerReminderSentAt` makes this idempotent across the Bull job and the
+ * DB fallback in orderAutoCancelJob.
+ */
+export async function processSellerReminderJob({ orderId }) {
+  const order = await Order.findOneAndUpdate(
+    {
+      orderId,
+      workflowVersion: { $gte: 2 },
+      workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
+      sellerPendingExpiresAt: { $gt: new Date() },
+      sellerReminderSentAt: { $exists: false },
+    },
+    { $set: { sellerReminderSentAt: new Date() } },
+    { new: true },
+  );
+  if (!order) return;
+
+  emitToSeller(order.seller?.toString(), {
+    event: "order:reminder",
+    payload: {
+      orderId: order.orderId,
+      workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
+      sellerPendingExpiresAt: order.sellerPendingExpiresAt,
+      message: SELLER_REMINDER_MESSAGE,
+    },
+  });
+  emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_ORDER_REMINDER, {
+    orderId: order.orderId,
+    sellerId: order.seller,
+    title: "Order waiting for your response",
+    message: SELLER_REMINDER_MESSAGE,
   });
 }
 
@@ -1652,6 +1716,9 @@ export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code, imag
       message: settlementError.message,
     };
   }
+
+  // Increment seller's subscription order count (fire-and-forget)
+  incrementOrderUsageAndAlert(updated.seller?.toString() || updated.seller).catch(() => {});
 
   // Realtime tracking nodes for this order are no longer interesting —
   // drop them so the customer's live-map and the fleet view stop

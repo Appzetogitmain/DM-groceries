@@ -15,6 +15,10 @@ export const WORKFLOW_STATUS = {
 };
 
 /** Milliseconds — override via env in services */
+/** Reminder push sent to the seller if the order is still unanswered after this long. */
+export const DEFAULT_SELLER_REMINDER_MS = () =>
+  parseInt(process.env.SELLER_REMINDER_MS || "60000", 10);
+
 export const DEFAULT_SELLER_TIMEOUT_MS = () =>
   parseInt(process.env.SELLER_TIMEOUT_MS || "300000", 10);
 export const DEFAULT_DELIVERY_TIMEOUT_MS = () =>

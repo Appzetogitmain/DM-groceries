@@ -61,7 +61,27 @@ export const getCurrentSubscription = async (req, res) => {
             return handleResponse(res, 200, "No active subscription", null);
         }
 
-        return handleResponse(res, 200, "Current subscription fetched", subscription);
+        // Compute order usage fields for the frontend
+        const ordersUsed = subscription.ordersUsed || 0;
+        const orderLimit = subscription.orderLimit;
+        const isUnlimited = orderLimit === null || orderLimit === undefined;
+        
+        const remainingOrders = isUnlimited ? null : Math.max(0, orderLimit - ordersUsed);
+        const usagePercentage = isUnlimited ? 0 : (orderLimit > 0 ? Math.round((ordersUsed / orderLimit) * 100) : 0);
+        const isHalfUsed = !isUnlimited && usagePercentage >= 50;
+        const isNearLimit = !isUnlimited && usagePercentage >= 90;
+        const isLimitReached = !isUnlimited && ordersUsed >= orderLimit;
+
+        const enriched = {
+            ...subscription,
+            remainingOrders,
+            usagePercentage,
+            isHalfUsed,
+            isNearLimit,
+            isLimitReached,
+        };
+
+        return handleResponse(res, 200, "Current subscription fetched", enriched);
     } catch (error) {
         return handleResponse(res, 500, error.message);
     }

@@ -1,8 +1,13 @@
 import dotenv from "dotenv";
 import Order from "../models/order.js";
-import { WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
+import {
+  WORKFLOW_STATUS,
+  DEFAULT_SELLER_TIMEOUT_MS,
+  DEFAULT_SELLER_REMINDER_MS,
+} from "../constants/orderWorkflow.js";
 import {
   processSellerTimeoutJob,
+  processSellerReminderJob,
   processDeliveryTimeoutJob,
   processReturnPickupTimeoutJob,
   processPaymentTimeoutJob,
@@ -47,6 +52,30 @@ const autoCancelExpiredOrders = async () => {
           jobName: 'orderAutoCancelJob',
           orderId: row.orderId,
           error: err.message
+        });
+      }
+    }
+
+    // Seller reminder safety net (Redis down / missed job). The handler is
+    // idempotent via `sellerReminderSentAt`.
+    const reminderCutoff = new Date(now.getTime() + DEFAULT_SELLER_TIMEOUT_MS() - DEFAULT_SELLER_REMINDER_MS());
+    const v2ReminderDue = await Order.find({
+      workflowVersion: { $gte: 2 },
+      workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
+      sellerPendingExpiresAt: { $gt: now, $lte: reminderCutoff },
+      sellerReminderSentAt: { $exists: false },
+    })
+      .select("orderId")
+      .lean();
+
+    for (const row of v2ReminderDue) {
+      try {
+        await processSellerReminderJob({ orderId: row.orderId });
+      } catch (err) {
+        logger.error('v2 seller reminder failed', {
+          jobName: 'orderAutoCancelJob',
+          orderId: row.orderId,
+          error: err.message,
         });
       }
     }

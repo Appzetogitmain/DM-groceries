@@ -1,5 +1,6 @@
 import {
   sellerTimeoutQueue,
+  sellerReminderQueue,
   deliveryTimeoutQueue,
   returnPickupTimeoutQueue,
   paymentTimeoutQueue,
@@ -8,6 +9,7 @@ import {
 } from "./orderQueues.js";
 import {
   processSellerTimeoutJob,
+  processSellerReminderJob,
   processDeliveryTimeoutJob,
   processReturnPickupTimeoutJob,
   processPaymentTimeoutJob,
@@ -78,6 +80,42 @@ export function registerOrderQueueProcessors() {
       
       throw error; // Re-throw to let Bull handle retry
     }
+  });
+
+  sellerReminderQueue.process(JOB_NAMES.SELLER_REMINDER, async (job) => {
+    const startTime = Date.now();
+    try {
+      await processSellerReminderJob(job.data);
+      const duration = Date.now() - startTime;
+      logger.info('Seller reminder job completed', {
+        jobId: job.id,
+        jobType: JOB_NAMES.SELLER_REMINDER,
+        orderId: job.data.orderId,
+        duration,
+      });
+      incrementCounter('queue_jobs_total', { queue: 'seller-reminder', status: 'completed' });
+      recordHistogram('queue_job_duration_seconds', duration / 1000, { queue: 'seller-reminder' });
+    } catch (error) {
+      logger.error('Seller reminder job failed', {
+        jobId: job.id,
+        jobType: JOB_NAMES.SELLER_REMINDER,
+        orderId: job.data.orderId,
+        duration: Date.now() - startTime,
+        error: error.message,
+        stack: error.stack,
+      });
+      incrementCounter('queue_jobs_total', { queue: 'seller-reminder', status: 'failed' });
+      throw error;
+    }
+  });
+
+  sellerReminderQueue.on("failed", (job, err) => {
+    logger.error('Seller reminder queue job failed', {
+      jobId: job?.id,
+      jobType: JOB_NAMES.SELLER_REMINDER,
+      orderId: job?.data?.orderId,
+      error: err?.message,
+    });
   });
 
   // Delivery timeout queue processor
@@ -370,6 +408,7 @@ export function registerOrderQueueProcessors() {
   logger.info('Order queue processors registered', {
     queues: [
       JOB_NAMES.SELLER_TIMEOUT,
+      JOB_NAMES.SELLER_REMINDER,
       JOB_NAMES.DELIVERY_TIMEOUT,
       JOB_NAMES.RETURN_PICKUP_TIMEOUT,
       JOB_NAMES.PAYMENT_TIMEOUT,

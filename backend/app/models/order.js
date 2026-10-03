@@ -358,6 +358,8 @@ const orderSchema = new mongoose.Schema(
       default: 1,
     },
     sellerPendingExpiresAt: Date,
+    /** Set once the "please accept or reject" reminder was sent to the seller. */
+    sellerReminderSentAt: Date,
     deliverySearchExpiresAt: Date,
     sellerAcceptedAt: Date,
     customerPaymentPendingExpiresAt: Date,
