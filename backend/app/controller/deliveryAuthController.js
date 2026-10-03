@@ -5,6 +5,11 @@ import { sendSmsIndiaHubOtp } from "../services/smsIndiaHubService.js";
 import { generateOTP, useRealSMS } from "../utils/otp.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
 import { clearRiderPresence } from "../services/firebaseService.js";
+import {
+  issueDeliveryPhoneOtp,
+  verifyDeliveryPhoneOtp,
+  verifyDeliveryPhoneToken,
+} from "../services/deliveryVerificationService.js";
 
 const generateToken = (delivery) =>
     jwt.sign(
@@ -36,12 +41,25 @@ export const signupDelivery = async (req, res) => {
             return handleResponse(res, 400, "This mobile number is already registered. Please sign in instead.");
         }
 
+        // If a phone verification token from the inline step-1 verify flow is provided,
+        // skip the separate OTP step and create the account immediately.
+        const { phoneVerificationToken } = req.body;
+        const hasPreVerifiedPhone = !!phoneVerificationToken;
+        if (hasPreVerifiedPhone) {
+            try {
+                verifyDeliveryPhoneToken({ phone, token: phoneVerificationToken });
+            } catch (tokenErr) {
+                return handleResponse(res, 400, tokenErr.message);
+            }
+        }
+
         let otp = generateOTP();
         if (phone === "6268423925" || phone === "+916268423925" || phone === "9111966732" || phone === "+919111966732" || phone === "8982292201" || phone === "+918982292201") {
             otp = "1234";
         }
 
         let aadharUrl = delivery?.documents?.aadhar || "";
+
         let panUrl = delivery?.documents?.pan || "";
         let dlUrl = delivery?.documents?.drivingLicense || "";
         let profileImageUrl = delivery?.profileImage || "";
@@ -101,6 +119,13 @@ export const signupDelivery = async (req, res) => {
         } else {
             Object.assign(delivery, deliveryData);
             await delivery.save();
+        }
+
+        // If phone was pre-verified inline, skip SMS and return pendingApproval directly.
+        if (hasPreVerifiedPhone) {
+            return handleResponse(res, 200, "Registration submitted. Pending admin approval.", {
+                pendingApproval: true,
+            });
         }
 
         if (useRealSMS()) {
@@ -383,6 +408,31 @@ export const updateDeliveryVehicleInfo = async (req, res) => {
     } catch (error) {
         console.error("Update Delivery Vehicle Info Error:", error);
         return handleResponse(res, 500, "Internal Server Error");
+    }
+};
+
+/* ===============================
+   INLINE PHONE VERIFICATION (signup step 1)
+================================ */
+export const sendDeliveryVerificationOtp = async (req, res) => {
+    try {
+        const { phone } = req.body;
+        if (!phone) return handleResponse(res, 400, "Phone number is required");
+        const result = await issueDeliveryPhoneOtp({ phone, ipAddress: req.ip });
+        return handleResponse(res, 200, "OTP sent to your phone", result);
+    } catch (error) {
+        return handleResponse(res, error.statusCode || 500, error.message);
+    }
+};
+
+export const verifyDeliveryVerificationOtp = async (req, res) => {
+    try {
+        const { phone, otp } = req.body;
+        if (!phone || !otp) return handleResponse(res, 400, "Phone and OTP are required");
+        const result = await verifyDeliveryPhoneOtp({ phone, otp, ipAddress: req.ip });
+        return handleResponse(res, 200, "Phone verified successfully", result);
+    } catch (error) {
+        return handleResponse(res, error.statusCode || 500, error.message);
     }
 };
 

@@ -8,6 +8,8 @@ import {
   updateDeliveryDocuments,
   updateDeliveryVehicleInfo,
   deleteDeliveryAccount,
+  sendDeliveryVerificationOtp,
+  verifyDeliveryVerificationOtp,
 } from "../controller/deliveryAuthController.js";
 import {
   getDeliveryStats,
@@ -27,6 +29,10 @@ import multer from "multer";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Inline phone verification (step 1 of registration)
+router.post("/verification/send-otp", sendDeliveryVerificationOtp);
+router.post("/verification/verify-otp", verifyDeliveryVerificationOtp);
 
 router.post(
   "/send-signup-otp",
