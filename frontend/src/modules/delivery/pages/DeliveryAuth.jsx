@@ -97,6 +97,21 @@ const DeliveryAuth = () => {
     return formatted;
   };
 
+  // Inline phone verification state (step 1)
+  const createPhoneVerifyState = () => ({
+    status: "idle",      // "idle" | "sending" | "otp-sent" | "verifying" | "verified"
+    otp: "",
+    token: "",
+    isSending: false,
+    isVerifying: false,
+    timer: 0,
+    isOtpVisible: false,
+    verifiedPhone: "",
+  });
+  const [phoneVerify, setPhoneVerify] = useState(createPhoneVerifyState());
+  const updatePhoneVerify = (patch) =>
+    setPhoneVerify((prev) => ({ ...prev, ...patch }));
+
   // OTP state
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [agreed, setAgreed] = useState(false);
@@ -119,6 +134,15 @@ const DeliveryAuth = () => {
     }
     return () => clearInterval(interval);
   }, [step, timer]);
+
+  useEffect(() => {
+    if (phoneVerify.timer <= 0) return;
+    const interval = setInterval(() =>
+      setPhoneVerify((prev) => ({ ...prev, timer: Math.max(0, prev.timer - 1) })),
+      1000,
+    );
+    return () => clearInterval(interval);
+  }, [phoneVerify.timer]);
 
   const handleDLUpload = (file) => {
     setDlFile(file || null);
@@ -157,6 +181,39 @@ const DeliveryAuth = () => {
     }
   };
 
+  const handleSendPhoneVerifyOtp = async () => {
+    if (!signupPhone || signupPhone.length !== 10) {
+      toast.error("Please enter a valid 10-digit phone number first");
+      return;
+    }
+    updatePhoneVerify({ isSending: true, status: "sending" });
+    try {
+      await deliveryApi.sendPhoneVerificationOtp({ phone: signupPhone });
+      updatePhoneVerify({ isSending: false, status: "otp-sent", isOtpVisible: true, otp: "", timer: 60 });
+      toast.success("OTP sent to your phone number");
+    } catch (error) {
+      updatePhoneVerify({ isSending: false, status: "idle" });
+      toast.error(error.response?.data?.message || "Failed to send OTP");
+    }
+  };
+
+  const handleConfirmPhoneVerifyOtp = async () => {
+    if (!/^\d{4}$/.test(phoneVerify.otp)) {
+      toast.error("Enter a valid 4-digit OTP");
+      return;
+    }
+    updatePhoneVerify({ isVerifying: true });
+    try {
+      const res = await deliveryApi.verifyPhoneVerificationOtp({ phone: signupPhone, otp: phoneVerify.otp });
+      const { verificationToken } = res.data.result || {};
+      updatePhoneVerify({ isVerifying: false, status: "verified", isOtpVisible: false, otp: "", token: verificationToken, verifiedPhone: signupPhone });
+      toast.success("Phone number verified successfully");
+    } catch (error) {
+      updatePhoneVerify({ isVerifying: false });
+      toast.error(error.response?.data?.message || "Invalid OTP");
+    }
+  };
+
   const handleSendOtp = async () => {
     try {
       setLoading(true);
@@ -183,6 +240,7 @@ const DeliveryAuth = () => {
         formData.append("accountHolder", signupAccountHolder);
         formData.append("accountNumber", signupAccountNumber);
         formData.append("ifsc", signupIfsc);
+        if (phoneVerify.token) formData.append("phoneVerificationToken", phoneVerify.token);
 
         if (profileImageFile) formData.append("profileImage", profileImageFile);
         if (aadharFile) formData.append("aadhar", aadharFile);
@@ -190,6 +248,12 @@ const DeliveryAuth = () => {
         if (dlFile) formData.append("dl", dlFile);
 
         const res = await deliveryApi.sendSignupOtp(formData);
+        // If phone was pre-verified, backend returns pendingApproval directly — no OTP screen needed.
+        if (res.data?.result?.pendingApproval) {
+          toast.success("Registration submitted! Your application is under review. We'll notify you once approved.");
+          switchMode("login");
+          return;
+        }
         toast.success(res.data?.message || "OTP sent!");
       }
       setOtp(["", "", "", ""]);
@@ -269,6 +333,7 @@ const DeliveryAuth = () => {
     setAgreed(false);
     setProfileImageFile(null);
     setProfileImagePreview("");
+    setPhoneVerify(createPhoneVerifyState());
   };
 
   const slideVariants = {
@@ -422,13 +487,78 @@ const DeliveryAuth = () => {
                               <input
                                 type="tel"
                                 value={signupPhone}
-                                onChange={(e) => { setSignupPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); setErrors(prev => ({...prev, phone: ''})); }}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                                  setSignupPhone(val);
+                                  setErrors(prev => ({...prev, phone: ''}));
+                                  // Reset verification if phone changes after being verified
+                                  if (phoneVerify.status === "verified" && val !== phoneVerify.verifiedPhone) {
+                                    setPhoneVerify(createPhoneVerifyState());
+                                  }
+                                }}
                                 maxLength={10}
-                                className={`w-full pl-24 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.phone ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
+                                disabled={phoneVerify.status === "verified"}
+                                className={`w-full pl-24 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all pr-[90px] ${errors.phone ? 'border-red-500 focus:ring-red-200' : phoneVerify.status === "verified" ? 'border-brand-300 bg-brand-50' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                                 placeholder="00000 00000"
                               />
+                              <button
+                                type="button"
+                                onClick={handleSendPhoneVerifyOtp}
+                                disabled={
+                                  phoneVerify.isSending ||
+                                  phoneVerify.status === "verified" ||
+                                  (phoneVerify.isOtpVisible && phoneVerify.timer > 0) ||
+                                  signupPhone.length !== 10
+                                }
+                                className={`absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                                  phoneVerify.status === "verified"
+                                    ? "bg-brand-100 text-brand-700 cursor-default"
+                                    : "bg-[#1A4516] text-white hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed"
+                                }`}
+                              >
+                                {phoneVerify.isSending ? (
+                                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : phoneVerify.status === "verified" ? (
+                                  "✓ Verified"
+                                ) : phoneVerify.isOtpVisible && phoneVerify.timer > 0 ? (
+                                  `${phoneVerify.timer}s`
+                                ) : phoneVerify.isOtpVisible ? (
+                                  "Resend"
+                                ) : (
+                                  "Verify"
+                                )}
+                              </button>
                             </div>
                             {errors.phone ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.phone}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">10-digit mobile number</p>}
+
+                            {/* Inline OTP input */}
+                            {phoneVerify.isOtpVisible && phoneVerify.status !== "verified" && (
+                              <div className="flex items-center gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 mt-1">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={4}
+                                  placeholder="Enter 4-digit OTP"
+                                  value={phoneVerify.otp}
+                                  onChange={(e) => updatePhoneVerify({ otp: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                                  className="flex-1 bg-transparent text-sm font-bold text-gray-900 outline-none placeholder:text-gray-300"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleConfirmPhoneVerifyOtp}
+                                  disabled={phoneVerify.isVerifying || phoneVerify.otp.length !== 4}
+                                  className="px-3 py-1.5 bg-[#1A4516] text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                  {phoneVerify.isVerifying ? "Checking..." : "Confirm OTP"}
+                                </button>
+                              </div>
+                            )}
+                            {phoneVerify.status === "verified" && (
+                              <div className="flex items-center gap-1.5 text-[10px] font-black text-brand-600 px-1">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                <span>Phone number verified successfully.</span>
+                              </div>
+                            )}
                           </div>
 
                           <div className="space-y-1.5">
@@ -469,9 +599,13 @@ const DeliveryAuth = () => {
                               }
                               if (!signupName || signupName.trim().length < 3) newErrors.name = "Minimum 3 characters required";
                               if (!signupPhone || signupPhone.length !== 10) newErrors.phone = "Must be exactly 10 digits";
+                              if (signupPhone.length === 10 && phoneVerify.status !== "verified") {
+                                toast.error("Please verify your phone number before continuing");
+                                return;
+                              }
                               if (!signupEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) newErrors.email = "Invalid email address";
                               if (!signupAddress || signupAddress.trim().length < 10) newErrors.address = "Please enter a detailed address";
-                              
+
                               if (Object.keys(newErrors).length > 0) {
                                 setErrors(newErrors);
                                 return;
