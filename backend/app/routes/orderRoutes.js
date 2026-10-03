@@ -20,6 +20,7 @@ import {
   rejectReturnPickup,
   updateReturnStatus,
   uploadReturnPickupProof,
+  retryDeliveryAssignmentHandler,
 } from "../controller/orderController.js";
 import {
   createOrderWithFinancialSnapshot,
@@ -109,6 +110,14 @@ router.post(
   verifyToken,
   allowRoles("customer", "user"),
   selectPaymentMethod,
+);
+
+// Admin routes
+router.post(
+  "/:orderId/retry-delivery",
+  verifyToken,
+  allowRoles("admin"),
+  retryDeliveryAssignmentHandler,
 );
 
 // Admin/Seller routes

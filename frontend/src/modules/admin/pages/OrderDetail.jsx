@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import { adminApi } from '../services/adminApi';
+import { adminOrdersApi } from '../services/api/ordersApi';
 import {
     ChevronLeft,
     Box,
@@ -27,7 +28,8 @@ import {
     Navigation,
     Store,
     Info,
-    MapPin
+    MapPin,
+    RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatOrderId } from '@/lib/utils';
@@ -64,6 +66,20 @@ const OrderDetail = () => {
         } catch (error) {
             console.error("Failed to update status:", error);
             showToast("Failed to update status", "error");
+        }
+    };
+
+    const [retryingDelivery, setRetryingDelivery] = useState(false);
+    const handleRetryDelivery = async () => {
+        setRetryingDelivery(true);
+        try {
+            await adminOrdersApi.retryDeliveryAssignment(orderId);
+            showToast("Delivery search re-initiated. Riders are being notified.", "success");
+            fetchDetail();
+        } catch (error) {
+            showToast(error.response?.data?.message || "Failed to retry delivery assignment", "error");
+        } finally {
+            setRetryingDelivery(false);
         }
     };
 
@@ -451,6 +467,29 @@ const OrderDetail = () => {
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">CONTACT: {order.deliveryBoy?.phone || "N/A"}</p>
                                 </div>
                             </div>
+
+                            {order.workflowStatus === "DELIVERY_PARTNER_UNAVAILABLE" && (
+                                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+                                    <div className="flex items-start gap-2">
+                                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                                        <p className="text-xs font-semibold text-amber-800 leading-snug">
+                                            No delivery partner accepted within the timeout window. The order is awaiting manual reassignment.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleRetryDelivery}
+                                        disabled={retryingDelivery}
+                                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-black uppercase tracking-wider transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                        {retryingDelivery ? (
+                                            <RefreshCw className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <RefreshCw className="h-4 w-4" />
+                                        )}
+                                        {retryingDelivery ? "Retrying..." : "Retry Delivery Assignment"}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </Card>
 

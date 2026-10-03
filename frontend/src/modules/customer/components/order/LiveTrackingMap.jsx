@@ -264,6 +264,35 @@ const LiveTrackingMap = memo(({
     );
   }
 
+  // ─── DELIVERY PARTNER UNAVAILABLE STATE ───────────────────────────────
+  if (norm === "delivery_partner_unavailable") {
+    return (
+      <div className="relative w-full min-h-[280px] bg-gradient-to-br from-amber-50 to-orange-50 overflow-hidden rounded-b-[2rem] flex flex-col items-center justify-center gap-4 px-6 py-10 border-b border-amber-100">
+        <motion.div
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 2.5, repeat: Infinity }}
+          className="h-16 w-16 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center shadow-lg">
+          <Loader2 size={30} className="text-amber-600 animate-spin" />
+        </motion.div>
+        <h3 className="text-lg font-black text-gray-800 text-center">
+          Delivery partner unavailable
+        </h3>
+        <p className="text-sm text-gray-600 text-center max-w-sm font-medium leading-relaxed">
+          Delivery partner is currently unavailable. We are trying to assign a delivery partner. Please try again after some time.
+        </p>
+        <motion.div
+          animate={{ y: [0, -4, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="bg-white px-4 py-2 rounded-full shadow-md border border-amber-200 flex items-center gap-2">
+          <div className="h-2 w-2 bg-amber-500 rounded-full animate-pulse" />
+          <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+            Awaiting Assignment
+          </span>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ─── SEARCHING STATE ───────────────────────────────────────────────────
   if (isSearching) {
     return (

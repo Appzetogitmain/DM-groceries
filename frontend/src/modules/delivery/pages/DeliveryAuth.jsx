@@ -210,8 +210,15 @@ const DeliveryAuth = () => {
       const phone = mode === "login" ? loginPhone : signupPhone;
       const otpString = otp.join("");
       const response = await deliveryApi.verifyOtp({ phone, otp: otpString });
-      const { token, delivery } = response.data.result;
+      const result = response.data.result || {};
 
+      if (result.pendingApproval) {
+        toast.success("Phone verified! Your application is under review. We'll notify you once approved.");
+        switchMode("login");
+        return;
+      }
+
+      const { token, delivery } = result;
       login({ ...delivery, token, role: "delivery" });
 
       toast.success("Welcome! Redirecting to dashboard...");
@@ -826,6 +833,17 @@ const DeliveryAuth = () => {
                           <span onClick={() => navigate('/delivery/privacy')} className="text-brand-500 font-bold cursor-pointer hover:underline">Privacy Policy</span>
                         </p>
                       )}
+
+                      <p className="text-center text-sm text-gray-500 mt-3 font-medium">
+                        Already have an account?{" "}
+                        <button
+                          type="button"
+                          onClick={() => switchMode("login")}
+                          className="text-[#1A4516] font-bold hover:underline"
+                        >
+                          Sign In
+                        </button>
+                      </p>
                     </div>
                   )}
 
