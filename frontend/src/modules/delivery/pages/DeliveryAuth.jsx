@@ -193,7 +193,13 @@ const DeliveryAuth = () => {
       toast.success("OTP sent to your phone number");
     } catch (error) {
       updatePhoneVerify({ isSending: false, status: "idle" });
-      toast.error(error.response?.data?.message || "Failed to send OTP");
+      const msg = error.response?.data?.message || "Failed to send OTP";
+      const isAlreadyRegistered = msg.toLowerCase().includes("already registered");
+      if (isAlreadyRegistered) {
+        setErrors(prev => ({ ...prev, phone: msg }));
+      } else {
+        toast.error(msg);
+      }
     }
   };
 
@@ -481,26 +487,27 @@ const DeliveryAuth = () => {
 
                           <div className="space-y-1.5">
                             <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Phone Number</label>
-                            <div className="relative">
-                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
-                              <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm border-r border-gray-200 pr-2.5">+91</span>
-                              <input
-                                type="tel"
-                                value={signupPhone}
-                                onChange={(e) => {
-                                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                                  setSignupPhone(val);
-                                  setErrors(prev => ({...prev, phone: ''}));
-                                  // Reset verification if phone changes after being verified
-                                  if (phoneVerify.status === "verified" && val !== phoneVerify.verifiedPhone) {
-                                    setPhoneVerify(createPhoneVerifyState());
-                                  }
-                                }}
-                                maxLength={10}
-                                disabled={phoneVerify.status === "verified"}
-                                className={`w-full pl-24 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all pr-[90px] ${errors.phone ? 'border-red-500 focus:ring-red-200' : phoneVerify.status === "verified" ? 'border-brand-300 bg-brand-50' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
-                                placeholder="00000 00000"
-                              />
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex-1">
+                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
+                                <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm border-r border-gray-200 pr-2.5">+91</span>
+                                <input
+                                  type="tel"
+                                  value={signupPhone}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                                    setSignupPhone(val);
+                                    setErrors(prev => ({...prev, phone: ''}));
+                                    if (phoneVerify.status === "verified" && val !== phoneVerify.verifiedPhone) {
+                                      setPhoneVerify(createPhoneVerifyState());
+                                    }
+                                  }}
+                                  maxLength={10}
+                                  disabled={phoneVerify.status === "verified"}
+                                  className={`w-full pl-24 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.phone ? 'border-red-500 focus:ring-red-200' : phoneVerify.status === "verified" ? 'border-brand-300 bg-brand-50' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
+                                  placeholder="00000 00000"
+                                />
+                              </div>
                               <button
                                 type="button"
                                 onClick={handleSendPhoneVerifyOtp}
@@ -510,16 +517,16 @@ const DeliveryAuth = () => {
                                   (phoneVerify.isOtpVisible && phoneVerify.timer > 0) ||
                                   signupPhone.length !== 10
                                 }
-                                className={`absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                                className={`shrink-0 px-4 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all min-w-[72px] text-center ${
                                   phoneVerify.status === "verified"
                                     ? "bg-brand-100 text-brand-700 cursor-default"
-                                    : "bg-[#1A4516] text-white hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    : "bg-[#1A4516] text-white hover:bg-[#133A10] disabled:opacity-40 disabled:cursor-not-allowed"
                                 }`}
                               >
                                 {phoneVerify.isSending ? (
-                                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
                                 ) : phoneVerify.status === "verified" ? (
-                                  "✓ Verified"
+                                  "✓ Done"
                                 ) : phoneVerify.isOtpVisible && phoneVerify.timer > 0 ? (
                                   `${phoneVerify.timer}s`
                                 ) : phoneVerify.isOtpVisible ? (
@@ -529,7 +536,22 @@ const DeliveryAuth = () => {
                                 )}
                               </button>
                             </div>
-                            {errors.phone ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.phone}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">10-digit mobile number</p>}
+                            {errors.phone ? (
+                              <div className="ml-1">
+                                <p className="text-[10px] text-red-500 font-bold">{errors.phone}</p>
+                                {errors.phone.toLowerCase().includes("already registered") && (
+                                  <button
+                                    type="button"
+                                    onClick={() => switchMode("login")}
+                                    className="text-[10px] text-brand-600 font-black underline mt-0.5"
+                                  >
+                                    Sign In instead →
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-gray-400 font-semibold ml-1">10-digit mobile number</p>
+                            )}
 
                             {/* Inline OTP input */}
                             {phoneVerify.isOtpVisible && phoneVerify.status !== "verified" && (
@@ -612,7 +634,8 @@ const DeliveryAuth = () => {
                               }
                               setSignupStep(2);
                             }}
-                            className="w-full py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                            disabled={signupPhone.length === 10 && phoneVerify.status !== "verified"}
+                            className="w-full py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                           >
                             Next Step <ArrowRight className="w-4 h-4" />
                           </button>
