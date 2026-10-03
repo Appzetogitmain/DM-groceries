@@ -33,7 +33,7 @@ export const signupDelivery = async (req, res) => {
         let delivery = await Delivery.findOne({ phone });
 
         if (delivery && delivery.isVerified) {
-            return handleResponse(res, 400, "Delivery partner already exists");
+            return handleResponse(res, 400, "This mobile number is already registered. Please sign in instead.");
         }
 
         let otp = generateOTP();

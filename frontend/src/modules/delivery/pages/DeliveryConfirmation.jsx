@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle,
@@ -7,6 +7,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Home,
+  X,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "@/shared/components/ui/Button";
@@ -28,6 +29,9 @@ const DeliveryConfirmation = () => {
   const [otpGenerated, setOtpGenerated] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deliveryPhoto, setDeliveryPhoto] = useState(null);
+  const [deliveryPhotoPreview, setDeliveryPhotoPreview] = useState(null);
+  const photoInputRef = useRef(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -236,12 +240,50 @@ const DeliveryConfirmation = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.4 }}>
           <Card className="p-0 overflow-hidden">
-            <button className="w-full p-4 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">
-              <Camera size={32} className="mb-2 text-gray-400" />
-              <span className="font-medium text-sm">
-                Upload Photo Proof (Optional)
-              </span>
-            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setDeliveryPhoto(file);
+                  setDeliveryPhotoPreview(URL.createObjectURL(file));
+                }
+              }}
+            />
+            {deliveryPhotoPreview ? (
+              <div className="relative">
+                <img
+                  src={deliveryPhotoPreview}
+                  alt="Delivery proof"
+                  className="w-full h-48 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setDeliveryPhoto(null); setDeliveryPhotoPreview(null); }}
+                  className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+                <div className="p-3 bg-green-50 flex items-center gap-2">
+                  <CheckCircle size={16} className="text-green-600" />
+                  <span className="text-sm font-medium text-green-700">Photo captured</span>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="w-full p-4 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                <Camera size={32} className="mb-2 text-gray-400" />
+                <span className="font-medium text-sm">Take Delivery Photo (Optional)</span>
+                <span className="text-xs text-gray-400 mt-0.5">Opens camera directly</span>
+              </button>
+            )}
           </Card>
         </motion.div>
       </div>

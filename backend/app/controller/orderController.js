@@ -20,6 +20,7 @@ import {
   customerCancelV2,
   startReturnPickupBroadcast,
   removeReturnPickupTimeoutJob,
+  retryDeliveryAssignment,
 } from "../services/orderWorkflowService.js";
 import { applyDeliveredSettlement } from "../services/orderSettlement.js";
 import {
@@ -1470,6 +1471,25 @@ export const skipOrder = async (req, res) => {
 
 /* ===============================
    UPLOAD RETURN PICKUP PROOF (Delivery)
+================================ */
+/* ===============================
+   ADMIN RETRY DELIVERY ASSIGNMENT
+================================ */
+export const retryDeliveryAssignmentHandler = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const result = await retryDeliveryAssignment(orderId);
+    if (!result) {
+      return handleResponse(res, 400, "Order is not in DELIVERY_PARTNER_UNAVAILABLE status or was not found.");
+    }
+    return handleResponse(res, 200, "Delivery search re-initiated. Riders are being notified.", result);
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+/* ===============================
+   UPLOAD RETURN PICKUP PROOF
 ================================ */
 export const uploadReturnPickupProof = async (req, res) => {
   try {

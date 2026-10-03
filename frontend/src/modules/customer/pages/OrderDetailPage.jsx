@@ -317,6 +317,7 @@ const OrderDetailPage = () => {
               // Keep legacy status in sync for components that read order.status
               ...(ws === "DELIVERED" && { status: "delivered" }),
               ...(ws === "DELIVERY_SEARCH" && { status: "confirmed" }),
+              ...(ws === "DELIVERY_PARTNER_UNAVAILABLE" && { status: "confirmed" }),
               ...(ws === "OUT_FOR_DELIVERY" && { status: "out_for_delivery" }),
               ...(ws === "CANCELLED" && { status: "cancelled" }),
             };

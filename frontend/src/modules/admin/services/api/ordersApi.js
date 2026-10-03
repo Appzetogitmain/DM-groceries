@@ -24,6 +24,8 @@ export const adminOrdersApi = {
         axiosInstance.put(`/orders/returns/${orderId}/assign-delivery`, data),
     updateReturnQc: (orderId, data) =>
         axiosInstance.put(`/orders/returns/${orderId}/qc`, data),
+    retryDeliveryAssignment: (orderId) =>
+        axiosInstance.post(`/orders/${orderId}/retry-delivery`),
 };
 
 export default adminOrdersApi;

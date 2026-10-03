@@ -752,10 +752,8 @@ export async function processDeliveryTimeoutJob({ orderId, attempt }) {
     },
     {
       $set: {
-        workflowStatus: WORKFLOW_STATUS.CANCELLED,
-        status: "cancelled",
-        cancelledBy: "system",
-        cancelReason: "No delivery partner (timeout)",
+        workflowStatus: WORKFLOW_STATUS.DELIVERY_PARTNER_UNAVAILABLE,
+        status: legacyStatusFromWorkflow(WORKFLOW_STATUS.DELIVERY_PARTNER_UNAVAILABLE),
       },
     },
     { new: true },
@@ -763,15 +761,74 @@ export async function processDeliveryTimeoutJob({ orderId, attempt }) {
 
   if (!updated) return;
 
-  await compensateOrderCancellation(updated, orderId);
-  emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.CANCELLED }, updated.customer);
-  emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CANCELLED, {
+  emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.DELIVERY_PARTNER_UNAVAILABLE }, updated.customer);
+  emitNotificationEvent(NOTIFICATION_EVENTS.GENERIC_ALERT, {
     orderId: updated.orderId,
     customerId: updated.customer,
     userId: updated.customer,
     sellerId: updated.seller,
-    customerMessage: "We are sorry. I do not find a delivery driver so I cannot deliver your order.", sellerMessage: `Order #${updated.orderId} was cancelled because no delivery driver was found in time.`,
+    customerMessage: "Delivery partner is currently unavailable. We are trying to assign a delivery partner. Please try again after some time.",
+    sellerMessage: `Order #${updated.orderId}: Delivery partner is currently unavailable. We are trying to assign one. Please stand by.`,
   });
+}
+
+/**
+ * Admin retry: move a DELIVERY_PARTNER_UNAVAILABLE order back to DELIVERY_SEARCH
+ * and re-broadcast to nearby riders.
+ */
+export async function retryDeliveryAssignment(orderId) {
+  orderId = await requireCanonicalOrderId(orderId);
+  const now = new Date();
+  const deliveryMs = DEFAULT_DELIVERY_TIMEOUT_MS();
+
+  const updated = await Order.findOneAndUpdate(
+    {
+      orderId,
+      workflowVersion: { $gte: 2 },
+      workflowStatus: WORKFLOW_STATUS.DELIVERY_PARTNER_UNAVAILABLE,
+    },
+    {
+      $set: {
+        workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+        status: legacyStatusFromWorkflow(WORKFLOW_STATUS.DELIVERY_SEARCH),
+        deliverySearchExpiresAt: new Date(now.getTime() + deliveryMs),
+        deliverySearchMeta: {
+          radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
+          attempt: 1,
+          lastBroadcastAt: now,
+        },
+      },
+    },
+    { new: true },
+  )
+    .populate("customer", "name phone")
+    .populate("seller", "shopName address name location serviceRadius");
+
+  if (!updated) return null;
+
+  await scheduleDeliveryTimeoutJob(orderId, 1);
+
+  await DeliveryAssignment.create({
+    orderMongoId: updated._id,
+    orderId: updated.orderId,
+    status: "broadcasting",
+    radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
+    attempt: 1,
+    expiresAt: updated.deliverySearchExpiresAt,
+  });
+
+  emitOrderStatusUpdate(
+    updated.orderId,
+    { workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH, deliverySearchExpiresAt: updated.deliverySearchExpiresAt },
+    updated.customer?._id || updated.customer,
+  );
+
+  await emitDeliveryBroadcastForSeller(
+    updated.seller,
+    deliveryBroadcastPayloadFromOrder(updated),
+  );
+
+  return updated;
 }
 
 /**
