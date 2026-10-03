@@ -27,8 +27,8 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'md' }) => {
                 </DialogHeader>
 
                 <div
-                    className="px-6 pt-3 pb-5 max-h-[80vh] overflow-y-auto overscroll-contain touch-pan-y"
-                    tabIndex={0}
+                    className="px-6 pt-3 pb-5 max-h-[80vh] overflow-y-auto overscroll-contain touch-pan-y outline-none focus:outline-none"
+                    tabIndex={-1}
                     onWheel={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
                 >

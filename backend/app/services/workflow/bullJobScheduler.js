@@ -15,6 +15,7 @@ import {
   deliveryTimeoutQueue,
   returnPickupTimeoutQueue,
   paymentTimeoutQueue,
+  paymentReminderQueue,
   JOB_NAMES,
 } from "../../queues/orderQueues.js";
 import {
@@ -41,6 +42,10 @@ function returnPickupJobId(orderId, attempt) {
 
 function paymentJobId(orderId) {
   return `order:${orderId}:payment`;
+}
+
+function paymentReminderJobId(orderId) {
+  return `order:${orderId}:payment-reminder`;
 }
 
 async function raceWithTimeout(promise, timeoutMs, timeoutMessage) {
@@ -304,6 +309,68 @@ async function removePaymentTimeout(orderId) {
   }
 }
 
+async function schedulePaymentReminder(orderId) {
+  const delay = 1 * 60 * 1000; // 1 minute
+  const addPromise = paymentReminderQueue
+    .add(
+      JOB_NAMES.PAYMENT_REMINDER,
+      { orderId },
+      {
+        delay,
+        jobId: paymentReminderJobId(orderId),
+        removeOnComplete: true,
+      },
+    )
+    .catch((err) => {
+      logger.warn("schedulePaymentReminderJob add failed", {
+        scope: "schedulePaymentReminderJob",
+        orderId,
+        error: err.message,
+      });
+    });
+  const timeoutMs = BULL_ADD_TIMEOUT_MS();
+  try {
+    await raceWithTimeout(
+      addPromise,
+      timeoutMs,
+      `payment-reminder queue add exceeded ${timeoutMs}ms`,
+    );
+  } catch (e) {
+    logger.warn("schedulePaymentReminderJob timed out", {
+      scope: "schedulePaymentReminderJob",
+      orderId,
+      error: e.message,
+    });
+  }
+}
+
+async function removePaymentReminder(orderId) {
+  const timeoutMs = BULL_ADD_TIMEOUT_MS();
+  const work = (async () => {
+    const job = await paymentReminderQueue.getJob(paymentReminderJobId(orderId));
+    if (job) await job.remove();
+  })().catch((err) => {
+    logger.warn("removePaymentReminderJob get/remove failed", {
+      scope: "removePaymentReminderJob",
+      orderId,
+      error: err.message,
+    });
+  });
+  try {
+    await raceWithTimeout(
+      work,
+      timeoutMs,
+      `remove payment reminder job exceeded ${timeoutMs}ms`,
+    );
+  } catch (e) {
+    logger.warn("removePaymentReminderJob timed out", {
+      scope: "removePaymentReminderJob",
+      orderId,
+      error: e.message,
+    });
+  }
+}
+
 export const bullJobScheduler = {
   scheduleSellerTimeout,
   removeSellerTimeout,
@@ -313,6 +380,8 @@ export const bullJobScheduler = {
   removeReturnPickupTimeout,
   schedulePaymentTimeout,
   removePaymentTimeout,
+  schedulePaymentReminder,
+  removePaymentReminder,
 };
 
 export default bullJobScheduler;

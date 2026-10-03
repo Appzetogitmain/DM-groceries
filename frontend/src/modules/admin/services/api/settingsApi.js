@@ -22,7 +22,6 @@ export const adminSettingsApi = {
     getSettings: (params = {}) =>
         axiosInstance.get('/settings', {
             params: { ...params, _t: Date.now() },
-            headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
         }),
     updateSettings: async (data) => {
         const res = await axiosInstance.put('/settings', data);

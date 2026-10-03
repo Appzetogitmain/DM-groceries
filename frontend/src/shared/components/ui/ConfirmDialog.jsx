@@ -46,6 +46,7 @@ const ConfirmDialog = ({
                         variant="outline"
                         onClick={onCancel}
                         disabled={loading}
+                        className="w-full sm:w-auto h-11 rounded-xl text-sm font-bold border-gray-200 text-gray-800 hover:bg-gray-50"
                     >
                         {cancelLabel}
                     </Button>
@@ -53,6 +54,7 @@ const ConfirmDialog = ({
                         variant={variant}
                         onClick={onConfirm}
                         isLoading={loading}
+                        className="w-full sm:w-auto h-11 rounded-xl text-sm font-bold shadow-sm"
                     >
                         {confirmLabel}
                     </Button>
@@ -60,7 +62,9 @@ const ConfirmDialog = ({
             }
         >
             {typeof message === 'string' ? (
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{message}</p>
+                <div className="border border-blue-200/80 rounded-xl p-3.5 bg-blue-50/10">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{message}</p>
+                </div>
             ) : (
                 message
             )}

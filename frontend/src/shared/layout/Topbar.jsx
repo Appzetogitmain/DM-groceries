@@ -22,6 +22,8 @@ import { playNotificationSound } from '@/lib/soundUtils';
 import { showSystemNotification } from '@/core/firebase/pushClient';
 import AppZetoBridge, { APP_RESUME_EVENT, NATIVE_PUSH_EVENT } from '@/lib/appZetoBridge';
 import { canUseBrowserNotifications, isFlutterWebView, hasNativeFlutterBridge, shouldTreatDocumentAsVisible } from '@/core/utils/deviceUtils';
+import ConfirmDialog from '@/shared/components/ui/ConfirmDialog';
+import { useConfirmDialog } from '@/shared/hooks/useConfirmDialog';
 
 const Topbar = ({ onMenuClick }) => {
     const { user, logout, role, token } = useAuth();
@@ -200,8 +202,18 @@ const Topbar = ({ onMenuClick }) => {
         }
     };
 
+    const confirm = useConfirmDialog();
+
     const handleLogout = () => {
-        logout();
+        confirm.open({
+            title: "Log out",
+            message: "Are you sure you want to log out?",
+            confirmLabel: "Log out",
+            cancelLabel: "Cancel",
+            onConfirm: () => {
+                logout();
+            }
+        });
     };
 
     return (
@@ -309,6 +321,18 @@ const Topbar = ({ onMenuClick }) => {
                     <span className="hidden lg:block">Sign Out</span>
                 </button>
             </div>
+
+            <ConfirmDialog
+                isOpen={confirm.isOpen}
+                title={confirm.title}
+                message={confirm.message}
+                confirmLabel={confirm.confirmLabel}
+                cancelLabel={confirm.cancelLabel}
+                onConfirm={confirm.handleConfirm}
+                onCancel={confirm.close}
+                loading={confirm.loading}
+                variant="danger"
+            />
         </header>
     );
 };

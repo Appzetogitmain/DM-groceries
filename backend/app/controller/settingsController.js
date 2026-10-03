@@ -58,6 +58,7 @@ const ALLOWED_KEYS = [
   "onlineEnabled",
   "sellerSubscriptionOnlineEnabled",
   "lowStockAlertsEnabled",
+  "returnsEnabled",
   "productApproval",
   "platformFee",
   "freeDeliveryThreshold",
@@ -143,6 +144,7 @@ const updateSettingsSchema = Joi.object({
   onlineEnabled: Joi.boolean(),
   sellerSubscriptionOnlineEnabled: Joi.boolean(),
   lowStockAlertsEnabled: Joi.boolean(),
+  returnsEnabled: Joi.boolean(),
   platformFee: Joi.number().min(0).default(0),
   freeDeliveryThreshold: Joi.number().min(0).default(0),
   productApproval: Joi.object({
@@ -175,7 +177,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy deliveryTermsConditions deliveryPrivacyPolicy sellerTermsConditions sellerPrivacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy platformFee freeDeliveryThreshold codEnabled onlineEnabled sellerSubscriptionOnlineEnabled lowStockAlertsEnabled productApproval createdAt",
+            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy deliveryTermsConditions deliveryPrivacyPolicy sellerTermsConditions sellerPrivacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy platformFee freeDeliveryThreshold codEnabled onlineEnabled sellerSubscriptionOnlineEnabled lowStockAlertsEnabled returnsEnabled productApproval createdAt",
           )
           .lean();
         return existing || null;
@@ -192,6 +194,7 @@ export const getPublicSettings = async (req, res) => {
     settings.onlineEnabled = settings.onlineEnabled !== undefined ? Boolean(settings.onlineEnabled) : true;
     settings.sellerSubscriptionOnlineEnabled = settings.sellerSubscriptionOnlineEnabled !== undefined ? Boolean(settings.sellerSubscriptionOnlineEnabled) : true;
     settings.codEnabled = settings.codEnabled !== undefined ? Boolean(settings.codEnabled) : true;
+    settings.returnsEnabled = settings.returnsEnabled !== undefined ? Boolean(settings.returnsEnabled) : true;
 
     settings.productApproval = normalizeProductApprovalConfig(settings || {});
 

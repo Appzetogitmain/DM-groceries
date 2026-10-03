@@ -61,6 +61,11 @@ export class OrderReturnService {
     if (!Array.isArray(items) || items.length === 0) {
       throw err("Please select at least one item to return.", 400);
     }
+
+    const settings = await Setting.findOne();
+    if (settings && settings.returnsEnabled === false) {
+      throw err("Returns are currently disabled by the administrator.", 400);
+    }
     if (!reason || typeof reason !== "string" || reason.trim().length === 0) {
       throw err("Return reason is required.", 400);
     }

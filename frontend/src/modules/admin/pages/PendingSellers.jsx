@@ -323,7 +323,17 @@ const PendingSellers = () => {
                                         <div className="space-y-6">
                                             <div>
                                                 <h3 className="ds-h2 leading-tight">{viewingSeller.shopName}</h3>
-                                                <p className="text-xs font-bold text-primary mt-1 uppercase tracking-widest">{viewingSeller.category || 'General'} PARTNER</p>
+                                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                    <p className="text-xs font-bold text-primary uppercase tracking-widest">{viewingSeller.category || 'General'} PARTNER</p>
+                                                    <span className={cn(
+                                                        "text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                                        viewingSeller.sellerType === 'registered_business'
+                                                            ? "bg-purple-50 text-purple-700 border-purple-200"
+                                                            : "bg-blue-50 text-blue-700 border-blue-200"
+                                                    )}>
+                                                        {viewingSeller.sellerType === 'registered_business' ? 'Registered Business' : 'Individual Seller'}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div className="space-y-4">

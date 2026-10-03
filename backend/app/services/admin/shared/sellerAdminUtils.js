@@ -98,6 +98,8 @@ export function formatSellerApplication(seller) {
     state: seller.state,
     serviceRadius: seller.serviceRadius,
     bankDetails: seller.bankDetails || {},
+    sellerType: seller.sellerType || "individual",
+    businessType: seller.businessType || (seller.sellerType === "registered_business" ? "Registered Business" : "Individual / Proprietorship"),
   };
 }
 

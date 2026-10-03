@@ -98,6 +98,10 @@ const settingSchema = new mongoose.Schema(
         },
 
         // Returns / logistics configuration
+        returnsEnabled: {
+            type: Boolean,
+            default: true,
+        },
         returnDeliveryCommission: {
             // Flat amount per return pickup, paid by seller
             type: Number,
@@ -208,6 +212,10 @@ const settingSchema = new mongoose.Schema(
             default: true,
         },
         lowStockAlertsEnabled: {
+            type: Boolean,
+            default: true,
+        },
+        returnsEnabled: {
             type: Boolean,
             default: true,
         },

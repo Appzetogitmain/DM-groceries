@@ -30,6 +30,8 @@ import {
   removeReturnPickupTimeout,
   schedulePaymentTimeoutJob as schedulePaymentTimeout,
   removePaymentTimeoutJob as removePaymentTimeout,
+  schedulePaymentReminderJob as schedulePaymentReminder,
+  removePaymentReminderJob as removePaymentReminder,
 } from "./workflow/jobSchedulerPort.js";
 import {
   emitOrderStatusUpdate,
@@ -147,6 +149,14 @@ export async function removePaymentTimeoutJob(orderId) {
   return removePaymentTimeout(orderId);
 }
 
+export async function schedulePaymentReminderJob(orderId) {
+  return schedulePaymentReminder(orderId);
+}
+
+export async function removePaymentReminderJob(orderId) {
+  return removePaymentReminder(orderId);
+}
+
 import Setting from "../models/setting.js";
 
 /**
@@ -254,6 +264,7 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
       updated.customer?._id || updated.customer,
     );
     await schedulePaymentTimeoutJob(updated.orderId);
+    await schedulePaymentReminderJob(updated.orderId);
   }
 
   emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CONFIRMED, {
@@ -276,6 +287,7 @@ export async function proceedToDeliverySearch(orderId, orderDoc = null) {
   const deliveryMs = DEFAULT_DELIVERY_TIMEOUT_MS();
   
   await removePaymentTimeoutJob(orderId);
+  await removePaymentReminderJob(orderId);
 
   const updated = await Order.findOneAndUpdate(
     {
@@ -575,7 +587,7 @@ export async function processPaymentTimeoutJob({ orderId }) {
         workflowStatus: WORKFLOW_STATUS.CANCELLED,
         status: "cancelled",
         cancelledBy: "system",
-        cancelReason: "Payment timeout (5m)",
+        cancelReason: "Payment Not Completed Within 5 Minutes.",
       },
     },
     { new: true },
@@ -591,8 +603,25 @@ export async function processPaymentTimeoutJob({ orderId }) {
     customerId: updated.customer,
     userId: updated.customer,
     sellerId: updated.seller,
-    customerMessage: "Your order was cancelled because payment was not completed in time.",
-    sellerMessage: `Order #${updated.orderId} was cancelled due to payment timeout.`,
+    customerMessage: "Order Cancelled - Payment was not completed within the required time.",
+    sellerMessage: "Order cancelled because the customer did not complete the payment.",
+  });
+  emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_CANCELLED_ORDER, {
+    orderId: updated.orderId,
+    message: "Payment Not Completed Within 5 Minutes.",
+  });
+}
+
+export async function processPaymentReminderJob({ orderId }) {
+  const order = await Order.findOne({ orderId, workflowVersion: { $gte: 2 } });
+  if (!order || order.workflowStatus !== WORKFLOW_STATUS.SELLER_ACCEPTED) return;
+  if (order.paymentStatus === "PAID") return;
+
+  emitNotificationEvent(NOTIFICATION_EVENTS.GENERIC_ALERT, {
+    orderId: order.orderId,
+    customerId: order.customer,
+    userId: order.customer,
+    message: "Payment is pending. Please complete your payment to confirm your order."
   });
 }
 

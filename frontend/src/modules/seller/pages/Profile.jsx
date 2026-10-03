@@ -27,13 +27,17 @@ import {
   ChevronRight,
   HelpCircle,
   BarChart3,
-  Wallet
+  Wallet,
+  LogOut
 } from "lucide-react";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
 import { useSellerEarnings } from "../context/SellerEarningsContext";
+import { useAuth } from "@core/context/AuthContext";
 import Card from "@shared/components/ui/Card";
 import Button from "@shared/components/ui/Button";
+import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
+import { useConfirmDialog } from "@/shared/hooks/useConfirmDialog";
 import MapPicker from "../../../shared/components/MapPicker";
 import {
   AreaChart,
@@ -48,6 +52,8 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const SellerProfile = () => {
+  const { logout } = useAuth();
+  const confirm = useConfirmDialog();
   const { refreshEarnings } = useSellerEarnings();
   const [profile, setProfile] = useState(null);
   const [statsData, setStatsData] = useState(null);
@@ -56,6 +62,38 @@ const SellerProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
+
+  const promptDeleteAccount = () => {
+    confirm.open({
+      title: "Delete Account",
+      message: "Are you sure you want to delete your account? This action cannot be undone.",
+      confirmLabel: "Delete Account",
+      cancelLabel: "Cancel",
+      onConfirm: async () => {
+        try {
+          await sellerApi.deleteAccount();
+          toast.success("Account deleted successfully.");
+          logout();
+        } catch (error) {
+          toast.error("Failed to delete account.");
+          console.error("Delete account error:", error);
+          throw error;
+        }
+      }
+    });
+  };
+
+  const promptLogout = () => {
+    confirm.open({
+      title: "Log out",
+      message: "Are you sure you want to log out?",
+      confirmLabel: "Log out",
+      cancelLabel: "Cancel",
+      onConfirm: () => {
+        logout();
+      }
+    });
+  };
   const [formData, setFormData] = useState({
     name: "",
     shopName: "",
@@ -985,6 +1023,38 @@ const SellerProfile = () => {
           ))}
         </div>
       </div>
+
+      {/* ==================== ACCOUNT ACTIONS (Delete Account & Logout) ==================== */}
+      <div className="pt-6 space-y-3 max-w-xl mx-auto md:max-w-none">
+        <Button
+          type="button"
+          onClick={promptDeleteAccount}
+          variant="outline"
+          className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
+        >
+          <LogOut size={20} className="mr-2" /> Delete Account
+        </Button>
+        <Button
+          type="button"
+          onClick={promptLogout}
+          variant="outline"
+          className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
+        >
+          <LogOut size={20} className="mr-2" /> Logout
+        </Button>
+      </div>
+
+      <ConfirmDialog
+        isOpen={confirm.isOpen}
+        title={confirm.title}
+        message={confirm.message}
+        confirmLabel={confirm.confirmLabel}
+        cancelLabel={confirm.cancelLabel}
+        onConfirm={confirm.handleConfirm}
+        onCancel={confirm.close}
+        loading={confirm.loading}
+        variant={confirm.title === 'Delete Account' || confirm.title === 'Log out' ? 'danger' : 'primary'}
+      />
 
       {isMapOpen && (
         <MapPicker

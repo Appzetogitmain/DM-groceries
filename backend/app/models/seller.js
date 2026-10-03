@@ -94,6 +94,18 @@ const sellerSchema = new mongoose.Schema(
       trim: true,
     },
 
+    sellerType: {
+      type: String,
+      enum: ["individual", "registered_business"],
+      default: "individual",
+    },
+
+    businessType: {
+      type: String,
+      trim: true,
+      default: "Proprietorship",
+    },
+
     role: {
       type: String,
       default: "seller",
@@ -154,12 +166,17 @@ const sellerSchema = new mongoose.Schema(
       default: 5, // Default 5km
     },
     lastLogin: Date,
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
 
 sellerSchema.index({ location: "2dsphere" });
 sellerSchema.index({ isActive: 1, isVerified: 1 });
+sellerSchema.index({ isDeleted: 1 });
 
 // Hash password before saving
 sellerSchema.pre("save", async function (next) {

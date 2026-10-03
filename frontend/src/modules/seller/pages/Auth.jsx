@@ -28,7 +28,12 @@ import {
   Droplets,
   Camera,
   Image as ImageIcon,
+  Building2,
+  ShieldCheck,
+  X,
+  AlertCircle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import Lottie from "lottie-react";
 import sellerAnimation from "../../../assets/INSTANT_6.json";
@@ -48,13 +53,30 @@ const createInitialVerificationState = () => ({
   timer: 0,
 });
 
-const REQUIRED_DOCUMENT_CONFIG = [
-  { id: "panCard", label: "PAN Card" },
-  { id: "aadharCard", label: "Aadhar Card" },
-  { id: "tradeLicense", label: "Trade License" },
-  { id: "gstCertificate", label: "GST Certificate" },
-  { id: "idProof", label: "ID Proof" },
+const SELLER_DOCUMENT_CONFIG = [
+  {
+    id: "panCard",
+    label: "PAN Card",
+    description: "Personal or Company PAN Card (Image / PDF)",
+  },
+  {
+    id: "aadharCard",
+    label: "Aadhaar Card",
+    description: "Government-issued Aadhaar Card (Image / PDF)",
+  },
+  {
+    id: "tradeLicense",
+    label: "Trade License",
+    description: "Municipal Trade License / Shop & Establishment (Image / PDF)",
+  },
+  {
+    id: "gstCertificate",
+    label: "GST Certificate",
+    description: "GST Registration Certificate REG-06 (Image / PDF)",
+  },
 ];
+
+const REQUIRED_DOCUMENT_CONFIG = SELLER_DOCUMENT_CONFIG;
 
 const Auth = () => {
   const getInitialState = (key, defaultValue) => {
@@ -164,18 +186,121 @@ const Auth = () => {
     aadharCard: null,
   });
 
-  const [uploadMode, setUploadMode] = useState("pan_aadhar");
+  const [sellerType, setSellerType] = useState(() =>
+    getInitialState("sellerAuth_sellerType", "individual")
+  );
+
+  React.useEffect(() => {
+    sessionStorage.setItem("sellerAuth_sellerType", JSON.stringify(sellerType));
+  }, [sellerType]);
+
+  const handleRemoveDocument = (e, docId) => {
+    e.stopPropagation();
+    setDocuments((prev) => ({ ...prev, [docId]: null }));
+    const cameraInput = document.getElementById(`camera-${docId}`);
+    if (cameraInput) cameraInput.value = "";
+    const galleryInput = document.getElementById(`gallery-${docId}`);
+    if (galleryInput) galleryInput.value = "";
+    const pdfInput = document.getElementById(`pdf-${docId}`);
+    if (pdfInput) pdfInput.value = "";
+  };
 
   const getMissingRequiredDocuments = () => {
-    if (uploadMode === "pan_aadhar" || uploadMode === "pan_only") {
-      const required = [];
-      if (!documents.panCard) required.push(REQUIRED_DOCUMENT_CONFIG.find(d => d.id === "panCard"));
-      if (!documents.aadharCard) required.push(REQUIRED_DOCUMENT_CONFIG.find(d => d.id === "aadharCard"));
-      return required;
-    } else {
-      const comboDocs = REQUIRED_DOCUMENT_CONFIG.filter(d => d.id !== "panCard" && d.id !== "aadharCard");
-      return comboDocs.filter(d => !documents[d.id]);
+    const missing = [];
+    if (!documents.panCard) {
+      missing.push({ id: "panCard", label: "PAN Card" });
     }
+    if (!documents.aadharCard) {
+      missing.push({ id: "aadharCard", label: "Aadhaar Card" });
+    }
+    if (sellerType === "registered_business") {
+      if (!documents.tradeLicense && !documents.gstCertificate) {
+        missing.push({
+          id: "tradeLicense_or_gst",
+          label: "Trade License or GST Certificate",
+        });
+      }
+    }
+    return missing;
+  };
+
+  const getDocumentStatusInfo = (docId) => {
+    const isUploaded = Boolean(documents[docId]);
+    if (isUploaded) {
+      return {
+        badgeText: "Uploaded ✓",
+        badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-300",
+        isFulfilled: true,
+      };
+    }
+
+    if (docId === "panCard" || docId === "aadharCard") {
+      return {
+        badgeText: "Mandatory *",
+        badgeClass: "bg-rose-100 text-rose-800 border-rose-300",
+        isFulfilled: false,
+      };
+    }
+
+    if (sellerType === "individual") {
+      return {
+        badgeText: "Optional (If available)",
+        badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+        isFulfilled: true,
+      };
+    }
+
+    // sellerType === 'registered_business'
+    if (docId === "tradeLicense") {
+      if (documents.gstCertificate) {
+        return {
+          badgeText: "Optional (GST Provided)",
+          badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+          isFulfilled: true,
+        };
+      }
+      return {
+        badgeText: "Required (Either Trade License or GST) *",
+        badgeClass: "bg-amber-100 text-amber-800 border-amber-300",
+        isFulfilled: false,
+      };
+    }
+
+    if (docId === "gstCertificate") {
+      if (documents.tradeLicense) {
+        return {
+          badgeText: "Optional (Trade License Provided)",
+          badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+          isFulfilled: true,
+        };
+      }
+      return {
+        badgeText: "Required (Either GST or Trade License) *",
+        badgeClass: "bg-amber-100 text-amber-800 border-amber-300",
+        isFulfilled: false,
+      };
+    }
+
+    return {
+      badgeText: "Optional",
+      badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+      isFulfilled: true,
+    };
+  };
+
+  const getVerificationProgress = () => {
+    const totalRequired = sellerType === "registered_business" ? 3 : 2;
+    let fulfilledCount = 0;
+    if (documents.panCard) fulfilledCount++;
+    if (documents.aadharCard) fulfilledCount++;
+    if (sellerType === "registered_business") {
+      if (documents.tradeLicense || documents.gstCertificate) fulfilledCount++;
+    }
+    return {
+      fulfilledCount,
+      totalRequired,
+      isComplete: fulfilledCount >= totalRequired,
+    };
   };
 
   const handleCameraCapture = async (e, onFileCaptured) => {
@@ -452,6 +577,8 @@ const Auth = () => {
 
           Object.entries({
             ...formData,
+            sellerType,
+            businessType: sellerType === "registered_business" ? "Registered Business" : "Individual / Proprietorship",
             address,
             lat: formData.lat,
             lng: formData.lng,
@@ -492,6 +619,7 @@ const Auth = () => {
       } else {
         setIsLogin(true);
         setSignupStep(1);
+        setSellerType("individual");
         setDocuments({
           tradeLicense: null,
           gstCertificate: null,
@@ -1000,85 +1128,228 @@ const Auth = () => {
                 )}
 
                 {/* SIGNUP STEP 3 (Verification documents) */}
-                {!isLogin && signupStep === 3 && (
-                  <div className="space-y-3">
-                    <div className="pt-1">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3 ml-0.5">
-                        Verification Documents
-                      </p>
-                      {/* Upload Mode Selector */}
-                      <div className="flex gap-4 mb-4 mt-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="docType" checked={uploadMode === 'pan_aadhar' || uploadMode === 'pan_only'} onChange={() => setUploadMode('pan_aadhar')} className="w-3.5 h-3.5 text-brand-600 focus:ring-brand-500" />
-                          <span className="text-[11px] font-bold text-slate-700">PAN Card + Aadhar Card</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="docType" checked={uploadMode === 'combo'} onChange={() => setUploadMode('combo')} className="w-3.5 h-3.5 text-brand-600 focus:ring-brand-500" />
-                          <span className="text-[11px] font-bold text-slate-700">Trade License + GST + ID</span>
-                        </label>
-                      </div>
+                {!isLogin && signupStep === 3 && (() => {
+                  const progress = getVerificationProgress();
+                  return (
+                    <div className="space-y-3.5">
+                      <div className="pt-0.5">
+                        <div className="flex items-center justify-between mb-2 ml-0.5">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            1. Select Seller Type
+                          </p>
+                          <span className="text-[10px] font-semibold text-slate-400">
+                            Determines document requirement
+                          </span>
+                        </div>
 
-                      <div className="space-y-2.5">
-                        {REQUIRED_DOCUMENT_CONFIG.filter(d => (uploadMode === 'pan_aadhar' || uploadMode === 'pan_only') ? (d.id === 'panCard' || d.id === 'aadharCard') : (d.id !== 'panCard' && d.id !== 'aadharCard')).map((doc, index) => (
-                          <React.Fragment key={doc.id}>
-                          <div className="relative">
-                            <input
-                              type="file"
-                              id={`camera-${doc.id}`}
-                              className="hidden"
-                              accept="image/*"
-                              capture="environment"
-                              onChange={(e) => handleDocumentChange(e, doc.id)}
-                            />
-                            <input
-                              type="file"
-                              id={`gallery-${doc.id}`}
-                              className="hidden"
-                              accept="image/*"
-                              onChange={(e) => handleDocumentChange(e, doc.id)}
-                            />
-                            <input
-                              type="file"
-                              id={`pdf-${doc.id}`}
-                              className="hidden"
-                              accept="application/pdf"
-                              onChange={(e) => handleDocumentChange(e, doc.id)}
-                            />
-                            <div
-                              onClick={() => setActiveUploadDoc(doc.id)}
-                              className={`flex items-center justify-between p-3 rounded-lg border border-dashed transition-all cursor-pointer ${documents[doc.id]
-                                ? "border-emerald-200 bg-emerald-50/20"
-                                : "border-slate-200 bg-slate-50 hover:border-slate-300"
-                                }`}>
-                              <div className="flex items-center gap-2.5">
-                                <div
-                                  className={`p-1.5 rounded-md ${documents[doc.id] ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-600 shadow-xs"}`}>
-                                  {documents[doc.id] ? (
-                                    <CheckCircle className="w-3.5 h-3.5" />
-                                  ) : (
-                                    <Upload className="w-3.5 h-3.5" />
-                                  )}
+                        {/* Seller Type Selector */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3.5">
+                          {/* Individual */}
+                          <div
+                            onClick={() => setSellerType("individual")}
+                            className={cn(
+                              "p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between select-none",
+                              sellerType === "individual"
+                                ? "border-[#1A4516] bg-[#1A4516]/5 shadow-xs"
+                                : "border-slate-200/80 bg-slate-50/60 hover:border-slate-300 hover:bg-slate-50"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "p-1.5 rounded-lg",
+                                  sellerType === "individual" ? "bg-[#1A4516] text-white" : "bg-white text-slate-600 shadow-xs"
+                                )}>
+                                  <User className="w-3.5 h-3.5" />
                                 </div>
-                                <div className="text-left">
-                                  <p
-                                    className={`text-[11px] font-extrabold ${documents[doc.id] ? "text-emerald-800" : "text-slate-600"}`}>
-                                    {doc.label}
-                                  </p>
-                                  <p className="text-[10px] text-slate-400 font-medium truncate max-w-[150px]">
-                                    {documents[doc.id]
-                                      ? documents[doc.id].name
-                                      : "Upload secure PDF or image"}
-                                  </p>
-                                </div>
+                                <p className="text-xs font-black text-slate-800">Individual / Proprietor</p>
+                              </div>
+                              <div className={cn(
+                                "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                                sellerType === "individual" ? "border-[#1A4516]" : "border-slate-300"
+                              )}>
+                                {sellerType === "individual" && <div className="w-2 h-2 rounded-full bg-[#1A4516]" />}
                               </div>
                             </div>
+                            <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                              PAN & Aadhaar mandatory. Trade License / GST optional.
+                            </p>
                           </div>
-                          </React.Fragment>
-                        ))}
+
+                          {/* Registered Business */}
+                          <div
+                            onClick={() => setSellerType("registered_business")}
+                            className={cn(
+                              "p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between select-none",
+                              sellerType === "registered_business"
+                                ? "border-[#1A4516] bg-[#1A4516]/5 shadow-xs"
+                                : "border-slate-200/80 bg-slate-50/60 hover:border-slate-300 hover:bg-slate-50"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "p-1.5 rounded-lg",
+                                  sellerType === "registered_business" ? "bg-[#1A4516] text-white" : "bg-white text-slate-600 shadow-xs"
+                                )}>
+                                  <Building2 className="w-3.5 h-3.5" />
+                                </div>
+                                <p className="text-xs font-black text-slate-800">Registered Business</p>
+                              </div>
+                              <div className={cn(
+                                "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                                sellerType === "registered_business" ? "border-[#1A4516]" : "border-slate-300"
+                              )}>
+                                {sellerType === "registered_business" && <div className="w-2 h-2 rounded-full bg-[#1A4516]" />}
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                              PAN, Aadhaar + either Trade License or GST required.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Document Combination Guide Banner */}
+                        <div className="p-3 bg-gradient-to-r from-emerald-50/70 via-slate-50 to-slate-50 border border-emerald-100/90 rounded-xl mb-3">
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                              <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider">
+                                Required Document Combination
+                              </span>
+                            </div>
+                            <span className={cn(
+                              "text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tight",
+                              progress.isComplete
+                                ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                : "bg-amber-100 text-amber-800 border-amber-300"
+                            )}>
+                              {progress.fulfilledCount} of {progress.totalRequired} Ready
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                            {sellerType === "individual" ? (
+                              <>
+                                <span className="font-bold text-slate-800">PAN Card</span> and <span className="font-bold text-slate-800">Aadhaar Card</span> are mandatory. Trade License and GST Certificate are optional (if available).
+                              </>
+                            ) : (
+                              <>
+                                <span className="font-bold text-slate-800">PAN Card</span> and <span className="font-bold text-slate-800">Aadhaar Card</span> are mandatory. You must provide either <span className="font-bold text-slate-800">Trade License</span> or <span className="font-bold text-slate-800">GST Certificate</span> (upload both if available).
+                              </>
+                            )}
+                          </p>
+                        </div>
+
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-0.5">
+                          2. Upload Verification Documents
+                        </p>
+
+                        {/* Document Upload Cards */}
+                        <div className="space-y-2.5">
+                          {SELLER_DOCUMENT_CONFIG.map((doc) => {
+                            const status = getDocumentStatusInfo(doc.id);
+                            const file = documents[doc.id];
+                            return (
+                              <React.Fragment key={doc.id}>
+                                <div className="relative">
+                                  <input
+                                    type="file"
+                                    id={`camera-${doc.id}`}
+                                    className="hidden"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={(e) => handleDocumentChange(e, doc.id)}
+                                  />
+                                  <input
+                                    type="file"
+                                    id={`gallery-${doc.id}`}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => handleDocumentChange(e, doc.id)}
+                                  />
+                                  <input
+                                    type="file"
+                                    id={`pdf-${doc.id}`}
+                                    className="hidden"
+                                    accept="application/pdf"
+                                    onChange={(e) => handleDocumentChange(e, doc.id)}
+                                  />
+
+                                  <div
+                                    onClick={() => setActiveUploadDoc(doc.id)}
+                                    className={cn(
+                                      "flex items-center justify-between p-3 rounded-xl border border-dashed transition-all cursor-pointer group",
+                                      file
+                                        ? "border-emerald-300 bg-emerald-50/30 hover:border-emerald-400"
+                                        : "border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-slate-50"
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 mr-2">
+                                      <div
+                                        className={cn(
+                                          "p-2 rounded-lg shrink-0 transition-colors",
+                                          file
+                                            ? "bg-emerald-100 text-emerald-700"
+                                            : "bg-white text-slate-500 shadow-2xs group-hover:text-slate-700"
+                                        )}
+                                      >
+                                        {file ? (
+                                          <CheckCircle className="w-4 h-4" />
+                                        ) : (
+                                          <Upload className="w-4 h-4" />
+                                        )}
+                                      </div>
+                                      <div className="text-left flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p
+                                            className={cn(
+                                              "text-xs font-black",
+                                              file ? "text-emerald-900" : "text-slate-800"
+                                            )}
+                                          >
+                                            {doc.label}
+                                          </p>
+                                          <span
+                                            className={cn(
+                                              "text-[9px] font-black px-1.5 py-0.5 rounded-md border tracking-tight",
+                                              status.badgeClass
+                                            )}
+                                          >
+                                            {status.badgeText}
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
+                                          {file
+                                            ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)`
+                                            : doc.description}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {file ? (
+                                      <button
+                                        type="button"
+                                        title="Remove file"
+                                        onClick={(e) => handleRemoveDocument(e, doc.id)}
+                                        className="p-1 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    ) : (
+                                      <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-lg shrink-0 shadow-2xs group-hover:border-slate-300">
+                                        Upload
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Terms and conditions checkbox (Step 3 only) */}
                 {!isLogin && signupStep === 3 && (

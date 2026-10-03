@@ -1,5 +1,6 @@
 import { jest } from "@jest/globals";
 
+const mockSellerFind = jest.fn();
 const mockSellerFindOne = jest.fn();
 const mockSellerCreate = jest.fn();
 const mockVerifySellerVerificationToken = jest.fn();
@@ -7,8 +8,10 @@ const mockUploadToCloudinary = jest.fn();
 
 jest.unstable_mockModule("../app/models/seller.js", () => ({
   default: {
+    find: mockSellerFind,
     findOne: mockSellerFindOne,
     create: mockSellerCreate,
+    deleteMany: jest.fn().mockResolvedValue({ deletedCount: 0 }),
   },
 }));
 
@@ -16,6 +19,8 @@ jest.unstable_mockModule("../app/services/sellerVerificationService.js", () => (
   issueSellerVerificationOtp: jest.fn(),
   verifySellerOtpCode: jest.fn(),
   verifySellerVerificationToken: mockVerifySellerVerificationToken,
+  issueSellerResetOtp: jest.fn(),
+  verifySellerResetOtpCode: jest.fn(),
 }));
 
 jest.unstable_mockModule("../app/services/mediaService.js", () => ({
@@ -57,6 +62,7 @@ describe("sellerAuthController signupSeller", () => {
       json: jest.fn(),
     };
 
+    mockSellerFind.mockResolvedValue([]);
     mockSellerFindOne.mockResolvedValue(null);
     mockSellerCreate.mockImplementation(async (payload) => ({
       _id: "seller-1",
@@ -87,6 +93,65 @@ describe("sellerAuthController signupSeller", () => {
         applicationStatus: "pending",
       }),
     );
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it("requires PAN Card and Aadhaar Card for individual sellers", async () => {
+    // Missing Aadhaar
+    req.body.documents = JSON.stringify({
+      panCard: "https://example.com/pan.pdf",
+    });
+    req.body.sellerType = "individual";
+
+    await signupSeller(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("Aadhaar Card"),
+      }),
+    );
+
+    // Both PAN and Aadhaar provided
+    req.body.documents = JSON.stringify({
+      panCard: "https://example.com/pan.pdf",
+      aadharCard: "https://example.com/aadhar.pdf",
+    });
+    await signupSeller(req, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it("requires PAN, Aadhaar, and either Trade License or GST Certificate for registered business", async () => {
+    req.body.sellerType = "registered_business";
+    // Only PAN and Aadhaar without Trade License or GST
+    req.body.documents = JSON.stringify({
+      panCard: "https://example.com/pan.pdf",
+      aadharCard: "https://example.com/aadhar.pdf",
+    });
+
+    await signupSeller(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("Trade License or GST Certificate"),
+      }),
+    );
+
+    // With Trade License only -> should succeed
+    req.body.documents = JSON.stringify({
+      panCard: "https://example.com/pan.pdf",
+      aadharCard: "https://example.com/aadhar.pdf",
+      tradeLicense: "https://example.com/trade-license.pdf",
+    });
+    await signupSeller(req, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+
+    // With GST Certificate only -> should succeed without requiring Trade License
+    req.body.documents = JSON.stringify({
+      panCard: "https://example.com/pan.pdf",
+      aadharCard: "https://example.com/aadhar.pdf",
+      gstCertificate: "https://example.com/gst.pdf",
+    });
+    await signupSeller(req, res);
     expect(res.status).toHaveBeenCalledWith(201);
   });
 });

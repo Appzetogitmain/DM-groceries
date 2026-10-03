@@ -8,6 +8,7 @@ import {
     verifySellerResetOtp,
     resetSellerPassword,
     checkSellerExists,
+    deleteSellerAccount,
 } from "../controller/sellerAuthController.js";
 import { getSellerProfile, updateSellerProfile, requestWithdrawal, getNearbySellers } from "../controller/sellerController.js";
 import { getSellerStats, getSellerEarnings } from "../controller/sellerStatsController.js";
@@ -96,6 +97,13 @@ router.put(
     verifyToken,
     allowRoles("seller"),
     updateSellerProfile
+);
+
+router.delete(
+    "/profile/delete",
+    verifyToken,
+    allowRoles("seller"),
+    deleteSellerAccount
 );
 
 // Analytics & Financials

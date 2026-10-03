@@ -48,4 +48,10 @@ export const schedulePaymentTimeoutJob = (orderId) =>
 export const removePaymentTimeoutJob = (orderId) =>
   jobScheduler.removePaymentTimeout(orderId);
 
+export const schedulePaymentReminderJob = (orderId) =>
+  jobScheduler.schedulePaymentReminder(orderId);
+
+export const removePaymentReminderJob = (orderId) =>
+  jobScheduler.removePaymentReminder(orderId);
+
 export default jobScheduler;

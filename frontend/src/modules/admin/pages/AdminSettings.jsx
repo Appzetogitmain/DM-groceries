@@ -82,6 +82,7 @@ const AdminSettings = () => {
         returnWindowMinutes: 2880,
         returnEligibilityDelayMinutes: 2,
         returnDeliveryCommission: 0,
+        returnsEnabled: true,
         lowStockAlertsEnabled: true,
         codEnabled: true,
         onlineEnabled: true,
@@ -106,6 +107,7 @@ const AdminSettings = () => {
                         returnWindowMinutes: data.returnWindowMinutes ?? 2880,
                         returnEligibilityDelayMinutes: data.returnEligibilityDelayMinutes ?? 2,
                         returnDeliveryCommission: data.returnDeliveryCommission ?? 0,
+                        returnsEnabled: data.returnsEnabled !== undefined ? Boolean(data.returnsEnabled) : true,
                         onlineEnabled: data.onlineEnabled !== undefined ? Boolean(data.onlineEnabled) : true,
                         sellerSubscriptionOnlineEnabled: data.sellerSubscriptionOnlineEnabled !== undefined ? Boolean(data.sellerSubscriptionOnlineEnabled) : true,
                         codEnabled: data.codEnabled !== undefined ? Boolean(data.codEnabled) : true,
@@ -152,7 +154,7 @@ const AdminSettings = () => {
         setSettings(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleTogglePaymentSetting = async (field, label) => {
+    const handleToggleSetting = async (field, label) => {
         const nextValue = settings[field] === false ? true : false;
         
         // Optimistic UI update
@@ -181,6 +183,8 @@ const AdminSettings = () => {
             setTogglingField(null);
         }
     };
+
+    const handleTogglePaymentSetting = handleToggleSetting;
 
     const handleProductApprovalToggle = (field) => {
         setSettings((prev) => ({
@@ -393,6 +397,33 @@ const AdminSettings = () => {
                                 </div>
                                 <div className="md:col-span-2 rounded-2xl bg-slate-50 border border-slate-200 px-5 py-4 flex items-center justify-between gap-4">
                                     <div>
+                                        <p className="text-sm font-black text-slate-900">Enable Order Returns</p>
+                                        <p className="text-xs font-bold text-slate-500 mt-1">
+                                            When enabled, customers can request returns for delivered orders within the return window.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        disabled={togglingField === 'returnsEnabled'}
+                                        aria-checked={settings.returnsEnabled}
+                                        onClick={() => handleToggleSetting('returnsEnabled', 'Enable Order Returns')}
+                                        className={cn(
+                                            "relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-200",
+                                            settings.returnsEnabled ? "bg-emerald-500" : "bg-slate-300",
+                                            togglingField === 'returnsEnabled' && "opacity-60 cursor-wait"
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                "inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-200",
+                                                settings.returnsEnabled ? "translate-x-7" : "translate-x-1"
+                                            )}
+                                        />
+                                    </button>
+                                </div>
+                                <div className="md:col-span-2 rounded-2xl bg-slate-50 border border-slate-200 px-5 py-4 flex items-center justify-between gap-4">
+                                    <div>
                                         <p className="text-sm font-black text-slate-900">Auto Low Stock Alerts</p>
                                         <p className="text-xs font-bold text-slate-500 mt-1">
                                             Automatically notify sellers when any product stock drops to its low-stock threshold.
@@ -401,11 +432,13 @@ const AdminSettings = () => {
                                     <button
                                         type="button"
                                         role="switch"
+                                        disabled={togglingField === 'lowStockAlertsEnabled'}
                                         aria-checked={settings.lowStockAlertsEnabled}
-                                        onClick={() => handleInputChange('lowStockAlertsEnabled', !settings.lowStockAlertsEnabled)}
+                                        onClick={() => handleToggleSetting('lowStockAlertsEnabled', 'Auto Low Stock Alerts')}
                                         className={cn(
                                             "relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-200",
-                                            settings.lowStockAlertsEnabled ? "bg-emerald-500" : "bg-slate-300"
+                                            settings.lowStockAlertsEnabled ? "bg-emerald-500" : "bg-slate-300",
+                                            togglingField === 'lowStockAlertsEnabled' && "opacity-60 cursor-wait"
                                         )}
                                     >
                                         <span

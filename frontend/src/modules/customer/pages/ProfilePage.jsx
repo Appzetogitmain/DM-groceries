@@ -9,11 +9,16 @@ import { useSettings } from '@core/context/SettingsContext';
 import { customerApi } from '../services/customerApi';
 import { toast } from 'sonner';
 
+import Button from '@/shared/components/ui/Button';
+import ConfirmDialog from '@/shared/components/ui/ConfirmDialog';
+import { useConfirmDialog } from '@/shared/hooks/useConfirmDialog';
+
 const ProfilePage = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
+    const confirm = useConfirmDialog();
 
     const formatIndiaPhone = (value) => {
         const raw = String(value || '').trim();
@@ -23,19 +28,36 @@ const ProfilePage = () => {
         return raw;
     };
 
-
-
-    const handleDeleteAccount = async () => {
-        if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-            try {
-                await customerApi.deleteAccount();
-                toast.success("Account deleted successfully.");
-                logout();
-            } catch (error) {
-                toast.error("Failed to delete account.");
-                console.error("Delete account error:", error);
+    const promptDeleteAccount = () => {
+        confirm.open({
+            title: "Delete Account",
+            message: "Are you sure you want to delete your account? This action cannot be undone.",
+            confirmLabel: "Delete Account",
+            cancelLabel: "Cancel",
+            onConfirm: async () => {
+                try {
+                    await customerApi.deleteAccount();
+                    toast.success("Account deleted successfully.");
+                    logout();
+                } catch (error) {
+                    toast.error("Failed to delete account.");
+                    console.error("Delete account error:", error);
+                    throw error;
+                }
             }
-        }
+        });
+    };
+
+    const promptLogout = () => {
+        confirm.open({
+            title: "Log out",
+            message: "Are you sure you want to log out?",
+            confirmLabel: "Log out",
+            cancelLabel: "Cancel",
+            onConfirm: () => {
+                logout();
+            }
+        });
     };
 
     return (
@@ -77,14 +99,36 @@ const ProfilePage = () => {
                         <MenuItem icon={Bell} label="Notifications" path="/notifications" />
                         <MenuItem icon={HelpCircle} label="Help & Support" path="/help" />
                         <MenuItem icon={Settings} label="Settings" path="/settings" />
-
-                        <MenuItem icon={LogOut} label="Delete Account" onClick={handleDeleteAccount} />
-                        <MenuItem icon={LogOut} label="Logout" onClick={() => {
-                            if (window.confirm("Are you sure you want to log out?")) {
-                                logout();
-                            }
-                        }} />
                     </div>
+
+                    <div className="pt-6 space-y-3">
+                        <Button
+                            onClick={promptDeleteAccount}
+                            variant="outline"
+                            className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
+                        >
+                            <LogOut size={20} className="mr-2" /> Delete Account
+                        </Button>
+                        <Button
+                            onClick={promptLogout}
+                            variant="outline"
+                            className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
+                        >
+                            <LogOut size={20} className="mr-2" /> Logout
+                        </Button>
+                    </div>
+
+                    <ConfirmDialog
+                        isOpen={confirm.isOpen}
+                        title={confirm.title}
+                        message={confirm.message}
+                        confirmLabel={confirm.confirmLabel}
+                        cancelLabel={confirm.cancelLabel}
+                        onConfirm={confirm.handleConfirm}
+                        onCancel={confirm.close}
+                        loading={confirm.loading}
+                        variant={confirm.title === 'Delete Account' || confirm.title === 'Log out' ? 'danger' : 'primary'}
+                    />
                 
                     <div className="text-center pt-8 pb-4">
                         <p className="text-xs text-slate-400 font-medium">Version 2.4.0 - {appName}</p>

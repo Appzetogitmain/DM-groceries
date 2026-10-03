@@ -80,13 +80,37 @@ const resolveSellerDocuments = (body = {}, parsedDocuments = {}) => {
     return resolved;
 };
 
-const getMissingRequiredSellerDocuments = (documents = {}) => {
+const getMissingRequiredSellerDocuments = (documents = {}, sellerType = "individual") => {
+    const missing = [];
     const hasPan = isValidUploadedDocumentReference(documents.panCard);
-    const hasAadhar = isValidUploadedDocumentReference(documents.aadharCard) || isValidUploadedDocumentReference(documents.idProof);
-    const hasCombo = ["tradeLicense", "gstCertificate", "idProof"].every(
-        (field) => isValidUploadedDocumentReference(documents[field])
-    );
-    return (hasPan && hasAadhar) || hasPan || hasCombo ? [] : ["missing_documents"];
+    const hasAadhar =
+        isValidUploadedDocumentReference(documents.aadharCard) ||
+        isValidUploadedDocumentReference(documents.idProof);
+    const hasTradeLicense = isValidUploadedDocumentReference(documents.tradeLicense);
+    const hasGst = isValidUploadedDocumentReference(documents.gstCertificate);
+
+    // Backward compatibility for legacy tests / old payloads
+    const isLegacyCombo = hasTradeLicense && hasGst && isValidUploadedDocumentReference(documents.idProof);
+    if (isLegacyCombo) {
+        return [];
+    }
+
+    // PAN Card and Aadhaar Card are mandatory for all sellers
+    if (!hasPan) {
+        missing.push("PAN Card");
+    }
+    if (!hasAadhar) {
+        missing.push("Aadhaar Card");
+    }
+
+    // For registered business sellers: must provide either Trade License OR GST Certificate
+    if (sellerType === "registered_business") {
+        if (!hasTradeLicense && !hasGst) {
+            missing.push("Trade License or GST Certificate");
+        }
+    }
+
+    return missing;
 };
 
 /* ===============================
@@ -114,7 +138,9 @@ export const signupSeller = async (req, res) => {
             lng,
             radius,
             dob,
-            bloodGroup
+            bloodGroup,
+            sellerType = "individual",
+            businessType,
         } = req.body || {};
 
         // 1. Handle file uploads if they exist in req.files (multipart form)
@@ -190,14 +216,15 @@ export const signupSeller = async (req, res) => {
         const parsedDocuments = parseDocumentsPayload(documents);
         const sellerDocuments = resolveSellerDocuments(augmentedBody, parsedDocuments);
         const missingRequiredDocuments = getMissingRequiredSellerDocuments(
-            sellerDocuments || {}
+            sellerDocuments || {},
+            sellerType
         );
 
         if (missingRequiredDocuments.length > 0) {
             return handleResponse(
                 res,
                 400,
-                `Please upload either (PAN Card + Aadhar Card) OR (Trade License + GST Certificate + ID Proof).`
+                `Please upload required verification documents: ${missingRequiredDocuments.join(", ")}.`
             );
         }
 
@@ -207,6 +234,8 @@ export const signupSeller = async (req, res) => {
             phone,
             password,
             shopName,
+            sellerType,
+            businessType: businessType || (sellerType === "registered_business" ? "Registered Business" : "Individual / Proprietorship"),
             category,
             description,
             address,
@@ -235,7 +264,7 @@ export const signupSeller = async (req, res) => {
             sellerData.serviceRadius = parsedRadius;
         }
 
-        seller = await Seller.create(sellerData);
+        const seller = await Seller.create(sellerData);
 
         return handleResponse(res, 201, "Seller registered successfully", {
             seller,
@@ -319,6 +348,10 @@ export const loginSeller = async (req, res) => {
 
         if (!isMatch) {
             return handleResponse(res, 401, "Invalid credentials");
+        }
+
+        if (seller.isDeleted) {
+            return handleResponse(res, 403, "This account has been deleted. Please contact support.");
         }
 
         const applicationStatus =
@@ -443,3 +476,24 @@ export const checkSellerExists = async (req, res) => {
         return handleResponse(res, 500, error.message);
     }
 };
+
+/* ===============================
+   DELETE ACCOUNT
+================================ */
+export const deleteSellerAccount = async (req, res) => {
+    try {
+        const seller = await Seller.findById(req.user.id);
+        if (!seller) {
+            return handleResponse(res, 404, "Seller not found");
+        }
+
+        seller.isDeleted = true;
+        seller.isActive = false;
+        await seller.save();
+
+        return handleResponse(res, 200, "Account deleted successfully");
+    } catch (error) {
+        return handleResponse(res, 500, error.message);
+    }
+};
+

@@ -732,6 +732,7 @@ const OrderDetailPage = () => {
 
   const canRequestReturn = () => {
     if (!order) return false;
+    if (settings?.returnsEnabled === false) return false;
     if (order.status === "cancelled") return false;
     if (order.status !== "delivered") return false;
     if (
@@ -1726,6 +1727,9 @@ const OrderDetailPage = () => {
               <div className="bg-[#F5FBF5] rounded-2xl p-4 border border-[#1A4516]/10">
                 <p className="text-sm text-[#1A4516] font-medium leading-relaxed">
                   The seller has <span className="font-bold">accepted</span> your order! Please complete your payment within the next few minutes.
+                </p>
+                <p className="text-sm text-rose-600 font-bold mt-2 leading-relaxed">
+                  If you do not complete the payment, the order will be cancelled.
                 </p>
               </div>
               

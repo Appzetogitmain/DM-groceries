@@ -158,6 +158,11 @@ function createApp() {
       "X-Correlation-Id",
       "X-Request-Id",
       "X-Admin-Bootstrap-Secret",
+      "Cache-Control",
+      "Pragma",
+      "Expires",
+      "Accept",
+      "X-Requested-With",
     ],
   };
 

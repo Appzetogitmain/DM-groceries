@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { HiChevronDown } from "react-icons/hi2";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, LogOut } from "lucide-react";
+import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
+import { useConfirmDialog } from "@/shared/hooks/useConfirmDialog";
 
 const colorMap = {
   indigo:
@@ -225,6 +227,19 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
   const { logout } = useAuth();
+  const confirm = useConfirmDialog();
+
+  const handleLogoutClick = () => {
+    confirm.open({
+      title: "Log out",
+      message: "Are you sure you want to log out?",
+      confirmLabel: "Log out",
+      cancelLabel: "Cancel",
+      onConfirm: () => {
+        logout();
+      }
+    });
+  };
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -282,11 +297,7 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
 
       <div className="p-4 border-t border-white/5 flex-shrink-0">
         <button
-          onClick={() => {
-            if (window.confirm("Are you sure you want to log out?")) {
-              logout();
-            }
-          }}
+          onClick={handleLogoutClick}
           className="w-full flex items-center space-x-2.5 rounded-lg px-3 py-2.5 transition-all duration-300 text-emerald-100/60 hover:text-white hover:bg-white/5 group"
         >
           <div className="p-1.5 rounded-lg bg-white/5 text-emerald-400 group-hover:bg-white/10 group-hover:text-emerald-200">
@@ -297,6 +308,18 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
           </span>
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirm.isOpen}
+        title={confirm.title}
+        message={confirm.message}
+        confirmLabel={confirm.confirmLabel}
+        cancelLabel={confirm.cancelLabel}
+        onConfirm={confirm.handleConfirm}
+        onCancel={confirm.close}
+        loading={confirm.loading}
+        variant="danger"
+      />
     </div>
   );
 };
