@@ -180,6 +180,12 @@ const AdminDashboard = () => {
 
     const chartData = statsData?.revenueHistory || [];
     const categoryData = statsData?.categoryData || [];
+    
+    // Calculate Top Category Share
+    const totalCategoryValue = categoryData.reduce((sum, item) => sum + (item.value || 0), 0);
+    const topCategoryValue = categoryData.length > 0 ? Math.max(...categoryData.map(item => item.value || 0)) : 0;
+    const topCategoryShare = totalCategoryValue > 0 ? Math.round((topCategoryValue / totalCategoryValue) * 100) : 0;
+
     const recentOrders = statsData?.recentOrders || [];
     const topProducts = statsData?.topProducts || [];
 
@@ -297,8 +303,8 @@ const AdminDashboard = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-2xl font-bold text-gray-900">72%</span>
-                                <span className="text-[10px] text-gray-400 font-semibold uppercase">Growth</span>
+                                <span className="text-2xl font-bold text-gray-900">{topCategoryShare}%</span>
+                                <span className="text-[10px] text-gray-400 font-semibold uppercase">Top Share</span>
                             </div>
                         </div>
                         <div className="space-y-3 mt-4">
