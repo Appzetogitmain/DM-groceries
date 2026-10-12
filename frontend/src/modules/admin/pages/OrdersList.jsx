@@ -188,16 +188,21 @@ const OrdersList = () => {
     );
 
     const stats = useMemo(() => {
-        const totalEarnings = summary.totalAmount;
-        const activeOrders = summary.activeOrders;
+        const totalEarnings = summary.totalAmount || 0;
+        const activeOrders = summary.activeOrders || 0;
+        const totalOrders = summary.totalOrders || total || 0;
+        const deliveredOrders = summary.delivered || 0;
+        const deliveryRate = totalOrders > 0
+            ? `${((deliveredOrders / totalOrders) * 100).toFixed(1)}%`
+            : '0%';
 
         return [
-            { label: 'Total Earnings', value: `₹${totalEarnings.toLocaleString('en-IN')}`, trend: '+12.5%', icon: IndianRupee, color: 'emerald' },
-            { label: 'Active Orders', value: activeOrders, trend: '+5', icon: ShoppingBag, color: 'blue' },
-            { label: 'Average Prep Time', value: '18m', trend: '-2m', icon: Clock, color: 'amber' },
-            { label: 'Delivery Rate', value: '98.2%', trend: '+0.4%', icon: CheckCircle2, color: 'fuchsia' },
+            { label: 'Total Earnings', value: `₹${totalEarnings.toLocaleString('en-IN')}`, icon: IndianRupee, color: 'emerald' },
+            { label: 'Total Orders', value: totalOrders.toLocaleString('en-IN'), icon: Package, color: 'amber' },
+            { label: 'Active Orders', value: activeOrders.toLocaleString('en-IN'), icon: ShoppingBag, color: 'blue' },
+            { label: 'Delivery Rate', value: deliveryRate, icon: CheckCircle2, color: 'fuchsia' },
         ];
-    }, [summary]);
+    }, [summary, total]);
 
     const filteredOrders = useMemo(() => {
         return safeOrders.filter(order => {
