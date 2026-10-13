@@ -18,6 +18,7 @@ import {
   CircleDollarSign,
   Users,
   HelpCircle,
+  MessageSquareQuote,
   ClipboardList,
   RotateCcw,
   Settings,
@@ -80,11 +81,13 @@ const CustomerDetail = React.lazy(() => import("../pages/CustomerDetail"));
 const UserManagement = React.lazy(() => import("../pages/UserManagement"));
 const Profile = React.lazy(() => import("@/pages/Profile"));
 const FAQManagement = React.lazy(() => import("../pages/FAQManagement"));
+const TestimonialManagement = React.lazy(() => import("../pages/TestimonialManagement"));
 const OrdersList = React.lazy(() => import("../pages/OrdersList"));
 const OrderDetail = React.lazy(() => import("../pages/OrderDetail"));
 const Returns = React.lazy(() => import("../pages/Returns"));
 const SellerDetail = React.lazy(() => import("../pages/SellerDetail"));
 const SupportTickets = React.lazy(() => import("../pages/SupportTickets"));
+const ContactMessages = React.lazy(() => import("../pages/ContactMessages"));
 const ReviewModeration = React.lazy(() => import("../pages/ReviewModeration"));
 const FleetTracking = React.lazy(() => import("../pages/FleetTracking"));
 const CouponManagement = React.lazy(() => import("../pages/CouponManagement"));
@@ -165,6 +168,7 @@ const navItems = [
     section: "support",
     children: [
       { label: "Help Tickets", path: "/admin/support-tickets" },
+      { label: "Contact Messages", path: "/admin/contact-messages" },
       { label: "Review Content", path: "/admin/moderation" },
     ],
   },
@@ -240,6 +244,7 @@ const navItems = [
     ],
   },
   { label: "FAQs", path: "/admin/faqs", icon: HelpCircle, color: "pink", section: "faqs" },
+  { label: "Testimonials", path: "/admin/testimonials", icon: MessageSquareQuote, color: "pink", section: "testimonials" },
   {
     label: "Orders",
     icon: ClipboardList,
@@ -387,6 +392,11 @@ const AdminRoutes = () => {
         <Route path="/support-tickets" element={
           <PermissionGuard section="support" action="view" fallback={AccessDenied}>
             <SupportTickets />
+          </PermissionGuard>
+        } />
+        <Route path="/contact-messages" element={
+          <PermissionGuard section="support" action="view" fallback={AccessDenied}>
+            <ContactMessages />
           </PermissionGuard>
         } />
         <Route path="/sos-history" element={
@@ -544,6 +554,11 @@ const AdminRoutes = () => {
         <Route path="/faqs" element={
           <PermissionGuard section="faqs" action="view" fallback={AccessDenied}>
             <FAQManagement />
+          </PermissionGuard>
+        } />
+        <Route path="/testimonials" element={
+          <PermissionGuard section="testimonials" action="view" fallback={AccessDenied}>
+            <TestimonialManagement />
           </PermissionGuard>
         } />
         <Route path="/orders/:status" element={

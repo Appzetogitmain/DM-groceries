@@ -4,10 +4,10 @@ import { Home, LayoutGrid, ShoppingBag, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-    { label: 'Home', icon: Home, path: '/' },
-    { label: 'Category', icon: LayoutGrid, path: '/categories' },
-    { label: 'Orders', icon: ShoppingBag, path: '/orders' },
-    { label: 'Profile', icon: User, path: '/profile' },
+    { label: 'Home', icon: Home, path: '/user' },
+    { label: 'Category', icon: LayoutGrid, path: '/user/categories' },
+    { label: 'Orders', icon: ShoppingBag, path: '/user/orders' },
+    { label: 'Profile', icon: User, path: '/user/profile' },
 ];
 
 const BottomNav = () => {

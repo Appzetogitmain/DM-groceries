@@ -13,6 +13,7 @@ const ALLOWED_KEYS = [
   "appName",
   "supportEmail",
   "supportPhone",
+  "supportHours",
   "currencySymbol",
   "currencyCode",
   "timezone",
@@ -94,6 +95,7 @@ const updateSettingsSchema = Joi.object({
   appName: Joi.string().allow("").max(200),
   supportEmail: Joi.string().email().allow("").max(200),
   supportPhone: Joi.string().allow("").max(50),
+  supportHours: Joi.string().allow("").max(100),
   currencySymbol: Joi.string().allow("").max(10),
   currencyCode: Joi.string().allow("").max(10),
   timezone: Joi.string().allow("").max(100),
@@ -177,7 +179,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy deliveryTermsConditions deliveryPrivacyPolicy sellerTermsConditions sellerPrivacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy platformFee freeDeliveryThreshold codEnabled onlineEnabled sellerSubscriptionOnlineEnabled lowStockAlertsEnabled returnsEnabled productApproval createdAt",
+            "appName supportEmail supportPhone supportHours currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor termsConditions privacyPolicy deliveryTermsConditions deliveryPrivacyPolicy sellerTermsConditions sellerPrivacyPolicy companyName taxId address facebook twitter instagram linkedin youtube playStoreLink appStoreLink metaTitle metaDescription metaKeywords keywords returnDeliveryCommission returnWindowMinutes returnEligibilityDelayMinutes deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy platformFee freeDeliveryThreshold codEnabled onlineEnabled sellerSubscriptionOnlineEnabled lowStockAlertsEnabled returnsEnabled productApproval createdAt",
           )
           .lean();
         return existing || null;

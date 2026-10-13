@@ -20,6 +20,9 @@ import ApplicationPending from '../../modules/seller/pages/ApplicationPending';
 import AdminAuth from '../../modules/admin/pages/AdminAuth';
 import DeliveryAuth from '../../modules/delivery/pages/DeliveryAuth';
 import CustomerAuth from '../../modules/customer/pages/CustomerAuth';
+import LandingPage from '../../pages/LandingPage';
+import JoinUsPage from '../../pages/JoinUsPage';
+import ContactPage from '../../pages/ContactPage';
 
 // Customer Pages (lazy-loaded)
 const Home = lazy(() => import('../../modules/customer/pages/Home'));
@@ -150,6 +153,19 @@ const AppRouter = () => {
                     element: <div className="flex h-screen items-center justify-center font-outfit">Unauthorized Access</div>,
                 },
                 {
+                    index: true,
+                    element: <LandingPage />,
+                },
+                {
+                    path: 'join',
+                    element: <JoinUsPage />,
+                },
+                {
+                    path: 'contact',
+                    element: <ContactPage />,
+                },
+                {
+                    path: 'user',
                     element: <CustomerLayoutWrapper />,
                     children: [
                         { index: true, element: <Home /> },
@@ -179,6 +195,16 @@ const AppRouter = () => {
                         { path: 'rewards', element: <ProtectedRoute><MilestoneRewards /></ProtectedRoute> },
                     ]
                 },
+                // Backward-compatibility redirects for direct old links
+                { path: 'categories', element: <Navigate to="/user/categories" replace /> },
+                { path: 'category/:categoryName', element: <Navigate to="/user/categories" replace /> },
+                { path: 'offers', element: <Navigate to="/user/offers" replace /> },
+                { path: 'wishlist', element: <Navigate to="/user/wishlist" replace /> },
+                { path: 'orders', element: <Navigate to="/user/orders" replace /> },
+                { path: 'profile', element: <Navigate to="/user/profile" replace /> },
+                { path: 'checkout', element: <Navigate to="/user/checkout" replace /> },
+                { path: 'search', element: <Navigate to="/user/search" replace /> },
+                { path: 'wallet', element: <Navigate to="/user/wallet" replace /> },
                 {
                     path: '*',
                     element: <Navigate to="/" replace />

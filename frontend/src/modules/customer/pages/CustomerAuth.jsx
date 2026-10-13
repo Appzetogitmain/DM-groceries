@@ -176,7 +176,7 @@ const CustomerAuth = () => {
             const { token, customer } = response.data.result;
             login({ ...customer, token, role: 'customer' });
             toast.success('Successfully Logged In!');
-            navigate('/');
+            navigate('/user');
         } catch (error) {
             const apiMessage = error?.response?.data?.message;
             toast.error(apiMessage || 'Invalid OTP');

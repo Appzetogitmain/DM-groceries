@@ -103,7 +103,7 @@ const Header = () => {
                 <div className="px-4 md:px-8 h-18 bg-white/95 backdrop-blur-sm rounded-full shadow-2xl flex items-center justify-between border border-white/20">
                     {/* Logo */}
                     <div className="flex items-center gap-6 mr-4 md:mr-12">
-                        <Link to="/" className="flex items-center gap-1">
+                        <Link to="/user" className="flex items-center gap-1">
                             <span className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: settings?.primaryColor || 'var(--primary)' }}>{settings?.appName || 'App'}</span>
                         </Link>
 
@@ -131,10 +131,10 @@ const Header = () => {
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-6">
-                        <Link to="/" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Home</Link>
+                        <Link to="/user" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Home</Link>
 
-                        <Link to="/categories" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Categories</Link>
-                        <Link to="/offers" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Offers</Link>
+                        <Link to="/user/categories" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Categories</Link>
+                        <Link to="/user/offers" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Offers</Link>
                     </nav>
 
                     {/* Search Bar - Hidden on checkout page */}
