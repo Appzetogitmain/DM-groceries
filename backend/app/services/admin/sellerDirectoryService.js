@@ -6,6 +6,7 @@ import {
   computeMapCenter,
   escapeRegExp,
   extractSellerCity,
+  formatSellerDocumentFiles,
   getSellerDisplayLocation,
   hasValidSellerLocation,
   matchSellerLifecycleFilter,
@@ -453,6 +454,8 @@ export async function getActiveSellersData({
       avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
         seller.shopName || seller.name || seller.email || "seller",
       )}`,
+      sellerType: seller.sellerType || "individual",
+      documentFiles: formatSellerDocumentFiles(seller.documents),
     };
   });
 

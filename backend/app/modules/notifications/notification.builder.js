@@ -381,6 +381,26 @@ function eventDefinition(eventType, payload = {}) {
         title: () => "Support reply",
         body: (payload) => truncateText(payload.messageText || "New message"),
       };
+    case NOTIFICATION_EVENTS.ADMIN_NEW_SELLER:
+      return {
+        role: NOTIFICATION_ROLES.ADMIN,
+        recipientIds: (payload) => normalizeIdList(payload.adminIds),
+        title: () => "New seller registration",
+        body: (payload) => {
+          const shop = String(payload.shopName || payload.name || "A seller").trim() || "A seller";
+          return `${truncateText(shop)} has registered as a seller. Please verify the documents and approve.`;
+        },
+      };
+    case NOTIFICATION_EVENTS.ADMIN_NEW_DELIVERY_PARTNER:
+      return {
+        role: NOTIFICATION_ROLES.ADMIN,
+        recipientIds: (payload) => normalizeIdList(payload.adminIds),
+        title: () => "New delivery partner registration",
+        body: (payload) => {
+          const name = String(payload.name || "A delivery partner").trim() || "A delivery partner";
+          return `${truncateText(name)} has registered as a delivery partner. Please verify the documents and approve.`;
+        },
+      };
     case NOTIFICATION_EVENTS.ADMIN_SUPPORT_TICKET:
       return {
         role: NOTIFICATION_ROLES.ADMIN,
@@ -602,6 +622,20 @@ function eventData(eventType, payload = {}, role) {
       variantName: String(payload.variantName || "").trim() || undefined,
       imageUrl: String(payload.imageUrl || "").trim() || undefined,
       link: buildSellerInventoryLink(productId),
+      ...(payload.data || {}),
+    };
+  }
+
+  if (
+    eventType === NOTIFICATION_EVENTS.ADMIN_NEW_SELLER ||
+    eventType === NOTIFICATION_EVENTS.ADMIN_NEW_DELIVERY_PARTNER
+  ) {
+    const baseUrl = getFrontendBaseUrl();
+    const isSeller = eventType === NOTIFICATION_EVENTS.ADMIN_NEW_SELLER;
+    return {
+      eventType,
+      applicantId: String(payload.applicantId || "").trim() || undefined,
+      link: `${baseUrl}${isSeller ? "/admin/sellers/pending" : "/admin/delivery-boys/pending"}`,
       ...(payload.data || {}),
     };
   }

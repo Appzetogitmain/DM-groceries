@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { adminApi } from '../services/adminApi';
+import { openAdminDocument } from '../services/openDocument';
 
 const PendingSellers = () => {
     const navigate = useNavigate();
@@ -474,7 +475,7 @@ const PendingSellers = () => {
                                                             {doc.isViewable ? (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => window.open(doc.url, '_blank', 'noopener,noreferrer')}
+                                                                    onClick={async () => { const err = await openAdminDocument(doc.url); if (err) toast.error(err); }}
                                                                     className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shrink-0"
                                                                 >
                                                                     <HiOutlineArrowTopRightOnSquare className="h-3.5 w-3.5" />

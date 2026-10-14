@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { openAdminDocument } from '../services/openDocument';
 import { adminApi } from '../services/adminApi';
 
 const PendingDeliveryBoys = () => {
@@ -470,7 +471,7 @@ return (
                                     {viewingRider.documents.map((doc, idx) => {
                                         const isImage = doc.url.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp)$/) || doc.url.startsWith('data:image');
                                         return (
-                                            <div key={idx} onClick={() => window.open(doc.url, '_blank')} className="group relative aspect-[4/3] bg-slate-100 rounded-[24px] overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                                            <div key={idx} onClick={async () => { const err = await openAdminDocument(doc.url); if (err) toast.error(err); }} className="group relative aspect-[4/3] bg-slate-100 rounded-[24px] overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all">
                                                 {isImage ? (
                                                     <img src={doc.url} alt={doc.label} className="absolute inset-0 w-full h-full object-cover" />
                                                 ) : (

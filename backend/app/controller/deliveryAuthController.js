@@ -4,6 +4,7 @@ import handleResponse from "../utils/helper.js";
 import { sendSmsIndiaHubOtp } from "../services/smsIndiaHubService.js";
 import { generateOTP, useRealSMS } from "../utils/otp.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
+import { notifyAdminsNewDeliveryPartner } from "../services/adminRegistrationNotifier.js";
 import { clearRiderPresence } from "../services/firebaseService.js";
 import {
   issueDeliveryPhoneOtp,
@@ -123,6 +124,7 @@ export const signupDelivery = async (req, res) => {
 
         // If phone was pre-verified inline, skip SMS and return pendingApproval directly.
         if (hasPreVerifiedPhone) {
+            notifyAdminsNewDeliveryPartner(delivery);
             return handleResponse(res, 200, "Registration submitted. Pending admin approval.", {
                 pendingApproval: true,
             });
@@ -215,6 +217,8 @@ export const verifyDeliveryOTP = async (req, res) => {
             delivery.otp = undefined;
             delivery.otpExpiry = undefined;
             await delivery.save();
+            // Registration is complete once the phone is verified; tell admins to review.
+            notifyAdminsNewDeliveryPartner(delivery);
             return handleResponse(res, 200, "Phone verified successfully", {
                 pendingApproval: true
             });

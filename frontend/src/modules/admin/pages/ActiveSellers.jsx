@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { adminApi } from "../services/adminApi";
+import { openAdminDocument } from "../services/openDocument";
 
 const SORT_OPTIONS = [
   { value: "recent", label: "Newest first" },
@@ -622,14 +623,42 @@ const ActiveSellers = () => {
                       {/* Required Documents Guide */}
                       <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                         <h5 className="text-[10px] font-bold text-slate-900 mb-3 uppercase tracking-wider">
-                          Verified Documents ({selectedSeller.sellerType === 'registered_business' ? 'Registered Business' : 'Individual'})
+                          Submitted Documents ({selectedSeller.sellerType === 'registered_business' ? 'Registered Business' : 'Individual'})
                         </h5>
-                        <ul className="text-xs font-semibold text-slate-700 space-y-2">
-                          <li className="flex items-center gap-2"><HiOutlineCheckCircle className="h-4 w-4 text-green-500" /> PAN Card</li>
-                          <li className="flex items-center gap-2"><HiOutlineCheckCircle className="h-4 w-4 text-green-500" /> Aadhaar Card</li>
-                          <li className="flex items-center gap-2"><HiOutlineCheckCircle className="h-4 w-4 text-green-500" /> Trade Licence</li>
-                          <li className="flex items-center gap-2 text-slate-500 pl-6 text-[10px] uppercase tracking-wider font-bold">GST Certificate — Applicable/Optional</li>
-                        </ul>
+                        {(selectedSeller.documentFiles || []).length > 0 ? (
+                          <ul className="text-xs font-semibold text-slate-700 space-y-2">
+                            {selectedSeller.documentFiles.map((doc) => (
+                              <li key={doc.key} className="flex items-center justify-between gap-2">
+                                <span className="flex items-center gap-2 min-w-0">
+                                  <HiOutlineDocumentText className="h-4 w-4 text-brand-400 shrink-0" />
+                                  <span className="truncate">
+                                    {doc.label}
+                                    <span className="ml-1.5 text-[9px] uppercase text-slate-400">
+                                      {doc.fileType === 'pdf' ? 'PDF' : 'Image'}
+                                    </span>
+                                  </span>
+                                </span>
+                                {doc.isViewable ? (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const err = await openAdminDocument(doc.url);
+                                      if (err) toast.error(err);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shrink-0"
+                                  >
+                                    <HiOutlineEye className="h-3.5 w-3.5" />
+                                    View
+                                  </button>
+                                ) : (
+                                  <span className="text-[9px] font-bold uppercase text-amber-500 shrink-0">No file</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs font-semibold text-slate-500">No documents were uploaded by this seller.</p>
+                        )}
                       </div>
                     </div>
                   </div>

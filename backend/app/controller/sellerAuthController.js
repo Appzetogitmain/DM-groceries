@@ -9,6 +9,7 @@ import {
     verifySellerResetOtpCode,
 } from "../services/sellerVerificationService.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
+import { notifyAdminsNewSeller } from "../services/adminRegistrationNotifier.js";
 
 /* ===============================
    Utils
@@ -265,6 +266,9 @@ export const signupSeller = async (req, res) => {
         }
 
         const seller = await Seller.create(sellerData);
+
+        // Let admins know a new seller is waiting for verification (non-blocking).
+        notifyAdminsNewSeller(seller);
 
         return handleResponse(res, 201, "Seller registered successfully", {
             seller,

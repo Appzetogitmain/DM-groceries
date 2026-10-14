@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import Pagination from '@shared/components/ui/Pagination';
 import { adminApi } from '../services/adminApi';
+import { openAdminDocument } from '../services/openDocument';
 
 const ActiveDeliveryBoys = () => {
     const [riders, setRiders] = useState([]);
@@ -489,7 +490,7 @@ return (
                                                     {key.replace(/([A-Z])/g, ' $1').trim()}
                                                 </span>
                                                 <button
-                                                    onClick={() => window.open(url, "_blank")}
+                                                    onClick={async () => { const err = await openAdminDocument(url); if (err) toast.error(err); }}
                                                     className="px-3 py-1.5 bg-brand-50 text-brand-600 text-[10px] font-black rounded-lg hover:bg-brand-100 transition-colors"
                                                 >
                                                     View

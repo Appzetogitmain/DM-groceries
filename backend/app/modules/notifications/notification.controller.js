@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import mongoose from "mongoose";
 import Notification from "./notification.model.js";
 import PushToken from "./token.model.js";
@@ -593,12 +594,22 @@ export const sendDirectNotification = async (req, res) => {
       return handleResponse(res, 400, "userId, userRole, title, and message are required");
     }
 
-    await notify(NOTIFICATION_EVENTS.GENERIC_ALERT, {
+    // messageId makes every admin message unique for dedupe; without it a second
+    // message to the same user within the dedupe window was silently dropped.
+    const result = await notify(NOTIFICATION_EVENTS.GENERIC_ALERT, {
       userId,
       role: userRole,
       title,
       message,
+      messageId: crypto.randomUUID(),
     });
+
+    if (!result?.enqueued) {
+      const reason = result?.skipped
+        ? "The user has turned off this type of notification"
+        : "Notification could not be delivered";
+      return handleResponse(res, 422, reason);
+    }
 
     return handleResponse(res, 200, "Notification queued successfully");
   } catch (error) {
