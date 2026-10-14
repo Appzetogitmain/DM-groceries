@@ -84,7 +84,7 @@ function CategoryNavColumn({
         borderBottomColor: isActive ? "transparent" : categoryAccent,
       }}
       className="relative z-[2] flex min-w-[48px] shrink-0 cursor-pointer flex-col items-center gap-0.5 border-b-2 px-2 pb-0.5 pt-0.5 snap-start md:min-w-[58px]">
-      <div className="relative z-10 flex h-9 w-9 items-center justify-center md:h-11 md:w-11">
+      <div className="relative z-10 flex h-8 w-8 items-center justify-center md:h-9 md:w-9">
         {typeof cat.icon === "function" ||
         (typeof cat.icon === "object" && cat.icon.$$typeof) ? (
           <cat.icon
@@ -100,8 +100,10 @@ function CategoryNavColumn({
             src={applyCloudinaryTransform(cat.icon, "f_auto,q_auto,w_100")}
             alt={cat.name}
             loading="lazy"
-            className="h-5 w-5 object-contain md:h-6 md:w-6"
-            style={{ opacity: isActive ? 1 : 0.62 }}
+            className={cn(
+              "h-7 w-7 rounded-md object-contain transition-transform duration-200 md:h-8 md:w-8",
+              isActive && "scale-110 ring-2 ring-white/80",
+            )}
           />
         )}
       </div>

@@ -289,7 +289,8 @@ const Home = () => {
         const formattedHeaders = dbCats.filter((cat) => cat.type === "header").map((cat) => {
           const catName = cat.name;
           const meta = CATEGORY_METADATA[catName] || CATEGORY_METADATA[catName.toUpperCase()] || { icon: Sparkles, theme: DEFAULT_CATEGORY_THEME, banner: { title: catName.toUpperCase(), subtitle: "TOP PICKS", floatingElements: "sparkles" } };
-          const IconComp = (cat.iconId && ICON_COMPONENTS[cat.iconId]) || meta.icon || Sparkles;
+          // Admin priority: mapped icon > uploaded image (URL string) > built-in default
+          const IconComp = (cat.iconId && ICON_COMPONENTS[cat.iconId]) || cat.image || meta.icon || Sparkles;
           return { ...cat, id: cat._id, icon: IconComp, theme: meta.theme, banner: { ...meta.banner, textColor: "text-white" } };
         });
         nextHomeData.formattedHeaders = formattedHeaders;
