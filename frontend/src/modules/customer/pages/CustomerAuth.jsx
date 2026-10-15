@@ -17,12 +17,12 @@ import {
     Heart,
     Star,
     ChevronLeft,
-    Calendar,
     Droplets
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { customerApi } from '../services/customerApi';
 import BgImage from '@/assets/image.png';
+import DobPicker from '../components/auth/DobPicker';
 
 const CATEGORIES = [
     {
@@ -397,38 +397,11 @@ const CustomerAuth = () => {
                                                     />
                                                 </div>
 
-                                                <div className="relative group">
-                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 transition-colors" style={{ color: 'inherit' }}>
-                                                        <Calendar size={18} className="group-focus-within:text-[var(--theme-color)]" style={{ color: 'inherit' }} />
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        name="dob"
-                                                        value={formData.dob || ''}
-                                                        placeholder="Date of Birth (Optional)"
-                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-800 outline-none focus:bg-white transition-all"
-                                                        style={{ '--theme-color': activeCategory.theme }}
-                                                        onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                                                        onFocus={(e) => {
-                                                            e.target.type = 'date';
-                                                            e.target.style.borderColor = activeCategory.theme;
-                                                            if (e.target.showPicker) {
-                                                                try { e.target.showPicker(); } catch (err) {}
-                                                            }
-                                                            const target = e.target;
-                                                            setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
-                                                        }}
-                                                        onClick={(e) => {
-                                                            if (e.target.type === 'date' && e.target.showPicker) {
-                                                                try { e.target.showPicker(); } catch (err) {}
-                                                            }
-                                                        }}
-                                                        onBlur={(e) => {
-                                                            if (!e.target.value) e.target.type = 'text';
-                                                            e.target.style.borderColor = '#F3F4F6';
-                                                        }}
-                                                    />
-                                                </div>
+                                                <DobPicker
+                                                    value={formData.dob || ''}
+                                                    onChange={(dob) => setFormData({ ...formData, dob })}
+                                                    themeColor={activeCategory.theme}
+                                                />
 
                                                 <div className="relative group">
                                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 transition-colors" style={{ color: 'inherit' }}>
@@ -437,7 +410,7 @@ const CustomerAuth = () => {
                                                     <select
                                                         name="bloodGroup"
                                                         value={formData.bloodGroup || ''}
-                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-800 outline-none focus:bg-white transition-all appearance-none"
+                                                        className={`w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold ${formData.bloodGroup ? 'text-gray-800' : 'text-[#757575]'} outline-none focus:bg-white transition-all appearance-none`}
                                                         style={{ '--theme-color': activeCategory.theme }}
                                                         onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
                                                         onFocus={(e) => {
@@ -448,14 +421,14 @@ const CustomerAuth = () => {
                                                         onBlur={(e) => e.target.style.borderColor = '#F3F4F6'}
                                                     >
                                                         <option value="" disabled>Select Blood Group (Optional)</option>
-                                                        <option value="A+">A+</option>
-                                                        <option value="A-">A-</option>
-                                                        <option value="B+">B+</option>
-                                                        <option value="B-">B-</option>
-                                                        <option value="O+">O+</option>
-                                                        <option value="O-">O-</option>
-                                                        <option value="AB+">AB+</option>
-                                                        <option value="AB-">AB-</option>
+                                                        <option value="A+" className="text-gray-800">A+</option>
+                                                        <option value="A-" className="text-gray-800">A-</option>
+                                                        <option value="B+" className="text-gray-800">B+</option>
+                                                        <option value="B-" className="text-gray-800">B-</option>
+                                                        <option value="O+" className="text-gray-800">O+</option>
+                                                        <option value="O-" className="text-gray-800">O-</option>
+                                                        <option value="AB+" className="text-gray-800">AB+</option>
+                                                        <option value="AB-" className="text-gray-800">AB-</option>
                                                     </select>
                                                 </div>
                                             </>

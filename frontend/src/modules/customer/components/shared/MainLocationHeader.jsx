@@ -460,7 +460,8 @@ const MainLocationHeader = ({
             </motion.div>
           </div>
 
-          {/* Categories Navigation (Desktop & Mobile) */}
+          {/* Categories Navigation (Desktop & Mobile). Skipped when there are no tabs, so no empty strip is left. */}
+          {categories.length > 0 && (
           <motion.div
             style={{
               height: navHeight,
@@ -488,6 +489,7 @@ const MainLocationHeader = ({
               ))}
             </div>
           </motion.div>
+          )}
           {/* Background Decorative patterns */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none" />
         </motion.div>
