@@ -169,7 +169,7 @@ const Auth = () => {
       ...prev,
       lat: location.lat,
       lng: location.lng,
-      radius: location.radius,
+      radius: Math.min(Number(location.radius) || 5, 5),
       address: location.address,
       locality: location.locality || prev.locality,
       pincode: location.pincode || prev.pincode,
@@ -1454,7 +1454,8 @@ const Auth = () => {
           initialLocation={
             formData.lat ? { lat: formData.lat, lng: formData.lng } : null
           }
-          initialRadius={formData.radius}
+          initialRadius={Math.min(Number(formData.radius) || 5, 5)}
+          maxRadius={5}
         />
       )}
 

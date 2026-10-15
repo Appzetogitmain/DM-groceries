@@ -154,7 +154,7 @@ const SellerProfile = () => {
     try {
       const [profileRes, statsRes, subRes] = await Promise.all([
         sellerApi.getProfile(),
-        sellerApi.getStats(),
+        sellerApi.getStats().catch(() => ({ data: { success: false } })),
         sellerApi.getCurrentSubscription().catch(() => ({ data: { success: false } }))
       ]);
       
@@ -195,7 +195,8 @@ const SellerProfile = () => {
         },
       });
     } catch (error) {
-      toast.error("Failed to fetch data");
+      console.error("Profile Fetch Error:", error);
+      toast.error(error.response?.data?.message || "Failed to fetch data");
     } finally {
       setIsLoading(false);
     }
