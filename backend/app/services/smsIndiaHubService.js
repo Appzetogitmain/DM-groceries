@@ -87,8 +87,10 @@ function mapSmsIndiaError(code) {
   return error;
 }
 
-export async function sendSmsIndiaHubOtp({ phone, otp, message }) {
+export async function sendSmsIndiaHubOtp({ phone, otp, message, templateId }) {
   const config = getSmsIndiaConfig();
+  // Non-OTP texts (e.g. rejection notices) must use their own DLT-approved template.
+  const dltTemplateId = String(templateId || config.dltTemplateId || "").trim();
   const requiredConfig = {
     apiKey: config.apiKey,
     senderId: config.senderId,
@@ -112,10 +114,10 @@ export async function sendSmsIndiaHubOtp({ phone, otp, message }) {
       msg: message || buildMessage(otp),
       fl: "0",
       gwid: config.gatewayId,
-      ...(config.dltTemplateId
+      ...(dltTemplateId
         ? {
-            DLT_TE_ID: config.dltTemplateId,
-            TE_ID: config.dltTemplateId,
+            DLT_TE_ID: dltTemplateId,
+            TE_ID: dltTemplateId,
           }
         : {}),
       ...(config.peId

@@ -1,5 +1,7 @@
 import handleResponse from "../../utils/helper.js";
 import getPagination from "../../utils/pagination.js";
+import Seller from "../../models/seller.js";
+import { notifySellerRejected } from "../../services/sellerRejectionNotifier.js";
 import { emitNotificationEvent } from "../../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../../modules/notifications/notification.constants.js";
 import {
@@ -60,7 +62,18 @@ export const approveSellerApplication = async (req, res) => {
 export const rejectSellerApplication = async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body || {};
+    const reason = String(req.body?.reason || "").trim().slice(0, 300);
+
+    // The seller is told why they were rejected, so a reason is required.
+    if (!reason) {
+      return handleResponse(res, 400, "Please enter the reason for rejecting this application");
+    }
+
+    // This endpoint is also used to remove an already-active seller. Only an application that
+    // was still waiting for approval gets the "not approved" notification, email and SMS.
+    const before = await Seller.findById(id).select("isVerified applicationStatus").lean();
+    const wasApplication = !!before && before.isVerified !== true && before.applicationStatus !== "approved";
+
     const seller = await rejectSellerApplicationById({
       sellerId: id,
       reviewedBy: req.user.id,
@@ -71,16 +84,20 @@ export const rejectSellerApplication = async (req, res) => {
       return handleResponse(res, 404, "Seller not found");
     }
 
-    emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_STORE_REJECTED, {
-      sellerId: id,
-      title: "Application Not Approved",
-      message: reason
-        ? `Your seller application was not approved. Reason: ${reason}`
-        : "Your seller application was not approved. Please contact support for details.",
-      messageId: `store-rejected:${id}:${Date.now()}`,
-    });
+    let delivery = null;
+    if (wasApplication) {
+      emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_STORE_REJECTED, {
+        sellerId: id,
+        title: "Application Not Approved",
+        message: `Your seller application was not approved. Reason: ${reason}`,
+        messageId: `store-rejected:${id}:${Date.now()}`,
+      });
 
-    return handleResponse(res, 200, "Seller application rejected", seller);
+      // Email + SMS with the reason. Never blocks or fails the rejection itself.
+      delivery = await notifySellerRejected(id, reason);
+    }
+
+    return handleResponse(res, 200, "Seller application rejected", { ...seller, delivery });
   } catch (error) {
     return handleResponse(res, 500, error.message);
   }

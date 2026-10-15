@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
+import Modal from '@shared/components/ui/Modal';
 import {
     HiOutlineBuildingOffice2,
     HiOutlineMagnifyingGlass,
@@ -39,6 +40,8 @@ const PendingSellers = () => {
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [viewingSeller, setViewingSeller] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [rejectTargetId, setRejectTargetId] = useState(null);
+    const [rejectReason, setRejectReason] = useState('');
 
     const fetchPendingSellers = async () => {
         setIsLoading(true);
@@ -114,22 +117,46 @@ const PendingSellers = () => {
         }
     };
 
-    const handleReject = async (id) => {
-        if (window.confirm('Are you sure you want to reject this application?')) {
-            setIsProcessing(true);
-            try {
-                const reason = window.prompt('Optional rejection reason (leave blank if not needed):') || '';
-                await adminApi.rejectSeller(id, { reason });
-                setIsReviewModalOpen(false);
-                setViewingSeller(null);
-                toast.success('Seller application rejected');
-                await fetchPendingSellers();
-            } catch (error) {
-                console.error('Failed to reject seller', error);
-                toast.error(error.response?.data?.message || 'Failed to reject seller');
-            } finally {
-                setIsProcessing(false);
+    const handleReject = (id) => {
+        setRejectReason('');
+        setRejectTargetId(id);
+    };
+
+    const confirmReject = async () => {
+        const reason = rejectReason.trim();
+        if (!reason) {
+            toast.error('Please enter the reason for rejection');
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const res = await adminApi.rejectSeller(rejectTargetId, { reason });
+            const delivery = res?.data?.result?.delivery || {};
+            setRejectTargetId(null);
+            setIsReviewModalOpen(false);
+            setViewingSeller(null);
+
+            // Tell the admin which channels actually reached the seller.
+            const channels = [];
+            if (delivery.email === 'sent') channels.push('email');
+            if (delivery.sms === 'sent') channels.push('SMS');
+            toast.success(
+                channels.length
+                    ? `Application rejected. The seller was told by ${channels.join(' and ')} with the reason.`
+                    : 'Application rejected'
+            );
+            if (delivery.sms === 'not_configured') {
+                toast.info('SMS was not sent: the rejection SMS template is not set up yet.');
+            } else if (delivery.email === 'failed' || delivery.sms === 'failed') {
+                toast.warning('The seller could not be reached by ' + [delivery.email === 'failed' && 'email', delivery.sms === 'failed' && 'SMS'].filter(Boolean).join(' / ') + '.');
             }
+            await fetchPendingSellers();
+        } catch (error) {
+            console.error('Failed to reject seller', error);
+            toast.error(error.response?.data?.message || 'Failed to reject seller');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -546,6 +573,49 @@ const PendingSellers = () => {
                     </div>
                 )}
             </AnimatePresence>
+
+            <Modal
+                isOpen={!!rejectTargetId}
+                onClose={() => !isProcessing && setRejectTargetId(null)}
+                title="Reject application"
+                size="md"
+                footer={
+                    <>
+                        <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={() => setRejectTargetId(null)}
+                            className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            disabled={isProcessing || !rejectReason.trim()}
+                            onClick={confirmReject}
+                            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+                        >
+                            {isProcessing ? 'Rejecting...' : 'Reject & notify seller'}
+                        </button>
+                    </>
+                }
+            >
+                <div className="space-y-3">
+                    <p className="text-sm text-slate-600">
+                        The seller will receive this reason by email, SMS and in-app notification.
+                    </p>
+                    <textarea
+                        autoFocus
+                        rows={4}
+                        maxLength={300}
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        placeholder="e.g. Trade licence is not readable. Please upload a clear copy."
+                        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-rose-200"
+                    />
+                    <p className="text-right text-[11px] text-slate-400">{rejectReason.length}/300</p>
+                </div>
+            </Modal>
         </div>
     );
 };

@@ -168,6 +168,67 @@ export async function sendSubAdminInviteOtpEmail({
   };
 }
 
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export function buildSellerRejectionEmail({ name, shopName, reason }) {
+  const appName = String(process.env.MAIL_FROM_NAME || "DM Groceries").trim() || "DM Groceries";
+  const who = String(name || "").trim() || "Seller";
+  const shop = String(shopName || "").trim();
+  const why = String(reason || "").trim();
+
+  const subject = `Your seller application was not approved - ${appName}`;
+  const text =
+    `Hello ${who},
+
+` +
+    `Thank you for applying to sell on ${appName}${shop ? ` with "${shop}"` : ""}. ` +
+    `After reviewing your application, we are unable to approve it at this time.
+
+` +
+    `Reason: ${why}
+
+` +
+    `You can correct the above and apply again, or contact our support team if you need help.
+
+` +
+    `- ${appName} Team`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #0f172a; max-width: 520px; margin: 0 auto; padding: 28px;">
+      <h2 style="color: #1A4516; margin: 0 0 16px;">Seller application not approved</h2>
+      <p>Hello ${escapeHtml(who)},</p>
+      <p>Thank you for applying to sell on <strong>${escapeHtml(appName)}</strong>${shop ? ` with <strong>${escapeHtml(shop)}</strong>` : ""}.
+      After reviewing your application, we are unable to approve it at this time.</p>
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 16px; margin: 18px 0;">
+        <div style="font-size: 12px; font-weight: 700; color: #b91c1c; text-transform: uppercase; letter-spacing: 1px;">Reason</div>
+        <div style="margin-top: 6px; color: #7f1d1d;">${escapeHtml(why)}</div>
+      </div>
+      <p>You can correct the above and apply again, or contact our support team if you need help.</p>
+      <p style="color: #64748b; font-size: 13px;">- ${escapeHtml(appName)} Team</p>
+    </div>`;
+  return { subject, text, html };
+}
+
+export async function sendSellerRejectionEmail({ email, name, shopName, reason }) {
+  const to = String(email || "").trim();
+  if (!to) return { delivered: false, mode: "skipped", reason: "no_email" };
+
+  const content = buildSellerRejectionEmail({ name, shopName, reason });
+
+  if (!useRealEmailOTP()) {
+    logger.info("Seller rejection email generated in mock mode", { email: to, mode: "mock" });
+    return { delivered: false, mode: "mock" };
+  }
+
+  await getTransporter().sendMail({ from: getMailFrom(), to, ...content });
+  return { delivered: true, mode: "real" };
+}
+
 export function __resetEmailTransportForTests() {
   cachedTransporter = null;
 }

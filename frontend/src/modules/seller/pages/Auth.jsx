@@ -668,7 +668,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fcfaff] p-6 font-['Outfit'] overflow-hidden relative">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#fcfaff] p-2 sm:p-6 font-['Outfit'] overflow-hidden relative">
       {/* Elegant Ambient Background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-5%] w-[60%] h-[60%] bg-[#1A4516]/5 rounded-full blur-[120px]" />
@@ -678,7 +678,7 @@ const Auth = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative z-10 w-full max-w-[950px] min-h-[580px] max-h-[90vh] bg-white rounded-2xl shadow-[0_50px_120px_rgba(0,0,0,0.06)] border border-slate-100 flex flex-col md:flex-row overflow-hidden">
+        className="relative z-10 w-full max-w-[950px] min-h-0 sm:min-h-[580px] max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] bg-white rounded-2xl shadow-[0_50px_120px_rgba(0,0,0,0.06)] border border-slate-100 flex flex-col md:flex-row overflow-hidden">
         
         {/* Visual Side Panel - Deep Green & Logo & Grocery Basket */}
         <div className="hidden md:flex w-[45%] bg-[#0B3B24] relative flex-col items-center justify-between p-8 pt-10 pb-6 overflow-hidden">
@@ -727,7 +727,7 @@ const Auth = () => {
 
         {/* Form Content Side */}
         <div
-          className="w-full md:w-[55%] min-h-0 p-8 md:p-10 flex flex-col justify-center bg-white overflow-y-auto overscroll-contain touch-pan-y relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="w-full md:w-[55%] min-h-0 p-4 min-[400px]:p-6 sm:p-8 md:p-10 flex flex-col justify-center bg-white overflow-y-auto overscroll-contain touch-pan-y relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           onWheelCapture={handlePanelWheel}
           style={{ WebkitOverflowScrolling: "touch" }}>
           
@@ -767,7 +767,7 @@ const Auth = () => {
                 {(isLogin || signupStep === 1) && (
                   <>
                     {!isLogin && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Owner Name</label>
                           <div className="relative group">
@@ -976,7 +976,7 @@ const Auth = () => {
                     </div>
                     
                     {!isLogin && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Date of Birth</label>
                           <div className="relative group">
@@ -1061,7 +1061,7 @@ const Auth = () => {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Locality</label>
                         <input
@@ -1133,11 +1133,11 @@ const Auth = () => {
                   return (
                     <div className="space-y-3.5">
                       <div className="pt-0.5">
-                        <div className="flex items-center justify-between mb-2 ml-0.5">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 mb-2 ml-0.5">
+                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                             1. Select Seller Type
                           </p>
-                          <span className="text-[10px] font-semibold text-slate-400">
+                          <span className="text-[11px] font-semibold text-slate-400">
                             Determines document requirement
                           </span>
                         </div>
@@ -1162,7 +1162,7 @@ const Auth = () => {
                                 )}>
                                   <User className="w-3.5 h-3.5" />
                                 </div>
-                                <p className="text-xs font-black text-slate-800">Individual / Proprietor</p>
+                                <p className="text-[13px] font-black text-slate-800">Individual / Proprietor</p>
                               </div>
                               <div className={cn(
                                 "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
@@ -1171,7 +1171,7 @@ const Auth = () => {
                                 {sellerType === "individual" && <div className="w-2 h-2 rounded-full bg-[#1A4516]" />}
                               </div>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                            <p className="text-[11.5px] text-slate-500 font-medium leading-snug">
                               PAN & Aadhaar mandatory. Trade License / GST optional.
                             </p>
                           </div>
@@ -1194,7 +1194,7 @@ const Auth = () => {
                                 )}>
                                   <Building2 className="w-3.5 h-3.5" />
                                 </div>
-                                <p className="text-xs font-black text-slate-800">Registered Business</p>
+                                <p className="text-[13px] font-black text-slate-800">Registered Business</p>
                               </div>
                               <div className={cn(
                                 "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
@@ -1203,7 +1203,7 @@ const Auth = () => {
                                 {sellerType === "registered_business" && <div className="w-2 h-2 rounded-full bg-[#1A4516]" />}
                               </div>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                            <p className="text-[11.5px] text-slate-500 font-medium leading-snug">
                               PAN, Aadhaar + either Trade License or GST required.
                             </p>
                           </div>
@@ -1211,15 +1211,15 @@ const Auth = () => {
 
                         {/* Document Combination Guide Banner */}
                         <div className="p-3 bg-gradient-to-r from-emerald-50/70 via-slate-50 to-slate-50 border border-emerald-100/90 rounded-xl mb-3">
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 mb-2">
                             <div className="flex items-center gap-1.5">
                               <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-                              <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider">
+                              <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
                                 Required Document Combination
                               </span>
                             </div>
                             <span className={cn(
-                              "text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tight",
+                              "text-[10px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tight whitespace-nowrap",
                               progress.isComplete
                                 ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                                 : "bg-amber-100 text-amber-800 border-amber-300"
@@ -1227,7 +1227,7 @@ const Auth = () => {
                               {progress.fulfilledCount} of {progress.totalRequired} Ready
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                          <p className="text-xs text-slate-600 font-medium leading-relaxed">
                             {sellerType === "individual" ? (
                               <>
                                 <span className="font-bold text-slate-800">PAN Card</span> and <span className="font-bold text-slate-800">Aadhaar Card</span> are mandatory. Trade License and GST Certificate are optional (if available).
@@ -1240,7 +1240,7 @@ const Auth = () => {
                           </p>
                         </div>
 
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-0.5">
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-0.5">
                           2. Upload Verification Documents
                         </p>
 
@@ -1278,50 +1278,34 @@ const Auth = () => {
                                   <div
                                     onClick={() => setActiveUploadDoc(doc.id)}
                                     className={cn(
-                                      "flex items-center justify-between p-3 rounded-xl border border-dashed transition-all cursor-pointer group",
+                                      "flex flex-col gap-3 p-3.5 rounded-xl border border-dashed transition-all cursor-pointer group sm:flex-row sm:items-center sm:justify-between",
                                       file
                                         ? "border-emerald-300 bg-emerald-50/30 hover:border-emerald-400"
                                         : "border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-slate-50"
                                     )}
                                   >
-                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 mr-2">
+                                    <div className="flex items-start gap-3 flex-1 min-w-0">
                                       <div
                                         className={cn(
-                                          "p-2 rounded-lg shrink-0 transition-colors",
+                                          "p-2.5 rounded-lg shrink-0 transition-colors",
                                           file
                                             ? "bg-emerald-100 text-emerald-700"
                                             : "bg-white text-slate-500 shadow-2xs group-hover:text-slate-700"
                                         )}
                                       >
-                                        {file ? (
-                                          <CheckCircle className="w-4 h-4" />
-                                        ) : (
-                                          <Upload className="w-4 h-4" />
-                                        )}
+                                        {file ? <CheckCircle className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
                                       </div>
                                       <div className="text-left flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <p
-                                            className={cn(
-                                              "text-xs font-black",
-                                              file ? "text-emerald-900" : "text-slate-800"
-                                            )}
-                                          >
+                                        <div className="flex items-center gap-x-2 gap-y-1 flex-wrap">
+                                          <p className={cn("text-[13px] font-black", file ? "text-emerald-900" : "text-slate-800")}>
                                             {doc.label}
                                           </p>
-                                          <span
-                                            className={cn(
-                                              "text-[9px] font-black px-1.5 py-0.5 rounded-md border tracking-tight",
-                                              status.badgeClass
-                                            )}
-                                          >
+                                          <span className={cn("text-[10px] font-black px-1.5 py-0.5 rounded-md border tracking-tight whitespace-nowrap", status.badgeClass)}>
                                             {status.badgeText}
                                           </span>
                                         </div>
-                                        <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
-                                          {file
-                                            ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)`
-                                            : doc.description}
+                                        <p className="text-[11.5px] text-slate-500 font-medium leading-snug mt-1 break-words">
+                                          {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : doc.description}
                                         </p>
                                       </div>
                                     </div>
@@ -1329,14 +1313,14 @@ const Auth = () => {
                                     {file ? (
                                       <button
                                         type="button"
-                                        title="Remove file"
                                         onClick={(e) => handleRemoveDocument(e, doc.id)}
-                                        className="p-1 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
+                                        className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto shrink-0 rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
                                       >
                                         <X className="w-4 h-4" />
+                                        Remove
                                       </button>
                                     ) : (
-                                      <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-lg shrink-0 shadow-2xs group-hover:border-slate-300">
+                                      <span className="inline-flex items-center justify-center w-full sm:w-auto shrink-0 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs group-hover:border-slate-300">
                                         Upload
                                       </span>
                                     )}
@@ -1396,7 +1380,7 @@ const Auth = () => {
                     <button
                       type="button"
                       onClick={() => setSignupStep((prev) => Math.max(1, prev - 1))}
-                      className="w-1/3 bg-slate-100 text-slate-600 rounded-lg py-3 text-xs font-black tracking-wider transition-all hover:bg-slate-200">
+                      className="w-1/3 bg-slate-100 text-slate-600 rounded-lg py-3.5 text-xs font-black tracking-wider transition-all hover:bg-slate-200">
                       BACK
                     </button>
                   )}
