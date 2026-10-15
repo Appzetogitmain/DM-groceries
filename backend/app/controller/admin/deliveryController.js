@@ -2,6 +2,7 @@ import Delivery from "../../models/delivery.js";
 import Order from "../../models/order.js";
 import handleResponse from "../../utils/helper.js";
 import getPagination from "../../utils/pagination.js";
+import { sendDeliveryApprovalEmail } from "../../services/emailService.js";
 
 export const getDeliveryPartners = async (req, res) => {
   try {
@@ -97,6 +98,16 @@ export const approveDeliveryPartner = async (req, res) => {
 
     if (!rider) {
       return handleResponse(res, 404, "Rider not found");
+    }
+
+    // Send Approval Email to Delivery Partner asynchronously
+    if (rider.email) {
+      sendDeliveryApprovalEmail({
+        email: rider.email,
+        name: rider.name,
+      }).catch((err) => {
+        console.error("Failed to send delivery approval email:", err?.message);
+      });
     }
 
     return handleResponse(res, 200, "Rider approved successfully", rider);

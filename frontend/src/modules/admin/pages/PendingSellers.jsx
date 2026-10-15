@@ -61,6 +61,8 @@ const PendingSellers = () => {
             toast.error(error.response?.data?.message || 'Failed to load seller applications');
         } finally {
             setIsLoading(false);
+            // Keep the sidebar "waiting for review" badge in step with this list.
+            window.dispatchEvent(new Event('admin:pending-counts-changed'));
         }
     };
 

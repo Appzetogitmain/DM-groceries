@@ -80,6 +80,8 @@ const PendingDeliveryBoys = () => {
             toast.error('Failed to load applications');
         } finally {
             setIsLoading(false);
+            // Keep the sidebar "waiting for review" badge in step with this list.
+            window.dispatchEvent(new Event('admin:pending-counts-changed'));
         }
     };
 

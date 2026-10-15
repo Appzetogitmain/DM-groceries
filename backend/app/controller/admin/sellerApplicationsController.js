@@ -2,6 +2,7 @@ import handleResponse from "../../utils/helper.js";
 import getPagination from "../../utils/pagination.js";
 import Seller from "../../models/seller.js";
 import { notifySellerRejected } from "../../services/sellerRejectionNotifier.js";
+import { sendSellerApprovalEmail } from "../../services/emailService.js";
 import { emitNotificationEvent } from "../../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../../modules/notifications/notification.constants.js";
 import {
@@ -52,6 +53,17 @@ export const approveSellerApplication = async (req, res) => {
       messageId: `store-approved:${id}:${Date.now()}`,
       data: { link: "/seller" },
     });
+
+    // Send Approval Email to Seller asynchronously
+    if (seller.email) {
+      sendSellerApprovalEmail({
+        email: seller.email,
+        name: seller.ownerName || seller.name,
+        shopName: seller.shopName,
+      }).catch((err) => {
+        console.error("Failed to send seller approval email:", err?.message);
+      });
+    }
 
     return handleResponse(res, 200, "Seller approved successfully", seller);
   } catch (error) {
