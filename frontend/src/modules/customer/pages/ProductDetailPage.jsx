@@ -172,7 +172,7 @@ const ProductDetailPage = () => {
                 </p>
                 <div className="flex flex-col gap-3 w-full max-w-xs">
                     <button 
-                        onClick={() => navigate('/')}
+                        onClick={() => navigate('/user')}
                         className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all shadow-xl shadow-black/10"
                     >
                         Go to Home

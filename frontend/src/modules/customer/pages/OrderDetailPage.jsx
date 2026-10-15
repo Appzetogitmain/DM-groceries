@@ -212,7 +212,7 @@ const OrderDetailPage = () => {
       navigate(-1);
       return;
     }
-    navigate("/orders");
+    navigate("/user/orders");
   };
 
   // Scroll to top on load
@@ -224,7 +224,7 @@ const OrderDetailPage = () => {
     const isInvalid = !orderId || orderId === "undefined" || orderId === "null";
     if (isInvalid) {
       console.warn(`[OrderDetailPage] Invalid orderId from URL: ${orderId}. Redirecting...`);
-      navigate("/orders", { replace: true });
+      navigate("/user/orders", { replace: true });
       return;
     }
 
@@ -906,7 +906,7 @@ const OrderDetailPage = () => {
     } catch (err) {
       console.warn("[OrderDetailPage] Payment confirm failed, falling back to polling:", err);
     }
-    navigate(`/payment-status?merchantOrderId=${merchantOrderId}`);
+    navigate(`/user/payment-status?merchantOrderId=${merchantOrderId}`);
   };
 
   const handleRetryPayment = async () => {
@@ -980,7 +980,7 @@ const OrderDetailPage = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-white">
         <Package size={64} className="text-slate-300 mb-4" />
         <h3 className="text-lg font-bold text-slate-800">Order not found</h3>
-        <Link to="/orders" className="text-[#1A4516] font-bold mt-4 hover:text-[#0a3000]">
+        <Link to="/user/orders" className="text-[#1A4516] font-bold mt-4 hover:text-[#0a3000]">
           Back to my orders
         </Link>
       </div>

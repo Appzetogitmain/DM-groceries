@@ -29,7 +29,7 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
             } else if (role === 'delivery') {
                 navigate(`/delivery/order-details/${orderId}`);
             } else {
-                navigate(`/orders/${orderId}`);
+                navigate(`/user/orders/${orderId}`);
             }
             if (onClose) onClose();
         }

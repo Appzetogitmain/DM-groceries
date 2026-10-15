@@ -159,7 +159,7 @@ const CartPage = () => {
 
                             <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/80 bg-white/80 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] sm:flex-row sm:items-center sm:justify-between">
                                 <Link
-                                    to="/categories"
+                                    to="/user/categories"
                                     className="inline-flex items-center justify-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-black text-brand-700 transition-colors hover:bg-brand-100"
                                 >
                                     Continue Shopping
@@ -221,7 +221,7 @@ const CartPage = () => {
                                         </div>
                                     </div>
 
-                                    <Link to="/checkout" className="block">
+                                    <Link to="/user/checkout" className="block">
                                         <Button className="h-14 w-full rounded-full bg-brand-400 text-slate-950 hover:bg-brand-300 text-base font-black flex items-center justify-center gap-2 shadow-[0_18px_35px_rgba(16,185,129,0.3)] transition-all">
                                             Place Order <ArrowRight size={18} />
                                         </Button>
@@ -276,14 +276,14 @@ const CartPage = () => {
 
                                 <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:justify-center">
                                     <Link
-                                        to="/categories"
+                                        to="/user/categories"
                                         className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-3.5 text-sm font-black text-white transition-transform hover:-translate-y-0.5"
                                     >
                                         Start Shopping
                                         <ArrowRight size={16} />
                                     </Link>
                                     <Link
-                                        to="/offers"
+                                        to="/user/offers"
                                         className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-8 py-3.5 text-sm font-black text-slate-800 transition-colors hover:bg-slate-50"
                                     >
                                         Browse Offers

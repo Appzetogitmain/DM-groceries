@@ -173,7 +173,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
 
   const handleAddAddress = () => {
     onClose();
-    navigate("/addresses?add=1");
+    navigate("/user/addresses?add=1");
   };
 
   const handleSelectPlace = React.useCallback(

@@ -164,6 +164,9 @@ export const NOTIFICATIONS_ENABLED = () =>
 export const INVALID_FCM_TOKEN_CODES = new Set([
   "messaging/invalid-registration-token",
   "messaging/registration-token-not-registered",
+  // Token was issued for a different Firebase project/sender than our service
+  // account: it can never receive pushes from this backend, so retire it.
+  "messaging/mismatched-credential",
 ]);
 
 export function normalizeNotificationRole(role) {

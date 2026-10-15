@@ -152,7 +152,7 @@ const CategoriesPage = () => {
                             {group.categories.map((category) => (
                                 <div key={category.id} className="flex flex-col group cursor-pointer">
                                     <Link
-                                        to={`/category/${category.id}`}
+                                        to={`/user/category/${category.id}`}
                                         className="block"
                                     >
                                         <div className="aspect-square mb-2 [perspective:1000px]">

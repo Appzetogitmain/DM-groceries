@@ -171,12 +171,12 @@ const MainLocationHeader = ({
 
   // Search Logic
   const handleSearchClick = () => {
-    navigate("/search");
+    navigate("/user/search");
   };
 
   const handleSearchKeyDown = (e) => {
     if (e.key === "Enter") {
-      navigate("/search", { state: { query: e.target.value } });
+      navigate("/user/search", { state: { query: e.target.value } });
     }
   };
 
@@ -261,7 +261,7 @@ const MainLocationHeader = ({
             }}
             type="button"
             aria-label="Open cart"
-            onClick={() => navigate("/checkout")}
+            onClick={() => navigate("/user/checkout")}
             className="absolute top-3 right-5 sm:top-4 sm:right-6 md:top-5 md:right-8 z-20 w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 cursor-pointer">
             {cartAnimData ? (
               <Lottie
@@ -279,7 +279,7 @@ const MainLocationHeader = ({
             {/* Left Section: Logo + Location row */}
             <div className="flex items-center gap-4 lg:gap-8">
               <div
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/user")}
                 className="flex items-center gap-3 cursor-pointer group shrink-0">
                 <div className="group-hover:scale-110 transition-all duration-300 drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]">
                   <img
@@ -352,7 +352,7 @@ const MainLocationHeader = ({
               <motion.button
                 whileHover={{ scale: 1.15, rotate: 5 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => navigate("/wishlist")}
+                onClick={() => navigate("/user/wishlist")}
                 className="transition-all hover:text-red-500"
                 style={{ color: headerFontColor }}
               >
@@ -362,7 +362,7 @@ const MainLocationHeader = ({
               <motion.button
                 whileHover={{ scale: 1.15, rotate: -5 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => navigate("/checkout")}
+                onClick={() => navigate("/user/checkout")}
                 className="transition-all hover:text-slate-700 relative group"
                 style={{ color: headerFontColor }}
               >
@@ -375,7 +375,7 @@ const MainLocationHeader = ({
               <motion.button
                 whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => navigate("/profile")}
+                onClick={() => navigate("/user/profile")}
                 className="lg:bg-white/30 p-1.5 lg:rounded-full hover:bg-white transition-all"
                 style={{ color: headerFontColor }}
               >

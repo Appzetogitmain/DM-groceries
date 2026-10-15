@@ -127,7 +127,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                       onClick={() => {
                         // Remember the header & section so back navigation can restore context
                         rememberExperienceReturn(section.headerId, section._id);
-                        navigate(`/category/${cat._id}`);
+                        navigate(`/user/category/${cat._id}`);
                       }}
                     >
                       <div className="relative aspect-square w-full rounded-2xl bg-[#F8F9FA] border border-slate-100/80 flex items-center justify-center overflow-hidden p-1 transition-all duration-200 group-hover:border-primary/40 group-hover:bg-white group-hover:shadow-[0_10px_25px_rgba(15,23,42,0.08)]">
@@ -203,12 +203,12 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                           null;
 
                         if (parentId) {
-                          navigate(`/category/${parentId}`, {
+                          navigate(`/user/category/${parentId}`, {
                             state: { activeSubcategoryId: cat._id },
                           });
                         } else {
                           // Fallback to previous behavior if we can't resolve parent
-                          navigate(`/category/${cat._id}`);
+                          navigate(`/user/category/${cat._id}`);
                         }
                       }}
                     >

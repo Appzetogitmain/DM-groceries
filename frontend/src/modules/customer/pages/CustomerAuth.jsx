@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@core/context/AuthContext';
 import { useSettings } from '@core/context/SettingsContext';
 import {
@@ -85,6 +85,7 @@ const CustomerAuth = () => {
     const appName = settings?.appName || 'App';
     const logoUrl = "/Logo.png";
     const navigate = useNavigate();
+    const routeLocation = useLocation();
 
     const [formData, setFormData] = useState(() => {
         const saved = sessionStorage.getItem('customerAuthFormData');
@@ -176,7 +177,10 @@ const CustomerAuth = () => {
             const { token, customer } = response.data.result;
             login({ ...customer, token, role: 'customer' });
             toast.success('Successfully Logged In!');
-            navigate('/user');
+            // Return to the page the user was trying to open (e.g. /user/profile), else home.
+            const from = routeLocation.state?.from;
+            const target = from?.pathname?.startsWith('/user') ? `${from.pathname}${from.search || ''}` : '/user';
+            navigate(target, { replace: true });
         } catch (error) {
             const apiMessage = error?.response?.data?.message;
             toast.error(apiMessage || 'Invalid OTP');
@@ -509,7 +513,7 @@ const CustomerAuth = () => {
                                             <span>I agree to the</span>
                                             <div className="flex items-center gap-1 underline decoration-gray-200 underline-offset-4">
                                                 <span
-                                                    onClick={(e) => { e.preventDefault(); navigate('/support'); }}
+                                                    onClick={(e) => { e.preventDefault(); navigate('/user/support'); }}
                                                     className="hover:text-gray-900 transition-colors"
                                                     style={{ color: activeCategory.theme }}
                                                 >
@@ -517,7 +521,7 @@ const CustomerAuth = () => {
                                                 </span>
                                                 <span className="text-[8px] text-gray-300 no-underline">&amp;</span>
                                                 <span
-                                                    onClick={(e) => { e.preventDefault(); navigate('/privacy'); }}
+                                                    onClick={(e) => { e.preventDefault(); navigate('/user/privacy'); }}
                                                     className="hover:text-gray-900 transition-colors"
                                                     style={{ color: activeCategory.theme }}
                                                 >

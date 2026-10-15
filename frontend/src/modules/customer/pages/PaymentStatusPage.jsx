@@ -42,7 +42,7 @@ const PaymentStatusPage = () => {
                     // Auto redirect after 3 seconds
                     setTimeout(() => {
                         const targetId = payment.checkoutGroupId || payment.publicOrderId || payment.order;
-                        navigate(`/orders/${targetId}`, { replace: true });
+                        navigate(`/user/orders/${targetId}`, { replace: true });
                     }, 4000);
                 } else if (paymentStatus === "FAILED" || paymentStatus === "CANCELLED") {
                     setStatus("failure");
@@ -216,7 +216,7 @@ const PaymentStatusPage = () => {
                                     <p className="text-[11px] text-slate-500 font-medium">Redirecting to your order details in 4 seconds...</p>
                                 </div>
                                 <Button 
-                                    onClick={() => navigate('/orders')}
+                                    onClick={() => navigate('/user/orders')}
                                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-xl flex items-center justify-center gap-2"
                                 >
                                     Go to My Orders <ArrowRight size={18} />
@@ -231,14 +231,14 @@ const PaymentStatusPage = () => {
                                 <p className="text-slate-500 text-sm font-medium mb-8">Oops! Something went wrong with the transaction. Your money (if debited) will be refunded automatically by the payment provider.</p>
                                 <div className="flex flex-col gap-3">
                                     <Button 
-                                        onClick={() => navigate('/checkout')}
+                                        onClick={() => navigate('/user/checkout')}
                                         className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 rounded-xl"
                                     >
                                         Try Again
                                     </Button>
                                     <Button 
                                         variant="outline"
-                                        onClick={() => navigate('/')}
+                                        onClick={() => navigate('/user')}
                                         className="w-full border-slate-200 text-slate-600 font-bold h-12 rounded-xl"
                                     >
                                         Back to Home
@@ -266,7 +266,7 @@ const PaymentStatusPage = () => {
                                     </Button>
                                     <Button 
                                         variant="outline"
-                                        onClick={() => navigate('/orders')}
+                                        onClick={() => navigate('/user/orders')}
                                         className="w-full border-slate-200 text-slate-600 font-bold h-12 rounded-xl"
                                     >
                                         View Order History

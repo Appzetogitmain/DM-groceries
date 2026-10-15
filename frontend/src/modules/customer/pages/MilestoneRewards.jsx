@@ -126,7 +126,7 @@ const MilestoneRewards = () => {
                                     )}
                                     
                                     {!isCompleted && (
-                                        <button onClick={() => navigate('/products')} className="mt-4 w-full flex items-center justify-center space-x-2 text-primary text-sm font-medium hover:text-primary-dark transition-colors">
+                                        <button onClick={() => navigate('/user/categories')} className="mt-4 w-full flex items-center justify-center space-x-2 text-primary text-sm font-medium hover:text-primary-dark transition-colors">
                                             <span>Shop now to unlock</span>
                                             <ArrowRight className="w-4 h-4" />
                                         </button>

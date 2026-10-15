@@ -39,8 +39,8 @@ function getFrontendBaseUrl() {
 function buildOrderLink(orderId) {
   const id = String(orderId || "").trim();
   const baseUrl = getFrontendBaseUrl();
-  if (!id) return `${baseUrl}/orders`;
-  return `${baseUrl}/orders/${encodeURIComponent(id)}`;
+  if (!id) return `${baseUrl}/user/orders`;
+  return `${baseUrl}/user/orders/${encodeURIComponent(id)}`;
 }
 
 function buildDeliveryOrderLink(orderId) {
@@ -53,7 +53,7 @@ function buildDeliveryOrderLink(orderId) {
 function buildCustomerSupportLink(ticketId) {
   const baseUrl = getFrontendBaseUrl();
   const id = String(ticketId || "").trim();
-  return id ? `${baseUrl}/chat?ticketId=${encodeURIComponent(id)}` : `${baseUrl}/chat`;
+  return id ? `${baseUrl}/user/chat?ticketId=${encodeURIComponent(id)}` : `${baseUrl}/user/chat`;
 }
 
 function buildAdminSupportLink(ticketId) {
@@ -611,6 +611,20 @@ function eventDefinition(eventType, payload = {}) {
 }
 
 function eventData(eventType, payload = {}, role) {
+  // Plain admin messages to a customer open their notifications list. Alerts tied to
+  // an order (e.g. payment reminders) keep the default order link below.
+  if (
+    eventType === NOTIFICATION_EVENTS.GENERIC_ALERT &&
+    role === NOTIFICATION_ROLES.CUSTOMER &&
+    !String(payload.orderId || "").trim()
+  ) {
+    return {
+      eventType,
+      link: `${getFrontendBaseUrl()}/user/notifications`,
+      ...(payload.data || {}),
+    };
+  }
+
   if (eventType === NOTIFICATION_EVENTS.LOW_STOCK_ALERT) {
     const productId = String(payload.productId || "").trim() || undefined;
     return {

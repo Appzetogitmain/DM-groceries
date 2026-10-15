@@ -43,7 +43,7 @@ const MiniCart = () => {
                         className="w-full max-w-[148px] pointer-events-auto"
                     >
                         <Link
-                            to="/checkout"
+                            to="/user/checkout"
                             style={{
                                 backgroundColor: "var(--customer-mini-cart-color, var(--primary))",
                             }}

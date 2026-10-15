@@ -1,9 +1,11 @@
-import { isSupported, getMessaging, getToken, onMessage } from "firebase/messaging";
+import { isSupported, getMessaging, getToken, deleteToken, onMessage } from "firebase/messaging";
 import { getFirebaseApp } from "./client";
 import axiosInstance from "@core/api/axios";
 import AppZetoBridge from "../../lib/appZetoBridge";
 import { rawGet, rawSet, rawRemove, KEY_PREFIXES } from "@core/utils/storage";
 import { hasNativeFlutterBridge, isFlutterWebView } from "@core/utils/deviceUtils";
+
+const PUSH_CONFIG_KEY = "push_fcm_config_fingerprint";
 
 let foregroundListenerStarted = false;
 let foregroundUnsubscribe = null;
@@ -210,7 +212,21 @@ export async function ensureFcmTokenRegistered({
 
     const swRegistration = await ensureServiceWorkerRegistration();
     const messaging = getMessaging(app);
+
+    // A browser keeps its old FCM token until it is deleted. If it was issued for a different
+    // Firebase project/key than the one configured now, the server's push fails with
+    // "mismatched-credential". Drop it once so a fresh token is minted for the current config.
+    const configFingerprint = `${app.options?.projectId}:${app.options?.messagingSenderId}:${String(vapidKey).slice(0, 16)}`;
+    if (rawGet(PUSH_CONFIG_KEY) !== configFingerprint) {
+      try {
+        await deleteToken(messaging);
+      } catch {
+        // nothing to delete, or already invalid
+      }
+    }
+
     token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: swRegistration });
+    if (token) rawSet(PUSH_CONFIG_KEY, configFingerprint);
     if (!token) {
       throw new Error("Failed to obtain FCM token");
     }

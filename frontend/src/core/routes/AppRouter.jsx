@@ -1,5 +1,5 @@
 import React, { lazy, useMemo, useEffect, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from '../guards/ProtectedRoute';
 import RoleGuard from '../guards/RoleGuard';
 import { UserRole } from '../constants/roles';
@@ -81,6 +81,19 @@ const CustomerLayoutWrapper = () => {
             </WishlistProvider>
         </LocationProvider>
     );
+};
+
+// Customer pages live under /user. Old/unprefixed links (bookmarks, push notifications,
+// stale code) are forwarded there instead of falling through to the landing page.
+const LEGACY_CUSTOMER_SEGMENTS = [
+    'categories', 'category', 'offers', 'wishlist', 'orders', 'profile', 'checkout', 'search',
+    'wallet', 'addresses', 'settings', 'help', 'chat', 'support', 'privacy', 'about',
+    'notifications', 'rewards', 'payment-status', 'transactions', 'shop-by-store', 'product',
+];
+
+const LegacyCustomerRedirect = () => {
+    const { pathname, search, hash } = useLocation();
+    return <Navigate to={`/user${pathname}${search}${hash}`} replace />;
 };
 
 const AppRouter = () => {
@@ -196,15 +209,11 @@ const AppRouter = () => {
                     ]
                 },
                 // Backward-compatibility redirects for direct old links
-                { path: 'categories', element: <Navigate to="/user/categories" replace /> },
-                { path: 'category/:categoryName', element: <Navigate to="/user/categories" replace /> },
-                { path: 'offers', element: <Navigate to="/user/offers" replace /> },
-                { path: 'wishlist', element: <Navigate to="/user/wishlist" replace /> },
-                { path: 'orders', element: <Navigate to="/user/orders" replace /> },
-                { path: 'profile', element: <Navigate to="/user/profile" replace /> },
-                { path: 'checkout', element: <Navigate to="/user/checkout" replace /> },
-                { path: 'search', element: <Navigate to="/user/search" replace /> },
-                { path: 'wallet', element: <Navigate to="/user/wallet" replace /> },
+                // Keeps the sub-path, query string and hash (e.g. /orders/123?x=1 -> /user/orders/123?x=1).
+                ...LEGACY_CUSTOMER_SEGMENTS.map((segment) => ({
+                    path: `${segment}/*`,
+                    element: <LegacyCustomerRedirect />,
+                })),
                 {
                     path: '*',
                     element: <Navigate to="/" replace />

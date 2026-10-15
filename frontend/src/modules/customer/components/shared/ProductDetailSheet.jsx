@@ -610,7 +610,7 @@ const ProductDetailSheet = () => {
                                                 className="flex justify-center -mt-1"
                                             >
                                                 <Link
-                                                    to="/checkout"
+                                                    to="/user/checkout"
                                                     onClick={closeProduct}
                                                     className="w-[80%] bg-gradient-to-r from-primary to-[var(--brand-500)] text-white h-[40px] rounded-xl flex items-center justify-between px-4 shadow-md shadow-brand-200/40 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-[0.98]"
                                                 >
@@ -1163,7 +1163,7 @@ const ProductDetailSheet = () => {
                                         className="mt-2"
                                     >
                                         <Link
-                                            to="/checkout"
+                                            to="/user/checkout"
                                             onClick={closeProduct}
                                             className="w-full bg-gradient-to-r from-primary to-[var(--brand-400)] text-white h-[64px] rounded-2xl flex items-center justify-between px-5 shadow-xl shadow-brand-200/50 hover:shadow-brand-300 transition-all active:scale-[0.98] border border-white/20 relative overflow-hidden group"
                                         >

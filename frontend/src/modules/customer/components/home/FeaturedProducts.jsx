@@ -62,7 +62,7 @@ const FeaturedProducts = () => {
                         <span className="text-brand-600 font-semibold tracking-wide uppercase text-sm">Best Seller</span>
                         <h2 className="text-3xl font-bold tracking-tight text-slate-900">Featured Products</h2>
                     </div>
-                    <Link to="/categories" className="hidden md:inline-flex text-brand-600 font-medium hover:text-brand-700 hover:underline">
+                    <Link to="/user/categories" className="hidden md:inline-flex text-brand-600 font-medium hover:text-brand-700 hover:underline">
                         View All Products &rarr;
                     </Link>
                 </div>
@@ -74,7 +74,7 @@ const FeaturedProducts = () => {
                 </div>
 
                 <div className="mt-8 text-center md:hidden">
-                    <Link to="/categories" className="inline-flex text-brand-600 font-medium hover:text-brand-700 hover:underline">
+                    <Link to="/user/categories" className="inline-flex text-brand-600 font-medium hover:text-brand-700 hover:underline">
                         View All Products &rarr;
                     </Link>
                 </div>

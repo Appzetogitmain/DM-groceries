@@ -78,7 +78,7 @@ const ProfilePage = () => {
                             <p className="text-white/80 text-sm mt-0.5 font-medium truncate">{formatIndiaPhone(user?.phone) || '98765 43210'}</p>
                         </div>
                     </div>
-                    <Link to="/profile/edit" className="text-white hover:bg-white/10 p-2 rounded-full transition-colors shrink-0">
+                    <Link to="/user/profile/edit" className="text-white hover:bg-white/10 p-2 rounded-full transition-colors shrink-0">
                         <Edit2 size={22} />
                     </Link>
                 </div>
@@ -91,14 +91,14 @@ const ProfilePage = () => {
                         <h3 className="font-extrabold text-[#1A4516] text-lg">My Account</h3>
                     </div>
                     <div className="space-y-1">
-                        <MenuItem icon={Package} label="My Orders" path="/orders" />
-                        <MenuItem icon={MapPin} label="My Addresses" path="/addresses" />
-                        <MenuItem icon={Wallet} label="My Wallet" rightText={`₹${user?.walletBalance || 0}`} path="/wallet" />
-                        <MenuItem icon={Gift} label="My Rewards" path="/rewards" />
-                        <MenuItem icon={Heart} label="My Wishlist" path="/wishlist" />
-                        <MenuItem icon={Bell} label="Notifications" path="/notifications" />
-                        <MenuItem icon={HelpCircle} label="Help & Support" path="/help" />
-                        <MenuItem icon={Settings} label="Settings" path="/settings" />
+                        <MenuItem icon={Package} label="My Orders" path="/user/orders" />
+                        <MenuItem icon={MapPin} label="My Addresses" path="/user/addresses" />
+                        <MenuItem icon={Wallet} label="My Wallet" rightText={`₹${user?.walletBalance || 0}`} path="/user/wallet" />
+                        <MenuItem icon={Gift} label="My Rewards" path="/user/rewards" />
+                        <MenuItem icon={Heart} label="My Wishlist" path="/user/wishlist" />
+                        <MenuItem icon={Bell} label="Notifications" path="/user/notifications" />
+                        <MenuItem icon={HelpCircle} label="Help & Support" path="/user/help" />
+                        <MenuItem icon={Settings} label="Settings" path="/user/settings" />
                     </div>
 
                     <div className="pt-6 space-y-3">

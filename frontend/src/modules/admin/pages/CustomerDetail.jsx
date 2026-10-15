@@ -101,7 +101,7 @@ const CustomerDetail = () => {
         if (!notifMessage.trim() || isSendingNotif) return;
         try {
             setIsSendingNotif(true);
-            await adminApi.sendDirectNotification({
+            const { data } = await adminApi.sendDirectNotification({
                 userId: id,
                 userRole: 'customer',
                 title: 'Message from Admin',
@@ -109,7 +109,9 @@ const CustomerDetail = () => {
             });
             setIsNotifModalOpen(false);
             setNotifMessage('');
-            showToast('Notification sent to user', 'success');
+            // The server says whether the push actually reached a device, not just that it was saved.
+            const pushFailed = data?.result?.pushStatus === 'failed';
+            showToast(data?.message || 'Notification sent to user', pushFailed ? 'warning' : 'success');
         } catch (error) {
             console.error("Failed to send notification:", error);
             showToast(error.response?.data?.message || 'Failed to send notification', 'error');

@@ -86,7 +86,7 @@ const OrdersPage = () => {
                         <p className="text-slate-500 text-sm mb-6 max-w-[260px]">
                             When you place an order, it will appear here so you can track it easily.
                         </p>
-                        <Link to="/" className="bg-[#1A4516] hover:bg-[#0a3000] text-white px-7 py-2.5 rounded-full font-semibold text-sm shadow-sm transition-colors">
+                        <Link to="/user" className="bg-[#1A4516] hover:bg-[#0a3000] text-white px-7 py-2.5 rounded-full font-semibold text-sm shadow-sm transition-colors">
                             Start Shopping
                         </Link>
                     </div>
@@ -95,7 +95,7 @@ const OrdersPage = () => {
                         const legacy = getLegacyStatusFromOrder(order);
                         return (
                         <Link
-                            to={`/orders/${order.orderId}`}
+                            to={`/user/orders/${order.orderId}`}
                             key={order._id}
                             className="block bg-white rounded-2xl px-4 py-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] border border-slate-100/80 active:scale-[0.985] transition-transform cursor-pointer hover:shadow-[0_10px_30px_rgba(15,23,42,0.08)]"
                         >

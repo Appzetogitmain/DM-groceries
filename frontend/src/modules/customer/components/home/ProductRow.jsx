@@ -20,7 +20,7 @@ const ProductRow = ({ title, subtitle, products, badge }) => {
                         </h2>
                         {subtitle && <p className="text-slate-500 font-medium text-sm md:text-base">{subtitle}</p>}
                     </div>
-                    <Link to="/categories" className="text-sm font-bold text-primary hover:underline whitespace-nowrap">
+                    <Link to="/user/categories" className="text-sm font-bold text-primary hover:underline whitespace-nowrap">
                         See All
                     </Link>
                 </div>

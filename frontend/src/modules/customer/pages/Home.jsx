@@ -446,8 +446,8 @@ const Home = () => {
             )}
           </motion.div>
 
-          <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/category/${id}`)} />
-          <LowestPriceSection products={products} onSeeAll={() => navigate("/category/all")} />
+          <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/user/category/${id}`)} />
+          <LowestPriceSection products={products} onSeeAll={() => navigate("/user/category/all")} />
           <OfferSections sections={offerSections} noServiceData={noServiceData} />
 
           {sectionsForRenderer.length > 0 && (
