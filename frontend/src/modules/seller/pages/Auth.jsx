@@ -727,7 +727,7 @@ const Auth = () => {
 
         {/* Form Content Side */}
         <div
-          className="w-full md:w-[55%] min-h-0 p-4 min-[400px]:p-6 sm:p-8 md:p-10 flex flex-col justify-center bg-white overflow-y-auto overscroll-contain touch-pan-y relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="w-full md:w-[55%] min-h-0 p-4 min-[400px]:p-6 sm:p-8 md:p-10 flex flex-col bg-white overflow-y-auto overscroll-contain touch-pan-y relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           onWheelCapture={handlePanelWheel}
           style={{ WebkitOverflowScrolling: "touch" }}>
           
@@ -738,7 +738,7 @@ const Auth = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              className="space-y-6 py-2">
+              className="my-auto w-full space-y-6 py-2">
               
               <div className="space-y-2">
                 {/* Mobile Logo (Visible only on mobile screens) */}
@@ -769,28 +769,28 @@ const Auth = () => {
                     {!isLogin && (
                       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Owner Name</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Owner Name</label>
                           <div className="relative group">
                             <input
                               type="text"
                               name="name"
                               required
                               placeholder="Owner Name"
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                               value={formData.name}
                               onChange={handleChange}
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Shop Name</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Shop Name</label>
                           <div className="relative group">
                             <input
                               type="text"
                               name="shopName"
                               required
                               placeholder="Shop Name"
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                               value={formData.shopName}
                               onChange={handleChange}
                             />
@@ -800,7 +800,7 @@ const Auth = () => {
                     )}
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Email</label>
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Email</label>
                       <div className="relative group flex items-center">
                         <input
                           type="email"
@@ -809,7 +809,7 @@ const Auth = () => {
                           inputMode="email"
                           autoComplete="email"
                           placeholder="Enter your email"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[105px]"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[120px]"
                           value={formData.email}
                           onChange={handleChange}
                         />
@@ -823,7 +823,7 @@ const Auth = () => {
                               (verifications.email.isOtpVisible && verifications.email.timer > 0) ||
                               !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email || "")
                             }
-                            className={`absolute right-2 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${verifications.email.status === "verified"
+                            className={`absolute right-1.5 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${verifications.email.status === "verified"
                               ? "bg-emerald-100 text-emerald-700 cursor-default"
                               : "bg-[#1A4516] text-white hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed"
                               }`}>
@@ -855,18 +855,18 @@ const Auth = () => {
                                 otp: e.target.value.replace(/\D/g, "").slice(0, 4),
                               })
                             }
-                            className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
+                            className="flex-1 min-w-0 bg-transparent text-base sm:text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
                           />
                           <button
                             type="button"
                             onClick={() => handleVerifyOtp("email")}
                             disabled={verifications.email.isVerifying || verifications.email.otp.length !== 4}
-                            className="rounded-md bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                            className="rounded-md bg-white px-3 py-2 text-[10px] whitespace-nowrap font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
                           >
                             {verifications.email.isVerifying ? "Checking..." : "Confirm OTP"}
                           </button>
                         </div>
-                        <p className="text-[9.5px] text-slate-400 ml-1 leading-tight">
+                        <p className="text-[11px] text-slate-400 ml-1 leading-snug">
                           If you don't see the email, please check your <strong className="text-slate-500">Spam or Junk</strong> folder.
                         </p>
                       </div>
@@ -881,14 +881,14 @@ const Auth = () => {
                     {!isLogin && (
                       <>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Contact Number</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Contact Number</label>
                           <div className="relative group flex items-center">
                             <input
                               type="tel"
                               name="phone"
                               required
                               placeholder="Contact Number"
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[105px]"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[120px]"
                               value={formData.phone}
                               onChange={handleChange}
                             />
@@ -901,7 +901,7 @@ const Auth = () => {
                                 (verifications.phone.isOtpVisible && verifications.phone.timer > 0) ||
                                 !/^[0-9]{10}$/.test(formData.phone || "")
                               }
-                              className={`absolute right-2 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${verifications.phone.status === "verified"
+                              className={`absolute right-1.5 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${verifications.phone.status === "verified"
                                 ? "bg-emerald-100 text-emerald-700 cursor-default"
                                 : "bg-[#1A4516] text-white hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed"
                                 }`}>
@@ -930,13 +930,13 @@ const Auth = () => {
                                   otp: e.target.value.replace(/\D/g, "").slice(0, 4),
                                 })
                               }
-                              className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
+                              className="flex-1 min-w-0 bg-transparent text-base sm:text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
                             />
                             <button
                               type="button"
                               onClick={() => handleVerifyOtp("phone")}
                               disabled={verifications.phone.isVerifying || verifications.phone.otp.length !== 4}
-                              className="rounded-md bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                              className="rounded-md bg-white px-3 py-2 text-[10px] whitespace-nowrap font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
                             >
                               {verifications.phone.isVerifying ? "Checking..." : "Confirm OTP"}
                             </button>
@@ -952,7 +952,7 @@ const Auth = () => {
                     )}
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Password</label>
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Password</label>
                       <div className="relative group">
                         <input
                           type={showPassword ? "text" : "password"}
@@ -961,7 +961,7 @@ const Auth = () => {
                           minLength={6}
                           autoComplete="current-password"
                           placeholder="Enter your password"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-12"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-12"
                           value={formData.password}
                           onChange={handleChange}
                         />
@@ -978,24 +978,24 @@ const Auth = () => {
                     {!isLogin && (
                       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Date of Birth</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Date of Birth</label>
                           <div className="relative group">
                             <input
                               type="date"
                               name="dob"
                               max={new Date().toISOString().split("T")[0]}
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                               value={formData.dob}
                               onChange={handleChange}
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Blood Group</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Blood Group</label>
                           <div className="relative group">
                             <select
                               name="bloodGroup"
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all appearance-none"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all appearance-none"
                               value={formData.bloodGroup}
                               onChange={handleChange}
                             >
@@ -1063,49 +1063,49 @@ const Auth = () => {
 
                     <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Locality</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Locality</label>
                         <input
                           type="text"
                           name="locality"
                           required
                           placeholder="Locality / Area"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.locality}
                           onChange={handleChange}
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Pincode</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Pincode</label>
                         <input
                           type="text"
                           name="pincode"
                           required
                           placeholder="Pincode"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.pincode}
                           onChange={handleChange}
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">City</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">City</label>
                         <input
                           type="text"
                           name="city"
                           required
                           placeholder="City"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.city}
                           onChange={handleChange}
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">State</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">State</label>
                         <input
                           type="text"
                           name="state"
                           required
                           placeholder="State"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.state}
                           onChange={handleChange}
                         />
@@ -1113,13 +1113,13 @@ const Auth = () => {
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Full Address</label>
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Full Address</label>
                       <textarea
                         name="address"
                         rows={2}
                         required
                         placeholder="Full address details"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 resize-none"
+                        className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 resize-none"
                         value={formData.address}
                         onChange={handleChange}
                       />
@@ -1387,7 +1387,7 @@ const Auth = () => {
                   <button
                     type="submit"
                     disabled={isLoading || (!isLogin && signupStep === 3 && !agreedToTerms)}
-                    className={`${!isLogin && signupStep > 1 ? "w-2/3" : "w-full"} bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer`}>
+                    className={`${!isLogin && signupStep > 1 ? "w-2/3" : "w-full"} bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3.5 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer`}>
                     {isLoading
                       ? "WORKING..."
                       : isLogin
