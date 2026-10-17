@@ -10,7 +10,7 @@ import {
     checkSellerExists,
     deleteSellerAccount,
 } from "../controller/sellerAuthController.js";
-import { getSellerProfile, updateSellerProfile, requestWithdrawal, getNearbySellers } from "../controller/sellerController.js";
+import { getSellerProfile, updateSellerProfile, requestWithdrawal, getNearbySellers, getShopStatus, toggleShopStatus } from "../controller/sellerController.js";
 import { getSellerStats, getSellerEarnings } from "../controller/sellerStatsController.js";
 import { getSellerWalletSummaryController } from "../controller/adminFinanceController.js";
 import {
@@ -105,6 +105,10 @@ router.delete(
     allowRoles("seller"),
     deleteSellerAccount
 );
+
+// Shop open/close toggle
+router.get("/shop/status", verifyToken, allowRoles("seller"), getShopStatus);
+router.patch("/shop/toggle", verifyToken, allowRoles("seller"), toggleShopStatus);
 
 // Analytics & Financials
 router.get("/stats", verifyToken, allowRoles("seller"), requireFeature("ANALYTICS_REPORTS"), getSellerStats);

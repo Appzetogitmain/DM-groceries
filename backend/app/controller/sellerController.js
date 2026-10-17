@@ -8,6 +8,48 @@ import Wallet from "../models/wallet.js";
 import Subscription from "../models/subscription.js";
 
 /* ===============================
+   GET SHOP STATUS
+================================ */
+export const getShopStatus = async (req, res) => {
+  try {
+    const seller = await Seller.findById(req.user.id).select("isShopOpen isActive");
+    if (!seller) return handleResponse(res, 404, "Seller not found");
+    return handleResponse(res, 200, "Shop status fetched", {
+      isShopOpen: seller.isShopOpen,
+      isActive: seller.isActive,
+    });
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+/* ===============================
+   TOGGLE SHOP OPEN/CLOSED
+================================ */
+export const toggleShopStatus = async (req, res) => {
+  try {
+    const seller = await Seller.findById(req.user.id).select("isShopOpen isActive");
+    if (!seller) return handleResponse(res, 404, "Seller not found");
+
+    if (!seller.isActive) {
+      return handleResponse(res, 403, "Your shop is not approved yet. Contact support.");
+    }
+
+    seller.isShopOpen = !seller.isShopOpen;
+    await seller.save();
+
+    return handleResponse(
+      res,
+      200,
+      seller.isShopOpen ? "Shop is now open" : "Shop is now closed",
+      { isShopOpen: seller.isShopOpen },
+    );
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+/* ===============================
    GET NEARBY SELLERS
 ================================ */
 export const getNearbySellers = async (req, res) => {
@@ -27,6 +69,7 @@ export const getNearbySellers = async (req, res) => {
     const sellers = await Seller.find({
       isActive: true,
       isVerified: true,
+      isShopOpen: true,
       location: {
         $near: {
           $geometry: {

@@ -62,6 +62,8 @@ const Dashboard = () => {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [subscription, setSubscription] = useState(null);
   const [subLoading, setSubLoading] = useState(true);
+  const [isShopOpen, setIsShopOpen] = useState(true);
+  const [shopToggling, setShopToggling] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,14 +72,16 @@ const Dashboard = () => {
         setLoading(true);
         setSubLoading(true);
         
-        const [statsRes, subRes] = await Promise.all([
+        const [statsRes, subRes, shopRes] = await Promise.all([
           sellerApi.getStats().catch(() => ({ data: { success: false } })),
-          sellerApi.getCurrentSubscription().catch(() => ({ data: null }))
+          sellerApi.getCurrentSubscription().catch(() => ({ data: null })),
+          sellerApi.getShopStatus().catch(() => ({ data: null })),
         ]);
 
         if (cancelled) return;
         if (statsRes.data.success) setStatsData(statsRes.data.result);
         setSubscription(subRes.data?.result);
+        if (shopRes.data?.result) setIsShopOpen(shopRes.data.result.isShopOpen ?? true);
       } catch (error) {
         if (!cancelled) {
           console.error("Dashboard Fetch Error:", error);
@@ -157,6 +161,20 @@ const Dashboard = () => {
       description: "total",
     },
   ];
+
+  const handleToggleShop = async () => {
+    if (shopToggling) return;
+    setShopToggling(true);
+    try {
+      const res = await sellerApi.toggleShopStatus();
+      setIsShopOpen(res.data.result.isShopOpen);
+      toast.success(res.data.message);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to toggle shop status");
+    } finally {
+      setShopToggling(false);
+    }
+  };
 
   const quickActions = [
     {
@@ -270,6 +288,35 @@ const Dashboard = () => {
 
   return (
     <div className="ds-section-spacing relative">
+      {/* Shop Open / Closed Toggle */}
+      <div className={`mb-6 p-4 rounded-xl border-2 flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors ${isShopOpen ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg shrink-0 ${isShopOpen ? "bg-emerald-100" : "bg-slate-200"}`}>
+            <Package className={`w-6 h-6 ${isShopOpen ? "text-emerald-700" : "text-slate-500"}`} />
+          </div>
+          <div>
+            <h3 className={`font-bold text-lg ${isShopOpen ? "text-emerald-900" : "text-slate-700"}`}>
+              Shop is {isShopOpen ? "Open" : "Closed"}
+            </h3>
+            <p className={`text-sm mt-0.5 ${isShopOpen ? "text-emerald-700" : "text-slate-500"}`}>
+              {isShopOpen
+                ? "Your products are visible to customers and you can receive orders."
+                : "Your shop is hidden from customers. No new orders will come in."}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleToggleShop}
+          disabled={shopToggling}
+          className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${isShopOpen ? "bg-emerald-600" : "bg-slate-300"}`}
+          aria-label={isShopOpen ? "Close shop" : "Open shop"}
+        >
+          <span
+            className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${isShopOpen ? "translate-x-6" : "translate-x-0"}`}
+          />
+        </button>
+      </div>
+
       {!subLoading && (!subscription || subscription.status !== 'ACTIVE') && (
         <div className="mb-6 p-4 rounded-xl border-2 border-red-200 bg-red-50 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3">

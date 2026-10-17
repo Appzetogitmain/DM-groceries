@@ -33,6 +33,7 @@ export async function getNearbySellerIdsForCustomer(lat, lng) {
   const fetchFn = async () => {
     const sellers = await Seller.find({
       isActive: true,
+      isShopOpen: true,
       location: {
         $near: {
           $geometry: {

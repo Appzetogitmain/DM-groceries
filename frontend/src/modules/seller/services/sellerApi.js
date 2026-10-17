@@ -28,6 +28,8 @@ export const sellerApi = {
     getWalletSummary: () => axiosInstance.get('/seller/wallet/summary'),
     getProfile: () => axiosInstance.get('/seller/profile'),
     updateProfile: (data) => axiosInstance.put('/seller/profile', data),
+    getShopStatus: () => axiosInstance.get('/seller/shop/status'),
+    toggleShopStatus: () => axiosInstance.patch('/seller/shop/toggle'),
     deleteAccount: () => axiosInstance.delete('/seller/profile/delete'),
 
     // Stock

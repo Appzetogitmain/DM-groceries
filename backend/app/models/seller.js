@@ -150,6 +150,11 @@ const sellerSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    isShopOpen: {
+      type: Boolean,
+      default: true,
+    },
     location: {
       type: {
         type: String,
