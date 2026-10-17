@@ -235,8 +235,13 @@ export async function createPendingRiderPayout(order, { session, actorId } = {})
   }
   if (order.financeFlags?.riderPayoutQueued) return null;
 
-  const amount = roundCurrency(order.paymentBreakdown?.riderPayoutTotal || 0);
-  if (amount <= 0) {
+  const totalPayout = roundCurrency(order.paymentBreakdown?.riderPayoutTotal || 0);
+  const tipAmount = roundCurrency(order.paymentBreakdown?.riderTipAmount || 0);
+  // Tip is credited immediately to availableBalance in applyDeliveredSettlement.
+  // Only the base payout (minus tip) goes through the pending payout queue.
+  const pendingAmount = roundCurrency(totalPayout - tipAmount);
+
+  if (pendingAmount <= 0 && totalPayout <= 0) {
     order.settlementStatus = {
       ...(order.settlementStatus || {}),
       riderPayout: "NOT_APPLICABLE",
@@ -244,17 +249,20 @@ export async function createPendingRiderPayout(order, { session, actorId } = {})
     return null;
   }
 
-  const payout = await createPendingPayoutForOrder(
-    {
-      order,
-      payoutType: PAYOUT_TYPE.DELIVERY_PARTNER,
-      beneficiaryId: order.deliveryBoy,
-      amount,
-      createdBy: actorId || null,
-      metadata: { flow: "order_delivered" },
-    },
-    { session },
-  );
+  let payout = null;
+  if (pendingAmount > 0) {
+    payout = await createPendingPayoutForOrder(
+      {
+        order,
+        payoutType: PAYOUT_TYPE.DELIVERY_PARTNER,
+        beneficiaryId: order.deliveryBoy,
+        amount: pendingAmount,
+        createdBy: actorId || null,
+        metadata: { flow: "order_delivered" },
+      },
+      { session },
+    );
+  }
 
   order.financeFlags = {
     ...(order.financeFlags || {}),
