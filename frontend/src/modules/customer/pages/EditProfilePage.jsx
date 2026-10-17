@@ -68,7 +68,7 @@ const EditProfilePage = () => {
             login({ ...user, ...updatedUser });
 
             toast.success('Profile updated successfully!');
-            navigate('/profile');
+            navigate('/user/profile');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to update profile');
         } finally {
@@ -80,7 +80,7 @@ const EditProfilePage = () => {
         <div className="min-h-screen bg-white font-sans pb-10">
             {/* Header */}
             <div className="sticky top-0 z-30 bg-white px-4 pt-5 pb-4 border-b border-slate-100 mb-4 flex items-center gap-3">
-                <Link to="/profile" className="flex items-center justify-center p-1 -ml-1">
+                <Link to="/user/profile" className="flex items-center justify-center p-1 -ml-1">
                     <ArrowLeft size={24} className="text-[#1A4516]" />
                 </Link>
                 <h1 className="text-[19px] font-bold text-[#1A4516] tracking-tight">Edit Profile</h1>

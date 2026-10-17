@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import handleResponse from "../utils/helper.js";
 import Seller from "../models/seller.js";
+import { isCustomerBlocked, BLOCKED_MESSAGE } from "../services/customerBlockService.js";
 
 function extractJwtFromHeaders(req) {
   const authHeader = String(req.headers.authorization || "").trim();
@@ -28,7 +29,8 @@ function extractJwtFromHeaders(req) {
 /* ===============================
    Verify Token
 ================================ */
-export const verifyToken = (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
+  let decoded;
   try {
     const token = extractJwtFromHeaders(req);
 
@@ -36,13 +38,24 @@ export const verifyToken = (req, res, next) => {
       return handleResponse(res, 401, "Unauthorized, token missing");
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    req.user = decoded; // { id, role }
-    next();
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
     return handleResponse(res, 401, "Invalid or expired token");
   }
+
+  // Blocked customers lose access immediately, even with a still-valid token.
+  if (decoded?.role === "customer") {
+    try {
+      if (await isCustomerBlocked(decoded.id)) {
+        return handleResponse(res, 403, BLOCKED_MESSAGE);
+      }
+    } catch (error) {
+      // Fail open on a lookup error so a DB hiccup doesn't lock everyone out.
+    }
+  }
+
+  req.user = decoded; // { id, role }
+  next();
 };
 
 /* ===============================

@@ -18,7 +18,7 @@ const TermsPage = () => {
                         if (window.history.state && window.history.state.idx > 0) {
                             navigate(-1);
                         } else {
-                            navigate('/');
+                            navigate('/user');
                         }
                     }}
                     className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors"

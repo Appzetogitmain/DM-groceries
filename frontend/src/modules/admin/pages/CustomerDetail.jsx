@@ -44,6 +44,8 @@ const CustomerDetail = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
     const [isRestrictModalOpen, setIsRestrictModalOpen] = useState(false);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [isSendingNotif, setIsSendingNotif] = useState(false);
 
     // Form states
     const [notifMessage, setNotifMessage] = useState('');
@@ -96,9 +98,10 @@ const CustomerDetail = () => {
     };
 
     const handleSendNotif = async () => {
-        if (!notifMessage.trim()) return;
+        if (!notifMessage.trim() || isSendingNotif) return;
         try {
-            await adminApi.sendDirectNotification({
+            setIsSendingNotif(true);
+            const { data } = await adminApi.sendDirectNotification({
                 userId: id,
                 userRole: 'customer',
                 title: 'Message from Admin',
@@ -106,18 +109,35 @@ const CustomerDetail = () => {
             });
             setIsNotifModalOpen(false);
             setNotifMessage('');
-            showToast('Notification sent to user', 'success');
+            // The server says whether the push actually reached a device, not just that it was saved.
+            const pushFailed = data?.result?.pushStatus === 'failed';
+            showToast(data?.message || 'Notification sent to user', pushFailed ? 'warning' : 'success');
         } catch (error) {
             console.error("Failed to send notification:", error);
             showToast(error.response?.data?.message || 'Failed to send notification', 'error');
+        } finally {
+            setIsSendingNotif(false);
         }
     };
 
-    const handleRestrictAccount = () => {
-        const newStatus = customer.status === 'active' ? 'restricted' : 'active';
-        setCustomer({ ...customer, status: newStatus });
-        setIsRestrictModalOpen(false);
-        showToast(`Account successfully ${newStatus === 'restricted' ? 'restricted' : 'activated'}`, newStatus === 'restricted' ? 'warning' : 'success');
+    const handleRestrictAccount = async () => {
+        const willBlock = customer.status === 'active';
+        try {
+            setIsUpdatingStatus(true);
+            const { data } = await adminApi.updateUserStatus(id, !willBlock);
+            // Use the status the server confirms, so the page matches what is stored.
+            setCustomer((prev) => ({ ...prev, status: data?.result?.status || (willBlock ? 'inactive' : 'active') }));
+            setIsRestrictModalOpen(false);
+            showToast(
+                willBlock ? 'Account blocked. The customer can no longer log in or place orders.' : 'Account unblocked',
+                willBlock ? 'warning' : 'success'
+            );
+        } catch (error) {
+            console.error("Failed to update account status:", error);
+            showToast(error.response?.data?.message || 'Failed to update account status', 'error');
+        } finally {
+            setIsUpdatingStatus(false);
+        }
     };
 
     const handleSaveNotes = () => {
@@ -227,7 +247,7 @@ const CustomerDetail = () => {
                                     { label: 'Total Spend', value: `₹${(customer.totalSpent || 0).toLocaleString()}`, trend: 'Lifetime', icon: IndianRupee, color: 'emerald' },
                                     { label: 'Orders Placed', value: customer.totalOrders || 0, trend: 'Lifetime', icon: ShoppingBag, color: 'blue' },
                                     { label: 'Average Spend', value: `₹${customer.totalOrders > 0 ? Math.round(customer.totalSpent / customer.totalOrders).toLocaleString() : 0}`, trend: 'Per Order', icon: TrendingUp, color: 'indigo' },
-                                    { label: 'Account Status', value: (customer.status || '').toUpperCase(), trend: 'Current', icon: CheckCircle2, color: 'fuchsia' },
+                                    { label: 'Account Status', value: customer.status === 'active' ? 'ACTIVE' : 'BLOCKED', trend: 'Current', icon: CheckCircle2, color: 'fuchsia' },
                                 ].map((stat, i) => (
                                     <div key={i} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center text-center">
                                         <div className={cn("p-2 rounded-full mb-2",
@@ -498,10 +518,10 @@ const CustomerDetail = () => {
                     </div>
                     <button
                         onClick={handleSendNotif}
-                        disabled={!notifMessage.trim()}
+                        disabled={!notifMessage.trim() || isSendingNotif}
                         className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-50"
                     >
-                        SEND MESSAGE
+                        {isSendingNotif ? 'SENDING...' : 'SEND MESSAGE'}
                     </button>
                 </div>
             </Modal>
@@ -526,8 +546,8 @@ const CustomerDetail = () => {
                         <button onClick={() => setIsRestrictModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-slate-200 transition-all">
                             CANCEL
                         </button>
-                        <button onClick={handleRestrictAccount} className="flex-1 py-4 bg-rose-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-rose-600 shadow-xl shadow-rose-200 transition-all">
-                            CONFIRM
+                        <button onClick={handleRestrictAccount} disabled={isUpdatingStatus} className="disabled:opacity-60 flex-1 py-4 bg-rose-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-rose-600 shadow-xl shadow-rose-200 transition-all">
+                            {isUpdatingStatus ? 'PLEASE WAIT...' : 'CONFIRM'}
                         </button>
                     </div>
                 </div>

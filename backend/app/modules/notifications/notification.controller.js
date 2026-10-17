@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import mongoose from "mongoose";
 import Notification from "./notification.model.js";
 import PushToken from "./token.model.js";
@@ -593,14 +594,41 @@ export const sendDirectNotification = async (req, res) => {
       return handleResponse(res, 400, "userId, userRole, title, and message are required");
     }
 
-    await notify(NOTIFICATION_EVENTS.GENERIC_ALERT, {
+    // messageId makes every admin message unique for dedupe; without it a second
+    // message to the same user within the dedupe window was silently dropped.
+    const messageId = crypto.randomUUID();
+    const result = await notify(NOTIFICATION_EVENTS.GENERIC_ALERT, {
       userId,
       role: userRole,
       title,
       message,
+      messageId,
     });
 
-    return handleResponse(res, 200, "Notification queued successfully");
+    // The in-app notification row is what shows in the user's notification box. Look it up
+    // (even if the push step failed) so the admin gets the real delivery outcome.
+    const dedupeKey = ["notify", NOTIFICATION_EVENTS.GENERIC_ALERT, userRole, userId, messageId].join(":");
+    const saved = await Notification.findOne({ dedupeKey }).select("status failureReason deliveryStats").lean();
+
+    if (!saved) {
+      const reason = result?.skipped
+        ? "The user has turned off this type of notification"
+        : "Notification could not be created";
+      return handleResponse(res, 422, reason);
+    }
+
+    const sentDevices = Number(saved.deliveryStats?.sent || 0);
+    const pushStatus = saved.status === "sent" ? "sent" : saved.status === "pending" ? "pending" : "failed";
+    const pushMessage =
+      pushStatus === "sent"
+        ? `Notification sent to ${sentDevices} device${sentDevices === 1 ? "" : "s"}`
+        : pushStatus === "pending"
+          ? "Notification queued"
+          : saved.failureReason === "No active push tokens for user"
+            ? "Saved in the user's notification box, but push was not delivered: the user has no device registered for push yet"
+            : "Saved in the user's notification box, but the push could not be delivered";
+
+    return handleResponse(res, 200, pushMessage, { pushStatus, sentDevices });
   } catch (error) {
     return handleResponse(res, 500, error.message);
   }

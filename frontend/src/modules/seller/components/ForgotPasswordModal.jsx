@@ -121,7 +121,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl shadow-2xl z-[101] overflow-hidden border border-slate-100 font-['Outfit']"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md max-h-[92dvh] overflow-y-auto bg-white rounded-2xl shadow-2xl z-[101] border border-slate-100 font-['Outfit']"
           >
             {/* Header */}
             <div className="relative bg-[#0B3B24] p-6 text-center">
@@ -161,7 +161,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                     className="space-y-4"
                   >
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
                         Registered Email
                       </label>
                       <input
@@ -170,13 +170,13 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Enter your email"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                        className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 group"
+                      className="w-full bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3.5 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 group"
                     >
                       {isLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -200,7 +200,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                     className="space-y-4"
                   >
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
                         4-Digit OTP
                       </label>
                       <input
@@ -210,13 +210,13 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                         value={otp}
                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                         placeholder="0000"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-center text-lg font-black tracking-[0.5em] text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                        className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-center text-lg font-black tracking-[0.5em] text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={isLoading || otp.length !== 4}
-                      className="w-full bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3.5 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "VERIFY OTP"}
                     </button>
@@ -243,7 +243,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                     className="space-y-4"
                   >
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
                         New Password
                       </label>
                       <div className="relative group">
@@ -253,7 +253,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="Enter new password"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-10"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-10"
                         />
                         <button
                           type="button"
@@ -265,7 +265,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
                         Confirm Password
                       </label>
                       <div className="relative group">
@@ -275,7 +275,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           placeholder="Confirm new password"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-10"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-10"
                         />
                         <button
                           type="button"
@@ -289,7 +289,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3.5 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {isLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />

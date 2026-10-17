@@ -21,6 +21,7 @@ export const ADMIN_SECTIONS = {
     cash_collection: { label: "Collect Cash", actions: ["view", "create"] },
     customers: { label: "Customers", actions: ["view", "create"] },
     faqs: { label: "FAQs", actions: ["view", "create", "delete"] },
+    testimonials: { label: "Testimonials", actions: ["view", "create", "delete"] },
     orders: { label: "Orders", actions: ["view", "create"] },
     billing: { label: "Fees & Charges", actions: ["view", "create"] },
     settings: { label: "Settings", actions: ["view", "create"] },

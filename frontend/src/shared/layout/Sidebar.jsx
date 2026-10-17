@@ -121,8 +121,13 @@ const SidebarItem = ({
         {isOpen && (
           <div className="pl-9 pr-3 py-1 space-y-1 animate-in slide-in-from-top-2 fade-in duration-500">
             {item.children.map((child) => {
-              const showChildBadge =
-                badgeCount > 0 && String(child?.path || "") === "/admin/support-tickets";
+              // A child can carry its own count (e.g. Waiting for Review); the support badge
+              // keeps using the parent's count.
+              const childCount =
+                Number(child?.badgeCount || 0) ||
+                (String(child?.path || "") === "/admin/support-tickets" ? badgeCount : 0);
+              const showChildBadge = childCount > 0;
+              const childBadgeLabel = childCount > 99 ? "99+" : String(childCount);
 
               return (
                 <NavLink
@@ -146,7 +151,7 @@ const SidebarItem = ({
                       {child.label}
                       {showChildBadge && (
                         <span className="pointer-events-none absolute top-1 right-2 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-lg shadow-rose-500/30 ring-2 ring-[#0a0c10]">
-                          {badgeLabel}
+                          {childBadgeLabel}
                         </span>
                       )}
                     </>

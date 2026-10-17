@@ -169,7 +169,7 @@ const Auth = () => {
       ...prev,
       lat: location.lat,
       lng: location.lng,
-      radius: location.radius,
+      radius: Math.min(Number(location.radius) || 5, 5),
       address: location.address,
       locality: location.locality || prev.locality,
       pincode: location.pincode || prev.pincode,
@@ -522,13 +522,15 @@ const Auth = () => {
           toast.error("Please enter a valid 10-digit contact number.");
           return;
         }
-        if (verifications.email.status !== "verified" || !verifications.email.token) {
-          toast.error("Please verify your business email before continuing.");
-          return;
-        }
-        if (verifications.phone.status !== "verified" || !verifications.phone.token) {
-          toast.error("Please verify your contact number before continuing.");
-          return;
+        if (signupStep === 1) {
+          if (verifications.email.status !== "verified" || !verifications.email.token) {
+            toast.error("Please verify your business email before continuing.");
+            return;
+          }
+          if (verifications.phone.status !== "verified" || !verifications.phone.token) {
+            toast.error("Please verify your contact number before continuing.");
+            return;
+          }
         }
       }
       // Password: min 6 characters
@@ -668,7 +670,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fcfaff] p-6 font-['Outfit'] overflow-hidden relative">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#fcfaff] p-2 sm:p-6 font-['Outfit'] overflow-hidden relative">
       {/* Elegant Ambient Background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-5%] w-[60%] h-[60%] bg-[#1A4516]/5 rounded-full blur-[120px]" />
@@ -678,7 +680,7 @@ const Auth = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative z-10 w-full max-w-[950px] min-h-[580px] max-h-[90vh] bg-white rounded-2xl shadow-[0_50px_120px_rgba(0,0,0,0.06)] border border-slate-100 flex flex-col md:flex-row overflow-hidden">
+        className="relative z-10 w-full max-w-[950px] min-h-0 sm:min-h-[580px] max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] bg-white rounded-2xl shadow-[0_50px_120px_rgba(0,0,0,0.06)] border border-slate-100 flex flex-col md:flex-row overflow-hidden">
         
         {/* Visual Side Panel - Deep Green & Logo & Grocery Basket */}
         <div className="hidden md:flex w-[45%] bg-[#0B3B24] relative flex-col items-center justify-between p-8 pt-10 pb-6 overflow-hidden">
@@ -727,7 +729,7 @@ const Auth = () => {
 
         {/* Form Content Side */}
         <div
-          className="w-full md:w-[55%] min-h-0 p-8 md:p-10 flex flex-col justify-center bg-white overflow-y-auto overscroll-contain touch-pan-y relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="w-full md:w-[55%] min-h-0 p-4 min-[400px]:p-6 sm:p-8 md:p-10 flex flex-col bg-white overflow-y-auto overscroll-contain touch-pan-y relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           onWheelCapture={handlePanelWheel}
           style={{ WebkitOverflowScrolling: "touch" }}>
           
@@ -738,7 +740,7 @@ const Auth = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              className="space-y-6 py-2">
+              className="my-auto w-full space-y-6 py-2">
               
               <div className="space-y-2">
                 {/* Mobile Logo (Visible only on mobile screens) */}
@@ -767,30 +769,30 @@ const Auth = () => {
                 {(isLogin || signupStep === 1) && (
                   <>
                     {!isLogin && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Owner Name</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Owner Name</label>
                           <div className="relative group">
                             <input
                               type="text"
                               name="name"
                               required
                               placeholder="Owner Name"
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                               value={formData.name}
                               onChange={handleChange}
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Shop Name</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Shop Name</label>
                           <div className="relative group">
                             <input
                               type="text"
                               name="shopName"
                               required
                               placeholder="Shop Name"
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                               value={formData.shopName}
                               onChange={handleChange}
                             />
@@ -800,7 +802,7 @@ const Auth = () => {
                     )}
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Email</label>
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Email</label>
                       <div className="relative group flex items-center">
                         <input
                           type="email"
@@ -809,7 +811,7 @@ const Auth = () => {
                           inputMode="email"
                           autoComplete="email"
                           placeholder="Enter your email"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[105px]"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[120px]"
                           value={formData.email}
                           onChange={handleChange}
                         />
@@ -823,7 +825,7 @@ const Auth = () => {
                               (verifications.email.isOtpVisible && verifications.email.timer > 0) ||
                               !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email || "")
                             }
-                            className={`absolute right-2 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${verifications.email.status === "verified"
+                            className={`absolute right-1.5 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${verifications.email.status === "verified"
                               ? "bg-emerald-100 text-emerald-700 cursor-default"
                               : "bg-[#1A4516] text-white hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed"
                               }`}>
@@ -855,18 +857,18 @@ const Auth = () => {
                                 otp: e.target.value.replace(/\D/g, "").slice(0, 4),
                               })
                             }
-                            className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
+                            className="flex-1 min-w-0 bg-transparent text-base sm:text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
                           />
                           <button
                             type="button"
                             onClick={() => handleVerifyOtp("email")}
                             disabled={verifications.email.isVerifying || verifications.email.otp.length !== 4}
-                            className="rounded-md bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                            className="rounded-md bg-white px-3 py-2 text-[10px] whitespace-nowrap font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
                           >
                             {verifications.email.isVerifying ? "Checking..." : "Confirm OTP"}
                           </button>
                         </div>
-                        <p className="text-[9.5px] text-slate-400 ml-1 leading-tight">
+                        <p className="text-[11px] text-slate-400 ml-1 leading-snug">
                           If you don't see the email, please check your <strong className="text-slate-500">Spam or Junk</strong> folder.
                         </p>
                       </div>
@@ -881,14 +883,14 @@ const Auth = () => {
                     {!isLogin && (
                       <>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Contact Number</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Contact Number</label>
                           <div className="relative group flex items-center">
                             <input
                               type="tel"
                               name="phone"
                               required
                               placeholder="Contact Number"
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[105px]"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[120px]"
                               value={formData.phone}
                               onChange={handleChange}
                             />
@@ -901,7 +903,7 @@ const Auth = () => {
                                 (verifications.phone.isOtpVisible && verifications.phone.timer > 0) ||
                                 !/^[0-9]{10}$/.test(formData.phone || "")
                               }
-                              className={`absolute right-2 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${verifications.phone.status === "verified"
+                              className={`absolute right-1.5 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${verifications.phone.status === "verified"
                                 ? "bg-emerald-100 text-emerald-700 cursor-default"
                                 : "bg-[#1A4516] text-white hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed"
                                 }`}>
@@ -930,13 +932,13 @@ const Auth = () => {
                                   otp: e.target.value.replace(/\D/g, "").slice(0, 4),
                                 })
                               }
-                              className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
+                              className="flex-1 min-w-0 bg-transparent text-base sm:text-xs font-bold text-slate-700 outline-none placeholder:text-slate-300"
                             />
                             <button
                               type="button"
                               onClick={() => handleVerifyOtp("phone")}
                               disabled={verifications.phone.isVerifying || verifications.phone.otp.length !== 4}
-                              className="rounded-md bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                              className="rounded-md bg-white px-3 py-2 text-[10px] whitespace-nowrap font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
                             >
                               {verifications.phone.isVerifying ? "Checking..." : "Confirm OTP"}
                             </button>
@@ -952,7 +954,7 @@ const Auth = () => {
                     )}
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Password</label>
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Password</label>
                       <div className="relative group">
                         <input
                           type={showPassword ? "text" : "password"}
@@ -961,7 +963,7 @@ const Auth = () => {
                           minLength={6}
                           autoComplete="current-password"
                           placeholder="Enter your password"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-12"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-12"
                           value={formData.password}
                           onChange={handleChange}
                         />
@@ -976,26 +978,26 @@ const Auth = () => {
                     </div>
                     
                     {!isLogin && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Date of Birth</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Date of Birth</label>
                           <div className="relative group">
                             <input
                               type="date"
                               name="dob"
                               max={new Date().toISOString().split("T")[0]}
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                               value={formData.dob}
                               onChange={handleChange}
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Blood Group</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Blood Group</label>
                           <div className="relative group">
                             <select
                               name="bloodGroup"
-                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all appearance-none"
+                              className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all appearance-none"
                               value={formData.bloodGroup}
                               onChange={handleChange}
                             >
@@ -1061,51 +1063,51 @@ const Auth = () => {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Locality</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Locality</label>
                         <input
                           type="text"
                           name="locality"
                           required
                           placeholder="Locality / Area"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.locality}
                           onChange={handleChange}
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Pincode</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Pincode</label>
                         <input
                           type="text"
                           name="pincode"
                           required
                           placeholder="Pincode"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.pincode}
                           onChange={handleChange}
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">City</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">City</label>
                         <input
                           type="text"
                           name="city"
                           required
                           placeholder="City"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.city}
                           onChange={handleChange}
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">State</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">State</label>
                         <input
                           type="text"
                           name="state"
                           required
                           placeholder="State"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
+                          className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.state}
                           onChange={handleChange}
                         />
@@ -1113,13 +1115,13 @@ const Auth = () => {
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Full Address</label>
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Full Address</label>
                       <textarea
                         name="address"
                         rows={2}
                         required
                         placeholder="Full address details"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 resize-none"
+                        className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 resize-none"
                         value={formData.address}
                         onChange={handleChange}
                       />
@@ -1133,11 +1135,11 @@ const Auth = () => {
                   return (
                     <div className="space-y-3.5">
                       <div className="pt-0.5">
-                        <div className="flex items-center justify-between mb-2 ml-0.5">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 mb-2 ml-0.5">
+                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                             1. Select Seller Type
                           </p>
-                          <span className="text-[10px] font-semibold text-slate-400">
+                          <span className="text-[11px] font-semibold text-slate-400">
                             Determines document requirement
                           </span>
                         </div>
@@ -1162,7 +1164,7 @@ const Auth = () => {
                                 )}>
                                   <User className="w-3.5 h-3.5" />
                                 </div>
-                                <p className="text-xs font-black text-slate-800">Individual / Proprietor</p>
+                                <p className="text-[13px] font-black text-slate-800">Individual / Proprietor</p>
                               </div>
                               <div className={cn(
                                 "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
@@ -1171,7 +1173,7 @@ const Auth = () => {
                                 {sellerType === "individual" && <div className="w-2 h-2 rounded-full bg-[#1A4516]" />}
                               </div>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                            <p className="text-[11.5px] text-slate-500 font-medium leading-snug">
                               PAN & Aadhaar mandatory. Trade License / GST optional.
                             </p>
                           </div>
@@ -1194,7 +1196,7 @@ const Auth = () => {
                                 )}>
                                   <Building2 className="w-3.5 h-3.5" />
                                 </div>
-                                <p className="text-xs font-black text-slate-800">Registered Business</p>
+                                <p className="text-[13px] font-black text-slate-800">Registered Business</p>
                               </div>
                               <div className={cn(
                                 "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
@@ -1203,7 +1205,7 @@ const Auth = () => {
                                 {sellerType === "registered_business" && <div className="w-2 h-2 rounded-full bg-[#1A4516]" />}
                               </div>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                            <p className="text-[11.5px] text-slate-500 font-medium leading-snug">
                               PAN, Aadhaar + either Trade License or GST required.
                             </p>
                           </div>
@@ -1211,15 +1213,15 @@ const Auth = () => {
 
                         {/* Document Combination Guide Banner */}
                         <div className="p-3 bg-gradient-to-r from-emerald-50/70 via-slate-50 to-slate-50 border border-emerald-100/90 rounded-xl mb-3">
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 mb-2">
                             <div className="flex items-center gap-1.5">
                               <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-                              <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider">
+                              <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
                                 Required Document Combination
                               </span>
                             </div>
                             <span className={cn(
-                              "text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tight",
+                              "text-[10px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tight whitespace-nowrap",
                               progress.isComplete
                                 ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                                 : "bg-amber-100 text-amber-800 border-amber-300"
@@ -1227,7 +1229,7 @@ const Auth = () => {
                               {progress.fulfilledCount} of {progress.totalRequired} Ready
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                          <p className="text-xs text-slate-600 font-medium leading-relaxed">
                             {sellerType === "individual" ? (
                               <>
                                 <span className="font-bold text-slate-800">PAN Card</span> and <span className="font-bold text-slate-800">Aadhaar Card</span> are mandatory. Trade License and GST Certificate are optional (if available).
@@ -1240,7 +1242,7 @@ const Auth = () => {
                           </p>
                         </div>
 
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-0.5">
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-0.5">
                           2. Upload Verification Documents
                         </p>
 
@@ -1271,57 +1273,41 @@ const Auth = () => {
                                     type="file"
                                     id={`pdf-${doc.id}`}
                                     className="hidden"
-                                    accept="application/pdf"
+                                    accept=".pdf,application/pdf"
                                     onChange={(e) => handleDocumentChange(e, doc.id)}
                                   />
 
                                   <div
                                     onClick={() => setActiveUploadDoc(doc.id)}
                                     className={cn(
-                                      "flex items-center justify-between p-3 rounded-xl border border-dashed transition-all cursor-pointer group",
+                                      "flex flex-col gap-3 p-3.5 rounded-xl border border-dashed transition-all cursor-pointer group sm:flex-row sm:items-center sm:justify-between",
                                       file
                                         ? "border-emerald-300 bg-emerald-50/30 hover:border-emerald-400"
                                         : "border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-slate-50"
                                     )}
                                   >
-                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 mr-2">
+                                    <div className="flex items-start gap-3 flex-1 min-w-0">
                                       <div
                                         className={cn(
-                                          "p-2 rounded-lg shrink-0 transition-colors",
+                                          "p-2.5 rounded-lg shrink-0 transition-colors",
                                           file
                                             ? "bg-emerald-100 text-emerald-700"
                                             : "bg-white text-slate-500 shadow-2xs group-hover:text-slate-700"
                                         )}
                                       >
-                                        {file ? (
-                                          <CheckCircle className="w-4 h-4" />
-                                        ) : (
-                                          <Upload className="w-4 h-4" />
-                                        )}
+                                        {file ? <CheckCircle className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
                                       </div>
                                       <div className="text-left flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <p
-                                            className={cn(
-                                              "text-xs font-black",
-                                              file ? "text-emerald-900" : "text-slate-800"
-                                            )}
-                                          >
+                                        <div className="flex items-center gap-x-2 gap-y-1 flex-wrap">
+                                          <p className={cn("text-[13px] font-black", file ? "text-emerald-900" : "text-slate-800")}>
                                             {doc.label}
                                           </p>
-                                          <span
-                                            className={cn(
-                                              "text-[9px] font-black px-1.5 py-0.5 rounded-md border tracking-tight",
-                                              status.badgeClass
-                                            )}
-                                          >
+                                          <span className={cn("text-[10px] font-black px-1.5 py-0.5 rounded-md border tracking-tight whitespace-nowrap", status.badgeClass)}>
                                             {status.badgeText}
                                           </span>
                                         </div>
-                                        <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
-                                          {file
-                                            ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)`
-                                            : doc.description}
+                                        <p className="text-[11.5px] text-slate-500 font-medium leading-snug mt-1 break-words">
+                                          {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : doc.description}
                                         </p>
                                       </div>
                                     </div>
@@ -1329,14 +1315,14 @@ const Auth = () => {
                                     {file ? (
                                       <button
                                         type="button"
-                                        title="Remove file"
                                         onClick={(e) => handleRemoveDocument(e, doc.id)}
-                                        className="p-1 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
+                                        className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto shrink-0 rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
                                       >
                                         <X className="w-4 h-4" />
+                                        Remove
                                       </button>
                                     ) : (
-                                      <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-lg shrink-0 shadow-2xs group-hover:border-slate-300">
+                                      <span className="inline-flex items-center justify-center w-full sm:w-auto shrink-0 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs group-hover:border-slate-300">
                                         Upload
                                       </span>
                                     )}
@@ -1396,14 +1382,14 @@ const Auth = () => {
                     <button
                       type="button"
                       onClick={() => setSignupStep((prev) => Math.max(1, prev - 1))}
-                      className="w-1/3 bg-slate-100 text-slate-600 rounded-lg py-3 text-xs font-black tracking-wider transition-all hover:bg-slate-200">
+                      className="w-1/3 bg-slate-100 text-slate-600 rounded-lg py-3.5 text-xs font-black tracking-wider transition-all hover:bg-slate-200">
                       BACK
                     </button>
                   )}
                   <button
                     type="submit"
                     disabled={isLoading || (!isLogin && signupStep === 3 && !agreedToTerms)}
-                    className={`${!isLogin && signupStep > 1 ? "w-2/3" : "w-full"} bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer`}>
+                    className={`${!isLogin && signupStep > 1 ? "w-2/3" : "w-full"} bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3.5 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer`}>
                     {isLoading
                       ? "WORKING..."
                       : isLogin
@@ -1470,7 +1456,8 @@ const Auth = () => {
           initialLocation={
             formData.lat ? { lat: formData.lat, lng: formData.lng } : null
           }
-          initialRadius={formData.radius}
+          initialRadius={Math.min(Number(formData.radius) || 5, 20)}
+          maxRadius={20}
         />
       )}
 

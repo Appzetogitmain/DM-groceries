@@ -40,6 +40,7 @@ import {
     getCashSettlementHistory,
     getUsers,
     getUserById,
+    updateUserStatus,
     getSellers,
     getSellerLocations,
     getPlatformSettings,
@@ -76,6 +77,8 @@ import {
     authRouteRateLimiter,
     createContentLengthGuard,
 } from "../middleware/securityMiddlewares.js";
+import { viewDocument } from "../controller/admin/documentController.js";
+import { getPendingCounts } from "../controller/admin/pendingCountsController.js";
 
 const router = express.Router();
 
@@ -225,8 +228,12 @@ router.put(
 // ========================================
 // Users & Customers
 // ========================================
+router.get("/pending-counts", verifyToken, allowRoles("admin"), getPendingCounts);
+// View applicant documents (PDFs are not publicly deliverable from storage)
+router.get("/documents/view", verifyToken, allowRoles("admin"), viewDocument);
 router.get("/users", verifyToken, allowRoles("admin"), requirePermission("customers", "view"), getUsers);
 router.get("/users/:id", verifyToken, allowRoles("admin"), requirePermission("customers", "view"), getUserById);
+router.patch("/users/:id/status", verifyToken, allowRoles("admin"), requirePermission("customers", "create"), updateUserStatus);
 
 // ========================================
 // Sellers

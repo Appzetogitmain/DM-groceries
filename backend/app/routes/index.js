@@ -13,6 +13,8 @@ import pushRoute from "./pushRoutes.js";
 import ticketRoute from "./ticketRoutes.js";
 import reviewRoute from "./reviewRoutes.js";
 import faqRoute from "./faqRoutes.js";
+import { publicTestimonialRouter, adminTestimonialRouter } from "./testimonialRoutes.js";
+import { publicContactRouter, adminContactRouter } from "./contactRoutes.js";
 import experienceRoute from "./experienceRoutes.js";
 import deliveryReviewRoute from "./deliveryReviewRoutes.js";
 import offerRoute from "./offerRoutes.js";
@@ -45,6 +47,10 @@ const setupRoutes = (app) => {
     //   /categories       → public category browsing (read-only handlers)
     // Same router, two URL surfaces. Do not deduplicate without coordinated frontend changes.
     router.use("/admin/categories", categoryRoute);
+    router.use("/admin/testimonials", adminTestimonialRouter);
+    router.use("/testimonials", publicTestimonialRouter);
+    router.use("/admin/contact-messages", adminContactRouter);
+    router.use("/contact", publicContactRouter);
     router.use("/admin/milestone-campaigns", milestoneCampaignRoute);
     router.use("/admin/subscriptions", subscriptionRoute);
     router.use("/admin", adminRoute);

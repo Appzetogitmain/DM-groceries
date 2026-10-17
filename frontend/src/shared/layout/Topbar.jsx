@@ -300,7 +300,7 @@ const Topbar = ({ onMenuClick }) => {
                         } else if (location.pathname.startsWith('/delivery')) {
                             navigate('/delivery/profile');
                         } else {
-                            navigate('/profile');
+                            navigate('/user/profile');
                         }
                     }}
                     className="flex items-center space-x-2.5 p-1 pr-3 hover:bg-gray-50 rounded-xl transition-all duration-300 group ring-1 ring-transparent hover:ring-gray-100 shadow-sm hover:shadow-md"

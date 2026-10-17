@@ -1,5 +1,5 @@
 import React, { lazy, useMemo, useEffect, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from '../guards/ProtectedRoute';
 import RoleGuard from '../guards/RoleGuard';
 import { UserRole } from '../constants/roles';
@@ -20,6 +20,9 @@ import ApplicationPending from '../../modules/seller/pages/ApplicationPending';
 import AdminAuth from '../../modules/admin/pages/AdminAuth';
 import DeliveryAuth from '../../modules/delivery/pages/DeliveryAuth';
 import CustomerAuth from '../../modules/customer/pages/CustomerAuth';
+import LandingPage from '../../pages/LandingPage';
+import JoinUsPage from '../../pages/JoinUsPage';
+import ContactPage from '../../pages/ContactPage';
 
 // Customer Pages (lazy-loaded)
 const Home = lazy(() => import('../../modules/customer/pages/Home'));
@@ -78,6 +81,19 @@ const CustomerLayoutWrapper = () => {
             </WishlistProvider>
         </LocationProvider>
     );
+};
+
+// Customer pages live under /user. Old/unprefixed links (bookmarks, push notifications,
+// stale code) are forwarded there instead of falling through to the landing page.
+const LEGACY_CUSTOMER_SEGMENTS = [
+    'categories', 'category', 'offers', 'wishlist', 'orders', 'profile', 'checkout', 'search',
+    'wallet', 'addresses', 'settings', 'help', 'chat', 'support', 'privacy', 'about',
+    'notifications', 'rewards', 'payment-status', 'transactions', 'shop-by-store', 'product',
+];
+
+const LegacyCustomerRedirect = () => {
+    const { pathname, search, hash } = useLocation();
+    return <Navigate to={`/user${pathname}${search}${hash}`} replace />;
 };
 
 const AppRouter = () => {
@@ -150,6 +166,19 @@ const AppRouter = () => {
                     element: <div className="flex h-screen items-center justify-center font-outfit">Unauthorized Access</div>,
                 },
                 {
+                    index: true,
+                    element: <LandingPage />,
+                },
+                {
+                    path: 'join',
+                    element: <JoinUsPage />,
+                },
+                {
+                    path: 'contact',
+                    element: <ContactPage />,
+                },
+                {
+                    path: 'user',
                     element: <CustomerLayoutWrapper />,
                     children: [
                         { index: true, element: <Home /> },
@@ -179,6 +208,12 @@ const AppRouter = () => {
                         { path: 'rewards', element: <ProtectedRoute><MilestoneRewards /></ProtectedRoute> },
                     ]
                 },
+                // Backward-compatibility redirects for direct old links
+                // Keeps the sub-path, query string and hash (e.g. /orders/123?x=1 -> /user/orders/123?x=1).
+                ...LEGACY_CUSTOMER_SEGMENTS.map((segment) => ({
+                    path: `${segment}/*`,
+                    element: <LegacyCustomerRedirect />,
+                })),
                 {
                     path: '*',
                     element: <Navigate to="/" replace />

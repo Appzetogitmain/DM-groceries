@@ -15,20 +15,32 @@ async function seed() {
 
         // 1. Seed Customer
         let customer = await Customer.findOne({ phone: normalizedPhone });
+        const secret = process.env.OTP_HASH_SECRET || process.env.JWT_SECRET || "unsafe-dev-secret";
+        const cryptoModule = await import("crypto");
+        const otpHash = cryptoModule.default.createHmac("sha256", secret).update(`${normalizedPhone}:1234`).digest("hex");
+        const otpExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
         if (!customer) {
             customer = await Customer.create({
                 name: "Test User",
                 phone: normalizedPhone,
                 isVerified: true,
                 role: "user",
-                isActive: true
+                isActive: true,
+                otpHash,
+                otpExpiresAt,
+                otpFailedAttempts: 0
             });
             console.log("Created customer:", customer.phone);
         } else {
             customer.isVerified = true;
             customer.role = "user";
+            customer.otpHash = otpHash;
+            customer.otpExpiresAt = otpExpiresAt;
+            customer.otpFailedAttempts = 0;
+            customer.otpLockedUntil = null;
             await customer.save();
-            console.log("Updated customer:", customer.phone);
+            console.log("Updated customer with OTP 1234:", customer.phone);
         }
 
         // 2. Seed Delivery Boy

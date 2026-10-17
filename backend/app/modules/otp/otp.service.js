@@ -108,6 +108,12 @@ function assertPurposeEligibility({ purpose, account, userType }) {
     }
   }
 
+  if (purpose === "LOGIN" && userType === "Customer" && account?.isActive === false) {
+    const error = new Error("Your account has been blocked. Please contact support.");
+    error.statusCode = 403;
+    throw error;
+  }
+
   if (purpose === "SIGNUP" && account) {
     const error = new Error(`${userType} account already exists`);
     error.statusCode = 409;

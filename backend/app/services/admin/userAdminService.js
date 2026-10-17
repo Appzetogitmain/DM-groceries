@@ -126,3 +126,23 @@ export async function getUserByIdData(id) {
     })),
   };
 }
+
+export async function setCustomerActiveStatus(id, isActive) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+
+  const customer = await User.findOneAndUpdate(
+    { _id: id, role: "user" },
+    { $set: { isActive: !!isActive } },
+    { new: true },
+  )
+    .select("isActive")
+    .lean();
+
+  if (customer) {
+    // Apply instantly in this process; verifyToken reads this cache.
+    const { setCustomerBlockedCache } = await import("../customerBlockService.js");
+    setCustomerBlockedCache(id, customer.isActive === false);
+  }
+
+  return customer;
+}

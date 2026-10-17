@@ -93,19 +93,21 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
 
     // Route-based visibility logic
     const path = location.pathname.replace(/\/$/, '') || '/';
+    // Normalize path by removing /user prefix if present for uniform check
+    const normalizedPath = path.replace(/^\/user/, '') || '/';
 
     const hideHeaderRoutes = ['/', '/categories', '/orders', '/transactions', '/profile', '/profile/edit', '/wishlist', '/addresses', '/wallet', '/support', '/help', '/settings', '/privacy', '/about', '/checkout', '/search', '/chat', '/notifications', '/rewards'];
     const hideBottomNavRoutes = ['/checkout', '/search', '/chat', '/profile/edit', '/support', '/privacy'];
     const hideCartRoutes = ['/checkout', '/search', '/chat', '/settings', '/profile', '/profile/edit'];
 
     // If props are passed, use them. Otherwise, use route-based logic.
-    const showHeader = showHeaderProp !== undefined ? showHeaderProp : (!hideHeaderRoutes.includes(path) && !path.startsWith('/category') && !path.startsWith('/orders'));
-    const showBottomNav = showBottomNavProp !== undefined ? showBottomNavProp : !hideBottomNavRoutes.includes(path);
-    const showCart = showCartProp !== undefined ? showCartProp : (!hideCartRoutes.includes(path) && !path.startsWith('/orders'));
+    const showHeader = showHeaderProp !== undefined ? showHeaderProp : (!hideHeaderRoutes.includes(normalizedPath) && !normalizedPath.startsWith('/category') && !normalizedPath.startsWith('/orders'));
+    const showBottomNav = showBottomNavProp !== undefined ? showBottomNavProp : !hideBottomNavRoutes.includes(normalizedPath);
+    const showCart = showCartProp !== undefined ? showCartProp : (!hideCartRoutes.includes(normalizedPath) && !normalizedPath.startsWith('/orders'));
 
     // Condition to hide the MobileFooterMessage ("India's last minute app") on specific pages
     const hideFooterMessageRoutes = ['/profile', '/profile/edit', '/settings'];
-    const showFooterMessage = showBottomNav && !hideFooterMessageRoutes.includes(path) && !path.startsWith('/category');
+    const showFooterMessage = showBottomNav && !hideFooterMessageRoutes.includes(normalizedPath) && !normalizedPath.startsWith('/category');
 
     // Hide elements on mobile only when product detail is open
     // On desktop, we want to keep the header visible even if the modal is open

@@ -52,6 +52,7 @@ const AdminSettings = () => {
         appName: '',
         supportEmail: '',
         supportPhone: '',
+        supportHours: '',
         currencySymbol: '₹',
         currencyCode: 'INR',
         timezone: 'Asia/Kolkata',
@@ -367,6 +368,17 @@ const AdminSettings = () => {
                                             className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
                                         />
                                     </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Support Hours</label>
+                                    <input
+                                        type="text"
+                                        maxLength={100}
+                                        placeholder="Every day, 7:00 AM – 11:00 PM"
+                                        value={settings.supportHours || ''}
+                                        onChange={(e) => handleInputChange('supportHours', e.target.value)}
+                                        className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                    />
                                 </div>
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Currency Symbol</label>

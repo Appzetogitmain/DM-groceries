@@ -1,8 +1,11 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "@shared/layout/DashboardLayout";
 import SOSListener from "../components/SOSListener";
 import { useSupportUnread } from "@core/context/SupportUnreadContext";
+import { useAuth } from "@core/context/AuthContext";
+import { onNotificationNew } from "@core/services/orderSocket";
+import { adminApi } from "../services/adminApi";
 import { setActiveRole, ROLES } from "@core/auth/activeRoleStore";
 import { usePermissions } from "@core/hooks/usePermissions";
 import PermissionGuard from "@core/guards/PermissionGuard";
@@ -18,6 +21,7 @@ import {
   CircleDollarSign,
   Users,
   HelpCircle,
+  MessageSquareQuote,
   ClipboardList,
   RotateCcw,
   Settings,
@@ -80,11 +84,13 @@ const CustomerDetail = React.lazy(() => import("../pages/CustomerDetail"));
 const UserManagement = React.lazy(() => import("../pages/UserManagement"));
 const Profile = React.lazy(() => import("@/pages/Profile"));
 const FAQManagement = React.lazy(() => import("../pages/FAQManagement"));
+const TestimonialManagement = React.lazy(() => import("../pages/TestimonialManagement"));
 const OrdersList = React.lazy(() => import("../pages/OrdersList"));
 const OrderDetail = React.lazy(() => import("../pages/OrderDetail"));
 const Returns = React.lazy(() => import("../pages/Returns"));
 const SellerDetail = React.lazy(() => import("../pages/SellerDetail"));
 const SupportTickets = React.lazy(() => import("../pages/SupportTickets"));
+const ContactMessages = React.lazy(() => import("../pages/ContactMessages"));
 const ReviewModeration = React.lazy(() => import("../pages/ReviewModeration"));
 const FleetTracking = React.lazy(() => import("../pages/FleetTracking"));
 const CouponManagement = React.lazy(() => import("../pages/CouponManagement"));
@@ -165,6 +171,7 @@ const navItems = [
     section: "support",
     children: [
       { label: "Help Tickets", path: "/admin/support-tickets" },
+      { label: "Contact Messages", path: "/admin/contact-messages" },
       { label: "Review Content", path: "/admin/moderation" },
     ],
   },
@@ -240,6 +247,7 @@ const navItems = [
     ],
   },
   { label: "FAQs", path: "/admin/faqs", icon: HelpCircle, color: "pink", section: "faqs" },
+  { label: "Testimonials", path: "/admin/testimonials", icon: MessageSquareQuote, color: "pink", section: "testimonials" },
   {
     label: "Orders",
     icon: ClipboardList,
@@ -289,6 +297,34 @@ const AdminRoutes = () => {
 
   const { totalUnread } = useSupportUnread();
   const { hasPermission, isSuperAdmin } = usePermissions();
+  const { getToken } = useAuth();
+
+  // "Waiting for review" counts shown as badges on the Sellers / Delivery Drivers menu.
+  const [pendingCounts, setPendingCounts] = useState({ sellers: 0, deliveryApplications: 0, deliveryDocuments: 0, deliveryVehicles: 0 });
+  const refreshPendingCounts = useCallback(async () => {
+    try {
+      const res = await adminApi.getPendingCounts();
+      if (res?.data?.success) setPendingCounts((prev) => ({ ...prev, ...(res.data.result || {}) }));
+    } catch {
+      // keep the last known counts
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshPendingCounts();
+    const timer = setInterval(refreshPendingCounts, 30000);
+    // A new registration arrives, or a review page approved / rejected someone.
+    const stopSocket = onNotificationNew(getToken, (data) => {
+      const type = String(data?.eventType || "");
+      if (type === "ADMIN_NEW_SELLER" || type === "ADMIN_NEW_DELIVERY_PARTNER") refreshPendingCounts();
+    });
+    window.addEventListener("admin:pending-counts-changed", refreshPendingCounts);
+    return () => {
+      clearInterval(timer);
+      stopSocket?.();
+      window.removeEventListener("admin:pending-counts-changed", refreshPendingCounts);
+    };
+  }, [getToken, refreshPendingCounts]);
 
   // Filter nav items based on permissions
   const filteredNavItems = useMemo(() => {
@@ -307,13 +343,45 @@ const AdminRoutes = () => {
   }, [hasPermission, isSuperAdmin]);
 
   const navItemsWithBadges = useMemo(() => {
-    const count = Number.isFinite(totalUnread) ? totalUnread : 0;
-    if (count <= 0) return filteredNavItems;
-    return filteredNavItems.map((item) => {
-      if (item?.label !== "Customer Support") return item;
-      return { ...item, badgeCount: count };
+    const supportCount = Number.isFinite(totalUnread) ? totalUnread : 0;
+    const count = (n) => (Number.isFinite(Number(n)) ? Number(n) : 0);
+
+    const withChildBadges = (item, badges) => ({
+      ...item,
+      children: item.children.map((child) =>
+        badges[child.path] > 0 ? { ...child, badgeCount: badges[child.path] } : child,
+      ),
     });
-  }, [totalUnread, filteredNavItems]);
+
+    return filteredNavItems.map((item) => {
+      if (item?.label === "Customer Support") {
+        return supportCount > 0 ? { ...item, badgeCount: supportCount } : item;
+      }
+      if (item?.label === "Sellers") {
+        const waiting = count(pendingCounts.sellers);
+        return waiting > 0
+          ? { ...withChildBadges(item, { "/admin/sellers/pending": waiting }), badgeCount: waiting }
+          : item;
+      }
+      if (item?.label === "Delivery Drivers") {
+        const apps = count(pendingCounts.deliveryApplications);
+        const docs = count(pendingCounts.deliveryDocuments);
+        const vehicles = count(pendingCounts.deliveryVehicles);
+        const total = apps + docs + vehicles;
+        return total > 0
+          ? {
+              ...withChildBadges(item, {
+                "/admin/delivery-boys/pending": apps,
+                "/admin/delivery-boys/document-approvals": docs,
+                "/admin/delivery-boys/vehicle-approvals": vehicles,
+              }),
+              badgeCount: total,
+            }
+          : item;
+      }
+      return item;
+    });
+  }, [totalUnread, filteredNavItems, pendingCounts]);
 
   return (
     <DashboardLayout navItems={navItemsWithBadges} title="Admin Center">
@@ -387,6 +455,11 @@ const AdminRoutes = () => {
         <Route path="/support-tickets" element={
           <PermissionGuard section="support" action="view" fallback={AccessDenied}>
             <SupportTickets />
+          </PermissionGuard>
+        } />
+        <Route path="/contact-messages" element={
+          <PermissionGuard section="support" action="view" fallback={AccessDenied}>
+            <ContactMessages />
           </PermissionGuard>
         } />
         <Route path="/sos-history" element={
@@ -544,6 +617,11 @@ const AdminRoutes = () => {
         <Route path="/faqs" element={
           <PermissionGuard section="faqs" action="view" fallback={AccessDenied}>
             <FAQManagement />
+          </PermissionGuard>
+        } />
+        <Route path="/testimonials" element={
+          <PermissionGuard section="testimonials" action="view" fallback={AccessDenied}>
+            <TestimonialManagement />
           </PermissionGuard>
         } />
         <Route path="/orders/:status" element={

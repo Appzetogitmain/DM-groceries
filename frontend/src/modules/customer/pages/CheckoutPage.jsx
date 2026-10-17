@@ -778,7 +778,7 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: { pathname: '/checkout' } } });
+      navigate('/login', { state: { from: { pathname: '/user/checkout' } } });
       return;
     }
 
@@ -820,7 +820,7 @@ const CheckoutPage = () => {
             "Order placed but ID not received. Checking order history...",
             "warning"
           );
-          navigate("/orders");
+          navigate("/user/orders");
           return;
         }
 
@@ -836,7 +836,7 @@ const CheckoutPage = () => {
         postOrderNavigateRef.current = setTimeout(() => {
           postOrderNavigateRef.current = null;
           setIsPlacingOrder(false);
-          navigate(`/orders/${mainOrderId}`);
+          navigate(`/user/orders/${mainOrderId}`);
         }, 3000);
       } else {
         setIsPlacingOrder(false);
@@ -868,7 +868,7 @@ const CheckoutPage = () => {
         }
         setShowSuccess(false);
         showToast("Order cancelled — seller did not accept in time.", "error");
-        navigate(`/orders/${orderId}`, { replace: true });
+        navigate(`/user/orders/${orderId}`, { replace: true });
         return true;
       }
       return false;
@@ -935,7 +935,7 @@ const CheckoutPage = () => {
             Explore our aisles and fill it with goodies.
           </p>
           <Link
-            to="/"
+            to="/user"
             className="group relative inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-primary to-[var(--brand-400)] text-white font-bold rounded-2xl overflow-hidden shadow-xl shadow-brand-600/20 transition-all hover:scale-[1.02] active:scale-95 w-full sm:w-auto">
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
             <span className="relative flex items-center gap-2 text-lg">
@@ -1168,7 +1168,7 @@ const CheckoutPage = () => {
             <Button
               variant="outline"
               className="w-full border-brand-600 text-brand-600 hover:bg-brand-50"
-              onClick={() => navigate("/addresses")}>
+              onClick={() => navigate("/user/addresses")}>
               <Plus size={16} className="mr-2" /> Add New Address
             </Button>
           </DialogFooter>

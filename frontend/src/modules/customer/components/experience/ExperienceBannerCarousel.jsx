@@ -49,7 +49,7 @@ const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap 
       case 'subcategory':
         // Extract just the ID/slug from the end, ignoring any 'category/' prefix
         const catId = slug.split('/').pop(); 
-        navigate(`/category/${catId}`);
+        navigate(`/user/category/${catId}`);
         break;
       case 'product':
         // Extract just the ID from the end, ignoring any 'product/' prefix

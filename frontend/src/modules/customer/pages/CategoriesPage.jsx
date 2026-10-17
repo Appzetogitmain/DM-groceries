@@ -139,7 +139,7 @@ const CategoriesPage = () => {
     return (
         <div className="min-h-screen bg-white">
             <MainLocationHeader />
-            <div className="max-w-[1280px] mx-auto px-4 pt-[200px] md:pt-[210px] pb-20">
+            <div className="max-w-[1280px] mx-auto px-4 pt-[140px] md:pt-[155px] pb-20">
                 {groups.map((group, groupIdx) => (
                     <div key={groupIdx} className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${groupIdx * 100}ms` }}>
                         {/* Group Title */}
@@ -152,7 +152,7 @@ const CategoriesPage = () => {
                             {group.categories.map((category) => (
                                 <div key={category.id} className="flex flex-col group cursor-pointer">
                                     <Link
-                                        to={`/category/${category.id}`}
+                                        to={`/user/category/${category.id}`}
                                         className="block"
                                     >
                                         <div className="aspect-square mb-2 [perspective:1000px]">

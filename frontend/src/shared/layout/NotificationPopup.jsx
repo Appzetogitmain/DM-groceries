@@ -1,9 +1,69 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineBell, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineClock } from 'react-icons/hi2';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@core/context/AuthContext';
 import { cn, notificationImageUrl } from '@/lib/utils';
+import { describePushSupport, ensureFcmTokenRegistered, hasRegisteredFcmToken } from '@core/firebase/pushClient';
+
+// Push alerts need the browser permission AND a registered device token. When either is missing
+// the user only ever sees notifications inside this panel, so say so and offer a one-click fix.
+const getPushState = (role) => {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') return 'hidden';
+    const support = describePushSupport();
+    if (!support.supported || support.reason === 'flutter-native') return 'hidden';
+    if (Notification.permission === 'denied') return 'blocked';
+    if (Notification.permission === 'granted' && hasRegisteredFcmToken(role)) return 'ok';
+    return 'ask';
+};
+
+const PushPrompt = ({ role }) => {
+    const [state, setState] = useState(() => getPushState(role));
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+
+    if (state === 'hidden' || state === 'ok') return null;
+
+    const enable = async () => {
+        setBusy(true);
+        setError('');
+        try {
+            await ensureFcmTokenRegistered({ role, platform: 'web' });
+            setState('ok');
+        } catch (err) {
+            setError(err?.message || 'Could not turn on notifications');
+            setState(getPushState(role) === 'blocked' ? 'blocked' : 'ask');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <div className="mx-3 mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex-shrink-0">
+            {state === 'blocked' ? (
+                <p className="text-[11px] font-semibold leading-snug text-amber-900">
+                    Notifications are blocked for this site. Click the lock icon next to the address bar, set
+                    <strong> Notifications</strong> to <strong>Allow</strong>, then refresh the page.
+                </p>
+            ) : (
+                <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold leading-snug text-amber-900">
+                        Pop-up alerts are off on this device. Turn on to get notified instantly.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={enable}
+                        disabled={busy}
+                        className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white hover:bg-amber-700 disabled:opacity-60"
+                    >
+                        {busy ? 'Please wait...' : 'Turn on'}
+                    </button>
+                </div>
+            )}
+            {error && <p className="mt-1.5 text-[10px] font-semibold text-rose-700 break-words">{error}</p>}
+        </div>
+    );
+};
 
 const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClose, disableAnimation = false, portaled = false }) => {
     const navigate = useNavigate();
@@ -29,9 +89,25 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
             } else if (role === 'delivery') {
                 navigate(`/delivery/order-details/${orderId}`);
             } else {
-                navigate(`/orders/${orderId}`);
+                navigate(`/user/orders/${orderId}`);
             }
             if (onClose) onClose();
+            return;
+        }
+
+        // Other notifications (e.g. "New seller registration") carry a link to the page they are about.
+        const link = String(notif?.data?.link || '').trim();
+        if (link) {
+            try {
+                // Links are built from the configured frontend URL; only the in-app path matters.
+                const url = new URL(link, window.location.origin);
+                if (url.pathname && url.pathname !== '/') {
+                    navigate(`${url.pathname}${url.search}`);
+                    if (onClose) onClose();
+                }
+            } catch {
+                // malformed link: just leave it marked as read
+            }
         }
     };
     return (
@@ -69,6 +145,8 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
                     </button>
                 )}
             </div>
+
+            <PushPrompt role={role} />
 
             <div className="flex-1 md:max-h-[400px] overflow-y-auto custom-scrollbar">
                 {notifications.length > 0 ? (

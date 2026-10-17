@@ -58,6 +58,8 @@ import "../models/wallet.js";
 // CMS / configuration models
 import "../models/experienceSection.js";
 import "../models/faq.js";
+import "../models/testimonial.js";
+import "../models/contactMessage.js";
 import "../models/heroConfig.js";
 import "../models/offer.js";
 import "../models/offerSection.js";
@@ -127,6 +129,8 @@ export const REQUIRED_MODELS = Object.freeze([
   "PushToken",
   "Ticket",
   "FAQ",
+  "Testimonial",
+  "ContactMessage",
 
   // Configuration
   "Setting",

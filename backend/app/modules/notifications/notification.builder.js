@@ -39,8 +39,8 @@ function getFrontendBaseUrl() {
 function buildOrderLink(orderId) {
   const id = String(orderId || "").trim();
   const baseUrl = getFrontendBaseUrl();
-  if (!id) return `${baseUrl}/orders`;
-  return `${baseUrl}/orders/${encodeURIComponent(id)}`;
+  if (!id) return `${baseUrl}/user/orders`;
+  return `${baseUrl}/user/orders/${encodeURIComponent(id)}`;
 }
 
 function buildDeliveryOrderLink(orderId) {
@@ -53,7 +53,7 @@ function buildDeliveryOrderLink(orderId) {
 function buildCustomerSupportLink(ticketId) {
   const baseUrl = getFrontendBaseUrl();
   const id = String(ticketId || "").trim();
-  return id ? `${baseUrl}/chat?ticketId=${encodeURIComponent(id)}` : `${baseUrl}/chat`;
+  return id ? `${baseUrl}/user/chat?ticketId=${encodeURIComponent(id)}` : `${baseUrl}/user/chat`;
 }
 
 function buildAdminSupportLink(ticketId) {
@@ -381,6 +381,26 @@ function eventDefinition(eventType, payload = {}) {
         title: () => "Support reply",
         body: (payload) => truncateText(payload.messageText || "New message"),
       };
+    case NOTIFICATION_EVENTS.ADMIN_NEW_SELLER:
+      return {
+        role: NOTIFICATION_ROLES.ADMIN,
+        recipientIds: (payload) => normalizeIdList(payload.adminIds),
+        title: () => "New seller registration",
+        body: (payload) => {
+          const shop = String(payload.shopName || payload.name || "A seller").trim() || "A seller";
+          return `${truncateText(shop)} has registered as a seller. Please verify the documents and approve.`;
+        },
+      };
+    case NOTIFICATION_EVENTS.ADMIN_NEW_DELIVERY_PARTNER:
+      return {
+        role: NOTIFICATION_ROLES.ADMIN,
+        recipientIds: (payload) => normalizeIdList(payload.adminIds),
+        title: () => "New delivery partner registration",
+        body: (payload) => {
+          const name = String(payload.name || "A delivery partner").trim() || "A delivery partner";
+          return `${truncateText(name)} has registered as a delivery partner. Please verify the documents and approve.`;
+        },
+      };
     case NOTIFICATION_EVENTS.ADMIN_SUPPORT_TICKET:
       return {
         role: NOTIFICATION_ROLES.ADMIN,
@@ -591,6 +611,20 @@ function eventDefinition(eventType, payload = {}) {
 }
 
 function eventData(eventType, payload = {}, role) {
+  // Plain admin messages to a customer open their notifications list. Alerts tied to
+  // an order (e.g. payment reminders) keep the default order link below.
+  if (
+    eventType === NOTIFICATION_EVENTS.GENERIC_ALERT &&
+    role === NOTIFICATION_ROLES.CUSTOMER &&
+    !String(payload.orderId || "").trim()
+  ) {
+    return {
+      eventType,
+      link: `${getFrontendBaseUrl()}/user/notifications`,
+      ...(payload.data || {}),
+    };
+  }
+
   if (eventType === NOTIFICATION_EVENTS.LOW_STOCK_ALERT) {
     const productId = String(payload.productId || "").trim() || undefined;
     return {
@@ -602,6 +636,20 @@ function eventData(eventType, payload = {}, role) {
       variantName: String(payload.variantName || "").trim() || undefined,
       imageUrl: String(payload.imageUrl || "").trim() || undefined,
       link: buildSellerInventoryLink(productId),
+      ...(payload.data || {}),
+    };
+  }
+
+  if (
+    eventType === NOTIFICATION_EVENTS.ADMIN_NEW_SELLER ||
+    eventType === NOTIFICATION_EVENTS.ADMIN_NEW_DELIVERY_PARTNER
+  ) {
+    const baseUrl = getFrontendBaseUrl();
+    const isSeller = eventType === NOTIFICATION_EVENTS.ADMIN_NEW_SELLER;
+    return {
+      eventType,
+      applicantId: String(payload.applicantId || "").trim() || undefined,
+      link: `${baseUrl}${isSeller ? "/admin/sellers/pending" : "/admin/delivery-boys/pending"}`,
       ...(payload.data || {}),
     };
   }

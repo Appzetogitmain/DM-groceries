@@ -78,7 +78,7 @@ const WishlistPage = () => {
               Start saving your favorite items to see them here later.
             </p>
             <Link
-              to="/categories"
+              to="/user/categories"
               className="px-6 py-3 bg-[#1A4516] text-white text-[15px] font-bold rounded-xl shadow-lg hover:bg-[#0a3000] active:scale-[0.98] transition-all">
               Explore Products
             </Link>

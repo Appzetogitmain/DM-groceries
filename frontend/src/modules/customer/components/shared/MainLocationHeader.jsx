@@ -84,7 +84,7 @@ function CategoryNavColumn({
         borderBottomColor: isActive ? "transparent" : categoryAccent,
       }}
       className="relative z-[2] flex min-w-[48px] shrink-0 cursor-pointer flex-col items-center gap-0.5 border-b-2 px-2 pb-0.5 pt-0.5 snap-start md:min-w-[58px]">
-      <div className="relative z-10 flex h-9 w-9 items-center justify-center md:h-11 md:w-11">
+      <div className="relative z-10 flex h-8 w-8 items-center justify-center md:h-9 md:w-9">
         {typeof cat.icon === "function" ||
         (typeof cat.icon === "object" && cat.icon.$$typeof) ? (
           <cat.icon
@@ -100,8 +100,10 @@ function CategoryNavColumn({
             src={applyCloudinaryTransform(cat.icon, "f_auto,q_auto,w_100")}
             alt={cat.name}
             loading="lazy"
-            className="h-5 w-5 object-contain md:h-6 md:w-6"
-            style={{ opacity: isActive ? 1 : 0.62 }}
+            className={cn(
+              "h-7 w-7 rounded-md object-contain transition-transform duration-200 md:h-8 md:w-8",
+              isActive && "scale-110 ring-2 ring-white/80",
+            )}
           />
         )}
       </div>
@@ -169,12 +171,12 @@ const MainLocationHeader = ({
 
   // Search Logic
   const handleSearchClick = () => {
-    navigate("/search");
+    navigate("/user/search");
   };
 
   const handleSearchKeyDown = (e) => {
     if (e.key === "Enter") {
-      navigate("/search", { state: { query: e.target.value } });
+      navigate("/user/search", { state: { query: e.target.value } });
     }
   };
 
@@ -259,7 +261,7 @@ const MainLocationHeader = ({
             }}
             type="button"
             aria-label="Open cart"
-            onClick={() => navigate("/checkout")}
+            onClick={() => navigate("/user/checkout")}
             className="absolute top-3 right-5 sm:top-4 sm:right-6 md:top-5 md:right-8 z-20 w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 cursor-pointer">
             {cartAnimData ? (
               <Lottie
@@ -277,7 +279,7 @@ const MainLocationHeader = ({
             {/* Left Section: Logo + Location row */}
             <div className="flex items-center gap-4 lg:gap-8">
               <div
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/user")}
                 className="flex items-center gap-3 cursor-pointer group shrink-0">
                 <div className="group-hover:scale-110 transition-all duration-300 drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]">
                   <img
@@ -350,7 +352,7 @@ const MainLocationHeader = ({
               <motion.button
                 whileHover={{ scale: 1.15, rotate: 5 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => navigate("/wishlist")}
+                onClick={() => navigate("/user/wishlist")}
                 className="transition-all hover:text-red-500"
                 style={{ color: headerFontColor }}
               >
@@ -360,7 +362,7 @@ const MainLocationHeader = ({
               <motion.button
                 whileHover={{ scale: 1.15, rotate: -5 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => navigate("/checkout")}
+                onClick={() => navigate("/user/checkout")}
                 className="transition-all hover:text-slate-700 relative group"
                 style={{ color: headerFontColor }}
               >
@@ -373,7 +375,7 @@ const MainLocationHeader = ({
               <motion.button
                 whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => navigate("/profile")}
+                onClick={() => navigate("/user/profile")}
                 className="lg:bg-white/30 p-1.5 lg:rounded-full hover:bg-white transition-all"
                 style={{ color: headerFontColor }}
               >
@@ -458,7 +460,8 @@ const MainLocationHeader = ({
             </motion.div>
           </div>
 
-          {/* Categories Navigation (Desktop & Mobile) */}
+          {/* Categories Navigation (Desktop & Mobile). Skipped when there are no tabs, so no empty strip is left. */}
+          {categories.length > 0 && (
           <motion.div
             style={{
               height: navHeight,
@@ -486,6 +489,7 @@ const MainLocationHeader = ({
               ))}
             </div>
           </motion.div>
+          )}
           {/* Background Decorative patterns */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none" />
         </motion.div>

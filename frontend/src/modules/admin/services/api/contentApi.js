@@ -14,6 +14,17 @@ export const adminContentApi = {
     // Public FAQs (for profile pages, etc.)
     getPublicFAQs: (params) => axiosInstance.get('/public/faqs', { params }),
 
+    // Testimonials (landing page)
+    getTestimonials: (params) => axiosInstance.get('/admin/testimonials', { params }),
+    createTestimonial: (data) => axiosInstance.post('/admin/testimonials', data),
+    updateTestimonial: (id, data) => axiosInstance.put(`/admin/testimonials/${id}`, data),
+    deleteTestimonial: (id) => axiosInstance.delete(`/admin/testimonials/${id}`),
+
+    // Contact form messages (landing page /contact)
+    getContactMessages: (params) => axiosInstance.get('/admin/contact-messages', { params }),
+    updateContactMessage: (id, data) => axiosInstance.patch(`/admin/contact-messages/${id}`, data),
+    deleteContactMessage: (id) => axiosInstance.delete(`/admin/contact-messages/${id}`),
+
     // Experience Studio / Content Manager
     getExperienceSections: (params) =>
         axiosInstance.get('/admin/experience', { params }),

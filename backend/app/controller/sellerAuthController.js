@@ -9,6 +9,7 @@ import {
     verifySellerResetOtpCode,
 } from "../services/sellerVerificationService.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
+import { notifyAdminsNewSeller } from "../services/adminRegistrationNotifier.js";
 
 /* ===============================
    Utils
@@ -195,8 +196,8 @@ export const signupSeller = async (req, res) => {
         if (lng !== undefined && (!Number.isFinite(parsedLng) || parsedLng < -180 || parsedLng > 180)) {
             return handleResponse(res, 400, "Invalid longitude");
         }
-        if (radius !== undefined && (!Number.isFinite(parsedRadius) || parsedRadius < 1 || parsedRadius > 100)) {
-            return handleResponse(res, 400, "Radius must be between 1 and 100 km");
+        if (radius !== undefined && (!Number.isFinite(parsedRadius) || parsedRadius < 1 || parsedRadius > 5)) {
+            return handleResponse(res, 400, "Registration service radius must be between 1 and 5 km");
         }
 
         let existingSellers = await Seller.find({ $or: [{ email }, { phone }] });
@@ -265,6 +266,9 @@ export const signupSeller = async (req, res) => {
         }
 
         const seller = await Seller.create(sellerData);
+
+        // Let admins know a new seller is waiting for verification (non-blocking).
+        notifyAdminsNewSeller(seller);
 
         return handleResponse(res, 201, "Seller registered successfully", {
             seller,

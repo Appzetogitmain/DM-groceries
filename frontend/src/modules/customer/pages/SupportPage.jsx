@@ -109,7 +109,7 @@ const SupportPage = () => {
             <div className="max-w-2xl mx-auto px-4 pt-1 relative z-20 space-y-5">
                 {/* Contact Channels */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <ContactCard icon={MessageCircle} label="Chat Us" sub="Instant Support" to="/chat" />
+                    <ContactCard icon={MessageCircle} label="Chat Us" sub="Instant Support" to="/user/chat" />
                     <ContactCard
                         icon={PlusCircle}
                         label="Raise Ticket"
@@ -144,10 +144,10 @@ const SupportPage = () => {
                 <div className="bg-white rounded-xl p-4 border border-slate-200">
                     <h3 className="text-[11px] font-semibold text-[#1A4516]/70 uppercase tracking-wide mb-3">Legal</h3>
                     <div className="space-y-3">
-                        <Link to="/support" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
+                        <Link to="/user/support" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
                             <FileText size={18} /> Support
                         </Link>
-                        <Link to="/privacy" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
+                        <Link to="/user/privacy" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
                             <FileText size={18} /> Privacy Policy
                         </Link>
                     </div>
