@@ -377,7 +377,7 @@ async function removePaymentTimeout(orderId) {
 }
 
 async function schedulePaymentReminder(orderId) {
-  const delay = 1 * 60 * 1000; // 1 minute
+  const delay = 2 * 60 * 1000; // 2 minutes
   const addPromise = paymentReminderQueue
     .add(
       JOB_NAMES.PAYMENT_REMINDER,

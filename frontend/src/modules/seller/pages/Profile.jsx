@@ -104,6 +104,10 @@ const SellerProfile = () => {
     radius: 5,
     address: "",
     dob: "",
+    locality: "",
+    pincode: "",
+    city: "",
+    state: "",
     bankDetails: {
       bankName: "",
       accountNumber: "",
@@ -187,6 +191,10 @@ const SellerProfile = () => {
         radius: data.serviceRadius || 5,
         address: data.address || "",
         dob: data.dob || "",
+        locality: data.locality || "",
+        pincode: data.pincode || "",
+        city: data.city || "",
+        state: data.state || "",
         bankDetails: data.bankDetails || {
           bankName: "",
           accountNumber: "",
@@ -209,6 +217,10 @@ const SellerProfile = () => {
       lng: location.lng,
       radius: location.radius,
       address: location.address,
+      locality: location.locality || prev.locality,
+      pincode: location.pincode || prev.pincode,
+      city: location.city || prev.city,
+      state: location.state || prev.state,
     }));
   };
 
@@ -815,22 +827,22 @@ const SellerProfile = () => {
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100 text-center">
                 <span className="text-[9px] font-semibold text-slate-400 uppercase block">Pin Code</span>
-                <span className="text-xs font-bold text-slate-700 mt-1 block">452001</span>
+                <span className="text-xs font-bold text-slate-700 mt-1 block">{formData.pincode || "—"}</span>
               </div>
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100 text-center">
                 <span className="text-[9px] font-semibold text-slate-400 uppercase block">State</span>
-                <span className="text-xs font-bold text-slate-700 mt-1 block">MP</span>
+                <span className="text-xs font-bold text-slate-700 mt-1 block">{formData.state || "—"}</span>
               </div>
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100 text-center">
                 <span className="text-[9px] font-semibold text-slate-400 uppercase block">City</span>
-                <span className="text-xs font-bold text-slate-700 mt-1 block">Indore</span>
+                <span className="text-xs font-bold text-slate-700 mt-1 block">{formData.city || "—"}</span>
               </div>
             </div>
 
             <div className="p-3.5 bg-emerald-50/40 rounded-xl border border-emerald-100/50 flex items-start gap-2">
               <span className="bg-emerald-100 text-emerald-800 rounded-full p-0.5 text-[8px] mt-0.5">✔</span>
               <p className="text-[10px] text-emerald-800 font-medium leading-relaxed">
-                Active Service Coverage: <span className="font-bold">{formData.radius} KM</span> radius around Indore, MP.
+                Active Service Coverage: <span className="font-bold">{formData.radius} KM</span> radius{formData.city ? ` around ${formData.city}${formData.state ? `, ${formData.state}` : ""}` : ""}.
               </p>
             </div>
           </div>
@@ -843,7 +855,7 @@ const SellerProfile = () => {
                   <MapPin size={20} />
                 </div>
                 <span className="text-xs font-bold text-slate-700">Map Pin Set</span>
-                <span className="text-[10px] text-slate-500 font-semibold mt-0.5">Indore coordinates active</span>
+                <span className="text-[10px] text-slate-500 font-semibold mt-0.5">{formData.city ? `${formData.city} coordinates active` : "Location pin set"}</span>
               </div>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-slate-400">

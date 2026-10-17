@@ -182,8 +182,10 @@ const autoCancelExpiredOrders = async () => {
             customerId: updated.customer,
             userId: updated.customer,
             sellerId: updated.seller,
-            customerMessage: "Order cancelled due to payment timeout.",
-            sellerMessage: `Order #${updated.orderId} cancelled due to payment timeout.`,
+            customerTitle: "Order Cancelled",
+            customerMessage: "Your order has been cancelled because you did not complete the payment within 5 minutes.",
+            sellerTitle: "Order Cancelled",
+            sellerMessage: `Order #${updated.orderId} has been cancelled because the customer did not complete the payment.`,
           });
         }
       } catch (err) {
@@ -225,10 +227,10 @@ const autoCancelExpiredOrders = async () => {
         customerId: order.customer,
         userId: order.customer,
         sellerId: order.seller,
-        customerMessage:
-          "Your order was cancelled because it was not accepted in time.",
-        sellerMessage:
-          `Order #${order.orderId} was cancelled because it was not accepted in time.`,
+        customerTitle: "Order Cancelled",
+        customerMessage: "Your order has been cancelled because the seller didn't accept the order.",
+        sellerTitle: "You Missed an Order",
+        sellerMessage: "You missed an order! The order was automatically cancelled because you did not accept it in time.",
       });
     }
 

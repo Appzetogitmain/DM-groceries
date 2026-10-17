@@ -148,13 +148,13 @@ function eventDefinition(eventType, payload = {}) {
           {
             role: NOTIFICATION_ROLES.CUSTOMER,
             recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
-            title: () => "Order Cancelled",
+            title: (payload) => payload.customerTitle || "Order Cancelled",
             body: (payload) => payload.customerMessage || "Your order has been cancelled.",
           },
           {
             role: NOTIFICATION_ROLES.SELLER,
             recipientIds: (payload) => normalizeIdList(payload.sellerId || payload.sellerIds),
-            title: () => "Order Cancelled",
+            title: (payload) => payload.sellerTitle || "Order Cancelled",
             body: (payload) =>
               payload.sellerMessage ||
               (payload.orderId
@@ -420,6 +420,22 @@ function eventDefinition(eventType, payload = {}) {
         body: (payload) =>
           `Seller requested ${payload.action === 'update' ? 'an update to' : 'to create'} product: ${truncateText(payload.productName)}. Pending admin approval.`,
       };
+    case NOTIFICATION_EVENTS.ADMIN_PRODUCT_ADDED:
+      return {
+        role: NOTIFICATION_ROLES.ADMIN,
+        recipientIds: (payload) => normalizeIdList(payload.adminIds),
+        title: () => "New Product Added",
+        body: (payload) =>
+          `${truncateText(payload.sellerName || "A seller")} added a new product: ${truncateText(payload.productName)}.`,
+      };
+    case NOTIFICATION_EVENTS.ADMIN_PRODUCT_UPDATED:
+      return {
+        role: NOTIFICATION_ROLES.ADMIN,
+        recipientIds: (payload) => normalizeIdList(payload.adminIds),
+        title: () => "Product Updated",
+        body: (payload) =>
+          `${truncateText(payload.sellerName || "A seller")} edited product: ${truncateText(payload.productName)}. Review changes.`,
+      };
     case NOTIFICATION_EVENTS.LOW_STOCK_ALERT:
       return {
         role: NOTIFICATION_ROLES.SELLER,
@@ -566,6 +582,20 @@ function eventDefinition(eventType, payload = {}) {
         recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
         title: (payload) => payload.title || "Price Drop Alert! 📉",
         body: (payload) => payload.message || "Great news! A product you've been watching just got cheaper.",
+      };
+    case NOTIFICATION_EVENTS.SELLER_STORE_APPROVED:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: () => "Account Approved ✅",
+        body: () => "Congratulations! Your seller account has been approved. You can now log in and start selling.",
+      };
+    case NOTIFICATION_EVENTS.SELLER_STORE_REJECTED:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: () => "Application Not Approved",
+        body: (payload) => payload.message || "Your seller application was not approved. Please contact support for more information.",
       };
     case NOTIFICATION_EVENTS.SELLER_ORDER_LIMIT_WARNING:
       return {

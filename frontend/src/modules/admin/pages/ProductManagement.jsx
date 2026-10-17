@@ -18,6 +18,7 @@ import {
     HiOutlineChevronRight,
     HiOutlineCheckCircle,
     HiOutlineExclamationCircle,
+    HiOutlineEye,
     HiOutlineFolderOpen,
     HiOutlineSwatch,
     HiOutlineSquaresPlus
@@ -52,6 +53,7 @@ const ProductManagement = () => {
         outOfStock: 0
     });
     const [moderatingActionId, setModeratingActionId] = useState('');
+    const [previewProduct, setPreviewProduct] = useState(null);
 
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -662,6 +664,13 @@ const ProductManagement = () => {
                                                 </button>
                                             )}
                                             <button
+                                                onClick={() => setPreviewProduct(p)}
+                                                className="flex h-9 w-9 shrink-0 items-center justify-center hover:bg-sky-50 hover:text-sky-600 rounded-xl transition-all text-slate-400 shadow-sm ring-1 ring-slate-100"
+                                                title="Preview product"
+                                            >
+                                                <HiOutlineEye className="h-4 w-4" />
+                                            </button>
+                                            <button
                                                 onClick={() => openModal(p)}
                                                 className="flex h-9 w-9 shrink-0 items-center justify-center hover:bg-white hover:text-primary rounded-xl transition-all text-slate-400 shadow-sm ring-1 ring-slate-100"
                                             >
@@ -1258,6 +1267,171 @@ const ProductManagement = () => {
                     </div>
                 </div>
             </Modal>
+
+            {/* Product Preview Modal */}
+            <AnimatePresence>
+                {previewProduct && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 lg:p-10">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
+                            onClick={() => setPreviewProduct(null)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                            className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl"
+                            data-lenis-prevent
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 sticky top-0 bg-white rounded-t-3xl z-10">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product Preview</p>
+                                    <h3 className="text-base font-black text-slate-900 mt-0.5">{previewProduct.name}</h3>
+                                </div>
+                                <button
+                                    onClick={() => setPreviewProduct(null)}
+                                    className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all"
+                                >
+                                    <HiOutlineXMark className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+                                {/* Image gallery */}
+                                {(() => {
+                                    const imgs = [
+                                        previewProduct.mainImage,
+                                        ...(previewProduct.galleryImages || previewProduct.images || [])
+                                    ].filter(Boolean);
+                                    return imgs.length > 0 ? (
+                                        <div className="flex gap-3 overflow-x-auto pb-1">
+                                            {imgs.map((src, i) => (
+                                                <img
+                                                    key={i}
+                                                    src={src}
+                                                    alt=""
+                                                    className={`h-40 rounded-2xl object-cover border border-slate-100 shadow-sm flex-shrink-0 ${i === 0 ? 'w-48' : 'w-32'}`}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="h-40 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100">
+                                            <HiOutlinePhoto className="h-10 w-10 text-slate-300" />
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Status badges */}
+                                <div className="flex flex-wrap gap-2">
+                                    <Badge variant={previewProduct.approvalStatus === 'approved' ? 'emerald' : previewProduct.approvalStatus === 'rejected' ? 'rose' : 'amber'} className="text-[10px] font-black uppercase tracking-widest px-3">
+                                        {previewProduct.approvalStatus || 'Pending'}
+                                    </Badge>
+                                    <Badge variant={previewProduct.status === 'active' ? 'emerald' : 'slate'} className="text-[10px] font-black uppercase tracking-widest px-3">
+                                        {previewProduct.status || 'Inactive'}
+                                    </Badge>
+                                    {previewProduct.isFeatured && (
+                                        <Badge variant="amber" className="text-[10px] font-black uppercase tracking-widest px-3">Featured</Badge>
+                                    )}
+                                </div>
+
+                                {/* Category row */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Category</p>
+                                        <p className="text-xs font-bold text-slate-700">{previewProduct.categoryId?.name || previewProduct.category || '—'}</p>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Subcategory</p>
+                                        <p className="text-xs font-bold text-slate-700">{previewProduct.subcategoryId?.name || previewProduct.subcategory || '—'}</p>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Seller</p>
+                                        <p className="text-xs font-bold text-slate-700">{previewProduct.sellerId?.shopName || previewProduct.seller || '—'}</p>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Brand</p>
+                                        <p className="text-xs font-bold text-slate-700">{previewProduct.brand || '—'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Description */}
+                                {previewProduct.description && (
+                                    <div>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Description</p>
+                                        <p className="text-sm text-slate-600 leading-relaxed">{previewProduct.description}</p>
+                                    </div>
+                                )}
+
+                                {/* Variants */}
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Variants</p>
+                                    <div className="space-y-2">
+                                        {(previewProduct.variants && previewProduct.variants.length > 0
+                                            ? previewProduct.variants
+                                            : [{ name: 'Default', price: previewProduct.price, salePrice: previewProduct.salePrice, stock: previewProduct.stock, sku: previewProduct.sku }]
+                                        ).map((v, i) => (
+                                            <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                <span className="text-xs font-bold text-slate-700">{v.name || 'Default'}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="text-right">
+                                                        {v.salePrice > 0 && v.salePrice < v.price ? (
+                                                            <>
+                                                                <span className="text-xs font-black text-emerald-600">₹{v.salePrice}</span>
+                                                                <span className="text-[10px] text-slate-400 line-through ml-1">₹{v.price}</span>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-xs font-black text-slate-800">₹{v.price || '—'}</span>
+                                                        )}
+                                                    </div>
+                                                    <Badge variant={v.stock === 0 ? 'rose' : v.stock <= 10 ? 'amber' : 'emerald'} className="text-[9px] font-black uppercase px-2">
+                                                        {v.stock === 0 ? 'Out of Stock' : `${v.stock} units`}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Tags */}
+                                {previewProduct.tags && previewProduct.tags.length > 0 && (
+                                    <div>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Tags</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(Array.isArray(previewProduct.tags) ? previewProduct.tags : previewProduct.tags.split(','))
+                                                .map((tag, i) => (
+                                                    <span key={i} className="px-2 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600">
+                                                        {String(tag).trim()}
+                                                    </span>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="px-6 pb-6 flex justify-end gap-3">
+                                <button
+                                    onClick={() => { setPreviewProduct(null); openModal(previewProduct); }}
+                                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                >
+                                    Edit Product
+                                </button>
+                                <button
+                                    onClick={() => setPreviewProduct(null)}
+                                    className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
         </div>
     );

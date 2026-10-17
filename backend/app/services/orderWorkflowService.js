@@ -55,7 +55,7 @@ import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.const
 const SELLER_REMINDER_MESSAGE =
   "New order is waiting for your response. Please Accept or Reject the order.";
 const SELLER_TIMEOUT_SELLER_MESSAGE =
-  "Order cancelled because no response was received within 5 minutes.";
+  "You missed an order! The order was automatically cancelled because you did not accept it in time.";
 
 const DELIVERY_SEARCH_MAX_ATTEMPTS = () => parseInt(process.env.DELIVERY_SEARCH_MAX_ATTEMPTS || "1", 10);
 
@@ -583,8 +583,9 @@ export async function processSellerTimeoutJob({ orderId }) {
     customerId: updated.customer,
     userId: updated.customer,
     sellerId: updated.seller,
-    customerMessage:
-      "Your order was cancelled because the seller did not respond within the required time.",
+    customerTitle: "Order Cancelled",
+    customerMessage: "Your order has been cancelled because the seller didn't accept the order.",
+    sellerTitle: "You Missed an Order",
     sellerMessage: SELLER_TIMEOUT_SELLER_MESSAGE,
   });
   emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_CANCELLED_ORDER, {
@@ -667,8 +668,10 @@ export async function processPaymentTimeoutJob({ orderId }) {
     customerId: updated.customer,
     userId: updated.customer,
     sellerId: updated.seller,
-    customerMessage: "Order Cancelled - Payment was not completed within the required time.",
-    sellerMessage: "Order cancelled because the customer did not complete the payment.",
+    customerTitle: "Order Cancelled",
+    customerMessage: "Your order has been cancelled because you did not complete the payment within 5 minutes.",
+    sellerTitle: "Order Cancelled",
+    sellerMessage: `Order #${updated.orderId} has been cancelled because the customer did not complete the payment.`,
   });
   emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_CANCELLED_ORDER, {
     orderId: updated.orderId,
@@ -685,7 +688,8 @@ export async function processPaymentReminderJob({ orderId }) {
     orderId: order.orderId,
     customerId: order.customer,
     userId: order.customer,
-    message: "Payment is pending. Please complete your payment to confirm your order."
+    title: "Payment Pending ⏳",
+    message: "Your payment is pending. Please complete your payment to confirm your order.",
   });
 }
 

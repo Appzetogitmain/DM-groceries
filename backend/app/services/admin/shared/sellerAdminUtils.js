@@ -25,8 +25,10 @@ export function formatSellerDocuments(documents) {
     return [];
   }
 
+  const HIDDEN_DOC_KEYS = ["idProof"];
+
   return Object.entries(documents)
-    .filter(([, value]) => Boolean(value))
+    .filter(([key, value]) => Boolean(value) && !HIDDEN_DOC_KEYS.includes(key))
     .map(([key]) => getSellerDocumentLabel(key));
 }
 
@@ -35,8 +37,10 @@ export function formatSellerDocumentFiles(documents) {
     return [];
   }
 
+  const HIDDEN_DOC_KEYS = ["idProof"];
+
   return Object.entries(documents)
-    .filter(([, value]) => Boolean(value))
+    .filter(([key, value]) => Boolean(value) && !HIDDEN_DOC_KEYS.includes(key))
     .map(([key, value]) => {
       const normalizedValue = String(value).trim();
       const label = getSellerDocumentLabel(key);

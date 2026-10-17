@@ -8,7 +8,7 @@ export const PRODUCT_APPROVAL_STATUS = Object.freeze({
 
 export const DEFAULT_PRODUCT_APPROVAL_CONFIG = Object.freeze({
   sellerCreateRequiresApproval: false,
-  sellerEditRequiresApproval: false,
+  sellerEditRequiresApproval: true,
 });
 
 const APPROVED_OR_LEGACY_FILTER = Object.freeze({

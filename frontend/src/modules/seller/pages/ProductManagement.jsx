@@ -1268,27 +1268,25 @@ const ProductManagement = () => {
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-bold">Product Variants</h4>
-                        {hasVariantsFeature && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                variants: [
-                                  ...prev.variants,
-                                  {
-                                    id: Date.now(),
-                                    name: "",
-                                    price: "",
-                                    salePrice: "",
-                                    stock: "",
-                                    sku: makeSku(prev.name, prev.variants.length + 1),
-                                  },
-                                ],
-                              }))
-                            }
-                            className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-[10px] font-bold">+ ADD</button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              variants: [
+                                ...prev.variants,
+                                {
+                                  id: Date.now(),
+                                  name: "",
+                                  price: "",
+                                  salePrice: "",
+                                  stock: "",
+                                  sku: makeSku(prev.name, prev.variants.length + 1),
+                                },
+                              ],
+                            }))
+                          }
+                          className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-[10px] font-bold">+ ADD</button>
                       </div>
                       <div className="space-y-3">
                         {formData.variants.map((v, i) => (

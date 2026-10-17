@@ -230,7 +230,7 @@ const settingSchema = new mongoose.Schema(
             },
             sellerEditRequiresApproval: {
                 type: Boolean,
-                default: false,
+                default: true,
             },
         },
     },

@@ -438,29 +438,27 @@ const AddProduct = () => {
                     Add different sizes, colors or weights.
                   </p>
                 </div>
-                {hasVariantsFeature && (
-                  <button
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        variants: [
-                          ...prev.variants,
-                          {
-                            id: Date.now(),
-                            name: "",
-                            price: "",
-                            salePrice: "",
-                            stock: "",
-                            sku: makeSku(prev.name, prev.variants.length + 1),
-                          },
-                        ],
-                      }))
-                    }
-                    className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-all">
-                    <HiOutlineSquaresPlus className="h-4 w-4" />
-                    <span>ADD VARIANT</span>
-                  </button>
-                )}
+                <button
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      variants: [
+                        ...prev.variants,
+                        {
+                          id: Date.now(),
+                          name: "",
+                          price: "",
+                          salePrice: "",
+                          stock: "",
+                          sku: makeSku(prev.name, prev.variants.length + 1),
+                        },
+                      ],
+                    }))
+                  }
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-all">
+                  <HiOutlineSquaresPlus className="h-4 w-4" />
+                  <span>ADD VARIANT</span>
+                </button>
               </div>
 
               <div className="space-y-3">

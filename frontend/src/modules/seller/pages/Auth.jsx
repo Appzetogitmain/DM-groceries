@@ -181,7 +181,6 @@ const Auth = () => {
   const [documents, setDocuments] = useState({
     tradeLicense: null,
     gstCertificate: null,
-    idProof: null,
     panCard: null,
     aadharCard: null,
   });
@@ -625,7 +624,6 @@ const Auth = () => {
         setDocuments({
           tradeLicense: null,
           gstCertificate: null,
-          idProof: null,
           panCard: null,
           aadharCard: null,
         });

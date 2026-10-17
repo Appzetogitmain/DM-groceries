@@ -744,15 +744,27 @@ export const createProduct = async (req, res) => {
 
     const product = await Product.create(productData);
     
-    if (isPendingApproval && product && product._id) {
+    if (product && product._id && role !== "admin") {
       try {
-        const adminIds = await getAdminIds();
-        emitNotificationEvent(NOTIFICATION_EVENTS.PRODUCT_MODERATION_REQUEST, {
+        const [adminIds, sellerName] = await Promise.all([
+          getAdminIds(),
+          resolveSellerName(req.user.id),
+        ]);
+        if (isPendingApproval) {
+          emitNotificationEvent(NOTIFICATION_EVENTS.PRODUCT_MODERATION_REQUEST, {
+            productId: product._id,
+            productName: product.name,
+            sellerId: req.user.id,
+            adminIds,
+            action: 'create'
+          });
+        }
+        emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_PRODUCT_ADDED, {
           productId: product._id,
           productName: product.name,
+          sellerName: sellerName || "A seller",
           sellerId: req.user.id,
           adminIds,
-          action: 'create'
         });
       } catch (e) {
         logger.error("Notification emission failed", { error: e });
@@ -953,15 +965,27 @@ export const updateProduct = async (req, res) => {
       { new: true, runValidators: true },
     );
     
-    if (isPendingApproval && updatedProduct) {
+    if (updatedProduct && role !== "admin") {
       try {
-        const adminIds = await getAdminIds();
-        emitNotificationEvent(NOTIFICATION_EVENTS.PRODUCT_MODERATION_REQUEST, {
+        const [adminIds, sellerName] = await Promise.all([
+          getAdminIds(),
+          resolveSellerName(req.user.id),
+        ]);
+        if (isPendingApproval) {
+          emitNotificationEvent(NOTIFICATION_EVENTS.PRODUCT_MODERATION_REQUEST, {
+            productId: updatedProduct._id,
+            productName: updatedProduct.name,
+            sellerId: req.user.id,
+            adminIds,
+            action: 'update'
+          });
+        }
+        emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_PRODUCT_UPDATED, {
           productId: updatedProduct._id,
           productName: updatedProduct.name,
+          sellerName: sellerName || "A seller",
           sellerId: req.user.id,
           adminIds,
-          action: 'update'
         });
       } catch (e) {
         logger.error("Notification emission failed", { error: e });

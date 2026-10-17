@@ -1,7 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 
 const QuickCategorySlider = ({ categories, onCategoryClick }) => {
+  const navigate = useNavigate();
   if (!categories || categories.length === 0) return null;
 
   // Show up to 6 categories in the grid for a clean 3x2 layout
@@ -13,8 +15,8 @@ const QuickCategorySlider = ({ categories, onCategoryClick }) => {
         <h2 className="text-[18px] sm:text-[20px] font-bold tracking-tight text-[#1A4516] leading-none">
           Shop by Category
         </h2>
-        <span 
-          onClick={() => onCategoryClick("all")} 
+        <span
+          onClick={() => navigate("/user/categories")}
           className="text-[#1A4516] font-bold text-[13px] cursor-pointer active:scale-95 transition-transform pb-[2px]"
         >
           View All
