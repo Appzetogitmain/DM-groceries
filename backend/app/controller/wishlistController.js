@@ -191,3 +191,28 @@ export const toggleWishlist = async (req, res) => {
     return handleResponse(res, 500, error.message);
   }
 };
+
+/* ===============================
+   CLEAR WISHLIST
+================================ */
+export const clearWishlist = async (req, res) => {
+  try {
+    const customerId = req.user.id;
+    let wishlist = await Wishlist.findOne({ customerId });
+
+    if (!wishlist) {
+      wishlist = await Wishlist.create({ customerId, products: [] });
+    } else {
+      wishlist.products = [];
+      await wishlist.save();
+    }
+
+    return handleResponse(res, 200, "Wishlist cleared successfully", {
+      _id: wishlist._id,
+      customerId,
+      products: [],
+    });
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};

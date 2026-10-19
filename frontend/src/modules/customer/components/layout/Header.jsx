@@ -13,7 +13,7 @@ const Header = () => {
     const { count: wishlistCount } = useWishlist();
     const { cartCount } = useCart();
     const location = useLocation();
-    const isCheckoutPage = location.pathname === '/checkout';
+    const isCheckoutPage = location.pathname === '/checkout' || location.pathname === '/user/checkout';
     const [isLocationOpen, setIsLocationOpen] = useState(false);
     const { currentLocation, refreshLocation } = useAppLocation();
 
@@ -97,6 +97,24 @@ const Header = () => {
                             </div>
                         </div>
                     </button>
+                    <div className="flex items-center gap-2">
+                        <Link to="/user/wishlist" className="relative flex items-center justify-center p-2.5 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white shadow-sm active:scale-95 transition-transform">
+                            <Heart size={20} />
+                            {wishlistCount > 0 && (
+                                <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow-sm">
+                                    {wishlistCount}
+                                </span>
+                            )}
+                        </Link>
+                        <Link to="/user/checkout" className="relative flex items-center justify-center p-2.5 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white shadow-sm active:scale-95 transition-transform">
+                            <ShoppingCart size={20} />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 rounded-full bg-yellow-400 text-brand-900 text-[10px] font-black flex items-center justify-center border-2 border-brand-800 shadow-sm animate-in zoom-in duration-300">
+                                    {cartCount}
+                                </span>
+                            )}
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Main Header Capsule */}

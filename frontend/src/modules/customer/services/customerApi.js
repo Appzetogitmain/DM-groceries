@@ -55,6 +55,10 @@ export const customerApi = {
     invalidateCache("/wishlist");
     return axiosInstance.delete(`/wishlist/remove/${productId}`);
   },
+  clearWishlist: () => {
+    invalidateCache("/wishlist");
+    return axiosInstance.delete("/wishlist/clear");
+  },
 
   // Orders
   // Explicit timeout so checkout never waits forever if the server blocks (e.g. Redis/Bull).

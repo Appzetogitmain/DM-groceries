@@ -13,6 +13,8 @@ import {
     validateSchema,
     verifyOtpSchema,
 } from "../validation/customerAuthValidation.js";
+import { uploadToCloudinary } from "../services/mediaService.js";
+import logger from "../services/logger.js";
 
 const generateToken = (customer) =>
     jwt.sign(
@@ -128,7 +130,7 @@ export const getCustomerProfile = async (req, res) => {
 ================================ */
 export const updateCustomerProfile = async (req, res) => {
     try {
-        const { name, email, addresses, dob, notificationsEnabled, avatar } = req.body;
+        const { name, email, addresses, dob, notificationsEnabled, avatar, bio } = req.body;
 
         const customer = await Customer.findById(req.user.id);
         if (!customer) {
@@ -136,16 +138,68 @@ export const updateCustomerProfile = async (req, res) => {
         }
 
         if (name !== undefined) customer.name = name;
-        if (email !== undefined) customer.email = email;
+        if (email !== undefined) {
+            const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+            if (cleanEmail) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(cleanEmail)) {
+                    return handleResponse(res, 400, "Please provide a valid email address");
+                }
+                const existingUser = await Customer.findOne({
+                    email: cleanEmail,
+                    _id: { $ne: req.user.id }
+                });
+                if (existingUser) {
+                    return handleResponse(res, 400, "This email address is already in use by another account");
+                }
+                customer.email = cleanEmail;
+            } else {
+                customer.email = undefined;
+            }
+        }
         if (addresses !== undefined) customer.addresses = addresses;
         if (dob !== undefined) customer.dob = dob;
-        if (notificationsEnabled !== undefined) customer.notificationsEnabled = notificationsEnabled;
-        if (avatar !== undefined) customer.avatar = avatar;
+        if (avatar !== undefined) {
+            const avatarStr = typeof avatar === "string" ? avatar.trim() : "";
+            if (avatarStr.startsWith("data:image/")) {
+                const matches = avatarStr.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+                if (matches) {
+                    const mimeType = matches[1];
+                    const buffer = Buffer.from(matches[2], "base64");
+
+                    // Validate max 5 MB size limit
+                    if (buffer.length > 5 * 1024 * 1024) {
+                        return handleResponse(res, 400, "Image size must be up to 5 MB");
+                    }
+
+                    try {
+                        const uploadedUrl = await uploadToCloudinary(buffer, "users/avatars", {
+                            mimeType,
+                            resourceType: "image",
+                        });
+                        customer.avatar = uploadedUrl;
+                    } catch (uploadErr) {
+                        logger.error("Cloudinary upload failed for avatar, storing compressed string fallback", {
+                            error: uploadErr.message,
+                        });
+                        customer.avatar = avatarStr;
+                    }
+                } else {
+                    customer.avatar = avatarStr;
+                }
+            } else {
+                customer.avatar = avatarStr || undefined;
+            }
+        }
+        if (bio !== undefined) customer.bio = bio;
 
         await customer.save();
 
         return handleResponse(res, 200, "Profile updated successfully", customer);
     } catch (error) {
+        if (error.code === 11000 && error.keyPattern?.email) {
+            return handleResponse(res, 400, "This email address is already in use by another account");
+        }
         return handleResponse(res, 500, error.message);
     }
 };

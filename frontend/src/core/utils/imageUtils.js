@@ -49,3 +49,82 @@ export function buildCloudinarySrcSet(
     })
     .join(", ");
 }
+
+/**
+ * Compresses an image (File or base64/dataURL) using an HTML5 Canvas.
+ * Validates maximum input size (default: 5MB).
+ * Resizes down to maxWidth x maxHeight (default: 800x800) preserving aspect ratio.
+ * Encodes as JPEG at specified quality (default: 0.8).
+ * Returns Promise<string> (compressed base64 Data URL).
+ */
+export async function compressImage(source, options = {}) {
+  const {
+    maxWidth = 800,
+    maxHeight = 800,
+    quality = 0.8,
+    maxSizeBytes = 5 * 1024 * 1024, // 5MB
+    mimeType = "image/jpeg",
+  } = options;
+
+  let dataUrl = "";
+  let originalSize = 0;
+
+  if (source instanceof File || source instanceof Blob) {
+    originalSize = source.size;
+    if (originalSize > maxSizeBytes) {
+      throw new Error(`Image size must be up to ${(maxSizeBytes / (1024 * 1024)).toFixed(0)} MB`);
+    }
+    dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Failed to read image file"));
+      reader.readAsDataURL(source);
+    });
+  } else if (typeof source === "string") {
+    dataUrl = source;
+    const base64Content = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
+    originalSize = Math.round((base64Content.length * 3) / 4);
+    if (originalSize > maxSizeBytes) {
+      throw new Error(`Image size must be up to ${(maxSizeBytes / (1024 * 1024)).toFixed(0)} MB`);
+    }
+  } else {
+    throw new Error("Unsupported image source");
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return resolve(dataUrl);
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL(mimeType, quality);
+        resolve(compressedDataUrl);
+      } catch (err) {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => reject(new Error("Failed to load image for compression"));
+    img.src = dataUrl;
+  });
+}
+

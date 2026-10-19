@@ -3,7 +3,8 @@ import {
     getWishlist,
     addToWishlist,
     removeFromWishlist,
-    toggleWishlist
+    toggleWishlist,
+    clearWishlist
 } from "../controller/wishlistController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import { validate } from "../middleware/validate.js";
@@ -23,6 +24,7 @@ router.use(verifyToken); // All wishlist routes require auth
 router.get("/", getWishlist);
 router.post("/add", validate(addToWishlistSchema), addToWishlist);
 router.post("/toggle", validate(toggleWishlistSchema), toggleWishlist);
+router.delete("/clear", clearWishlist);
 router.delete(
     "/remove/:productId",
     validate(removeFromWishlistParamsSchema, "params"),

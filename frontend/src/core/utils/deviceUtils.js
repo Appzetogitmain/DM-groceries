@@ -18,8 +18,16 @@ function readQueryFlag() {
   if (typeof window === "undefined") return false;
   try {
     const params = new URLSearchParams(window.location.search);
-    const flag = String(params.get("nativeApp") || params.get("webview") || "").toLowerCase();
-    return flag === "1" || flag === "true" || flag === "yes";
+    const flag = String(
+      params.get("nativeApp") ||
+        params.get("webview") ||
+        params.get("app") ||
+        params.get("isApp") ||
+        "",
+    ).toLowerCase();
+    if (flag === "1" || flag === "true" || flag === "yes") return true;
+    if (params.get("mode")?.toLowerCase() === "app") return true;
+    return false;
   } catch {
     return false;
   }

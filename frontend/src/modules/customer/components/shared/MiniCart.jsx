@@ -16,16 +16,16 @@ const MiniCart = () => {
     const path = location.pathname.replace(/\/$/, '') || '/';
 
     // Hide MiniCart on checkout page, order details page, profile page, wallet, transactions, wishlist, addresses, support, privacy, and about page
-    const isCheckoutPage = path === '/checkout';
-    const isOrderDetailsPage = path.startsWith('/orders');
-    const isProfilePage = path === '/profile';
-    const isWalletPage = path === '/wallet';
-    const isTransactionsPage = path === '/transactions';
-    const isWishlistPage = path.startsWith('/wishlist');
-    const isAddressesPage = path.startsWith('/addresses');
-    const isSupportPage = path.startsWith('/support');
-    const isPrivacyPage = path.startsWith('/privacy');
-    const isAboutPage = path.startsWith('/about');
+    const isCheckoutPage = path === '/checkout' || path === '/user/checkout';
+    const isOrderDetailsPage = path.startsWith('/orders') || path.startsWith('/user/orders');
+    const isProfilePage = path === '/profile' || path === '/user/profile';
+    const isWalletPage = path === '/wallet' || path === '/user/wallet';
+    const isTransactionsPage = path === '/transactions' || path === '/user/transactions';
+    const isWishlistPage = path.startsWith('/wishlist') || path.startsWith('/user/wishlist');
+    const isAddressesPage = path.startsWith('/addresses') || path.startsWith('/user/addresses');
+    const isSupportPage = path.startsWith('/support') || path.startsWith('/user/support');
+    const isPrivacyPage = path.startsWith('/privacy') || path.startsWith('/user/privacy');
+    const isAboutPage = path.startsWith('/about') || path.startsWith('/user/about');
 
     return (
         <AnimatePresence>

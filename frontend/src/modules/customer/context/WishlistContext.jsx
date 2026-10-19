@@ -167,9 +167,22 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const clearWishlist = async () => {
-    // Clearing wishlist might not have a dedicated API, usually it's individual removes
-    // or a clear endpoint. If no clear endpoint, we can't easily sync but let's assume local clearing first.
-    setWishlist([]);
+    if (isAuthenticated) {
+      try {
+        setLoading(true);
+        await customerApi.clearWishlist();
+        setWishlist([]);
+        setIsFullDataFetched(true);
+      } catch (error) {
+        console.error("Error clearing wishlist on backend", error);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setWishlist([]);
+      removeStorage(STORAGE_KEYS.WISHLIST);
+    }
   };
 
   const wishlistValue = useMemo(() => ({

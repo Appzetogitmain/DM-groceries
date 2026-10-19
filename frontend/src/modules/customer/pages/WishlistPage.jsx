@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ProductCard from "../components/shared/ProductCard";
 import { useWishlist } from "../context/WishlistContext";
 import { ChevronLeft, Heart, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const WishlistPage = () => {
   const navigate = useNavigate();
@@ -13,6 +14,20 @@ const WishlistPage = () => {
     isFullDataFetched,
     loading,
   } = useWishlist();
+
+  const [clearing, setClearing] = useState(false);
+
+  const handleClear = async () => {
+    try {
+      setClearing(true);
+      await clearWishlist();
+      toast.success("Wishlist cleared");
+    } catch {
+      toast.error("Failed to clear wishlist");
+    } finally {
+      setClearing(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!isFullDataFetched) {
@@ -48,9 +63,10 @@ const WishlistPage = () => {
         </div>
         {wishlist.length > 0 && (
           <button
-            onClick={clearWishlist}
-            className="flex items-center gap-1.5 text-[#1A4516] text-xs font-bold hover:bg-[#F5FBF5] px-3 py-2 rounded-lg transition-colors">
-            <Trash2 size={14} /> Clear
+            onClick={handleClear}
+            disabled={clearing}
+            className="flex items-center gap-1.5 text-[#1A4516] text-xs font-bold hover:bg-[#F5FBF5] px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
+            <Trash2 size={14} /> {clearing ? "Clearing..." : "Clear"}
           </button>
         )}
       </div>

@@ -37,6 +37,8 @@ const userSchema = new mongoose.Schema(
         email: {
             type: String,
             lowercase: true,
+            trim: true,
+            set: (val) => (val && typeof val === "string" && val.trim() ? val.trim().toLowerCase() : undefined),
             unique: true,
             sparse: true, // phone login users ke liye
         },
@@ -59,6 +61,11 @@ const userSchema = new mongoose.Schema(
         },
 
         bloodGroup: {
+            type: String,
+            trim: true,
+        },
+
+        bio: {
             type: String,
             trim: true,
         },
@@ -161,6 +168,28 @@ userSchema.index({ role: 1, isActive: 1 });
 userSchema.pre("validate", function(next) {
     if (this.phone) {
         this.phone = normalizePhoneNumber(this.phone);
+    }
+    if (this.email === "" || (typeof this.email === "string" && !this.email.trim())) {
+        this.email = undefined;
+    }
+    next();
+});
+
+userSchema.pre("findOneAndUpdate", function(next) {
+    const update = this.getUpdate();
+    if (update) {
+        if (update.email === "" || (typeof update.email === "string" && !update.email.trim())) {
+            delete update.email;
+            if (!update.$unset) update.$unset = {};
+            update.$unset.email = 1;
+        }
+        if (update.$set) {
+            if (update.$set.email === "" || (typeof update.$set.email === "string" && !update.$set.email.trim())) {
+                delete update.$set.email;
+                if (!update.$unset) update.$unset = {};
+                update.$unset.email = 1;
+            }
+        }
     }
     next();
 });

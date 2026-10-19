@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Phone, Mail, Camera, Save, Calendar } from 'lucide-react';
+import { ArrowLeft, User, Phone, Mail, Camera, Save, Calendar, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useAuth } from '@core/context/AuthContext';
+import { compressImage } from '@core/utils/imageUtils';
 import { customerApi } from '../services/customerApi';
 
 const EditProfilePage = () => {
     const navigate = useNavigate();
-    const { user, login } = useAuth();
+    const { user, updateUser, refreshUser } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: user?.name || '',
@@ -19,20 +20,56 @@ const EditProfilePage = () => {
         avatar: user?.avatar || ''
     });
 
+    useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                name: user.name ?? prev.name,
+                phone: user.phone ?? prev.phone,
+                email: user.email ?? '',
+                bio: user.bio ?? prev.bio,
+                dob: user.dob ?? prev.dob,
+                avatar: user.avatar ?? prev.avatar
+            }));
+        }
+    }, [user]);
+
+    const [isProcessingImage, setIsProcessingImage] = useState(false);
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const processAndSetImage = async (imageSource) => {
+        setIsProcessingImage(true);
+        try {
+            const compressed = await compressImage(imageSource, {
+                maxWidth: 800,
+                maxHeight: 800,
+                quality: 0.8,
+                maxSizeBytes: 5 * 1024 * 1024, // 5MB limit
+            });
+            setFormData(prev => ({ ...prev, avatar: compressed }));
+            toast.success('Photo captured and compressed successfully!');
+        } catch (err) {
+            console.error("Image processing error:", err);
+            toast.error(err.message || 'Failed to process image');
+        } finally {
+            setIsProcessingImage(false);
+        }
+    };
+
     const handleCameraClick = async () => {
+        if (isProcessingImage) return;
+
         // Check if we are running inside the Flutter app
         if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
             try {
                 const result = await window.flutter_inappwebview.callHandler('openCamera');
                 if (result && result.success) {
-                    const imageUrl = `data:${result.mimeType};base64,${result.base64}`;
-                    setFormData(prev => ({ ...prev, avatar: imageUrl }));
-                } else {
-                    toast.error('Image capture cancelled or failed');
+                    const imageUrl = `data:${result.mimeType || 'image/jpeg'};base64,${result.base64}`;
+                    await processAndSetImage(imageUrl);
+                } else if (result?.error) {
+                    toast.error(result.error);
                 }
             } catch (error) {
                 console.error("Camera handler error:", error);
@@ -43,14 +80,14 @@ const EditProfilePage = () => {
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
-            fileInput.onchange = (e) => {
-                const file = e.target.files[0];
+            fileInput.onchange = async (e) => {
+                const file = e.target.files?.[0];
                 if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        setFormData(prev => ({ ...prev, avatar: reader.result }));
-                    };
-                    reader.readAsDataURL(file);
+                    if (file.size > 5 * 1024 * 1024) {
+                        toast.error('Image size must be up to 5 MB');
+                        return;
+                    }
+                    await processAndSetImage(file);
                 }
             };
             fileInput.click();
@@ -65,7 +102,8 @@ const EditProfilePage = () => {
             const updatedUser = response.data.result;
 
             // Update local auth state
-            login({ ...user, ...updatedUser });
+            updateUser(updatedUser);
+            await refreshUser();
 
             toast.success('Profile updated successfully!');
             navigate('/user/profile');
@@ -92,7 +130,12 @@ const EditProfilePage = () => {
                 <div className="flex flex-col items-center mb-8">
                     <div className="relative">
                         <div className="h-28 w-28 rounded-full bg-[#F5FBF5] border-4 border-white shadow-md flex items-center justify-center overflow-hidden">
-                            {formData.avatar ? (
+                            {isProcessingImage ? (
+                                <div className="flex flex-col items-center justify-center gap-1">
+                                    <Loader2 size={28} className="animate-spin text-[#1A4516]" />
+                                    <span className="text-[10px] text-slate-500 font-medium">Optimizing...</span>
+                                </div>
+                            ) : formData.avatar ? (
                                 <img src={formData.avatar} alt="Profile" className="h-full w-full object-cover" />
                             ) : (
                                 <User size={48} className="text-[#1A4516]/50" />
@@ -101,12 +144,15 @@ const EditProfilePage = () => {
                         <button 
                             type="button"
                             onClick={handleCameraClick}
-                            className="absolute bottom-0 right-0 p-2 bg-[#1A4516] text-white rounded-full border-2 border-white shadow-sm hover:bg-[#0a3000] transition-colors"
+                            disabled={isProcessingImage}
+                            className="absolute bottom-0 right-0 p-2 bg-[#1A4516] text-white rounded-full border-2 border-white shadow-sm hover:bg-[#0a3000] transition-colors disabled:opacity-50"
                         >
-                            <Camera size={18} />
+                            {isProcessingImage ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
                         </button>
                     </div>
-                    <p className="mt-3 text-sm font-bold text-[#1A4516]">Change Photo</p>
+                    <p className="mt-3 text-sm font-bold text-[#1A4516]">
+                        {isProcessingImage ? 'Optimizing photo...' : 'Change Photo'}
+                    </p>
                 </div>
 
                 {/* Edit Form */}

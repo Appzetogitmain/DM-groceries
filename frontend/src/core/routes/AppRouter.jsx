@@ -1,10 +1,11 @@
-import React, { lazy, useMemo, useEffect, Suspense } from 'react';
+import React, { lazy, useMemo, useEffect, useState, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Outlet, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from '../guards/ProtectedRoute';
 import RoleGuard from '../guards/RoleGuard';
 import { UserRole } from '../constants/roles';
 import RootErrorBoundary from '../../shared/components/RootErrorBoundary';
 import { setActiveRole, ROLES } from '../auth/activeRoleStore';
+import { isFlutterWebView, subscribeNativeBridgeReady } from '../utils/deviceUtils';
 
 // Providers for Customer Module
 import { WishlistProvider } from '../../modules/customer/context/WishlistContext';
@@ -96,6 +97,31 @@ const LegacyCustomerRedirect = () => {
     return <Navigate to={`/user${pathname}${search}${hash}`} replace />;
 };
 
+const RootIndexRoute = () => {
+    const location = useLocation();
+    const [inApp, setInApp] = useState(() => isFlutterWebView());
+
+    useEffect(() => {
+        if (inApp) return;
+        const cleanup = subscribeNativeBridgeReady(() => {
+            setInApp(true);
+        });
+        return cleanup;
+    }, [inApp]);
+
+    if (inApp) {
+        // App users bypass marketing landing page completely and enter the customer store
+        const targetSearch = location.search || '';
+        return <Navigate to={`/user${targetSearch}`} replace />;
+    }
+
+    return <LandingPage />;
+};
+
+const CatchAllRedirect = () => {
+    return <Navigate to={isFlutterWebView() ? '/user' : '/'} replace />;
+};
+
 const AppRouter = () => {
     const router = useMemo(() => createBrowserRouter([
         {
@@ -167,7 +193,7 @@ const AppRouter = () => {
                 },
                 {
                     index: true,
-                    element: <LandingPage />,
+                    element: <RootIndexRoute />,
                 },
                 {
                     path: 'join',
@@ -216,7 +242,7 @@ const AppRouter = () => {
                 })),
                 {
                     path: '*',
-                    element: <Navigate to="/" replace />
+                    element: <CatchAllRedirect />
                 }
             ]
         }

@@ -55,6 +55,17 @@ const extractAddressDetails = (result) => {
     return { locality, city, state, pincode };
 };
 
+const cleanPhoneNumber = (val) => {
+    if (!val) return '';
+    let digits = String(val).replace(/\D/g, '');
+    if (digits.startsWith('91') && digits.length > 10) {
+        digits = digits.substring(2);
+    } else if (digits.startsWith('0') && digits.length > 10) {
+        digits = digits.substring(1);
+    }
+    return digits.slice(0, 10);
+};
+
 const PlacesAutocompleteInput = ({ isLoaded, value, onChange, onPlaceSelected, id, placeholder, maxLength }) => {
     const inputRef = useRef(null);
     const autocompleteInstance = useRef(null);
@@ -120,7 +131,7 @@ const AddressesPage = () => {
             const raw = Array.isArray(profile?.addresses) ? profile.addresses : [];
             setRawAddresses(raw);
             setProfileName(profile?.name ?? '');
-            setProfilePhone(profile?.phone ?? '');
+            setProfilePhone(cleanPhoneNumber(profile?.phone));
             setAddresses(raw.map((addr, idx) => ({
                 id: addr._id ?? idx,
                 type: (addr.label || 'home').charAt(0).toUpperCase() + (addr.label || 'home').slice(1),
@@ -129,7 +140,7 @@ const AddressesPage = () => {
                 city: addr.city,
                 state: addr.state,
                 pincode: addr.pincode,
-                phone: profile?.phone ?? '',
+                phone: cleanPhoneNumber(profile?.phone) || profile?.phone || '',
                 isDefault: idx === 0
             })));
         } catch {
@@ -166,7 +177,13 @@ const AddressesPage = () => {
     const [addForm, setAddForm] = useState(() => {
         const saved = sessionStorage.getItem('addAddressForm');
         if (saved) {
-            try { return JSON.parse(saved); } catch (e) {}
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed && parsed.phone) {
+                    parsed.phone = cleanPhoneNumber(parsed.phone);
+                }
+                return parsed;
+            } catch (e) {}
         }
         return {
             type: 'home',
@@ -279,7 +296,7 @@ const AddressesPage = () => {
         setAddForm(f => ({
             ...f,
             name: f.name || profileName,
-            phone: f.phone || profilePhone || ''
+            phone: cleanPhoneNumber(f.phone || profilePhone || '')
         }));
         setIsAddOpen(true);
     };
@@ -291,7 +308,7 @@ const AddressesPage = () => {
         setAddForm({
             type: 'home',
             name: profileName,
-            phone: profilePhone || '',
+            phone: cleanPhoneNumber(profilePhone) || '',
             address: '',
             landmark: '',
             city: '',
@@ -307,7 +324,8 @@ const AddressesPage = () => {
             toast.error('Name should contain only alphabets');
             return false;
         }
-        if (form.phone && !/^[6-9]\d{9}$/.test(form.phone.trim())) {
+        const cleanedPhone = cleanPhoneNumber(form.phone);
+        if (form.phone && !/^[6-9]\d{9}$/.test(cleanedPhone)) {
             toast.error('Phone number must start with 6,7,8,9 and be exactly 10 digits');
             return false;
         }
@@ -360,13 +378,13 @@ const AddressesPage = () => {
 
     const handleSaveNewAddress = async () => {
         if (!validateAddressForm(addForm)) return;
-        if (!validateAddressForm(addForm)) return;
         const name = addForm.name?.trim();
         const address = addForm.address?.trim();
         const city = addForm.city?.trim();
         const landmark = addForm.landmark?.trim();
         const state = addForm.state?.trim();
         const pincode = addForm.pincode?.trim();
+        const cleanedPhone = cleanPhoneNumber(addForm.phone);
         if (!address) {
             toast.error('Please enter the address');
             return;
@@ -412,7 +430,7 @@ const AddressesPage = () => {
 
             await customerApi.updateProfile({
                 ...(name && { name }),
-                ...(addForm.phone && { phone: addForm.phone.trim() }),
+                ...(cleanedPhone && { phone: cleanedPhone }),
                 addresses: [...rawAddresses, newAddr]
             });
             toast.success('Address saved successfully');
@@ -421,7 +439,7 @@ const AddressesPage = () => {
             setAddForm({
                 type: 'home',
                 name: profileName,
-                phone: profilePhone || '',
+                phone: cleanPhoneNumber(profilePhone) || '',
                 address: '',
                 landmark: '',
                 city: '',
@@ -458,7 +476,7 @@ const AddressesPage = () => {
         setEditForm({
             type: (addr.type || 'Home').toLowerCase(),
             name: addr.name ?? '',
-            phone: addr.phone ?? '',
+            phone: cleanPhoneNumber(addr.phone || profilePhone || ''),
             address: addr.address ?? '',
             landmark: addr.landmark ?? '',
             city: addr.city ?? '',
@@ -470,7 +488,9 @@ const AddressesPage = () => {
 
     const handleUpdateAddress = async () => {
         if (!selectedAddress) return;
+        if (!validateAddressForm(editForm)) return;
         const address = editForm.address?.trim();
+        const cleanedPhone = cleanPhoneNumber(editForm.phone);
         if (!address) {
             toast.error('Please enter the address');
             return;
@@ -518,7 +538,7 @@ const AddressesPage = () => {
         try {
             await customerApi.updateProfile({
                 ...(editForm.name?.trim() && { name: editForm.name.trim() }),
-                ...(editForm.phone?.trim() && { phone: editForm.phone.trim() }),
+                ...(cleanedPhone && { phone: cleanedPhone }),
                 addresses: updatedAddresses
             });
             toast.success('Address updated successfully');

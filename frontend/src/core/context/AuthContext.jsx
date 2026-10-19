@@ -253,13 +253,19 @@ export const AuthProvider = ({ children }) => {
         else window.location.href = '/login';
     };
 
+    const updateUser = (userData) => {
+        if (!userData || typeof userData !== 'object') return;
+        setUser((prev) => ({ ...(prev || {}), ...userData }));
+    };
+
     const refreshUser = async () => {
         if (token) {
             try {
                 const endpoint = `/${currentRole}/profile`;
                 const response = await axiosInstance.get(endpoint);
-                setUser(response.data.result);
-                return response.data.result;
+                const profile = response.data?.result ?? response.data;
+                setUser(profile);
+                return profile;
             } catch (error) {
                 console.error('Failed to refresh profile:', error);
             }
@@ -275,6 +281,7 @@ export const AuthProvider = ({ children }) => {
         authData,
         login,
         logout,
+        updateUser,
         refreshUser
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [user, token, currentRole, isAuthenticated, isLoading, authData]);

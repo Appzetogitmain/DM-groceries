@@ -5,6 +5,8 @@ import Lottie from "lottie-react";
 import LocationDrawer from "./LocationDrawer";
 import { useLocation } from "../../context/LocationContext";
 import { useProductDetail } from "../../context/ProductDetailContext";
+import { useCart } from "../../context/CartContext";
+import { useWishlist } from "../../context/WishlistContext";
 import { useSettings } from "@core/context/SettingsContext";
 import { cn } from "@/lib/utils";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
@@ -163,6 +165,9 @@ const MainLocationHeader = ({
   }, []);
   const { currentLocation, refreshLocation, isFetchingLocation } =
     useLocation();
+  const { cartCount } = useCart();
+  const { wishlist } = useWishlist();
+  const wishlistCount = wishlist?.length || 0;
   const { isOpen: isProductDetailOpen } = useProductDetail();
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
@@ -353,10 +358,15 @@ const MainLocationHeader = ({
                 whileHover={{ scale: 1.15, rotate: 5 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => navigate("/user/wishlist")}
-                className="transition-all hover:text-red-500"
+                className="transition-all hover:text-red-500 relative group"
                 style={{ color: headerFontColor }}
               >
                 <FavoriteBorderOutlinedIcon sx={{ fontSize: 24 }} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-black min-w-[18px] h-4.5 px-1 rounded-full flex items-center justify-center border-2 border-white shadow-sm transition-transform group-hover:-translate-y-0.5 animate-in zoom-in duration-300">
+                    {wishlistCount}
+                  </span>
+                )}
               </motion.button>
 
               <motion.button
@@ -367,9 +377,11 @@ const MainLocationHeader = ({
                 style={{ color: headerFontColor }}
               >
                 <ShoppingCartOutlinedIcon sx={{ fontSize: 24 }} />
-                <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-brand-900 text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-brand-800 shadow-sm transition-transform group-hover:-translate-y-0.5">
-                  0
-                </span>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-brand-900 text-[9px] font-black min-w-[18px] h-4.5 px-1 rounded-full flex items-center justify-center border-2 border-brand-800 shadow-sm transition-transform group-hover:-translate-y-0.5 animate-in zoom-in duration-300">
+                    {cartCount}
+                  </span>
+                )}
               </motion.button>
 
               <motion.button

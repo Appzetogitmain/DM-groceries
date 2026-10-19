@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import axiosInstance from '@core/api/axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { isFlutterWebView, subscribeNativeBridgeReady } from '@core/utils/deviceUtils';
 import {
     ShoppingBasket,
     Leaf,
@@ -117,11 +118,24 @@ const StoreButtons = ({ className = '' }) => (
 );
 
 const LandingPage = () => {
+    const navigate = useNavigate();
     const { settings } = useSettings();
     const appName = settings?.appName || 'DM Groceries';
     const catRef = useRef(null);
     const contactPhone = settings?.supportPhone || '+91 98765 43210';
     const contactEmail = settings?.supportEmail || 'support@dmgroceries.in';
+
+    // If opened inside mobile app/WebView, immediately redirect to Customer Home
+    useEffect(() => {
+        if (isFlutterWebView()) {
+            navigate('/user', { replace: true });
+            return;
+        }
+        const cleanup = subscribeNativeBridgeReady(() => {
+            navigate('/user', { replace: true });
+        });
+        return cleanup;
+    }, [navigate]);
 
     // Testimonials: approved ones are loaded from the API (managed by admin)
     const [reviews, setReviews] = useState([]);

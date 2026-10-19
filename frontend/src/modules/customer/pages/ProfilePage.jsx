@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     User, MapPin, Package, Wallet, ChevronRight,
@@ -15,10 +15,14 @@ import { useConfirmDialog } from '@/shared/hooks/useConfirmDialog';
 
 const ProfilePage = () => {
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { user, logout, refreshUser } = useAuth();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
     const confirm = useConfirmDialog();
+
+    useEffect(() => {
+        refreshUser?.();
+    }, []);
 
     const formatIndiaPhone = (value) => {
         const raw = String(value || '').trim();
@@ -76,6 +80,9 @@ const ProfilePage = () => {
                                 Hi, {user?.name || 'Customer'} <span>👋</span>
                             </h2>
                             <p className="text-white/80 text-sm mt-0.5 font-medium truncate">{formatIndiaPhone(user?.phone) || '98765 43210'}</p>
+                            {user?.email ? (
+                                <p className="text-white/70 text-xs mt-0.5 font-medium truncate">{user.email}</p>
+                            ) : null}
                         </div>
                     </div>
                     <Link to="/user/profile/edit" className="text-white hover:bg-white/10 p-2 rounded-full transition-colors shrink-0">
