@@ -509,4 +509,4 @@ async function main() {
 }
 
 // Start the application
-main();// nodemon restart trigger
+main();// nodemon restart trigger - reload with scheduler enabled
