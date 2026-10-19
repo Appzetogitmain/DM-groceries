@@ -662,7 +662,23 @@ export async function processPaymentTimeoutJob({ orderId }) {
 
   await compensateOrderCancellation(updated, orderId);
 
-  emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.CANCELLED }, updated.customer);
+  emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.CANCELLED, reason: "payment_timeout" }, updated.customer);
+  emitToCustomer(updated.customer?.toString(), {
+    event: "order:cancelled",
+    payload: {
+      orderId: updated.orderId,
+      reason: "payment_timeout",
+      message: "Your order has been cancelled because you did not complete the payment within 5 minutes.",
+    },
+  });
+  emitToSeller(updated.seller?.toString(), {
+    event: "order:cancelled",
+    payload: {
+      orderId: updated.orderId,
+      reason: "payment_timeout",
+      message: `Order #${updated.orderId} has been cancelled because the customer did not complete the payment.`,
+    },
+  });
   emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CANCELLED, {
     orderId: updated.orderId,
     customerId: updated.customer,
@@ -680,16 +696,48 @@ export async function processPaymentTimeoutJob({ orderId }) {
 }
 
 export async function processPaymentReminderJob({ orderId }) {
-  const order = await Order.findOne({ orderId, workflowVersion: { $gte: 2 } });
-  if (!order || order.workflowStatus !== WORKFLOW_STATUS.SELLER_ACCEPTED) return;
-  if (order.paymentStatus === "PAID") return;
+  const order = await Order.findOneAndUpdate(
+    {
+      orderId,
+      workflowVersion: { $gte: 2 },
+      workflowStatus: WORKFLOW_STATUS.SELLER_ACCEPTED,
+      paymentStatus: { $ne: "PAID" },
+      customerPaymentReminderSentAt: { $exists: false },
+    },
+    { $set: { customerPaymentReminderSentAt: new Date() } },
+    { new: true }
+  );
+  if (!order) return;
+
+  const remainingMs = Math.max(0, new Date(order.customerPaymentPendingExpiresAt).getTime() - Date.now());
+
+  emitToCustomer(order.customer?.toString(), {
+    event: "order:payment_reminder",
+    payload: {
+      orderId: order.orderId,
+      remainingMs,
+      customerPaymentPendingExpiresAt: order.customerPaymentPendingExpiresAt,
+      totalAmount: order.pricing?.total || order.total,
+    },
+  });
+
+  emitOrderStatusUpdate(
+    order.orderId,
+    {
+      workflowStatus: WORKFLOW_STATUS.SELLER_ACCEPTED,
+      paymentReminder: true,
+      remainingMs,
+      customerPaymentPendingExpiresAt: order.customerPaymentPendingExpiresAt,
+    },
+    order.customer
+  );
 
   emitNotificationEvent(NOTIFICATION_EVENTS.GENERIC_ALERT, {
     orderId: order.orderId,
     customerId: order.customer,
     userId: order.customer,
-    title: "Payment Pending ⏳",
-    message: "Your payment is pending. Please complete your payment to confirm your order.",
+    title: "Payment Pending ⏳ (2 Mins Left)",
+    message: "Only 2 minutes remaining! Please complete your payment to avoid automatic cancellation.",
   });
 }
 

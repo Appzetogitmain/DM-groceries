@@ -24,6 +24,8 @@ import {
   DEFAULT_SELLER_REMINDER_MS,
   DEFAULT_DELIVERY_TIMEOUT_MS,
   DEFAULT_RETURN_PICKUP_TIMEOUT_MS,
+  DEFAULT_CUSTOMER_PAYMENT_TIMEOUT_MS,
+  DEFAULT_CUSTOMER_PAYMENT_REMINDER_MS,
 } from "../../constants/orderWorkflow.js";
 import logger from "../logger.js";
 
@@ -377,7 +379,7 @@ async function removePaymentTimeout(orderId) {
 }
 
 async function schedulePaymentReminder(orderId) {
-  const delay = 2 * 60 * 1000; // 2 minutes
+  const delay = DEFAULT_CUSTOMER_PAYMENT_REMINDER_MS(); // 3 minutes elapsed = 2 minutes remaining
   const addPromise = paymentReminderQueue
     .add(
       JOB_NAMES.PAYMENT_REMINDER,

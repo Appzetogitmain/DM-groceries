@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
@@ -7,18 +7,28 @@ import ProductDetailSheet from '../shared/ProductDetailSheet';
 import MobileFooterMessage from './MobileFooterMessage';
 import { useProductDetail } from '../../context/ProductDetailContext';
 import { cn } from '@/lib/utils';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@core/context/AuthContext';
-import { onReturnPickupOtp, onReturnDropOtp, onNotificationNew } from '@core/services/orderSocket';
+import { 
+    onReturnPickupOtp, 
+    onReturnDropOtp, 
+    onNotificationNew, 
+    onCustomerPaymentReminder, 
+    onCustomerOrderCancelled, 
+    onOrderStatusUpdate 
+} from '@core/services/orderSocket';
 import { toast } from 'sonner';
 import { ShieldCheck, Package } from 'lucide-react';
 import { playNotificationSound } from '@/lib/soundUtils';
 import LocationRequiredModal from '../shared/LocationRequiredModal';
+import CustomerPaymentReminderModal from '../order/CustomerPaymentReminderModal';
 
 const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = false, showCart: showCartProp, showBottomNav: showBottomNavProp }) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { isOpen: isProductDetailOpen } = useProductDetail();
     const { user, token } = useAuth();
+    const [paymentReminderAlert, setPaymentReminderAlert] = useState(null);
 
     // Listen for Return OTPs (Real-time Alert for Customer)
     useEffect(() => {
@@ -84,10 +94,50 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
             playNotificationSound();
         });
 
+        // Listen for urgent 2-minute payment reminders
+        const cleanupPaymentReminder = onCustomerPaymentReminder(() => token, (payload) => {
+            console.log('[CustomerLayout] Payment Reminder Received:', payload);
+            if (payload?.orderId) {
+                setPaymentReminderAlert({
+                    orderId: payload.orderId,
+                    expiresAt: payload.customerPaymentPendingExpiresAt || payload.expiresAt,
+                    amount: payload.totalAmount || payload.amount,
+                });
+            }
+        });
+
+        // Listen for auto-cancelled orders due to payment timeout
+        const cleanupOrderCancelled = onCustomerOrderCancelled(() => token, (payload) => {
+            console.log('[CustomerLayout] Order Cancelled Received:', payload);
+            if (payload?.reason === 'payment_timeout') {
+                toast.error(payload.message || 'Order cancelled because payment was not completed within 5 minutes.', {
+                    duration: 8000,
+                });
+            }
+            setPaymentReminderAlert((prev) => (prev?.orderId === payload?.orderId ? null : prev));
+        });
+
+        // Listen for status updates (dismiss alert if paid or cancelled)
+        const cleanupStatusUpdate = onOrderStatusUpdate(() => token, (payload) => {
+            if (payload?.paymentReminder && payload?.customerPaymentPendingExpiresAt) {
+                setPaymentReminderAlert({
+                    orderId: payload.orderId,
+                    expiresAt: payload.customerPaymentPendingExpiresAt,
+                    amount: payload.amount,
+                });
+            }
+            if (payload?.workflowStatus === 'CANCELLED' || payload?.workflowStatus === 'DELIVERY_SEARCH') {
+                setPaymentReminderAlert((prev) => (prev?.orderId === payload?.orderId ? null : prev));
+            }
+        });
+
         return () => {
             cleanupPickup();
             cleanupDrop();
             cleanupGeneralNotification();
+            cleanupPaymentReminder();
+            cleanupOrderCancelled();
+            cleanupStatusUpdate();
         };
     }, [token, user]);
 
@@ -138,6 +188,17 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
             {showCart && <MiniCart />}
             <ProductDetailSheet />
             <LocationRequiredModal />
+            <CustomerPaymentReminderModal
+                isOpen={Boolean(paymentReminderAlert)}
+                orderId={paymentReminderAlert?.orderId}
+                expiresAt={paymentReminderAlert?.expiresAt}
+                amount={paymentReminderAlert?.amount}
+                onPayNow={(orderId) => {
+                    setPaymentReminderAlert(null);
+                    navigate(`/orders/${orderId}`);
+                }}
+                onClose={() => setPaymentReminderAlert(null)}
+            />
 
             <div className="hidden md:block">
                 <Footer />

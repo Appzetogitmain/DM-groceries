@@ -9,6 +9,8 @@ import DeliveryOtpDisplay from "../components/DeliveryOtpDisplay";
 import OrderProgressTracker from "../components/order/OrderProgressTracker";
 import ReturnProgressTracker from "../components/order/ReturnProgressTracker";
 import DeliveryPartnerRating from "../components/order/DeliveryPartnerRating";
+import PaymentPendingProgressBar from "../components/order/PaymentPendingProgressBar";
+import CustomerPaymentReminderModal from "../components/order/CustomerPaymentReminderModal";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { formatOrderId, cn } from "@/lib/utils";
 import {
@@ -444,16 +446,15 @@ const OrderDetailPage = () => {
     };
   }, [canonicalOrderId]);
 
-  // Payment Reminder Logic
+  // Payment Reminder Logic - Triggers full screen reminder when <= 2 minutes remain
   useEffect(() => {
-    if (order?.workflowStatus === 'SELLER_ACCEPTED' && order?.customerPaymentPendingExpiresAt) {
+    if (order?.workflowStatus === 'SELLER_ACCEPTED' && order?.customerPaymentPendingExpiresAt && order?.paymentStatus !== 'PAID') {
       const expiresAt = new Date(order.customerPaymentPendingExpiresAt).getTime();
       const checkReminder = () => {
         const now = Date.now();
         const remaining = expiresAt - now;
-        // Total time is 5 minutes (300,000ms). If less than or equal to 3 minutes (180,000ms) 
-        // are remaining, then 2 minutes have passed.
-        if (remaining > 0 && remaining <= 3 * 60 * 1000) {
+        // Total time is 5 minutes (300,000ms). If 2 minutes or less remain (<= 120,000ms), show urgent reminder!
+        if (remaining > 0 && remaining <= 2 * 60 * 1000) {
             setShowPaymentReminder(true);
         } else {
             setShowPaymentReminder(false);
@@ -463,13 +464,13 @@ const OrderDetailPage = () => {
       // Check immediately
       checkReminder();
 
-      // Check every 5 seconds
-      const intervalId = setInterval(checkReminder, 5000);
+      // Check every 1 second
+      const intervalId = setInterval(checkReminder, 1000);
       return () => clearInterval(intervalId);
     } else {
         setShowPaymentReminder(false);
     }
-  }, [order?.workflowStatus, order?.customerPaymentPendingExpiresAt]);
+  }, [order?.workflowStatus, order?.customerPaymentPendingExpiresAt, order?.paymentStatus]);
 
   useEffect(() => {
     const iv = setInterval(() => setClockTick(Date.now()), 30000);
@@ -1010,6 +1011,21 @@ const OrderDetailPage = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-3 py-2 space-y-3">
+        {/* 5-Minute Payment Pending Progress Bar & Live Countdown */}
+        {(isAwaitingPaymentSelection || isAwaitingOnlinePayment || (order?.workflowStatus === 'SELLER_ACCEPTED' && order?.customerPaymentPendingExpiresAt && order?.paymentStatus !== 'PAID')) && (
+          <PaymentPendingProgressBar
+            order={order}
+            onPayNow={handleSelectPaymentMethod}
+            isProcessingPayment={isProcessingPayment}
+            isOnlinePaymentEnabled={isOnlinePaymentEnabled}
+            onExpired={async () => {
+              try {
+                const res = await customerApi.getOrderDetails(orderId);
+                if (res.data?.result) setOrder(res.data.result);
+              } catch (_) {}
+            }}
+          />
+        )}
         {/* Payment Selection Card - Post Seller Acceptance */}
         {isAwaitingPaymentSelection && (
           <motion.div
@@ -1693,63 +1709,18 @@ const OrderDetailPage = () => {
         </div>
       )}
 
-      {/* Payment Reminder Modal */}
-      {showPaymentReminder && (
-        <div className="fixed inset-0 z-[700] flex items-center justify-center px-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            onClick={() => setShowPaymentReminder(false)}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative z-10 w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden"
-          >
-            <div className="bg-gradient-to-br from-[#1A4516] to-[#2C6E26] p-6 text-center relative overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
-              
-              <div className="relative z-10">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mb-4 shadow-inner">
-                  <CreditCard size={32} className="text-white animate-bounce" />
-                </div>
-                <h2 className="text-2xl font-black text-white tracking-wider uppercase drop-shadow-md">
-                  PAYMENT
-                </h2>
-                <h3 className="text-xs font-bold text-green-100/80 uppercase tracking-widest mt-1">
-                  Required to Proceed
-                </h3>
-              </div>
-            </div>
-            
-            <div className="p-6 text-center space-y-5">
-              <div className="bg-[#F5FBF5] rounded-2xl p-4 border border-[#1A4516]/10">
-                <p className="text-sm text-[#1A4516] font-medium leading-relaxed">
-                  The seller has <span className="font-bold">accepted</span> your order! Please complete your payment within the next few minutes.
-                </p>
-                <p className="text-sm text-rose-600 font-bold mt-2 leading-relaxed">
-                  If you do not complete the payment, the order will be cancelled.
-                </p>
-              </div>
-              
-              <div className="pt-2">
-                <button
-                  onClick={() => {
-                    setShowPaymentReminder(false);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="w-full bg-[#1A4516] text-white py-4 rounded-2xl text-sm font-bold hover:bg-[#0a3000] transition-all shadow-lg shadow-[#1A4516]/30 active:scale-95 flex items-center justify-center gap-2"
-                >
-                  <CreditCard size={18} />
-                  Complete Payment Now
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {/* 2-Minute Remaining Urgent Full-Screen Payment Reminder Modal */}
+      <CustomerPaymentReminderModal
+        isOpen={showPaymentReminder}
+        orderId={order?.orderId}
+        expiresAt={order?.customerPaymentPendingExpiresAt}
+        amount={order?.pricing?.total ?? order?.total}
+        onPayNow={() => {
+          setShowPaymentReminder(false);
+          handleSelectPaymentMethod(isOnlinePaymentEnabled ? "ONLINE" : "COD");
+        }}
+        onClose={() => setShowPaymentReminder(false)}
+      />
     </div>
   );
 };

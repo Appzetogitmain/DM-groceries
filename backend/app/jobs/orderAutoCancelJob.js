@@ -11,6 +11,7 @@ import {
   processDeliveryTimeoutJob,
   processReturnPickupTimeoutJob,
   processPaymentTimeoutJob,
+  processPaymentReminderJob,
 } from "../services/orderWorkflowService.js";
 import { compensateOrderCancellation } from "../services/orderCompensation.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
@@ -118,6 +119,31 @@ const autoCancelExpiredOrders = async () => {
         await processReturnPickupTimeoutJob({ orderId: row.orderId, attempt });
       } catch (err) {
         logger.error('return-pickup timeout failed', {
+          jobName: 'orderAutoCancelJob',
+          orderId: row.orderId,
+          error: err.message,
+        });
+      }
+    }
+
+    // Customer payment reminder safety net (Redis down / missed job).
+    // Fires when 2 minutes or less remain on the 5-minute payment window.
+    const paymentReminderCutoff = new Date(now.getTime() + 2 * 60 * 1000);
+    const v2PaymentReminderDue = await Order.find({
+      workflowVersion: { $gte: 2 },
+      workflowStatus: WORKFLOW_STATUS.SELLER_ACCEPTED,
+      paymentStatus: { $ne: "PAID" },
+      customerPaymentPendingExpiresAt: { $gt: now, $lte: paymentReminderCutoff },
+      customerPaymentReminderSentAt: { $exists: false },
+    })
+      .select("orderId")
+      .lean();
+
+    for (const row of v2PaymentReminderDue) {
+      try {
+        await processPaymentReminderJob({ orderId: row.orderId });
+      } catch (err) {
+        logger.error('v2 payment reminder failed', {
           jobName: 'orderAutoCancelJob',
           orderId: row.orderId,
           error: err.message,

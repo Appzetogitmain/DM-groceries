@@ -313,6 +313,20 @@ export function onCustomerOtp(getToken, handler) {
   return () => s.off("order:otp", handler);
 }
 
+export function onCustomerPaymentReminder(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("order:payment_reminder", handler);
+  return () => s.off("order:payment_reminder", handler);
+}
+
+export function onCustomerOrderCancelled(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("order:cancelled", handler);
+  return () => s.off("order:cancelled", handler);
+}
+
 export function onReturnPickupOtp(getToken, handler) {
   const s = getOrderSocket(getToken);
   if (!s || typeof handler !== "function") return () => {};

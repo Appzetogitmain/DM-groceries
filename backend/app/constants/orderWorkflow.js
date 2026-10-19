@@ -22,6 +22,11 @@ export const DEFAULT_SELLER_REMINDER_MS = () =>
 
 export const DEFAULT_SELLER_TIMEOUT_MS = () =>
   parseInt(process.env.SELLER_TIMEOUT_MS || "300000", 10);
+export const DEFAULT_CUSTOMER_PAYMENT_TIMEOUT_MS = () =>
+  parseInt(process.env.CUSTOMER_PAYMENT_TIMEOUT_MS || "300000", 10);
+export const DEFAULT_CUSTOMER_PAYMENT_REMINDER_MS = () =>
+  parseInt(process.env.CUSTOMER_PAYMENT_REMINDER_MS || "180000", 10); // 3 mins elapsed = 2 mins remaining
+
 export const DEFAULT_DELIVERY_TIMEOUT_MS = () =>
   parseInt(process.env.DELIVERY_TIMEOUT_MS || "300000", 10);
 

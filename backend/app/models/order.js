@@ -363,6 +363,8 @@ const orderSchema = new mongoose.Schema(
     deliverySearchExpiresAt: Date,
     sellerAcceptedAt: Date,
     customerPaymentPendingExpiresAt: Date,
+    /** Set once the 2-minute payment reminder was sent to the customer. */
+    customerPaymentReminderSentAt: Date,
     assignedAt: Date,
     assignmentVersion: {
       type: Number,
@@ -574,6 +576,7 @@ orderSchema.index({ status: 1, expiresAt: 1 });
 orderSchema.index({ seller: 1, returnStatus: 1, returnRequestedAt: -1 });
 orderSchema.index({ workflowStatus: 1, sellerPendingExpiresAt: 1 });
 orderSchema.index({ workflowStatus: 1, deliverySearchExpiresAt: 1 });
+orderSchema.index({ workflowStatus: 1, customerPaymentPendingExpiresAt: 1 });
 orderSchema.index({ returnStatus: 1, returnSearchExpiresAt: 1 });
 orderSchema.index({ deliveryBoy: 1, workflowStatus: 1 });
 orderSchema.index({ paymentMode: 1, paymentStatus: 1, createdAt: -1 });
