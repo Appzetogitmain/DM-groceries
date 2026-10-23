@@ -38,9 +38,17 @@ import { Loader2 } from 'lucide-react';
 import Pagination from '@shared/components/ui/Pagination';
 import { DatePicker } from "@/components/ui/date-picker";
 import { getOrderStatusVariant } from '../components/orders';
+import { useAuth } from '@core/context/AuthContext';
+import {
+    onSellerOrderNew,
+    onSellerOrderCancelled,
+    onOrderStatusUpdate,
+    onNotificationNew
+} from '@/core/services/orderSocket';
 
 
 const Orders = () => {
+    const { getToken } = useAuth();
     const [orders, setOrders] = useState([]);
     const [summary, setSummary] = useState({
         totalOrders: 0,
@@ -84,6 +92,35 @@ const Orders = () => {
         fetchOrders(page, false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, startDate, endDate]);
+
+    // Real-time socket updates for live orders and KPI counts
+    useEffect(() => {
+        const handleLiveRefresh = () => {
+            fetchOrders(page, false);
+        };
+
+        const cleanupNew = onSellerOrderNew(getToken, handleLiveRefresh);
+        const cleanupCancelled = onSellerOrderCancelled(getToken, handleLiveRefresh);
+        const cleanupStatus = onOrderStatusUpdate(getToken, handleLiveRefresh);
+        const cleanupNotification = onNotificationNew(getToken, (payload) => {
+            if (payload?.eventType?.includes('ORDER')) {
+                handleLiveRefresh();
+            }
+        });
+
+        const onWindowFocus = () => {
+            fetchOrders(page, false);
+        };
+        window.addEventListener('focus', onWindowFocus);
+
+        return () => {
+            cleanupNew();
+            cleanupCancelled();
+            cleanupStatus();
+            cleanupNotification();
+            window.removeEventListener('focus', onWindowFocus);
+        };
+    }, [page, getToken]);
 
     const fetchOrders = async (requestedPage = 1, showPageLoader = false) => {
         try {
@@ -140,17 +177,26 @@ const Orders = () => {
             }));
 
             setOrders(formattedOrders);
+
+            // Compute dynamic summary with smart fallback so KPI cards always reflect live data
+            const rawSum = payload.summary || {};
+            const fallbackPending = formattedOrders.filter(o => o.status === 'pending').length;
+            const fallbackConfirmed = formattedOrders.filter(o => o.status === 'confirmed' || o.status === 'packed').length;
+            const fallbackDelivered = formattedOrders.filter(o => o.status === 'delivered').length;
+            const fallbackTotal = typeof payload.total === 'number' ? payload.total : formattedOrders.length;
+            const hasServerSummary = rawSum && typeof rawSum.totalOrders === 'number' && (rawSum.totalOrders > 0 || fallbackTotal === 0);
+
             setSummary({
-                totalOrders: Number(payload.summary?.totalOrders || payload.total || formattedOrders.length || 0),
-                totalAmount: Number(payload.summary?.totalAmount || 0),
-                pending: Number(payload.summary?.pending || 0),
-                confirmed: Number(payload.summary?.confirmed || 0),
-                packed: Number(payload.summary?.packed || 0),
-                outForDelivery: Number(payload.summary?.outForDelivery || 0),
-                delivered: Number(payload.summary?.delivered || 0),
-                cancelled: Number(payload.summary?.cancelled || 0),
-                returned: Number(payload.summary?.returned || 0),
-                activeOrders: Number(payload.summary?.activeOrders || 0),
+                totalOrders: hasServerSummary ? Math.max(Number(rawSum.totalOrders), fallbackTotal) : fallbackTotal,
+                totalAmount: Number(rawSum.totalAmount || 0),
+                pending: hasServerSummary ? Math.max(Number(rawSum.pending || 0), fallbackPending) : fallbackPending,
+                confirmed: hasServerSummary ? Math.max(Number(rawSum.confirmed || 0), fallbackConfirmed) : fallbackConfirmed,
+                packed: Number(rawSum.packed || 0),
+                outForDelivery: Number(rawSum.outForDelivery || 0),
+                delivered: hasServerSummary ? Math.max(Number(rawSum.delivered || 0), fallbackDelivered) : fallbackDelivered,
+                cancelled: Number(rawSum.cancelled || 0),
+                returned: Number(rawSum.returned || 0),
+                activeOrders: Number(rawSum.activeOrders || 0),
             });
             if (typeof payload.total === 'number') {
                 setTotal(payload.total);
@@ -243,7 +289,7 @@ const Orders = () => {
         try {
             await sellerApi.updateOrderStatus(orderId, { status: newStatus.toLowerCase() });
             showToast(`Order status updated to ${newStatus}`, "success");
-            fetchOrders(); // Refresh orders
+            fetchOrders(page, false); // Refresh orders & KPIs dynamically
             if (selectedOrder && selectedOrder.id === orderId) {
                 setSelectedOrder({ ...selectedOrder, status: newStatus });
             }
@@ -629,7 +675,7 @@ const Orders = () => {
                                                             >
                                                                 <HiOutlineEye className="h-4 w-4" />
                                                             </button>
-                                                            {order.status === 'Pending' && (
+                                                            {order.status?.toLowerCase() === 'pending' && (
                                                                 <>
                                                                     <button
                                                                         onClick={(e) => {

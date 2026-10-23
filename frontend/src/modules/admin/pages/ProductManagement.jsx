@@ -222,6 +222,7 @@ const ProductManagement = () => {
                 const res = await adminApi.rejectProductModeration(product._id, { approvalNote });
                 toast.success(res?.data?.message || 'Product rejected successfully');
             }
+            window.dispatchEvent(new Event('admin:pending-counts-changed'));
             fetchProducts(page);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to update product approval status');

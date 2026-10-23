@@ -121,14 +121,6 @@ const ProductCard = React.memo(
         e.preventDefault();
         e.stopPropagation();
 
-        // If the product has multiple variants, open the product detail sheet
-        // so the user can select which variant they want to add.
-        const variants = Array.isArray(product?.variants) ? product.variants : [];
-        if (variants.length > 1 && openProduct) {
-          openProduct(product);
-          return;
-        }
-
         const currentStock = defaultVariant ? defaultVariant.stock : (product?.stock || 0);
         if (currentStock <= 0) {
           showToast("This item is currently out of stock", "error");
@@ -153,7 +145,7 @@ const ProductCard = React.memo(
           toggleWishlistGlobal(product);
         }
       },
-      [animateAddToCart, product, addToCart, variantKey, defaultVariant?.name, openProduct, isWishlistPage, isWishlisted, toggleWishlistGlobal, defaultVariant, showToast],
+      [animateAddToCart, product, addToCart, variantKey, defaultVariant?.name, isWishlistPage, isWishlisted, toggleWishlistGlobal, defaultVariant, showToast],
     );
 
     const handleIncrement = React.useCallback(

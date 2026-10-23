@@ -25,6 +25,8 @@ import {
 import { reconcileCodCash } from "../services/finance/orderFinanceService.js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
+import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
 /* ===============================
    GET DELIVERY DASHBOARD STATS
 ================================ */
@@ -354,6 +356,18 @@ export const requestWithdrawal = async (req, res) => {
         wallet.availableBalance -= Math.abs(amount);
         wallet.pendingBalance += Math.abs(amount);
         await wallet.save();
+
+        try {
+            emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_WITHDRAWAL_REQUEST, {
+                userId: deliveryBoyId,
+                userRole: "delivery",
+                deliveryId: deliveryBoyId,
+                amount: Math.abs(amount),
+                reference: withdrawal.reference,
+            });
+        } catch {
+            // ignore notification errors
+        }
 
         return handleResponse(res, 201, "Withdrawal request submitted successfully", withdrawal);
     } catch (error) {

@@ -6,6 +6,8 @@ import mongoose from "mongoose";
 import { invalidateSellerName } from "../services/entityNameCache.js";
 import Wallet from "../models/wallet.js";
 import Subscription from "../models/subscription.js";
+import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
 
 /* ===============================
    GET SHOP STATUS
@@ -173,6 +175,18 @@ export const requestWithdrawal = async (req, res) => {
     wallet.availableBalance -= Math.abs(amount);
     wallet.pendingBalance += Math.abs(amount);
     await wallet.save();
+
+    try {
+      emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_WITHDRAWAL_REQUEST, {
+        userId: sellerId,
+        userRole: "seller",
+        sellerId,
+        amount: Math.abs(amount),
+        reference: withdrawal.reference,
+      });
+    } catch {
+      // ignore notification errors
+    }
 
     return handleResponse(
       res,
