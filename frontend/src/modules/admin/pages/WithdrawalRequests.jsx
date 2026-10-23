@@ -151,6 +151,7 @@ const WithdrawalRequests = () => {
             const res = await adminApi.updateWithdrawalStatus(actionModal.request._id, { status, paymentProofUrl });
             if (res.data.success) {
                 toast.success(`Request ${status} successfully`);
+                window.dispatchEvent(new Event('admin:pending-counts-changed'));
                 fetchData(sellerPage, deliveryPage);
                 setActionModal({ isOpen: false, type: null, request: null });
                 setPaymentProofFile(null);

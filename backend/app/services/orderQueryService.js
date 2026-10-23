@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Order from "../models/order.js";
 import Delivery from "../models/delivery.js";
 import Seller from "../models/seller.js";
@@ -32,19 +33,62 @@ function normalizeSellerStatusFilter(statusParam) {
   }
 
   if (statusParam === "pending") {
-    return { status: "pending" };
+    return {
+      $or: [
+        { status: "pending" },
+        { workflowStatus: { $in: ["CREATED", "SELLER_PENDING"] } },
+      ],
+    };
   }
-  if (statusParam === "processed") {
-    return { status: { $in: ["confirmed", "packed"] } };
+  if (statusParam === "confirmed" || statusParam === "processed") {
+    return {
+      $or: [
+        { status: { $in: ["confirmed", "packed"] } },
+        {
+          workflowStatus: {
+            $in: [
+              "SELLER_ACCEPTED",
+              "DELIVERY_SEARCH",
+              "DELIVERY_ASSIGNED",
+              "PICKUP_READY",
+              "DELIVERY_PARTNER_UNAVAILABLE",
+            ],
+          },
+        },
+      ],
+    };
   }
-  if (statusParam === "out-for-delivery") {
-    return { status: "out_for_delivery" };
+  if (statusParam === "packed") {
+    return {
+      $or: [
+        { status: "packed" },
+        { workflowStatus: { $in: ["DELIVERY_ASSIGNED", "PICKUP_READY"] } },
+      ],
+    };
+  }
+  if (statusParam === "out-for-delivery" || statusParam === "out_for_delivery") {
+    return {
+      $or: [
+        { status: "out_for_delivery" },
+        { workflowStatus: "OUT_FOR_DELIVERY" },
+      ],
+    };
   }
   if (statusParam === "delivered") {
-    return { status: "delivered" };
+    return {
+      $or: [
+        { status: "delivered" },
+        { workflowStatus: "DELIVERED" },
+      ],
+    };
   }
   if (statusParam === "cancelled") {
-    return { status: "cancelled" };
+    return {
+      $or: [
+        { status: "cancelled" },
+        { workflowStatus: "CANCELLED" },
+      ],
+    };
   }
   if (statusParam === "returned") {
     return { returnStatus: { $ne: "none" } };
@@ -79,9 +123,16 @@ export function buildSellerOrdersQuery({
   startDate,
   endDate,
 }) {
-  const base = role === "admin" ? {} : { seller: userId };
+  let sellerFilter = {};
+  if (role !== "admin" && userId) {
+    sellerFilter = {
+      seller: mongoose.Types.ObjectId.isValid(userId)
+        ? new mongoose.Types.ObjectId(userId)
+        : userId,
+    };
+  }
   const withStatus = {
-    ...base,
+    ...sellerFilter,
     ...normalizeSellerStatusFilter(statusParam),
   };
   return appendDateRange(withStatus, { startDate, endDate });
@@ -104,6 +155,18 @@ export async function fetchSellerOrdersPage({
     endDate,
   });
 
+  const summaryQuery = appendDateRange(
+    role === "admin"
+      ? {}
+      : {
+          seller:
+            userId && mongoose.Types.ObjectId.isValid(userId)
+              ? new mongoose.Types.ObjectId(userId)
+              : userId,
+        },
+    { startDate, endDate },
+  );
+
   const [orders, total, summaryRows] = await Promise.all([
     Order.find(query)
       .sort({ createdAt: -1, _id: -1 })
@@ -116,29 +179,95 @@ export async function fetchSellerOrdersPage({
       .lean(),
     Order.countDocuments(query),
     Order.aggregate([
-      { $match: query },
+      { $match: summaryQuery },
       {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
           totalAmount: { $sum: { $ifNull: ["$pricing.total", 0] } },
           pending: {
-            $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$status", "pending"] },
+                    { $in: ["$workflowStatus", ["CREATED", "SELLER_PENDING"]] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           confirmed: {
-            $sum: { $cond: [{ $eq: ["$status", "confirmed"] }, 1, 0] },
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $in: ["$status", ["confirmed", "packed"]] },
+                    {
+                      $in: [
+                        "$workflowStatus",
+                        [
+                          "SELLER_ACCEPTED",
+                          "DELIVERY_SEARCH",
+                          "DELIVERY_ASSIGNED",
+                          "PICKUP_READY",
+                          "DELIVERY_PARTNER_UNAVAILABLE",
+                        ],
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           packed: {
             $sum: { $cond: [{ $eq: ["$status", "packed"] }, 1, 0] },
           },
           outForDelivery: {
-            $sum: { $cond: [{ $eq: ["$status", "out_for_delivery"] }, 1, 0] },
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$status", "out_for_delivery"] },
+                    { $eq: ["$workflowStatus", "OUT_FOR_DELIVERY"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           delivered: {
-            $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] },
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$status", "delivered"] },
+                    { $eq: ["$workflowStatus", "DELIVERED"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           cancelled: {
-            $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] },
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$status", "cancelled"] },
+                    { $eq: ["$workflowStatus", "CANCELLED"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           returned: {
             $sum: {

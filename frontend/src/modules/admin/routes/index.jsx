@@ -299,8 +299,17 @@ const AdminRoutes = () => {
   const { hasPermission, isSuperAdmin } = usePermissions();
   const { getToken } = useAuth();
 
-  // "Waiting for review" counts shown as badges on the Sellers / Delivery Drivers menu.
-  const [pendingCounts, setPendingCounts] = useState({ sellers: 0, deliveryApplications: 0, deliveryDocuments: 0, deliveryVehicles: 0 });
+  // "Waiting for review" counts shown as badges on Sellers, Delivery Drivers, Products, and Money Requests.
+  const [pendingCounts, setPendingCounts] = useState({
+    sellers: 0,
+    deliveryApplications: 0,
+    deliveryDocuments: 0,
+    deliveryVehicles: 0,
+    products: 0,
+    withdrawals: 0,
+    sellerWithdrawals: 0,
+    deliveryWithdrawals: 0,
+  });
   const refreshPendingCounts = useCallback(async () => {
     try {
       const res = await adminApi.getPendingCounts();
@@ -313,10 +322,19 @@ const AdminRoutes = () => {
   useEffect(() => {
     refreshPendingCounts();
     const timer = setInterval(refreshPendingCounts, 30000);
-    // A new registration arrives, or a review page approved / rejected someone.
+    // Real-time updates: new seller/driver registration, product created/updated, or withdrawal requested.
     const stopSocket = onNotificationNew(getToken, (data) => {
       const type = String(data?.eventType || "");
-      if (type === "ADMIN_NEW_SELLER" || type === "ADMIN_NEW_DELIVERY_PARTNER") refreshPendingCounts();
+      if (
+        type === "ADMIN_NEW_SELLER" ||
+        type === "ADMIN_NEW_DELIVERY_PARTNER" ||
+        type === "ADMIN_PRODUCT_ADDED" ||
+        type === "ADMIN_PRODUCT_UPDATED" ||
+        type === "PRODUCT_MODERATION_REQUEST" ||
+        type === "ADMIN_WITHDRAWAL_REQUEST"
+      ) {
+        refreshPendingCounts();
+      }
     });
     window.addEventListener("admin:pending-counts-changed", refreshPendingCounts);
     return () => {
@@ -356,6 +374,14 @@ const AdminRoutes = () => {
     return filteredNavItems.map((item) => {
       if (item?.label === "Customer Support") {
         return supportCount > 0 ? { ...item, badgeCount: supportCount } : item;
+      }
+      if (item?.label === "Products") {
+        const prodPending = count(pendingCounts.products);
+        return prodPending > 0 ? { ...item, badgeCount: prodPending } : item;
+      }
+      if (item?.label === "Money Requests") {
+        const withPending = count(pendingCounts.withdrawals);
+        return withPending > 0 ? { ...item, badgeCount: withPending } : item;
       }
       if (item?.label === "Sellers") {
         const waiting = count(pendingCounts.sellers);

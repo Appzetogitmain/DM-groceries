@@ -9,6 +9,7 @@ export const WORKFLOW_STATUS = {
   SELLER_ACCEPTED: "SELLER_ACCEPTED",
   DELIVERY_SEARCH: "DELIVERY_SEARCH",
   DELIVERY_ASSIGNED: "DELIVERY_ASSIGNED",
+  DELIVERY_PARTNER_UNAVAILABLE: "DELIVERY_PARTNER_UNAVAILABLE",
   PICKUP_READY: "PICKUP_READY",
   OUT_FOR_DELIVERY: "OUT_FOR_DELIVERY",
   DELIVERED: "DELIVERED",
@@ -24,15 +25,15 @@ const LEGACY_ENUM = new Set([
   "cancelled",
 ]);
 
-function legacyFromWorkflow(workflowStatus) {
+function legacyFromWorkflow(workflowStatus, fallbackStatus) {
   switch (workflowStatus) {
     case WORKFLOW_STATUS.CREATED:
     case WORKFLOW_STATUS.SELLER_PENDING:
       return "pending";
     case WORKFLOW_STATUS.SELLER_ACCEPTED:
     case WORKFLOW_STATUS.DELIVERY_SEARCH:
-      return "confirmed";
     case WORKFLOW_STATUS.DELIVERY_ASSIGNED:
+    case WORKFLOW_STATUS.DELIVERY_PARTNER_UNAVAILABLE:
     case WORKFLOW_STATUS.PICKUP_READY:
       return "confirmed";
     case WORKFLOW_STATUS.OUT_FOR_DELIVERY:
@@ -42,6 +43,9 @@ function legacyFromWorkflow(workflowStatus) {
     case WORKFLOW_STATUS.CANCELLED:
       return "cancelled";
     default:
+      if (fallbackStatus && LEGACY_ENUM.has(String(fallbackStatus).toLowerCase())) {
+        return String(fallbackStatus).toLowerCase();
+      }
       return "pending";
   }
 }
@@ -64,12 +68,13 @@ export function getLegacyStatusFromOrder(order) {
     }
     if (
       workflowStatus === WORKFLOW_STATUS.DELIVERY_ASSIGNED ||
-      workflowStatus === WORKFLOW_STATUS.PICKUP_READY
+      workflowStatus === WORKFLOW_STATUS.PICKUP_READY ||
+      workflowStatus === WORKFLOW_STATUS.DELIVERY_PARTNER_UNAVAILABLE
     ) {
       return "confirmed";
     }
 
-    return legacyFromWorkflow(workflowStatus);
+    return legacyFromWorkflow(workflowStatus, order.status);
   }
 
   const s = String(order.status ?? "pending").toLowerCase();
