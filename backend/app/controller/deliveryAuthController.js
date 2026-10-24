@@ -282,6 +282,29 @@ export const updateDeliveryProfile = async (req, res) => {
         if (bloodGroup) delivery.bloodGroup = bloodGroup;
         if (address) delivery.address = address;
 
+        const profileImageBody = req.body?.profileImage || req.body?.profileImageUrl;
+        if (profileImageBody && typeof profileImageBody === "string") {
+            const trimmed = profileImageBody.trim();
+            if (/^https?:\/\//i.test(trimmed)) {
+                delivery.profileImage = trimmed;
+            } else if (trimmed.startsWith("data:image/")) {
+                const matches = trimmed.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+                if (matches) {
+                    const mimeType = matches[1];
+                    const buffer = Buffer.from(matches[2], "base64");
+                    try {
+                        const uploadedUrl = await uploadToCloudinary(buffer, "delivery/profiles", {
+                            mimeType,
+                            resourceType: "image",
+                        });
+                        delivery.profileImage = uploadedUrl;
+                    } catch (uploadErr) {
+                        console.error("Cloudinary upload failed for rider avatar:", uploadErr);
+                    }
+                }
+            }
+        }
+
         // Handle new privacy/safety fields
         if (shareLiveLocation !== undefined) delivery.shareLiveLocation = shareLiveLocation === 'true' || shareLiveLocation === true;
         if (profileVisibility !== undefined) delivery.profileVisibility = profileVisibility === 'true' || profileVisibility === true;

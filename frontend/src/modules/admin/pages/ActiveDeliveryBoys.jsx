@@ -75,7 +75,10 @@ const ActiveDeliveryBoys = () => {
                 lastSync: 'Now',
                 joinDate: new Date(r.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
                 avatar: r.profileImage || null,
-                documents: Object.fromEntries(Object.entries(r.documents || {}).filter(([, url]) => Boolean(url)))
+                documents: Object.fromEntries([
+                    ...(r.profileImage ? [['profilePhoto', r.profileImage]] : []),
+                    ...Object.entries(r.documents || {}).filter(([, url]) => Boolean(url))
+                ])
             }));
 
             setRiders(mappedRiders);
@@ -292,9 +295,10 @@ return (
                                         <div className="flex gap-4">
                                             <div className="relative">
                                                 <img 
-                                                   src={rider.avatar && !rider.avatar.includes('emoji') && !rider.avatar.includes('avatar') ? rider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                                                   src={rider.avatar && !rider.avatar.includes('emoji') && !rider.avatar.includes('dicebear') ? rider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
                                                    alt="" 
                                                    className="h-14 w-14 rounded-lg bg-gray-100 ring-2 ring-white shadow-sm object-cover group-hover:scale-105 transition-transform" 
+                                                   onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; }}
                                                 />
                                                 <div className={cn(
                                                     "absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-4 border-white shadow-sm",
@@ -411,9 +415,12 @@ return (
                             <div className="flex justify-between items-start mb-10">
                                 <div className="flex gap-6">
                                     <img 
-                                       src={viewingRider.avatar && !viewingRider.avatar.includes('emoji') && !viewingRider.avatar.includes('avatar') ? viewingRider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                                       src={viewingRider.avatar && !viewingRider.avatar.includes('emoji') && !viewingRider.avatar.includes('dicebear') ? viewingRider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
                                        alt="" 
-                                       className="h-24 w-24 rounded-xl bg-gray-100 ring-4 ring-slate-50 shadow-2xl object-cover" 
+                                       className="h-24 w-24 rounded-xl bg-gray-100 ring-4 ring-slate-50 shadow-2xl object-cover cursor-pointer" 
+                                       title="Click to view full image"
+                                       onClick={() => viewingRider.avatar && window.open(viewingRider.avatar, '_blank')}
+                                       onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; }}
                                     />
                                     <div>
                                         <h2 className="ds-h1">{viewingRider.name}</h2>

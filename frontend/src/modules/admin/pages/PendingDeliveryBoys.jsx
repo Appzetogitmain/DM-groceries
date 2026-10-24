@@ -52,12 +52,15 @@ const PendingDeliveryBoys = () => {
                 location: r.currentArea || 'Unknown',
                 vehicle: r.vehicleType,
                 avatar: r.profileImage || null,
-                documents: Object.entries(r.documents || {})
-                    .filter(([, url]) => Boolean(url))
-                    .map(([key, url]) => ({
-                        label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-                        url
-                    })),
+                documents: [
+                    ...(r.profileImage ? [{ label: 'Profile Photo', url: r.profileImage }] : []),
+                    ...Object.entries(r.documents || {})
+                        .filter(([, url]) => Boolean(url))
+                        .map(([key, url]) => ({
+                            label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                            url
+                        }))
+                ],
                 status: r.isVerified ? 'approved' : 'pending_review',
                 experience: 'Not Specified', // Mock for now
                 preferredArea: r.currentArea || 'Not Specified',
@@ -235,9 +238,10 @@ return (
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-4">
                                             <img 
-                                               src={rider.avatar && !rider.avatar.includes('emoji') && !rider.avatar.includes('avatar') ? rider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                                               src={rider.avatar && !rider.avatar.includes('emoji') && !rider.avatar.includes('dicebear') ? rider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
                                                alt="" 
                                                className="h-12 w-12 rounded-lg bg-gray-100 ring-2 ring-white shadow-sm object-cover group-hover:scale-110 transition-all" 
+                                               onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; }}
                                             />
                                             <div>
                                                 <p className="text-sm font-black text-slate-900">{rider.name}</p>
@@ -332,9 +336,17 @@ return (
                         <div className="lg:w-80 bg-slate-50 p-5 border-r border-slate-100">
                             <div className="text-center mb-10">
                                 <img 
-                                   src={viewingRider.avatar && !viewingRider.avatar.includes('emoji') && !viewingRider.avatar.includes('avatar') ? viewingRider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                                   src={viewingRider.avatar && !viewingRider.avatar.includes('emoji') && !viewingRider.avatar.includes('dicebear') ? viewingRider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
                                    alt="" 
-                                   className="h-24 w-24 rounded-2xl bg-white shadow-xl object-cover ring-4 ring-white" 
+                                   className="h-24 w-24 rounded-2xl bg-white shadow-xl object-cover ring-4 ring-white cursor-pointer hover:opacity-90 transition-opacity" 
+                                   title="Click to view full image"
+                                   onClick={async () => {
+                                       if (viewingRider.avatar) {
+                                           const err = await openAdminDocument(viewingRider.avatar);
+                                           if (err) toast.error(err);
+                                       }
+                                   }}
+                                   onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; }}
                                 />
                                 <h3 className="ds-h2">{viewingRider.name}</h3>
                                 <p className="ds-label text-primary mt-1">Applicant Node</p>

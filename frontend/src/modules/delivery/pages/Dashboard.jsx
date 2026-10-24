@@ -226,13 +226,17 @@ const Dashboard = () => {
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <div
-              className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-md cursor-pointer"
+              className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-md cursor-pointer bg-white/10"
               onClick={() => navigate("/delivery/profile")}
             >
               <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                alt="Profile"
+                src={user?.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+                alt={user?.name || "Profile"}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+                }}
               />
             </div>
             <div>

@@ -356,9 +356,10 @@ const CashCollection = () => {
                                             <div className="flex items-center gap-4">
                                                 <div className="relative">
                                                     <img
-                                                        src={rider.avatar && !rider.avatar.includes('emoji') && !rider.avatar.includes('avatar') && !rider.avatar.includes('dicebear') ? rider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+                                                        src={rider.avatar && !rider.avatar.includes('emoji') && !rider.avatar.includes('dicebear') ? rider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
                                                         alt=""
                                                         className="h-12 w-12 rounded-lg ring-2 ring-white shadow-sm object-cover bg-slate-100"
+                                                        onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; }}
                                                     />
                                                     <div className={cn(
                                                         "absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white",
@@ -497,9 +498,10 @@ const CashCollection = () => {
                     <div className="ds-section-spacing">
                         <div className="flex items-center gap-6 p-6 bg-slate-50 rounded-xl border border-slate-100 mt-4">
                             <img
-                                src={selectedRider.avatar && !selectedRider.avatar.includes('emoji') && !selectedRider.avatar.includes('avatar') && !selectedRider.avatar.includes('dicebear') ? selectedRider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+                                src={selectedRider.avatar && !selectedRider.avatar.includes('emoji') && !selectedRider.avatar.includes('dicebear') ? selectedRider.avatar : "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
                                 alt=""
                                 className="h-20 w-20 rounded-xl shadow-xl ring-4 ring-white object-cover bg-gray-100"
+                                onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; }}
                             />
                             <div>
                                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">{selectedRider.name}</h3>

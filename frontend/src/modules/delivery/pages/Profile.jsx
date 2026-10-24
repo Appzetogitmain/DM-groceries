@@ -198,12 +198,16 @@ const Profile = () => {
         </div>
 
         <div className="flex items-center space-x-3.5">
-          <div className="relative">
-            <div className="w-16 h-16 bg-white rounded-full p-0.5 shadow-md">
+          <div className="relative cursor-pointer" onClick={() => navigate("/delivery/profile/personal-details")}>
+            <div className="w-16 h-16 bg-white rounded-full p-0.5 shadow-md overflow-hidden flex items-center justify-center">
               <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                src={user?.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
                 alt="Profile"
                 className="w-full h-full rounded-full object-cover bg-gray-100"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+                }}
               />
             </div>
             <div className="absolute bottom-0 right-0 w-4.5 h-4.5 bg-brand-500 border-2 border-white rounded-full"></div>

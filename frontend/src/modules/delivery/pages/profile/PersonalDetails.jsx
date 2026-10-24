@@ -1,18 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, User, Mail, Phone, MapPin, Calendar, Droplet } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, Phone, MapPin, Calendar, Droplet, Camera, Loader2 } from "lucide-react";
 import Button from "@/shared/components/ui/Button";
 import Input from "@/shared/components/ui/Input";
 import { toast } from "sonner";
 import { deliveryApi } from "../../services/deliveryApi";
 import { useAuth } from "@core/context/AuthContext";
+import { compressImage } from "@core/utils/imageUtils";
 
 const PersonalDetails = () => {
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { user: authUser, refreshUser } = useAuth();
+  const fileInputRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isBloodGroupOpen, setIsBloodGroupOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
   const [formData, setFormData] = useState({
     name: "",
@@ -22,6 +25,7 @@ const PersonalDetails = () => {
     dob: "",
     bloodGroup: "",
     id: "",
+    profileImage: "",
   });
 
   React.useEffect(() => {
@@ -54,12 +58,40 @@ const PersonalDetails = () => {
           dob: formattedDob,
           bloodGroup: user.bloodGroup || "",
           id: user._id || "",
+          profileImage: user.profileImage || authUser?.profileImage || "",
         });
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to fetch profile");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be up to 5 MB");
+      return;
+    }
+
+    setIsProcessingImage(true);
+    try {
+      const compressed = await compressImage(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.8,
+        maxSizeBytes: 5 * 1024 * 1024,
+      });
+      setFormData((prev) => ({ ...prev, profileImage: compressed }));
+      toast.success("Photo selected and optimized!");
+    } catch (err) {
+      console.error("Photo processing error:", err);
+      toast.error("Failed to process photo");
+    } finally {
+      setIsProcessingImage(false);
     }
   };
 
@@ -71,6 +103,7 @@ const PersonalDetails = () => {
         address: formData.address,
         dob: formData.dob,
         bloodGroup: formData.bloodGroup,
+        profileImage: formData.profileImage,
       });
       setIsEditing(false);
       await refreshUser();
@@ -98,7 +131,8 @@ const PersonalDetails = () => {
             {isEditing ? (
               <button 
                 onClick={handleSave} 
-                className="h-8 px-4 rounded-full bg-white text-[#1A4516] text-xs font-black hover:bg-gray-100 transition-colors cursor-pointer shadow-sm flex items-center gap-1"
+                disabled={isProcessingImage}
+                className="h-8 px-4 rounded-full bg-white text-[#1A4516] text-xs font-black hover:bg-gray-100 transition-colors cursor-pointer shadow-sm flex items-center gap-1 disabled:opacity-50"
               >
                 <Save size={12} /> Save
               </button>
@@ -117,23 +151,57 @@ const PersonalDetails = () => {
       {/* Main Content Area overlapping with rounded corners */}
       <div className="bg-white rounded-t-[32px] -mt-5 pt-10 px-5 space-y-4 relative z-10">
         
+        {/* Hidden File Input for Avatar */}
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          accept="image/*" 
+          onChange={handlePhotoSelect} 
+          className="hidden" 
+        />
+
         {/* Profile Photo */}
         <div className="flex flex-col items-center justify-center py-4">
           <div className="relative">
-            <div className="w-18 h-18 rounded-full p-0.5 bg-white shadow-md">
-              <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                alt="Profile"
-                className="w-full h-full rounded-full object-cover bg-gray-100"
-              />
+            <div 
+              className={`w-20 h-20 rounded-full p-0.5 bg-white shadow-md overflow-hidden flex items-center justify-center bg-gray-50 ${isEditing ? 'cursor-pointer ring-2 ring-[#1A4516]/30 hover:ring-[#1A4516]' : ''}`}
+              onClick={() => isEditing && !isProcessingImage && fileInputRef.current?.click()}
+              title={isEditing ? "Click to change photo" : "Profile Photo"}
+            >
+              {isProcessingImage ? (
+                <div className="flex flex-col items-center justify-center">
+                  <Loader2 size={24} className="animate-spin text-[#1A4516]" />
+                </div>
+              ) : (
+                <img
+                  src={formData.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+                  alt="Profile"
+                  className="w-full h-full rounded-full object-cover bg-gray-100"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+                  }}
+                />
+              )}
             </div>
             {isEditing && (
-              <button className="absolute bottom-0 right-0 bg-[#1A4516] text-white p-1 rounded-full shadow-md hover:bg-[#153b12] transition-colors cursor-pointer">
-                <User size={12} />
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessingImage}
+                className="absolute bottom-0 right-0 bg-[#1A4516] text-white p-1.5 rounded-full shadow-md hover:bg-[#153b12] active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                title="Change Photo"
+              >
+                {isProcessingImage ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
               </button>
             )}
           </div>
           <p className="mt-2.5 text-[11px] font-bold text-gray-400">Delivery Partner ID: {formData.id ? formData.id.substring(0, 6).toUpperCase() : ""}</p>
+          {isEditing && (
+            <p className="text-[10px] font-semibold text-[#1A4516] mt-0.5 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              Tap photo to change
+            </p>
+          )}
         </div>
 
         {/* Form Fields */}

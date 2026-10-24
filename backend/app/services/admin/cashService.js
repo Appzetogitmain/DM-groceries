@@ -109,12 +109,13 @@ export async function getDeliveryCashBalancesData({ page, limit, skip }) {
         phone: 1,
         avatar: {
           $cond: [
-            { $ifNull: ["$documents.profileImage", false] },
-            "$documents.profileImage",
+            { $ifNull: ["$profileImage", false] },
+            "$profileImage",
             {
-              $concat: [
-                "https://api.dicebear.com/7.x/avataaars/svg?seed=",
-                "$name",
+              $cond: [
+                { $ifNull: ["$documents.profileImage", false] },
+                "$documents.profileImage",
+                "https://cdn-icons-png.flaticon.com/512/149/149071.png",
               ],
             },
           ],
