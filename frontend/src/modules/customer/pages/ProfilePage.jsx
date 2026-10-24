@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     User, MapPin, Package, Wallet, ChevronRight,
@@ -23,6 +23,12 @@ const ProfilePage = () => {
     useEffect(() => {
         refreshUser?.();
     }, []);
+
+    const [avatarError, setAvatarError] = useState(false);
+
+    useEffect(() => {
+        setAvatarError(false);
+    }, [user?.avatar]);
 
     const formatIndiaPhone = (value) => {
         const raw = String(value || '').trim();
@@ -70,11 +76,24 @@ const ProfilePage = () => {
             <div className="bg-[#1A4516] pt-12 pb-20 px-6 text-white relative">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1 min-w-0 pr-2">
-                        <div className="h-16 w-16 rounded-full bg-white/20 p-1 shrink-0">
+                        <Link 
+                            to="/user/profile/edit" 
+                            className="h-16 w-16 rounded-full bg-white/20 p-1 shrink-0 block hover:opacity-90 active:scale-95 transition-all"
+                            title="Edit Profile"
+                        >
                             <div className="h-full w-full rounded-full bg-white flex items-center justify-center overflow-hidden text-[#1A4516]">
-                                <User size={28} />
+                                {user?.avatar && !avatarError ? (
+                                    <img 
+                                        src={user.avatar} 
+                                        alt={user?.name || "Customer Profile"} 
+                                        className="h-full w-full object-cover" 
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : (
+                                    <User size={28} />
+                                )}
                             </div>
-                        </div>
+                        </Link>
                         <div className="flex-1 min-w-0">
                             <h2 className="text-[17px] leading-tight font-bold tracking-tight flex items-center flex-wrap gap-1">
                                 Hi, {user?.name || 'Customer'} <span>👋</span>
@@ -82,6 +101,9 @@ const ProfilePage = () => {
                             <p className="text-white/80 text-sm mt-0.5 font-medium truncate">{formatIndiaPhone(user?.phone) || '98765 43210'}</p>
                             {user?.email ? (
                                 <p className="text-white/70 text-xs mt-0.5 font-medium truncate">{user.email}</p>
+                            ) : null}
+                            {user?.bio ? (
+                                <p className="text-white/70 text-xs mt-0.5 font-normal italic line-clamp-1">{user.bio}</p>
                             ) : null}
                         </div>
                     </div>
