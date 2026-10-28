@@ -486,7 +486,44 @@ async function deleteMedia(publicId, userId, userModel) {
     err.statusCode = 403;
     throw err;
   }
+  // Delete from Cloudinary (best-effort — log but do not block soft delete)
+  try {
+    configureCloudinary();
+    const cloudResourceType = media.resourceType === "raw" ? "raw" : (media.resourceType || "image");
+    await cloudinary.uploader.destroy(media.publicId || media.objectKey, {
+      resource_type: cloudResourceType,
+    });
+    logger.info("Media deleted from Cloudinary", { publicId: media.publicId || media.objectKey });
+  } catch (cloudErr) {
+    logger.warn("Cloudinary delete failed, proceeding with DB soft delete", {
+      publicId: media.publicId || media.objectKey,
+      message: cloudErr.message,
+    });
+  }
+
   await media.softDelete();
+}
+
+/**
+ * Delete a resource directly from Cloudinary by publicId.
+ * Does NOT touch the database — use for orphan cleanup or when the
+ * caller handles DB state itself.
+ *
+ * @param {string} publicId - Cloudinary public_id / objectKey
+ * @param {'image'|'raw'|'video'} [resourceType='raw'] - Cloudinary resource type
+ * @returns {Promise<object>} Cloudinary destroy result
+ */
+async function deleteFromCloudinary(publicId, resourceType = "raw") {
+  if (!publicId) {
+    const err = new Error("publicId is required for Cloudinary deletion");
+    err.statusCode = 400;
+    throw err;
+  }
+  validateStorageConfig();
+  configureCloudinary();
+  const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+  logger.info("deleteFromCloudinary result", { publicId, resourceType, result });
+  return result;
 }
 
 async function uploadToCloudinary(fileBuffer, folder = "categories", options = {}) {
@@ -551,6 +588,7 @@ export {
   confirmUpload,
   getMediaURL,
   deleteMedia,
+  deleteFromCloudinary,
   uploadToCloudinary,
   isSignedUploadsEnabled,
 };
@@ -561,6 +599,7 @@ export default {
   confirmUpload,
   getMediaURL,
   deleteMedia,
+  deleteFromCloudinary,
   uploadToCloudinary,
   isSignedUploadsEnabled,
 };

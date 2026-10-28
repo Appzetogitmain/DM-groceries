@@ -4,6 +4,10 @@ import handleResponse from "../utils/helper.js";
 import { sendSmsIndiaHubOtp } from "../services/smsIndiaHubService.js";
 import { generateOTP, useRealSMS } from "../utils/otp.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
+import {
+  buildDocumentUrl,
+  deleteServerDocumentFile,
+} from "../services/serverDocumentStorageService.js";
 import { notifyAdminsNewDeliveryPartner } from "../services/adminRegistrationNotifier.js";
 import { clearRiderPresence } from "../services/firebaseService.js";
 import {
@@ -69,13 +73,25 @@ export const signupDelivery = async (req, res) => {
         if (req.files && Array.isArray(req.files)) {
             for (const file of req.files) {
                 if (file.fieldname === "profileImage") {
-                    profileImageUrl = await uploadToCloudinary(file.buffer, "delivery/profiles");
+                    const docUrl = file.filename
+                        ? buildDocumentUrl(req, `/uploads/documents/delivery/${file.filename}`)
+                        : await uploadToCloudinary(file.buffer, "delivery/profiles");
+                    profileImageUrl = docUrl;
                 } else if (file.fieldname === "aadhar") {
-                    aadharUrl = await uploadToCloudinary(file.buffer, "delivery/documents");
+                    const docUrl = file.filename
+                        ? buildDocumentUrl(req, `/uploads/documents/delivery/${file.filename}`)
+                        : await uploadToCloudinary(file.buffer, "delivery/documents");
+                    aadharUrl = docUrl;
                 } else if (file.fieldname === "pan") {
-                    panUrl = await uploadToCloudinary(file.buffer, "delivery/documents");
+                    const docUrl = file.filename
+                        ? buildDocumentUrl(req, `/uploads/documents/delivery/${file.filename}`)
+                        : await uploadToCloudinary(file.buffer, "delivery/documents");
+                    panUrl = docUrl;
                 } else if (file.fieldname === "dl") {
-                    dlUrl = await uploadToCloudinary(file.buffer, "delivery/documents");
+                    const docUrl = file.filename
+                        ? buildDocumentUrl(req, `/uploads/documents/delivery/${file.filename}`)
+                        : await uploadToCloudinary(file.buffer, "delivery/documents");
+                    dlUrl = docUrl;
                 }
             }
         }
@@ -320,16 +336,32 @@ export const updateDeliveryProfile = async (req, res) => {
         if (req.files && Array.isArray(req.files)) {
             for (const file of req.files) {
                 if (file.fieldname === "profileImage") {
-                    delivery.profileImage = await uploadToCloudinary(file.buffer, "delivery/profiles");
+                    const docUrl = file.filename
+                        ? buildDocumentUrl(req, `/uploads/documents/delivery/${file.filename}`)
+                        : await uploadToCloudinary(file.buffer, "delivery/profiles");
+                    if (delivery.profileImage) await deleteServerDocumentFile(delivery.profileImage);
+                    delivery.profileImage = docUrl;
                 } else if (file.fieldname === "aadhar") {
                     if (!delivery.documents) delivery.documents = {};
-                    delivery.documents.aadhar = await uploadToCloudinary(file.buffer, "delivery/documents");
+                    const docUrl = file.filename
+                        ? buildDocumentUrl(req, `/uploads/documents/delivery/${file.filename}`)
+                        : await uploadToCloudinary(file.buffer, "delivery/documents");
+                    if (delivery.documents?.aadhar) await deleteServerDocumentFile(delivery.documents.aadhar);
+                    delivery.documents.aadhar = docUrl;
                 } else if (file.fieldname === "pan") {
                     if (!delivery.documents) delivery.documents = {};
-                    delivery.documents.pan = await uploadToCloudinary(file.buffer, "delivery/documents");
+                    const docUrl = file.filename
+                        ? buildDocumentUrl(req, `/uploads/documents/delivery/${file.filename}`)
+                        : await uploadToCloudinary(file.buffer, "delivery/documents");
+                    if (delivery.documents?.pan) await deleteServerDocumentFile(delivery.documents.pan);
+                    delivery.documents.pan = docUrl;
                 } else if (file.fieldname === "drivingLicense" || file.fieldname === "dl") {
                     if (!delivery.documents) delivery.documents = {};
-                    delivery.documents.drivingLicense = await uploadToCloudinary(file.buffer, "delivery/documents");
+                    const docUrl = file.filename
+                        ? buildDocumentUrl(req, `/uploads/documents/delivery/${file.filename}`)
+                        : await uploadToCloudinary(file.buffer, "delivery/documents");
+                    if (delivery.documents?.drivingLicense) await deleteServerDocumentFile(delivery.documents.drivingLicense);
+                    delivery.documents.drivingLicense = docUrl;
                 } else if (file.fieldname === "policeClearance") {
                     if (!delivery.documents) delivery.documents = {};
                     delivery.documents.policeClearance = await uploadToCloudinary(file.buffer, "delivery/documents");
@@ -365,6 +397,47 @@ export const updateDeliveryProfile = async (req, res) => {
 /* ===============================
    UPDATE DOCUMENTS
 ================================ */
+
+/* ===============================
+   DELETE DELIVERY DOCUMENT
+================================ */
+export const deleteDeliveryDocument = async (req, res) => {
+    try {
+        const deliveryId = req.user.id;
+        const { documentType } = req.params;
+
+        let delivery = await Delivery.findById(deliveryId);
+        if (!delivery) {
+            return handleResponse(res, 404, "Delivery partner not found");
+        }
+
+        let deleted = false;
+        if (delivery.pendingDocuments && delivery.pendingDocuments[documentType]) {
+            const fileUrl = delivery.pendingDocuments[documentType];
+            await deleteServerDocumentFile(fileUrl);
+            delivery.pendingDocuments[documentType] = undefined;
+            deleted = true;
+        }
+
+        if (delivery.documents && delivery.documents[documentType]) {
+            const fileUrl = delivery.documents[documentType];
+            await deleteServerDocumentFile(fileUrl);
+            delivery.documents[documentType] = undefined;
+            deleted = true;
+        }
+
+        if (!deleted) {
+            return handleResponse(res, 404, "Document not found or already deleted");
+        }
+
+        await delivery.save();
+        return handleResponse(res, 200, "Document deleted successfully from server", delivery);
+    } catch (error) {
+        console.error("Delete Delivery Document Error:", error);
+        return handleResponse(res, 500, error.message || "Failed to delete document");
+    }
+};
+
 export const updateDeliveryDocuments = async (req, res) => {
     try {
         const deliveryId = req.user.id;

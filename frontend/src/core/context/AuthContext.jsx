@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+﻿import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import axiosInstance from '@core/api/axios';
 import { getWithDedupe } from '@core/api/dedupe';
 import { getStoredAuthToken } from '@core/utils/authStorage';
@@ -51,13 +51,22 @@ export const AuthProvider = ({ children }) => {
     const isAuthenticated = !!token;
 
     useEffect(() => {
+        let _syncTimer = null;
         const syncStoredTokens = () => {
-            setAuthData({
-                customer: getSafeToken('customer'),
-                seller: getSafeToken('seller'),
-                admin: getSafeToken('admin'),
-                delivery: getSafeToken('delivery'),
-            });
+            if (_syncTimer) clearTimeout(_syncTimer);
+            _syncTimer = setTimeout(() => {
+                setAuthData(prev => {
+                    const next = {
+                        customer: getSafeToken('customer'),
+                        seller: getSafeToken('seller'),
+                        admin: getSafeToken('admin'),
+                        delivery: getSafeToken('delivery'),
+                    };
+                    // Only trigger re-render if a token actually changed
+                    const changed = Object.keys(next).some(k => next[k] !== prev[k]);
+                    return changed ? next : prev;
+                });
+            }, 300);
         };
 
         window.addEventListener('focus', syncStoredTokens);
@@ -65,6 +74,7 @@ export const AuthProvider = ({ children }) => {
         document.addEventListener('visibilitychange', syncStoredTokens);
 
         return () => {
+            if (_syncTimer) clearTimeout(_syncTimer);
             window.removeEventListener('focus', syncStoredTokens);
             window.removeEventListener('storage', syncStoredTokens);
             document.removeEventListener('visibilitychange', syncStoredTokens);

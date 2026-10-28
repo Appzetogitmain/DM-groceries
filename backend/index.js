@@ -177,7 +177,11 @@ function createApp() {
       return compression.filter(req, res);
     },
   }));
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
   app.use(cors(corsOptions));
   app.use(globalApiRateLimiter);
 
@@ -192,6 +196,18 @@ function createApp() {
 
   app.use(express.json({ limit: process.env.API_JSON_LIMIT || "10mb" }));
   app.use(express.urlencoded({ limit: process.env.API_URLENCODED_LIMIT || "10mb", extended: true }));
+
+  // Serve uploaded files statically with CORS & caching headers
+  app.use(
+    "/uploads",
+    express.static(path.join(__dirname, "uploads"), {
+      maxAge: "1d",
+      setHeaders: (res) => {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      },
+    }),
+  );
 
   // Root endpoint
   app.get("/", (req, res) => {

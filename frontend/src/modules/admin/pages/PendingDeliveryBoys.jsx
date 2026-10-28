@@ -54,7 +54,8 @@ const PendingDeliveryBoys = () => {
                 avatar: r.profileImage || null,
                 documents: [
                     ...(r.profileImage ? [{ label: 'Profile Photo', url: r.profileImage }] : []),
-                    ...Object.entries(r.documents || {})
+                    ...Object.entries({ ...(r.documents || {}), ...(r.pendingDocuments || {}) })
+                        .filter(([key]) => key !== 'status' && key !== 'rejectionReason')
                         .filter(([, url]) => Boolean(url))
                         .map(([key, url]) => ({
                             label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Camera, CheckCircle, Loader2, Package, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
@@ -21,6 +21,21 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Restore images from sessionStorage on mount (in case of camera WebView restart)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(`proof_imgs_${orderId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setImages(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [orderId]);
 
   const handleImageSelect = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -67,7 +82,20 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
       }
     }
 
-    setImages((prev) => [...prev, ...newImages].slice(0, 5));
+    setImages((prev) => {
+      const updated = [...prev, ...newImages].slice(0, 5);
+      try {
+        // Only persist base64/https URLs (not blob: URLs which don't survive restarts)
+        const toSave = updated.filter(img =>
+          (img.preview && !img.preview.startsWith('blob:')) ||
+          (img.url && !img.url.startsWith('blob:'))
+        );
+        sessionStorage.setItem(`proof_imgs_${orderId}`, JSON.stringify(toSave));
+      } catch {
+        // ignore quota errors
+      }
+      return updated;
+    });
     setIsUploading(false);
     // Reset file input so same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -97,6 +125,7 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
 
       toast.success("Pickup proof uploaded! You can now request OTP.");
       setSubmitted(true);
+      try { sessionStorage.removeItem(`proof_imgs_${orderId}`); } catch {}
       if (onSubmitted) onSubmitted({ images, condition, conditionNote });
     } catch (err) {
       const msg = err.response?.data?.message || err.message || "Upload failed";

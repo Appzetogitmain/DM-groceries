@@ -185,6 +185,33 @@ const OrderDetails = () => {
 
   const isReturn = viewType === "FORWARD" ? false : !!(order?.returnStatus && order.returnStatus !== "none");
 
+  // Restore step from sessionStorage on mount (protects against camera WebView restarts)
+  useEffect(() => {
+    if (!orderId) return;
+    try {
+      const saved = sessionStorage.getItem(`rider_step_${orderId}`);
+      if (saved) {
+        const savedStep = Number(saved);
+        if (savedStep > 1) setStep(savedStep);
+      }
+    } catch {}
+  }, [orderId]);
+
+  // Persist step changes to survive camera WebView restarts
+  const persistStep = useCallback((newStep) => {
+    setStep(newStep);
+    try {
+      sessionStorage.setItem(`rider_step_${orderId}`, String(newStep));
+    } catch {}
+  }, [orderId]);
+
+  // Cleanup step sessionStorage when delivery/return is complete
+  useEffect(() => {
+    if (step >= 4) {
+      try { sessionStorage.removeItem(`rider_step_${orderId}`); } catch {}
+    }
+  }, [step, orderId]);
+
   const fetchOrderDetails = useCallback(async () => {
     if (!orderId) return;
     try {
@@ -405,7 +432,7 @@ const OrderDetails = () => {
       if (order?.returnStatus && order.returnStatus !== "none") {
         if (step === 1) {
           // Accepted → Arrived at Customer: just advance UI to show proof upload
-          setStep(2);
+          persistStep(2);
           setIsSlideComplete(false);
           setDragX(0);
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -413,7 +440,7 @@ const OrderDetails = () => {
           return;
         } else if (step === 3) {
           // In transit → Arrived at Seller: advance UI to show seller OTP
-          setStep(4);
+          persistStep(4);
           setIsSlideComplete(false);
           setDragX(0);
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -448,7 +475,7 @@ const OrderDetails = () => {
             lat: location.lat,
             lng: location.lng,
           });
-          setStep(2);
+          persistStep(2);
           await fetchOrderDetails();
           toast.success(`${currentStep.action} Confirmed!`);
         } else if (step === 2) {
@@ -459,7 +486,7 @@ const OrderDetails = () => {
           setShowSellerOtpInput(true);
           toast.success("OTP sent to seller! Please enter it to confirm pickup.");
         } else if (step === 3) {
-          setStep(4);
+          persistStep(4);
           toast.success(`${currentStep.action} Confirmed!`);
         } else {
           navigate(`/delivery/confirm-delivery/${order.orderId}`);
@@ -547,13 +574,13 @@ const OrderDetails = () => {
 
     if (isReturn) {
       // Return pickup OTP → navigate to seller for drop-off
-      setStep(3);
+      persistStep(3);
       await fetchOrderDetails();
       window.scrollTo({ top: 0, behavior: "smooth" });
       toast.success("✅ Pickup verified! Navigate to seller for drop-off.");
     } else {
       // Standard delivery OTP → order is delivered, hide map immediately
-      setStep(4);
+      persistStep(4);
       await fetchOrderDetails();
       window.scrollTo({ top: 0, behavior: "smooth" });
       toast.success("✅ Order delivered successfully!");
@@ -571,7 +598,7 @@ const OrderDetails = () => {
     setShowSellerOtpInput(false);
     setIsSlideComplete(false);
     setDragX(0);
-    setStep(3);
+    persistStep(3);
     await fetchOrderDetails();
     window.scrollTo({ top: 0, behavior: "smooth" });
     toast.success("✅ Pickup verified! Navigate to customer for drop-off.");
@@ -583,7 +610,7 @@ const OrderDetails = () => {
       const res = await deliveryApi.acceptReturnPickup(order.orderId);
       await fetchOrderDetails();
       toast.success("Return pickup task accepted!");
-      setStep(1);
+      persistStep(1);
     } catch (error) {
       console.error("Failed to accept return pickup", error);
       toast.error(error.response?.data?.message || "Failed to accept task");

@@ -6,6 +6,7 @@ import {
   getDeliveryProfile,
   updateDeliveryProfile,
   updateDeliveryDocuments,
+  deleteDeliveryDocument,
   updateDeliveryVehicleInfo,
   deleteDeliveryAccount,
   sendDeliveryVerificationOtp,
@@ -25,10 +26,10 @@ import {
 import { getRiderWalletSummaryController } from "../controller/adminFinanceController.js";
 
 import { verifyToken, allowRoles } from "../middleware/authMiddleware.js";
-import multer from "multer";
+import { createDocumentUploader } from "../services/serverDocumentStorageService.js";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = createDocumentUploader("delivery");
 
 // Inline phone verification (step 1 of registration)
 router.post("/verification/send-otp", sendDeliveryVerificationOtp);
@@ -46,6 +47,7 @@ router.post("/verify-otp", verifyDeliveryOTP);
 router.get("/profile", verifyToken, getDeliveryProfile);
 router.put("/profile", verifyToken, upload.any(), updateDeliveryProfile);
 router.put("/profile/documents", verifyToken, upload.any(), updateDeliveryDocuments);
+router.delete("/profile/documents/:documentType", verifyToken, deleteDeliveryDocument);
 router.put("/profile/vehicle-info", verifyToken, updateDeliveryVehicleInfo);
 router.delete("/profile/delete", verifyToken, deleteDeliveryAccount);
 router.get("/stats", verifyToken, getDeliveryStats);

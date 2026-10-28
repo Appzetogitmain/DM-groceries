@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle,
@@ -32,6 +32,14 @@ const DeliveryConfirmation = () => {
   const [deliveryPhoto, setDeliveryPhoto] = useState(null);
   const [deliveryPhotoPreview, setDeliveryPhotoPreview] = useState(null);
   const photoInputRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (deliveryPhotoPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(deliveryPhotoPreview);
+      }
+    };
+  }, [deliveryPhotoPreview]);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -246,12 +254,14 @@ const DeliveryConfirmation = () => {
               accept="image/*"
               capture="environment"
               className="hidden"
-              onChange={(e) => {
+              onChange={async (e) => {
                 const file = e.target.files?.[0];
-                if (file) {
-                  setDeliveryPhoto(file);
-                  setDeliveryPhotoPreview(URL.createObjectURL(file));
-                }
+                if (!file) return;
+                setDeliveryPhoto(file);
+                // Use FileReader for base64 — no memory leak, survives WebView restarts
+                const reader = new FileReader();
+                reader.onload = (ev) => setDeliveryPhotoPreview(ev.target.result);
+                reader.readAsDataURL(file);
               }}
             />
             {deliveryPhotoPreview ? (
