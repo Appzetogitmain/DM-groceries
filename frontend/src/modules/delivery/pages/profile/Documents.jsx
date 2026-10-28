@@ -1,10 +1,58 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileCheck, UploadCloud, XCircle, Clock, Trash2, Eye } from "lucide-react";
+import { 
+  ArrowLeft, FileCheck, UploadCloud, XCircle, Clock, 
+  Trash2, Eye, Download, ExternalLink, FileText, Loader2 
+} from "lucide-react";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { toast } from "sonner";
 import { deliveryApi } from "../../services/deliveryApi";
+
+// Dynamic PDF.js loader for rendering PDF pages to canvas on mobile & desktop
+let pdfjsPromise = null;
+function loadPdfJs() {
+  if (typeof window !== "undefined" && window.pdfjsLib) {
+    return Promise.resolve(window.pdfjsLib);
+  }
+  if (pdfjsPromise) return pdfjsPromise;
+  pdfjsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    script.async = true;
+    script.onload = () => {
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        resolve(window.pdfjsLib);
+      } else {
+        reject(new Error("PDF.js failed to initialize"));
+      }
+    };
+    script.onerror = () => reject(new Error("Network error loading PDF.js"));
+    document.head.appendChild(script);
+  });
+  return pdfjsPromise;
+}
+
+async function renderPdfPages(arrayBuffer) {
+  const pdfjsLib = await loadPdfJs();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pageImages = [];
+  const maxPages = Math.min(pdf.numPages, 5);
+
+  for (let i = 1; i <= maxPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const context = canvas.getContext("2d");
+    await page.render({ canvasContext: context, viewport }).promise;
+    pageImages.push(canvas.toDataURL("image/jpeg", 0.92));
+  }
+  return pageImages;
+}
 
 const Documents = () => {
   const navigate = useNavigate();
@@ -12,7 +60,7 @@ const Documents = () => {
   const [loading, setLoading] = useState(false);
   const [activeUploadId, setActiveUploadId] = useState(null);
   const [openingDocId, setOpeningDocId] = useState(null);
-  const [viewImage, setViewImage] = useState(null);
+  const [viewModal, setViewModal] = useState(null);
 
   const [docs, setDocs] = useState([
     { id: "aadhar", title: "Aadhar Card", status: "Pending", fileName: null, url: null },
@@ -37,7 +85,6 @@ const Documents = () => {
         const verifiedDocs = profile.documents || {};
         
         setDocs(prevDocs => prevDocs.map(doc => {
-          // If there's a pending document for this type
           if (pendingDocs[doc.id]) {
             const docUrl = pendingDocs[doc.id];
             const fileName = docUrl.split('/').pop() || `${doc.title} Document`;
@@ -50,9 +97,7 @@ const Documents = () => {
               status: status,
               reason: pendingDocs.rejectionReason,
             };
-          }
-          // Fallback to verified document if it exists
-          else if (verifiedDocs[doc.id]) {
+          } else if (verifiedDocs[doc.id]) {
             const docUrl = verifiedDocs[doc.id];
             const fileName = docUrl.split('/').pop() || `${doc.title} Document`;
             return {
@@ -97,16 +142,25 @@ const Documents = () => {
       await deliveryApi.updateDocuments(formData);
       toast.success("Document uploaded successfully to server and submitted for review", { id: "upload-doc" });
       
-      // Refresh docs from server
       await fetchProfile();
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to upload document", { id: "upload-doc" });
     } finally {
       setActiveUploadId(null);
       if (fileInputRef.current) {
-        fileInputRef.current.value = ""; // Reset input
+        fileInputRef.current.value = "";
       }
     }
+  };
+
+  const triggerDownload = (blobUrl, fileName) => {
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = fileName || "document.pdf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Document downloaded. Tap to open with phone's PDF viewer.");
   };
 
   const handleViewFile = async (doc) => {
@@ -114,42 +168,63 @@ const Documents = () => {
     setOpeningDocId(doc.id);
 
     const isPdf = doc.url.toLowerCase().includes(".pdf");
+    const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    const fileName = doc.fileName || `${doc.title || "document"}.${isPdf ? "pdf" : "jpg"}`;
 
-    if (isPdf) {
-      const tab = window.open("", "_blank");
-      if (tab) {
-        tab.document.write(
-          '<title>Document</title><div style="font-family:sans-serif;padding:32px;text-align:center"><p style="font-size:16px;color:#333">Loading document from server...</p></div>'
-        );
-      }
+    try {
+      const res = await deliveryApi.viewDocument(doc.url);
+      const data = res.data;
 
-      try {
-        const res = await deliveryApi.viewDocument(doc.url);
-        const blob = new Blob([res.data], { type: "application/pdf" });
+      if (isPdf) {
+        const blob = new Blob([data], { type: "application/pdf" });
         const blobUrl = URL.createObjectURL(blob);
-        if (tab) {
-          tab.location.href = blobUrl;
-        } else {
+
+        setViewModal({
+          title: doc.title,
+          fileName: fileName,
+          type: "pdf",
+          blobUrl: blobUrl,
+          images: [],
+          loading: true,
+          error: false,
+        });
+
+        // On desktop/laptop: also open in new tab directly
+        if (!isMobile) {
           window.open(blobUrl, "_blank");
         }
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10 * 60 * 1000);
-      } catch (err) {
-        if (tab) tab.close();
-        toast.error("Failed to load document from server");
-      } finally {
-        setOpeningDocId(null);
+
+        // Render PDF pages to canvas images for in-app viewing
+        try {
+          const arrayBuffer = await data.arrayBuffer();
+          const pageImages = await renderPdfPages(arrayBuffer);
+          setViewModal((prev) => (prev ? { ...prev, images: pageImages, loading: false } : null));
+        } catch (renderErr) {
+          console.warn("PDF canvas rendering unavailable, using native viewer:", renderErr);
+          setViewModal((prev) => (prev ? { ...prev, loading: false, error: true } : null));
+          if (isMobile) {
+            triggerDownload(blobUrl, fileName);
+          }
+        }
+      } else {
+        // Image document
+        const blob = new Blob([data], { type: res.headers["content-type"] || "image/jpeg" });
+        const blobUrl = URL.createObjectURL(blob);
+        setViewModal({
+          title: doc.title,
+          fileName: fileName,
+          type: "image",
+          blobUrl: blobUrl,
+          images: [blobUrl],
+          loading: false,
+          error: false,
+        });
       }
-    } else {
-      // Image document
-      try {
-        const res = await deliveryApi.viewDocument(doc.url);
-        const blobUrl = URL.createObjectURL(res.data);
-        setViewImage(blobUrl);
-      } catch {
-        setViewImage(doc.url);
-      } finally {
-        setOpeningDocId(null);
-      }
+    } catch (err) {
+      console.error("Failed to view document:", err);
+      toast.error(err.response?.data?.message || "Failed to load document from server");
+    } finally {
+      setOpeningDocId(null);
     }
   };
 
@@ -164,6 +239,13 @@ const Documents = () => {
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to delete document", { id: "delete-doc" });
     }
+  };
+
+  const handleCloseModal = () => {
+    if (viewModal?.blobUrl && viewModal.blobUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(viewModal.blobUrl);
+    }
+    setViewModal(null);
   };
 
   const getStatusBadge = (status) => {
@@ -214,7 +296,7 @@ const Documents = () => {
         accept="image/*,.pdf" 
       />
 
-      {/* Main Content Area overlapping with rounded corners */}
+      {/* Main Content Area */}
       <div className="bg-white rounded-t-[32px] -mt-5 pt-10 px-4 space-y-3 relative z-10">
         {loading && <div className="text-center py-4 text-sm text-gray-500">Loading documents...</div>}
         {!loading && docs.map((doc) => (
@@ -278,32 +360,102 @@ const Documents = () => {
         ))}
       </div>
 
-      {/* Image Zoom Modal */}
-      {viewImage && (
+      {/* In-App Document Viewer Modal (Mobile & Desktop Friendly) */}
+      {viewModal && (
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm transition-opacity"
-          onClick={() => {
-            if (viewImage.startsWith("blob:")) URL.revokeObjectURL(viewImage);
-            setViewImage(null);
-          }}
+          className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={handleCloseModal}
         >
-          <div className="relative max-w-full max-h-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-200">
-            <button 
-              className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors bg-black/50 rounded-full p-2 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (viewImage.startsWith("blob:")) URL.revokeObjectURL(viewImage);
-                setViewImage(null);
-              }}
-            >
-              <XCircle size={24} />
-            </button>
-            <img 
-              src={viewImage} 
-              alt="Document Zoom" 
-              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
+          {/* Top Bar with actions */}
+          <div 
+            className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-white/10 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col max-w-[60%]">
+              <span className="text-white text-xs font-bold truncate">{viewModal.title}</span>
+              <span className="text-gray-400 text-[10px] truncate">{viewModal.fileName}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {viewModal.type === "pdf" && (
+                <>
+                  <button
+                    onClick={() => triggerDownload(viewModal.blobUrl, viewModal.fileName)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1A4516] hover:bg-[#153b12] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                    title="Download / Open with Phone PDF Viewer"
+                  >
+                    <Download size={13} />
+                    <span>Open in App</span>
+                  </button>
+
+                  <button
+                    onClick={() => window.open(viewModal.blobUrl, "_blank")}
+                    className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                    title="Open in new tab"
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                </>
+              )}
+
+              <button 
+                className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer ml-1"
+                onClick={handleCloseModal}
+              >
+                <XCircle size={22} />
+              </button>
+            </div>
+          </div>
+
+          {/* Modal Content Scroll Area */}
+          <div 
+            className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center min-h-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* If loading PDF pages */}
+            {viewModal.loading && (
+              <div className="flex flex-col items-center justify-center py-12 text-white">
+                <Loader2 size={36} className="animate-spin text-emerald-500 mb-3" />
+                <p className="text-xs font-medium text-gray-300">Rendering document pages...</p>
+              </div>
+            )}
+
+            {/* If images available (image doc or rendered PDF pages) */}
+            {!viewModal.loading && viewModal.images.length > 0 && (
+              <div className="space-y-4 max-w-full my-auto flex flex-col items-center">
+                {viewModal.images.map((imgSrc, index) => (
+                  <div key={index} className="relative shadow-2xl rounded-xl overflow-hidden max-w-full bg-white">
+                    <img 
+                      src={imgSrc} 
+                      alt={`${viewModal.title} page ${index + 1}`} 
+                      className="max-w-full max-h-[82vh] object-contain block"
+                    />
+                    {viewModal.images.length > 1 && (
+                      <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
+                        Page {index + 1} of {viewModal.images.length}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* If PDF rendering failed or was skipped */}
+            {!viewModal.loading && viewModal.images.length === 0 && viewModal.type === "pdf" && (
+              <div className="bg-white/10 border border-white/20 rounded-2xl p-6 text-center max-w-sm text-white my-auto flex flex-col items-center">
+                <FileText size={48} className="text-emerald-400 mb-3" />
+                <h3 className="text-sm font-bold mb-1">{viewModal.title}</h3>
+                <p className="text-xs text-gray-300 mb-5 max-w-[240px]">
+                  PDF is ready to view. Tap below to open with your phone's PDF viewer.
+                </p>
+                <button
+                  onClick={() => triggerDownload(viewModal.blobUrl, viewModal.fileName)}
+                  className="w-full py-2.5 bg-[#1A4516] hover:bg-[#153b12] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                >
+                  <Download size={14} /> Open in Phone PDF Viewer
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
