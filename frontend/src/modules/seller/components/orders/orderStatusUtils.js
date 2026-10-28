@@ -24,6 +24,14 @@ export function getOrderStatusVariant(status) {
             return 'secondary';
         case 'delivered':
             return 'success';
+        case 'returned':
+        case 'return_approved':
+        case 'return_pickup_assigned':
+        case 'return_pickup_verified':
+        case 'refund_completed':
+            return 'error';
+        case 'return_requested':
+            return 'warning';
         case 'cancelled':
             return 'error';
         default:

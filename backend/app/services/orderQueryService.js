@@ -91,7 +91,18 @@ function normalizeSellerStatusFilter(statusParam) {
     };
   }
   if (statusParam === "returned") {
-    return { returnStatus: { $ne: "none" } };
+    return {
+      $or: [
+        {
+          returnStatus: {
+            $exists: true,
+            $nin: [null, "", "none"],
+          },
+        },
+        { status: "returned" },
+        { workflowStatus: "RETURNED" },
+      ],
+    };
   }
 
   return {};
@@ -273,10 +284,16 @@ export async function fetchSellerOrdersPage({
             $sum: {
               $cond: [
                 {
-                  $and: [
-                    { $ne: ["$returnStatus", null] },
-                    { $ne: ["$returnStatus", ""] },
-                    { $ne: ["$returnStatus", "none"] },
+                  $or: [
+                    {
+                      $and: [
+                        { $ne: ["$returnStatus", null] },
+                        { $ne: ["$returnStatus", ""] },
+                        { $ne: ["$returnStatus", "none"] },
+                      ],
+                    },
+                    { $eq: ["$status", "returned"] },
+                    { $eq: ["$workflowStatus", "RETURNED"] },
                   ],
                 },
                 1,

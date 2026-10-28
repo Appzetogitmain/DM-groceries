@@ -20,7 +20,8 @@ import {
     HiOutlineMapPin,
     HiOutlinePhone,
     HiOutlineCalendarDays,
-    HiOutlineShieldCheck
+    HiOutlineShieldCheck,
+    HiOutlineArrowUturnLeft
 } from 'react-icons/hi2';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -199,6 +200,9 @@ const Orders = () => {
                     ? 'Cash on Delivery'
                     : 'Online Paid',
                 activeSellerOtp: order.activeSellerOtp,
+                returnStatus: order.returnStatus || null,
+                returnDetails: order.returnDetails || null,
+                returnItems: order.returnItems || [],
                 pricing: order.pricing || {},
                 paymentBreakdown: order.paymentBreakdown || {},
             }));
@@ -211,6 +215,7 @@ const Orders = () => {
             const fallbackConfirmed = formattedOrders.filter(o => o.status === 'confirmed' || o.status === 'packed').length;
             const fallbackDelivered = formattedOrders.filter(o => o.status === 'delivered').length;
             const fallbackCancelled = formattedOrders.filter(o => o.status === 'cancelled').length;
+            const fallbackReturned = formattedOrders.filter(o => (o.returnStatus && o.returnStatus !== 'none') || o.status === 'returned').length;
             const fallbackTotal = typeof payload.total === 'number' ? payload.total : formattedOrders.length;
             const hasServerSummary = rawSum && typeof rawSum.totalOrders === 'number' && (rawSum.totalOrders > 0 || fallbackTotal === 0);
 
@@ -223,7 +228,7 @@ const Orders = () => {
                 outForDelivery: Number(rawSum.outForDelivery || 0),
                 delivered: hasServerSummary ? Math.max(Number(rawSum.delivered || 0), fallbackDelivered) : fallbackDelivered,
                 cancelled: hasServerSummary ? Math.max(Number(rawSum.cancelled || 0), fallbackCancelled) : fallbackCancelled,
-                returned: Number(rawSum.returned || 0),
+                returned: hasServerSummary ? Math.max(Number(rawSum.returned || 0), fallbackReturned) : fallbackReturned,
                 activeOrders: fallbackPending + (hasServerSummary ? Math.max(Number(rawSum.confirmed || 0), fallbackConfirmed) : fallbackConfirmed),
             });
             if (typeof payload.total === 'number') {
@@ -257,7 +262,7 @@ const Orders = () => {
         }
     }, [loading, selectedOrderId, orders, isDetailsModalOpen, searchParams, setSearchParams]);
 
-    const tabs = ['All', 'Pending', 'Confirmed', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled'];
+    const tabs = ['All', 'Pending', 'Confirmed', 'Packed', 'Out for Delivery', 'Delivered', 'Returned', 'Cancelled'];
     const todayStr = new Date().toISOString().split('T')[0];
 
     const safeOrders = useMemo(
@@ -269,9 +274,13 @@ const Orders = () => {
         return safeOrders.filter(order => {
             const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 order.customer.name.toLowerCase().includes(searchTerm.toLowerCase());
+            if (!matchesSearch) return false;
+            if (activeTab === 'All') return true;
+            if (activeTab === 'Returned') {
+                return Boolean((order.returnStatus && order.returnStatus !== 'none') || order.status === 'returned');
+            }
             const statusToMatch = activeTab === 'Out for Delivery' ? 'out_for_delivery' : activeTab.toLowerCase();
-            const matchesTab = activeTab === 'All' || order.status.toLowerCase() === statusToMatch;
-            return matchesSearch && matchesTab;
+            return order.status.toLowerCase() === statusToMatch;
         });
     }, [safeOrders, searchTerm, activeTab]);
 
@@ -281,28 +290,40 @@ const Orders = () => {
             value: summary.totalOrders,
             icon: HiOutlineArchiveBoxXMark,
             color: 'text-emerald-700',
-            bg: 'bg-emerald-50'
+            bg: 'bg-emerald-50',
+            tab: 'All'
         },
         {
             label: 'Pending',
             value: summary.pending,
             icon: HiOutlineClock,
             color: 'text-amber-700',
-            bg: 'bg-amber-50'
+            bg: 'bg-amber-50',
+            tab: 'Pending'
         },
         {
             label: 'Confirmed',
             value: summary.confirmed,
             icon: HiOutlineCheck,
             color: 'text-emerald-700',
-            bg: 'bg-emerald-50'
+            bg: 'bg-emerald-50',
+            tab: 'Confirmed'
         },
         {
             label: 'Delivered',
             value: summary.delivered,
             icon: HiOutlineCheck,
             color: 'text-emerald-700',
-            bg: 'bg-emerald-50'
+            bg: 'bg-emerald-50',
+            tab: 'Delivered'
+        },
+        {
+            label: 'Returned',
+            value: summary.returned,
+            icon: HiOutlineArrowUturnLeft,
+            color: 'text-rose-700',
+            bg: 'bg-rose-50',
+            tab: 'Returned'
         }
     ], [summary]);
 
@@ -403,23 +424,32 @@ const Orders = () => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-[850px]">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 max-w-[1080px]">
                         {stats.map((stat, i) => (
                             <BlurFade key={i} delay={0.1 + (i * 0.05)}>
-                                <MagicCard
-                                    className="border-none shadow-sm ring-1 ring-slate-100 p-0 overflow-hidden group bg-white"
-                                    gradientColor={stat.bg.includes('emerald') ? "#ecfdf5" : stat.bg.includes('amber') ? "#fffbeb" : "#f8fafc"}
+                                <div
+                                    onClick={() => setActiveTab(stat.tab)}
+                                    className="cursor-pointer"
+                                    title={`Click to view ${stat.label} orders`}
                                 >
-                                    <div className="flex items-center gap-2.5 p-2.5 relative z-10">
-                                        <div className={cn("h-9 w-9 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 duration-300", stat.bg, stat.color)}>
-                                            <stat.icon className="h-4 w-4" />
+                                    <MagicCard
+                                        className={cn(
+                                            "border-none shadow-sm ring-1 ring-slate-100 p-0 overflow-hidden group bg-white transition-all duration-200 hover:shadow-md hover:ring-2 hover:ring-slate-200",
+                                            activeTab === stat.tab && "ring-2 ring-emerald-500 bg-emerald-50/20"
+                                        )}
+                                        gradientColor={stat.bg.includes('emerald') ? "#ecfdf5" : stat.bg.includes('amber') ? "#fffbeb" : stat.bg.includes('rose') ? "#fff1f2" : "#f8fafc"}
+                                    >
+                                        <div className="flex items-center gap-2.5 p-2.5 relative z-10">
+                                            <div className={cn("h-9 w-9 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 duration-300", stat.bg, stat.color)}>
+                                                <stat.icon className="h-4 w-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate">{stat.label}</p>
+                                                <h4 className="text-lg font-bold text-slate-800 leading-tight mt-0.5">{stat.value}</h4>
+                                            </div>
                                         </div>
-                                        <div className="min-w-0">
-                                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate">{stat.label}</p>
-                                            <h4 className="text-lg font-bold text-slate-800 leading-tight mt-0.5">{stat.value}</h4>
-                                        </div>
-                                    </div>
-                                </MagicCard>
+                                    </MagicCard>
+                                </div>
                             </BlurFade>
                         ))}
                     </div>
@@ -592,12 +622,18 @@ const Orders = () => {
                                                     <div
                                                         className={cn(
                                                             "w-full min-w-[100px] text-[10px] px-2 py-1.5 rounded-lg font-black uppercase border text-center",
-                                                            order.status === 'pending' ? "bg-amber-100 text-amber-700" :
-                                                                order.status === 'delivered' ? "bg-brand-100 text-brand-700" :
-                                                                    order.status === 'cancelled' ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-700"
+                                                            (order.returnStatus && order.returnStatus !== 'none') ? (
+                                                                order.returnStatus === 'returned' || order.returnStatus === 'refund_completed' ? "bg-rose-100 text-rose-700 border-rose-200" : "bg-amber-100 text-amber-700 border-amber-200"
+                                                            ) : (
+                                                                order.status === 'pending' ? "bg-amber-100 text-amber-700" :
+                                                                    order.status === 'delivered' ? "bg-brand-100 text-brand-700" :
+                                                                        order.status === 'cancelled' ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-700"
+                                                            )
                                                         )}
                                                     >
-                                                        {order.status.replace(/_/g, ' ')}
+                                                        {(order.returnStatus && order.returnStatus !== 'none')
+                                                            ? (order.returnStatus === 'returned' || order.returnStatus === 'refund_completed' ? 'RETURNED' : order.returnStatus.replace(/_/g, ' '))
+                                                            : order.status.replace(/_/g, ' ')}
                                                     </div>
                                                     <button
                                                         onClick={() => handleViewDetails(order)}
@@ -682,16 +718,22 @@ const Orders = () => {
                                                             <div
                                                                 className={cn(
                                                                     "w-full text-[10px] px-2.5 py-1.5 rounded-full font-semibold uppercase tracking-wider text-center transition-all shadow-sm",
-                                                                    order.status === 'pending' ? "bg-amber-100 text-amber-700" :
-                                                                        order.status === 'confirmed' ? "bg-emerald-100 text-emerald-800" :
-                                                                            order.status === 'packed' ? "bg-emerald-100 text-emerald-800" :
-                                                                                order.status === 'out_for_delivery' ? "bg-purple-100 text-purple-700" :
-                                                                                    order.status === 'delivered' ? "bg-emerald-100 text-emerald-800" :
-                                                                                        order.status === 'cancelled' ? "bg-rose-100 text-rose-700" :
-                                                                                            "bg-slate-100 text-slate-700"
+                                                                    (order.returnStatus && order.returnStatus !== 'none') ? (
+                                                                        order.returnStatus === 'returned' || order.returnStatus === 'refund_completed' ? "bg-rose-100 text-rose-800 border border-rose-200" : "bg-amber-100 text-amber-800 border border-amber-200"
+                                                                    ) : (
+                                                                        order.status === 'pending' ? "bg-amber-100 text-amber-700" :
+                                                                            order.status === 'confirmed' ? "bg-emerald-100 text-emerald-800" :
+                                                                                order.status === 'packed' ? "bg-emerald-100 text-emerald-800" :
+                                                                                    order.status === 'out_for_delivery' ? "bg-purple-100 text-purple-700" :
+                                                                                        order.status === 'delivered' ? "bg-emerald-100 text-emerald-800" :
+                                                                                            order.status === 'cancelled' ? "bg-rose-100 text-rose-700" :
+                                                                                                "bg-slate-100 text-slate-700"
+                                                                    )
                                                                 )}
                                                             >
-                                                                {order.status.replace(/_/g, ' ')}
+                                                                {(order.returnStatus && order.returnStatus !== 'none')
+                                                                    ? (order.returnStatus === 'returned' || order.returnStatus === 'refund_completed' ? 'RETURNED' : order.returnStatus.replace(/_/g, ' '))
+                                                                    : order.status.replace(/_/g, ' ')}
                                                             </div>
                                                         </div>
                                                     </td>

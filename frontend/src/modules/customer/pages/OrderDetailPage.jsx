@@ -1190,6 +1190,11 @@ const OrderDetailPage = () => {
                   ? order.returnDeliveryBoy?.averageRating
                   : order.deliveryBoy?.averageRating
               }
+              riderPhone={
+                (status?.startsWith("return_")
+                  ? (order.returnDeliveryBoy?.phone || order.returnDeliveryBoy?.phoneNumber)
+                  : (order.deliveryBoy?.phone || order.deliveryBoy?.phoneNumber)) || ""
+              }
               riderLocation={liveLocation}
               sellerLocation={sellerLocation}
               destinationLocation={

@@ -71,6 +71,15 @@ const LiveTrackingMap = memo(({
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
+  const cleanRiderPhone = useMemo(() => {
+    if (!riderPhone) return "";
+    const s = String(riderPhone).trim();
+    const hasPlus = s.startsWith("+");
+    const digits = s.replace(/[^\d]/g, "");
+    if (!digits) return "";
+    return hasPlus ? `+${digits}` : digits;
+  }, [riderPhone]);
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: apiKey,
@@ -503,10 +512,36 @@ const LiveTrackingMap = memo(({
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
-                <a href={`tel:${riderPhone || ''}`} className="h-8 w-8 rounded-full bg-brand-50 flex items-center justify-center text-primary hover:bg-brand-100 transition-colors">
+                <a
+                  href={cleanRiderPhone ? `tel:${cleanRiderPhone}` : "#"}
+                  onClick={(e) => {
+                    if (!cleanRiderPhone) {
+                      e.preventDefault();
+                    }
+                  }}
+                  title={cleanRiderPhone ? `Call ${riderName || 'rider'}` : "Phone number not available"}
+                  className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
+                    cleanRiderPhone
+                      ? "bg-brand-50 text-primary hover:bg-brand-100"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                  }`}
+                >
                   <Phone size={14} />
                 </a>
-                <a href={`sms:${riderPhone || ''}`} className="h-8 w-8 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 hover:bg-brand-100 transition-colors">
+                <a
+                  href={cleanRiderPhone ? `sms:${cleanRiderPhone}` : "#"}
+                  onClick={(e) => {
+                    if (!cleanRiderPhone) {
+                      e.preventDefault();
+                    }
+                  }}
+                  title={cleanRiderPhone ? `Message ${riderName || 'rider'}` : "Phone number not available"}
+                  className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
+                    cleanRiderPhone
+                      ? "bg-brand-50 text-brand-600 hover:bg-brand-100"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                  }`}
+                >
                   <MessageSquare size={14} />
                 </a>
               </div>
@@ -538,6 +573,10 @@ const LiveTrackingMap = memo(({
     prevProps.status === nextProps.status &&
     prevProps.eta === nextProps.eta &&
     prevProps.riderName === nextProps.riderName &&
+    prevProps.riderPhone === nextProps.riderPhone &&
+    prevProps.riderPlate === nextProps.riderPlate &&
+    prevProps.riderImage === nextProps.riderImage &&
+    prevProps.riderRating === nextProps.riderRating &&
     prevProps.riderLocation?.lat === nextProps.riderLocation?.lat &&
     prevProps.riderLocation?.lng === nextProps.riderLocation?.lng &&
     prevProps.sellerLocation?.lat === nextProps.sellerLocation?.lat &&
