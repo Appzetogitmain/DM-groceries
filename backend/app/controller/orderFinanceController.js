@@ -25,6 +25,7 @@ import { proceedToDeliverySearch } from "../services/orderWorkflowService.js";
 import { WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
 import { ORDER_PAYMENT_STATUS } from "../constants/finance.js";
 import { createPaymentOrderForOrderRef } from "../services/paymentService.js";
+import { buildKey, invalidate } from "../services/cacheService.js";
 
 export const selectPaymentMethod = async (req, res) => {
   try {
@@ -83,6 +84,10 @@ export const selectPaymentMethod = async (req, res) => {
       await order.save();
 
       await proceedToDeliverySearch(order.orderId, order);
+
+      try {
+        await invalidate(buildKey("orders", "customer", `${userId}:*`));
+      } catch (_) {}
 
       return handleResponse(res, 200, "Payment method updated to COD");
     } else {

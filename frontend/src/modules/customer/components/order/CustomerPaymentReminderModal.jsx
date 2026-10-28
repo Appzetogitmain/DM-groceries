@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, Clock, AlertTriangle, ArrowRight, X, Volume2 } from 'lucide-react';
+import { CreditCard, Clock, AlertTriangle, ArrowRight, X, Volume2, Banknote, Loader2 } from 'lucide-react';
 import orderAlertSound from '@/assets/sounds/order_alert.mp3';
 
 export default function CustomerPaymentReminderModal({
@@ -8,11 +8,16 @@ export default function CustomerPaymentReminderModal({
   orderId,
   expiresAt,
   amount,
+  isOnlinePaymentEnabled = true,
+  isCodEnabled = true,
+  isLoading = false,
   onPayNow,
+  onPayCod,
   onClose
 }) {
   const [timeLeft, setTimeLeft] = useState('02:00');
   const [percent, setPercent] = useState(100);
+  const [localProcessing, setLocalProcessing] = useState(null);
   const ringtoneRef = useRef(null);
 
   // Play audio ringtone in a loop while modal is open
@@ -84,7 +89,17 @@ export default function CustomerPaymentReminderModal({
     return () => clearInterval(interval);
   }, [isOpen, expiresAt, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setLocalProcessing(null);
+    }
+  }, [isOpen]);
+
+  const isBusy = isLoading || Boolean(localProcessing);
+
   const handlePay = () => {
+    if (isBusy) return;
+    setLocalProcessing('ONLINE');
     if (ringtoneRef.current) {
       ringtoneRef.current.pause();
       ringtoneRef.current.currentTime = 0;
@@ -92,7 +107,18 @@ export default function CustomerPaymentReminderModal({
     onPayNow && onPayNow(orderId);
   };
 
+  const handleCod = () => {
+    if (isBusy) return;
+    setLocalProcessing('COD');
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+    onPayCod && onPayCod(orderId);
+  };
+
   const handleDismiss = () => {
+    if (isBusy) return;
     if (ringtoneRef.current) {
       ringtoneRef.current.pause();
       ringtoneRef.current.currentTime = 0;
@@ -191,18 +217,52 @@ export default function CustomerPaymentReminderModal({
 
             {/* Action Buttons */}
             <div className="space-y-2.5 pt-1">
-              <button
-                onClick={handlePay}
-                className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-black py-4 px-6 rounded-2xl text-sm shadow-xl shadow-emerald-600/30 active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <CreditCard size={18} />
-                <span>Pay Now {amount ? `(₹${amount})` : ''}</span>
-                <ArrowRight size={16} />
-              </button>
+              {isOnlinePaymentEnabled && (
+                <button
+                  onClick={handlePay}
+                  disabled={isBusy}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black py-3.5 px-6 rounded-2xl text-sm shadow-xl shadow-emerald-600/30 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  {localProcessing === 'ONLINE' ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>Processing Payment...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={18} />
+                      <span>Pay Online {amount ? `(₹${amount})` : ''}</span>
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </button>
+              )}
+
+              {isCodEnabled && (
+                <button
+                  onClick={handleCod}
+                  disabled={isBusy}
+                  className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black py-3.5 px-6 rounded-2xl text-sm shadow-lg shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  {localProcessing === 'COD' || (isLoading && localProcessing !== 'ONLINE') ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin text-amber-400" />
+                      <span>Confirming Cash on Delivery...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Banknote size={18} className="text-amber-400" />
+                      <span>Cash on Delivery (COD)</span>
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </button>
+              )}
 
               <button
                 onClick={handleDismiss}
-                className="w-full py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+                disabled={isBusy}
+                className="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800 disabled:opacity-50 transition-colors"
               >
                 Dismiss & Review Order
               </button>

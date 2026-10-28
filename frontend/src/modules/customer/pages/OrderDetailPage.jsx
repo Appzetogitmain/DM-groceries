@@ -983,12 +983,19 @@ const OrderDetailPage = () => {
       } else if (method === "ONLINE" && response.data.result?.redirectUrl) {
         window.location.href = response.data.result.redirectUrl;
       } else if (method === "COD") {
-        toast.success(response.data.message || "Payment method updated");
-        window.location.reload();
+        setShowPaymentReminder(false);
+        toast.success(response.data.message || "Order confirmed with Cash on Delivery");
+        const res = await customerApi.getOrderDetails(canonicalOrderId || orderId);
+        if (res?.data?.result) {
+          setOrder(res.data.result);
+        }
       } else {
+        setShowPaymentReminder(false);
         toast.success(response.data.message || "Payment method updated");
-        const res = await customerApi.getOrderDetails(orderId);
-        setOrder(res.data.result);
+        const res = await customerApi.getOrderDetails(canonicalOrderId || orderId);
+        if (res?.data?.result) {
+          setOrder(res.data.result);
+        }
       }
     } catch (err) {
       console.error("[OrderDetailPage] Select payment error:", err);
@@ -1741,9 +1748,14 @@ const OrderDetailPage = () => {
         orderId={order?.orderId}
         expiresAt={order?.customerPaymentPendingExpiresAt}
         amount={order?.pricing?.total ?? order?.total}
+        isOnlinePaymentEnabled={isOnlinePaymentEnabled}
+        isCodEnabled={isCodEnabled}
+        isLoading={isProcessingPayment}
         onPayNow={() => {
-          setShowPaymentReminder(false);
-          handleSelectPaymentMethod(isOnlinePaymentEnabled ? "ONLINE" : "COD");
+          handleSelectPaymentMethod("ONLINE");
+        }}
+        onPayCod={() => {
+          handleSelectPaymentMethod("COD");
         }}
         onClose={() => setShowPaymentReminder(false)}
       />

@@ -342,8 +342,12 @@ export async function proceedToDeliverySearch(orderId, orderDoc = null) {
     {
       workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
       deliverySearchExpiresAt: updated.deliverySearchExpiresAt,
+      status: "confirmed",
+      paymentMode: updated.paymentMode,
+      paymentStatus: updated.paymentStatus,
     },
     updated.customer?._id || updated.customer,
+    updated.seller?._id || updated.seller,
   );
   await emitDeliveryBroadcastForSeller(
     updated.seller,

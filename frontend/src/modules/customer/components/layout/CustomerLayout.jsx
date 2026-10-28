@@ -22,6 +22,7 @@ import { ShieldCheck, Package } from 'lucide-react';
 import { playNotificationSound } from '@/lib/soundUtils';
 import LocationRequiredModal from '../shared/LocationRequiredModal';
 import CustomerPaymentReminderModal from '../order/CustomerPaymentReminderModal';
+import { customerApi } from '../../services/customerApi';
 
 const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = false, showCart: showCartProp, showBottomNav: showBottomNavProp }) => {
     const location = useLocation();
@@ -29,6 +30,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
     const { isOpen: isProductDetailOpen } = useProductDetail();
     const { user, token } = useAuth();
     const [paymentReminderAlert, setPaymentReminderAlert] = useState(null);
+    const [isProcessingPaymentReminder, setIsProcessingPaymentReminder] = useState(false);
 
     // Listen for Return OTPs (Real-time Alert for Customer)
     useEffect(() => {
@@ -98,6 +100,11 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
         const cleanupPaymentReminder = onCustomerPaymentReminder(() => token, (payload) => {
             console.log('[CustomerLayout] Payment Reminder Received:', payload);
             if (payload?.orderId) {
+                // If user is already actively viewing this order's detail page, let OrderDetailPage handle it
+                const currentPath = window.location.pathname;
+                if (currentPath.includes(payload.orderId)) {
+                    return;
+                }
                 setPaymentReminderAlert({
                     orderId: payload.orderId,
                     expiresAt: payload.customerPaymentPendingExpiresAt || payload.expiresAt,
@@ -120,6 +127,10 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
         // Listen for status updates (dismiss alert if paid or cancelled)
         const cleanupStatusUpdate = onOrderStatusUpdate(() => token, (payload) => {
             if (payload?.paymentReminder && payload?.customerPaymentPendingExpiresAt) {
+                const currentPath = window.location.pathname;
+                if (currentPath.includes(payload.orderId)) {
+                    return;
+                }
                 setPaymentReminderAlert({
                     orderId: payload.orderId,
                     expiresAt: payload.customerPaymentPendingExpiresAt,
@@ -193,9 +204,24 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
                 orderId={paymentReminderAlert?.orderId}
                 expiresAt={paymentReminderAlert?.expiresAt}
                 amount={paymentReminderAlert?.amount}
+                isLoading={isProcessingPaymentReminder}
                 onPayNow={(orderId) => {
                     setPaymentReminderAlert(null);
-                    navigate(`/orders/${orderId}`);
+                    navigate(`/user/orders/${orderId}`);
+                }}
+                onPayCod={async (orderId) => {
+                    try {
+                        setIsProcessingPaymentReminder(true);
+                        const res = await customerApi.selectPaymentMethod(orderId, { paymentMode: "COD" });
+                        toast.success(res?.data?.message || "Order confirmed with Cash on Delivery!");
+                        setPaymentReminderAlert(null);
+                        navigate(`/user/orders/${orderId}`);
+                    } catch (err) {
+                        console.error("[CustomerLayout] COD selection failed:", err);
+                        toast.error(err?.response?.data?.message || "Failed to select Cash on Delivery. Please try again.");
+                    } finally {
+                        setIsProcessingPaymentReminder(false);
+                    }
                 }}
                 onClose={() => setPaymentReminderAlert(null)}
             />
