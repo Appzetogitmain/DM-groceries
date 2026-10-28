@@ -185,7 +185,36 @@ const OrderDetails = () => {
 
   const isReturn = viewType === "FORWARD" ? false : !!(order?.returnStatus && order.returnStatus !== "none");
 
-  // Restore step from sessionStorage on mount (protects against camera WebView restarts)
+  // Helper to open/close OTP modal and persist to survive camera WebView restarts
+  const openOtpModal = useCallback((type) => {
+    if (type === "customer") {
+      setShowOtpInput(true);
+      setShowSellerOtpInput(false);
+      setShowDropOtpInput(false);
+    } else if (type === "seller") {
+      setShowSellerOtpInput(true);
+      setShowOtpInput(false);
+      setShowDropOtpInput(false);
+    } else if (type === "drop") {
+      setShowDropOtpInput(true);
+      setShowOtpInput(false);
+      setShowSellerOtpInput(false);
+    }
+    if (orderId && type) {
+      try { sessionStorage.setItem(`rider_active_otp_${orderId}`, type); } catch {}
+    }
+  }, [orderId]);
+
+  const closeOtpModal = useCallback(() => {
+    setShowOtpInput(false);
+    setShowSellerOtpInput(false);
+    setShowDropOtpInput(false);
+    if (orderId) {
+      try { sessionStorage.removeItem(`rider_active_otp_${orderId}`); } catch {}
+    }
+  }, [orderId]);
+
+  // Restore step and active OTP modal from sessionStorage on mount (protects against camera WebView restarts)
   useEffect(() => {
     if (!orderId) return;
     try {
@@ -194,6 +223,10 @@ const OrderDetails = () => {
         const savedStep = Number(saved);
         if (savedStep > 1) setStep(savedStep);
       }
+      const activeOtp = sessionStorage.getItem(`rider_active_otp_${orderId}`);
+      if (activeOtp === "customer") setShowOtpInput(true);
+      else if (activeOtp === "seller") setShowSellerOtpInput(true);
+      else if (activeOtp === "drop") setShowDropOtpInput(true);
     } catch {}
   }, [orderId]);
 
@@ -208,7 +241,11 @@ const OrderDetails = () => {
   // Cleanup step sessionStorage when delivery/return is complete
   useEffect(() => {
     if (step >= 4) {
-      try { sessionStorage.removeItem(`rider_step_${orderId}`); } catch {}
+      try {
+        sessionStorage.removeItem(`rider_step_${orderId}`);
+        sessionStorage.removeItem(`rider_active_otp_${orderId}`);
+        sessionStorage.removeItem(`proof_imgs_otp_${orderId}`);
+      } catch {}
     }
   }, [step, orderId]);
 
@@ -567,7 +604,7 @@ const OrderDetails = () => {
     const responsePayload = data?.result || data?.data?.result;
     const updatedOrder = responsePayload?.order || responsePayload;
 
-    setShowOtpInput(false);
+    closeOtpModal();
     setPickupProofSubmitted(false);
     setIsSlideComplete(false);
     setDragX(0);
@@ -595,7 +632,7 @@ const OrderDetails = () => {
     const responsePayload = data?.result || data?.data?.result;
     const updatedOrder = responsePayload?.order || responsePayload;
 
-    setShowSellerOtpInput(false);
+    closeOtpModal();
     setIsSlideComplete(false);
     setDragX(0);
     persistStep(3);
@@ -1267,7 +1304,7 @@ const OrderDetails = () => {
                 initialExpiresAt={isReturn ? order?.activeReturnOtpExpiresAt : order?.activeDeliveryOtpExpiresAt}
                 onSuccess={handleOtpValidationSuccess}
                 onError={handleOtpValidationError}
-                onCancel={() => setShowOtpInput(false)}
+                onCancel={closeOtpModal}
               />
             </Card>
           </motion.div>
@@ -1285,7 +1322,7 @@ const OrderDetails = () => {
                 initialExpiresAt={order?.activeReturnOtpExpiresAt} // Seller pickup uses return_pickup OTP under the hood sometimes, or we don't have this, but safe to pass if present.
                 onSuccess={handleSellerOtpSuccess}
                 onError={handleOtpValidationError}
-                onCancel={() => setShowSellerOtpInput(false)}
+                onCancel={closeOtpModal}
               />
             </Card>
           </motion.div>
@@ -1308,7 +1345,7 @@ const OrderDetails = () => {
                   setTimeout(() => navigate("/delivery/dashboard"), 1800);
                 }}
                 onError={handleOtpValidationError}
-                onCancel={() => setShowDropOtpInput(false)}
+                onCancel={closeOtpModal}
               />
             </Card>
           </motion.div>

@@ -4,6 +4,7 @@ import handleResponse from "../utils/helper.js";
 import { sendSmsIndiaHubOtp } from "../services/smsIndiaHubService.js";
 import { generateOTP, useRealSMS } from "../utils/otp.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
+import { fetchDocumentForAdmin } from "../services/adminDocumentProxyService.js";
 import {
   buildDocumentUrl,
   deleteServerDocumentFile,
@@ -438,6 +439,37 @@ export const deleteDeliveryDocument = async (req, res) => {
     }
 };
 
+/* ===============================
+   VIEW DELIVERY DOCUMENT
+================================ */
+export const viewDeliveryDocument = async (req, res) => {
+    try {
+        const rawUrl = req.query.url;
+        if (!rawUrl) {
+            return handleResponse(res, 400, "Document URL is required");
+        }
+
+        const delivery = await Delivery.findById(req.user.id);
+        if (!delivery) {
+            return handleResponse(res, 404, "Delivery partner not found");
+        }
+
+        const { buffer, contentType, fileName } = await fetchDocumentForAdmin(rawUrl);
+
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+        res.setHeader("Content-Length", buffer.length);
+        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+        return res.end(buffer);
+    } catch (error) {
+        console.error("View Delivery Document Error:", error);
+        return handleResponse(res, error.statusCode || 500, error.message || "Failed to load document");
+    }
+};
+
+/* ===============================
+   UPDATE DELIVERY DOCUMENTS
+================================ */
 export const updateDeliveryDocuments = async (req, res) => {
     try {
         const deliveryId = req.user.id;
@@ -452,13 +484,36 @@ export const updateDeliveryDocuments = async (req, res) => {
         let hasNewUploads = false;
         if (req.files && Array.isArray(req.files)) {
             for (const file of req.files) {
-                const url = await uploadToCloudinary(file.buffer);
-                if (file.fieldname === "aadhar") pendingDocuments.aadhar = url;
-                if (file.fieldname === "pan") pendingDocuments.pan = url;
-                if (file.fieldname === "drivingLicense") pendingDocuments.drivingLicense = url;
-                if (file.fieldname === "rcBook") pendingDocuments.rcBook = url;
-                if (file.fieldname === "policeClearance") pendingDocuments.policeClearance = url;
-                if (file.fieldname === "bankPassbook") pendingDocuments.bankPassbook = url;
+                let url = "";
+                if (file.filename) {
+                    url = buildDocumentUrl(req, `/uploads/documents/delivery/${file.filename}`);
+                } else if (file.buffer) {
+                    url = await uploadToCloudinary(file.buffer, "delivery/documents");
+                }
+
+                if (!url) continue;
+
+                const fieldMap = {
+                    aadhar: "aadhar",
+                    pan: "pan",
+                    drivingLicense: "drivingLicense",
+                    dl: "drivingLicense",
+                    rcBook: "rcBook",
+                    policeClearance: "policeClearance",
+                    bankPassbook: "bankPassbook",
+                };
+                const fieldKey = fieldMap[file.fieldname] || file.fieldname;
+
+                // Delete previous pending document from server if replaced
+                if (pendingDocuments[fieldKey]) {
+                    try {
+                        await deleteServerDocumentFile(pendingDocuments[fieldKey]);
+                    } catch {
+                        // ignore cleanup error
+                    }
+                }
+
+                pendingDocuments[fieldKey] = url;
                 hasNewUploads = true;
             }
         }
@@ -467,13 +522,16 @@ export const updateDeliveryDocuments = async (req, res) => {
             pendingDocuments.status = "pending";
             pendingDocuments.rejectionReason = "";
             delivery.pendingDocuments = pendingDocuments;
+            if (typeof delivery.markModified === "function") {
+                delivery.markModified("pendingDocuments");
+            }
             await delivery.save();
         }
 
         return handleResponse(res, 200, "Documents submitted for verification", delivery);
     } catch (error) {
         console.error("Update Delivery Documents Error:", error);
-        return handleResponse(res, 500, "Internal Server Error");
+        return handleResponse(res, 500, error.message || "Internal Server Error");
     }
 };
 

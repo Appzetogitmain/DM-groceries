@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileCheck, UploadCloud, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, FileCheck, UploadCloud, XCircle, Clock, Trash2, Eye } from "lucide-react";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ const Documents = () => {
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [activeUploadId, setActiveUploadId] = useState(null);
+  const [openingDocId, setOpeningDocId] = useState(null);
   const [viewImage, setViewImage] = useState(null);
 
   const [docs, setDocs] = useState([
@@ -61,7 +62,13 @@ const Documents = () => {
               status: "Verified",
             };
           }
-          return doc;
+          return {
+            ...doc,
+            fileName: null,
+            url: null,
+            status: "Pending",
+            reason: null,
+          };
         }));
       }
     } catch (error) {
@@ -86,12 +93,12 @@ const Documents = () => {
       const formData = new FormData();
       formData.append(activeUploadId, file);
 
-      toast.loading(`Uploading ${activeUploadId}...`, { id: "upload-doc" });
+      toast.loading(`Uploading ${activeUploadId} to server...`, { id: "upload-doc" });
       await deliveryApi.updateDocuments(formData);
-      toast.success("Document updated successfully and sent for verification", { id: "upload-doc" });
+      toast.success("Document uploaded successfully to server and submitted for review", { id: "upload-doc" });
       
-      // Refresh docs
-      fetchProfile();
+      // Refresh docs from server
+      await fetchProfile();
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to upload document", { id: "upload-doc" });
     } finally {
@@ -99,6 +106,63 @@ const Documents = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = ""; // Reset input
       }
+    }
+  };
+
+  const handleViewFile = async (doc) => {
+    if (!doc.url) return;
+    setOpeningDocId(doc.id);
+
+    const isPdf = doc.url.toLowerCase().includes(".pdf");
+
+    if (isPdf) {
+      const tab = window.open("", "_blank");
+      if (tab) {
+        tab.document.write(
+          '<title>Document</title><div style="font-family:sans-serif;padding:32px;text-align:center"><p style="font-size:16px;color:#333">Loading document from server...</p></div>'
+        );
+      }
+
+      try {
+        const res = await deliveryApi.viewDocument(doc.url);
+        const blob = new Blob([res.data], { type: "application/pdf" });
+        const blobUrl = URL.createObjectURL(blob);
+        if (tab) {
+          tab.location.href = blobUrl;
+        } else {
+          window.open(blobUrl, "_blank");
+        }
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10 * 60 * 1000);
+      } catch (err) {
+        if (tab) tab.close();
+        toast.error("Failed to load document from server");
+      } finally {
+        setOpeningDocId(null);
+      }
+    } else {
+      // Image document
+      try {
+        const res = await deliveryApi.viewDocument(doc.url);
+        const blobUrl = URL.createObjectURL(res.data);
+        setViewImage(blobUrl);
+      } catch {
+        setViewImage(doc.url);
+      } finally {
+        setOpeningDocId(null);
+      }
+    }
+  };
+
+  const handleDeleteFile = async (docId) => {
+    if (!window.confirm("Are you sure you want to delete this document from the server?")) return;
+
+    try {
+      toast.loading("Deleting document from server...", { id: "delete-doc" });
+      await deliveryApi.deleteDocument(docId);
+      toast.success("Document deleted successfully from server", { id: "delete-doc" });
+      await fetchProfile();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete document", { id: "delete-doc" });
     }
   };
 
@@ -154,25 +218,21 @@ const Documents = () => {
       <div className="bg-white rounded-t-[32px] -mt-5 pt-10 px-4 space-y-3 relative z-10">
         {loading && <div className="text-center py-4 text-sm text-gray-500">Loading documents...</div>}
         {!loading && docs.map((doc) => (
-          <Card key={doc.id} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+          <Card key={doc.id} className="p-3.5 bg-white border border-gray-100 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-1.5">
               <h4 className="font-bold text-gray-800 text-xs">{doc.title}</h4>
-              {getStatusBadge(doc.status)}
+              {doc.url ? getStatusBadge(doc.status) : (
+                <span className="text-[9px] text-gray-400 font-medium italic">Not Uploaded</span>
+              )}
             </div>
 
             {doc.fileName && (
               <p className="text-[10px] text-gray-400 mb-2.5 flex items-center">
                 <span className="truncate max-w-[200px] font-medium">{doc.fileName}</span>
-                {doc.uploadedOn && (
-                  <>
-                    <span className="mx-1.5">•</span>
-                    <span className="font-medium">{doc.uploadedOn}</span>
-                  </>
-                )}
               </p>
             )}
 
-            {doc.status === "Rejected" && (
+            {doc.status === "Rejected" && doc.reason && (
               <div className="bg-rose-50/60 border border-rose-100/50 text-rose-700 text-[10px] p-2 rounded-lg mb-2.5 font-medium leading-normal">
                 Reason: {doc.reason}
               </div>
@@ -181,29 +241,37 @@ const Documents = () => {
             <div className="flex space-x-2">
               <Button 
                 size="sm" 
-                className="w-full text-[10px] h-7 bg-[#1A4516] hover:bg-[#153b12] text-white border-none rounded-lg font-bold flex justify-center items-center gap-1" 
+                className="flex-1 text-[10px] h-8 bg-[#1A4516] hover:bg-[#153b12] text-white border-none rounded-lg font-bold flex justify-center items-center gap-1.5" 
                 onClick={() => handleUploadClick(doc.id)}
                 disabled={activeUploadId !== null}
               >
-                <UploadCloud size={12} /> 
-                {doc.status === "Rejected" ? "Re-upload" : "Update"}
+                <UploadCloud size={13} /> 
+                {doc.url ? "Change / Re-upload" : "Upload Document"}
               </Button>
               
               {doc.url && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full text-[10px] h-7 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg font-bold"
-                  onClick={() => {
-                    if (doc.url.toLowerCase().includes('.pdf')) {
-                      window.open(doc.url, "_blank");
-                    } else {
-                      setViewImage(doc.url);
-                    }
-                  }}
-                >
-                  View File
-                </Button>
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1 text-[10px] h-8 border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg font-bold flex justify-center items-center gap-1"
+                    onClick={() => handleViewFile(doc)}
+                    disabled={openingDocId === doc.id}
+                  >
+                    <Eye size={12} />
+                    {openingDocId === doc.id ? "Opening..." : "View File"}
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="px-2.5 text-[10px] h-8 border-rose-100 text-rose-600 hover:bg-rose-50 rounded-lg font-bold flex justify-center items-center"
+                    onClick={() => handleDeleteFile(doc.id)}
+                    title="Delete document from server"
+                  >
+                    <Trash2 size={13} />
+                  </Button>
+                </>
               )}
             </div>
           </Card>
@@ -214,13 +282,17 @@ const Documents = () => {
       {viewImage && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm transition-opacity"
-          onClick={() => setViewImage(null)}
+          onClick={() => {
+            if (viewImage.startsWith("blob:")) URL.revokeObjectURL(viewImage);
+            setViewImage(null);
+          }}
         >
           <div className="relative max-w-full max-h-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-200">
             <button 
-              className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors bg-black/50 rounded-full p-2"
+              className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors bg-black/50 rounded-full p-2 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
+                if (viewImage.startsWith("blob:")) URL.revokeObjectURL(viewImage);
                 setViewImage(null);
               }}
             >

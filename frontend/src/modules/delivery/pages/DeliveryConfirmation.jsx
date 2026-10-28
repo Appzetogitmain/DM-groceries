@@ -17,6 +17,7 @@ import confetti from "canvas-confetti";
 
 import { useParams } from "react-router-dom";
 import { deliveryApi } from "../services/deliveryApi";
+import { compressImage } from "@core/utils/imageUtils";
 import { toast } from "sonner";
 import DeliverySlideButton from "../components/DeliverySlideButton";
 import OtpInput from "../components/OtpInput";
@@ -257,11 +258,21 @@ const DeliveryConfirmation = () => {
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                setDeliveryPhoto(file);
-                // Use FileReader for base64 — no memory leak, survives WebView restarts
-                const reader = new FileReader();
-                reader.onload = (ev) => setDeliveryPhotoPreview(ev.target.result);
-                reader.readAsDataURL(file);
+                try {
+                  const compressed = await compressImage(file, {
+                    maxWidth: 1024,
+                    maxHeight: 1024,
+                    quality: 0.8,
+                    maxSizeBytes: 25 * 1024 * 1024,
+                  });
+                  setDeliveryPhotoPreview(compressed);
+                  setDeliveryPhoto(file);
+                } catch {
+                  setDeliveryPhoto(file);
+                  const reader = new FileReader();
+                  reader.onload = (ev) => setDeliveryPhotoPreview(ev.target.result);
+                  reader.readAsDataURL(file);
+                }
               }}
             />
             {deliveryPhotoPreview ? (

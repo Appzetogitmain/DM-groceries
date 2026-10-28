@@ -3,6 +3,19 @@ import { Loader2, AlertCircle, CheckCircle, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
 import { getCurrentPositionWithCache } from "../utils/deliveryLastLocation";
+import { compressImage } from "@core/utils/imageUtils";
+
+function dataURLtoFile(dataUrl, filename = "proof.jpg") {
+  const arr = dataUrl.split(",");
+  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+}
 
 /**
  * OtpInput Component
@@ -50,8 +63,13 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
 
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   
-  // Photo upload state
-  const [images, setImages] = useState([]);
+  // Photo upload state (restores from sessionStorage in case of camera reload)
+  const [images, setImages] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(`proof_imgs_otp_${orderId}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -72,7 +90,10 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
     setAttemptsRemaining(3);
     setIsLoading(false);
     setIsGenerating(false);
-    setImages([]);
+    try {
+      const saved = sessionStorage.getItem(`proof_imgs_otp_${orderId}`);
+      setImages(saved ? JSON.parse(saved) : []);
+    } catch { setImages([]); }
     setExpiresAtStr(initialExpiresAt);
     setRemainingSeconds(initialExpiresAt ? calculateRemainingTime(initialExpiresAt) : 0);
     if (inputRefs[0].current) {
@@ -121,18 +142,34 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
 
     for (const file of toProcess) {
       try {
-        const preview = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
+        // Fast canvas compression to eliminate LMK/OOM memory kills on Android
+        let preview = "";
+        try {
+          preview = await compressImage(file, {
+            maxWidth: 1024,
+            maxHeight: 1024,
+            quality: 0.8,
+            maxSizeBytes: 25 * 1024 * 1024,
+          });
+        } catch (compErr) {
+          preview = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => resolve(ev.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        }
 
         let url = preview;
         try {
           const { default: axiosInstance } = await import("@core/api/axios");
           const uploadForm = new FormData();
-          uploadForm.append("file", file);
+          let fileToUpload = file;
+          try {
+            fileToUpload = dataURLtoFile(preview, `proof_${Date.now()}.jpg`);
+          } catch {}
+
+          uploadForm.append("file", fileToUpload);
           const uploadRes = await axiosInstance.post("/media/upload", uploadForm, {
             headers: { "Content-Type": "multipart/form-data" },
           });
@@ -147,13 +184,29 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
       }
     }
 
-    setImages((prev) => [...prev, ...newImages].slice(0, 3));
+    setImages((prev) => {
+      const updated = [...prev, ...newImages].slice(0, 3);
+      try {
+        sessionStorage.setItem(`proof_imgs_otp_${orderId}`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImages((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      try {
+        if (updated.length > 0) {
+          sessionStorage.setItem(`proof_imgs_otp_${orderId}`, JSON.stringify(updated));
+        } else {
+          sessionStorage.removeItem(`proof_imgs_otp_${orderId}`);
+        }
+      } catch {}
+      return updated;
+    });
   };
 
   /**
@@ -314,6 +367,10 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
               : "Order delivered successfully!")
       );
 
+      try {
+        sessionStorage.removeItem(`proof_imgs_otp_${orderId}`);
+        sessionStorage.removeItem(`rider_active_otp_${orderId}`);
+      } catch {}
       if (onSuccess) {
         onSuccess(response.data);
       }
@@ -438,7 +495,6 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            multiple
             capture="environment"
             onChange={handleImageSelect}
             className="hidden"

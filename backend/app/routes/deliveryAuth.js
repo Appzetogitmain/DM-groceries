@@ -6,6 +6,7 @@ import {
   getDeliveryProfile,
   updateDeliveryProfile,
   updateDeliveryDocuments,
+  viewDeliveryDocument,
   deleteDeliveryDocument,
   updateDeliveryVehicleInfo,
   deleteDeliveryAccount,
@@ -46,6 +47,7 @@ router.post("/verify-otp", verifyDeliveryOTP);
 // Profile routes
 router.get("/profile", verifyToken, getDeliveryProfile);
 router.put("/profile", verifyToken, upload.any(), updateDeliveryProfile);
+router.get("/profile/documents/view", verifyToken, viewDeliveryDocument);
 router.put("/profile/documents", verifyToken, upload.any(), updateDeliveryDocuments);
 router.delete("/profile/documents/:documentType", verifyToken, deleteDeliveryDocument);
 router.put("/profile/vehicle-info", verifyToken, updateDeliveryVehicleInfo);

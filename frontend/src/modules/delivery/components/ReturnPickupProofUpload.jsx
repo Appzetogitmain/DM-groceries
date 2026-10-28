@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Camera, CheckCircle, Loader2, Package, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
+import { compressImage } from "@core/utils/imageUtils";
 
 const CONDITIONS = [
   { value: "good", label: "Good Condition", color: "bg-green-100 text-green-800 border-green-300", icon: "✅" },
@@ -198,7 +199,6 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          multiple
           capture="environment"
           onChange={handleImageSelect}
           className="hidden"
@@ -284,13 +284,22 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
   );
 };
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+async function fileToDataUrl(file) {
+  try {
+    return await compressImage(file, {
+      maxWidth: 1024,
+      maxHeight: 1024,
+      quality: 0.8,
+      maxSizeBytes: 25 * 1024 * 1024,
+    });
+  } catch (err) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 }
 
 export default ReturnPickupProofUpload;
