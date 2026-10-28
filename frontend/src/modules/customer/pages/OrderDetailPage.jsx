@@ -264,6 +264,32 @@ const OrderDetailPage = () => {
     }
   }, [orderId]);
 
+  // Auto-refetch when the 5-minute seller acceptance window expires
+  useEffect(() => {
+    if (!order) return undefined;
+    const isPending =
+      order.workflowStatus === "SELLER_PENDING" ||
+      (order.status === "pending" && !order.sellerAcceptedAt);
+    const exp = order.sellerPendingExpiresAt || order.expiresAt;
+    if (!isPending || !exp) return undefined;
+
+    const msUntilExpiry = new Date(exp).getTime() - Date.now();
+    if (msUntilExpiry <= 0) {
+      customerApi.getOrderDetails(orderId).then((res) => {
+        if (res.data?.result) setOrder(res.data.result);
+      }).catch(() => {});
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      customerApi.getOrderDetails(orderId).then((res) => {
+        if (res.data?.result) setOrder(res.data.result);
+      }).catch(() => {});
+    }, msUntilExpiry + 1000);
+
+    return () => clearTimeout(timer);
+  }, [order?.workflowStatus, order?.status, order?.sellerPendingExpiresAt, order?.expiresAt, orderId]);
+
   useEffect(() => {
     if (!orderId) return undefined;
     const getToken = createSocketTokenReader(STORAGE_KEYS.AUTH_CUSTOMER);

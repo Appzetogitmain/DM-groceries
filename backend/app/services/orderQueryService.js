@@ -10,7 +10,7 @@ import {
   orderMatchQueryFlexible,
 } from "../utils/orderLookup.js";
 import { buildKey, getOrSet, getTTL } from "./cacheService.js";
-import { resolveWorkflowStatus } from "./orderWorkflowService.js";
+import { resolveWorkflowStatus, processSellerTimeoutJob } from "./orderWorkflowService.js";
 import logger from "./logger.js";
 import Setting from "../models/setting.js";
 import { calculateRiderPayout } from "./finance/pricingService.js";
@@ -605,7 +605,7 @@ export async function getCustomerOrders(customerId, pagination) {
       const [orders, total] = await Promise.all([
         Order.find({ customer: customerId })
           .select(
-            "orderId checkoutGroupId customer seller items address payment pricing status workflowStatus workflowVersion returnStatus timeSlot createdAt",
+            "orderId checkoutGroupId customer seller items address payment pricing status workflowStatus workflowVersion returnStatus timeSlot createdAt sellerPendingExpiresAt expiresAt sellerAcceptedAt",
           )
           .sort({ createdAt: -1, _id: -1 })
           .skip(skip)
@@ -615,8 +615,28 @@ export async function getCustomerOrders(customerId, pagination) {
         Order.countDocuments({ customer: customerId }),
       ]);
 
+      const now = new Date();
+      const sanitizedOrders = orders.map((o) => {
+        const isPending =
+          o.workflowStatus === WORKFLOW_STATUS.SELLER_PENDING ||
+          (o.status === "pending" && !o.sellerAcceptedAt);
+        const exp = o.sellerPendingExpiresAt || o.expiresAt;
+        if (isPending && exp && new Date(exp) <= now) {
+          // Trigger asynchronous auto-cancel job in background
+          void processSellerTimeoutJob({ orderId: o.orderId }).catch(() => {});
+          return {
+            ...o,
+            status: "cancelled",
+            orderStatus: "cancelled",
+            workflowStatus: WORKFLOW_STATUS.CANCELLED,
+            cancelReason: "Seller timeout (5m)",
+          };
+        }
+        return o;
+      });
+
       return {
-        items: orders,
+        items: sanitizedOrders,
         page,
         limit,
         total,
@@ -717,6 +737,24 @@ export async function getOrderWithAccess(orderId, userId, role) {
 
   if (!order.workflowStatus) {
     order.workflowStatus = resolveWorkflowStatus(order);
+  }
+
+  // Lazy check: if seller pending window expired (> 5 min), trigger auto-cancel immediately
+  const isSellerPending =
+    order.workflowStatus === WORKFLOW_STATUS.SELLER_PENDING ||
+    (order.status === "pending" && !order.sellerAcceptedAt);
+  const expiryDate = order.sellerPendingExpiresAt || order.expiresAt;
+  if (isSellerPending && expiryDate && new Date(expiryDate) <= new Date()) {
+    try {
+      await processSellerTimeoutJob({ orderId: order.orderId });
+      order.workflowStatus = WORKFLOW_STATUS.CANCELLED;
+      order.status = "cancelled";
+      order.orderStatus = "cancelled";
+      order.cancelledBy = "system";
+      order.cancelReason = "Seller timeout (5m)";
+    } catch (e) {
+      logger.warn("Lazy seller timeout auto-cancel failed", { error: e.message, orderId: order.orderId });
+    }
   }
 
   if (

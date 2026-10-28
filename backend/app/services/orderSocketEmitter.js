@@ -46,7 +46,7 @@ function normalizeDeliveryId(deliveryId) {
  * and optionally to the customer’s personal room so the app updates even before
  * opening order details (e.g. checkout success overlay).
  */
-export function emitOrderStatusUpdate(orderId, payload, customerId) {
+export function emitOrderStatusUpdate(orderId, payload, customerId, sellerId) {
   const s = getIo();
   if (!s) return;
   const body = {
@@ -64,6 +64,16 @@ export function emitOrderStatusUpdate(orderId, payload, customerId) {
   if (cid) {
     s.to(`customer:${cid}`).emit("order:status:update", body);
   }
+  const sid =
+    sellerId != null &&
+    typeof sellerId === "object" &&
+    typeof sellerId.toString === "function"
+      ? sellerId.toString()
+      : sellerId;
+  if (sid) {
+    s.to(`seller:${sid}`).emit("order:status:update", body);
+  }
+  s.to("admin:orders").emit("order:status:update", body);
 }
 
 export function emitToSeller(sellerId, { event, payload }) {

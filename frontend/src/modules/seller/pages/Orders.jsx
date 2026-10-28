@@ -122,6 +122,33 @@ const Orders = () => {
         };
     }, [page, getToken]);
 
+    // Live ticker to transition any pending order that exceeds 5 minutes to Cancelled
+    useEffect(() => {
+        const hasPending = orders.some(o => o.status === 'pending');
+        if (!hasPending) return undefined;
+
+        const interval = setInterval(() => {
+            let expiredAny = false;
+            setOrders(prev =>
+                prev.map(o => {
+                    if (o.status === 'pending') {
+                        const legacy = getLegacyStatusFromOrder(o);
+                        if (legacy === 'cancelled') {
+                            expiredAny = true;
+                            return { ...o, status: 'cancelled', workflowStatus: 'CANCELLED' };
+                        }
+                    }
+                    return o;
+                })
+            );
+            if (expiredAny) {
+                fetchOrders(page, false);
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [orders, page]);
+
     const fetchOrders = async (requestedPage = 1, showPageLoader = false) => {
         try {
             if (showPageLoader) {
@@ -183,20 +210,21 @@ const Orders = () => {
             const fallbackPending = formattedOrders.filter(o => o.status === 'pending').length;
             const fallbackConfirmed = formattedOrders.filter(o => o.status === 'confirmed' || o.status === 'packed').length;
             const fallbackDelivered = formattedOrders.filter(o => o.status === 'delivered').length;
+            const fallbackCancelled = formattedOrders.filter(o => o.status === 'cancelled').length;
             const fallbackTotal = typeof payload.total === 'number' ? payload.total : formattedOrders.length;
             const hasServerSummary = rawSum && typeof rawSum.totalOrders === 'number' && (rawSum.totalOrders > 0 || fallbackTotal === 0);
 
             setSummary({
                 totalOrders: hasServerSummary ? Math.max(Number(rawSum.totalOrders), fallbackTotal) : fallbackTotal,
                 totalAmount: Number(rawSum.totalAmount || 0),
-                pending: hasServerSummary ? Math.max(Number(rawSum.pending || 0), fallbackPending) : fallbackPending,
+                pending: fallbackPending,
                 confirmed: hasServerSummary ? Math.max(Number(rawSum.confirmed || 0), fallbackConfirmed) : fallbackConfirmed,
                 packed: Number(rawSum.packed || 0),
                 outForDelivery: Number(rawSum.outForDelivery || 0),
                 delivered: hasServerSummary ? Math.max(Number(rawSum.delivered || 0), fallbackDelivered) : fallbackDelivered,
-                cancelled: Number(rawSum.cancelled || 0),
+                cancelled: hasServerSummary ? Math.max(Number(rawSum.cancelled || 0), fallbackCancelled) : fallbackCancelled,
                 returned: Number(rawSum.returned || 0),
-                activeOrders: Number(rawSum.activeOrders || 0),
+                activeOrders: fallbackPending + (hasServerSummary ? Math.max(Number(rawSum.confirmed || 0), fallbackConfirmed) : fallbackConfirmed),
             });
             if (typeof payload.total === 'number') {
                 setTotal(payload.total);

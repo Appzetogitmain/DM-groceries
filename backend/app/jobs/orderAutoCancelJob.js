@@ -16,6 +16,8 @@ import {
 import { compensateOrderCancellation } from "../services/orderCompensation.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
+import { emitOrderStatusUpdate, emitToSeller } from "../services/orderSocketEmitter.js";
+import { buildKey, invalidate } from "../services/cacheService.js";
 import logger from "../services/logger.js";
 
 dotenv.config();
@@ -234,8 +236,10 @@ const autoCancelExpiredOrders = async () => {
 
     for (const order of legacyExpired) {
       order.status = "cancelled";
+      order.orderStatus = "cancelled";
+      order.workflowStatus = WORKFLOW_STATUS.CANCELLED;
       order.cancelledBy = "system";
-      order.cancelReason = "Seller timeout (60s)";
+      order.cancelReason = "Seller timeout (5m)";
       await order.save();
 
       try {
@@ -247,6 +251,36 @@ const autoCancelExpiredOrders = async () => {
           error: e.message
         });
       }
+
+      if (order.customer) {
+        try {
+          await invalidate(buildKey("orders", "customer", `${order.customer.toString()}:*`));
+        } catch (e) {
+          logger.warn("Failed to invalidate customer orders cache on legacy timeout", { error: e.message });
+        }
+      }
+
+      emitOrderStatusUpdate(
+        order.orderId,
+        {
+          workflowStatus: WORKFLOW_STATUS.CANCELLED,
+          status: "cancelled",
+          orderStatus: "cancelled",
+          reason: "seller_timeout",
+          message: "You missed an order! The order was automatically cancelled because you did not accept it in time.",
+        },
+        order.customer,
+        order.seller
+      );
+
+      emitToSeller(order.seller?.toString(), {
+        event: "order:cancelled",
+        payload: {
+          orderId: order.orderId,
+          reason: "seller_timeout",
+          message: "You missed an order! The order was automatically cancelled because you did not accept it in time.",
+        },
+      });
 
       emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CANCELLED, {
         orderId: order.orderId,

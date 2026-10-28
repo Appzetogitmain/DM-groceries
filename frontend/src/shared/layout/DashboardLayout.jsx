@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { cn, formatOrderId } from '@/lib/utils';
 import SellerOrdersContext from '@/modules/seller/context/SellerOrdersContext';
 import SellerEarningsContext, { defaultEarnings } from '@/modules/seller/context/SellerEarningsContext';
-import { getOrderSocket, onSellerOrderNew, onSellerOrderReminder, onSellerOrderCancelled, onReturnDropOtp, onSellerPickupOtp, onSellerDeliveryArrived, onSellerReturnRequested, wakeOrderSocket } from '@/core/services/orderSocket';
+import { getOrderSocket, onSellerOrderNew, onSellerOrderReminder, onSellerOrderCancelled, onOrderStatusUpdate, onReturnDropOtp, onSellerPickupOtp, onSellerDeliveryArrived, onSellerReturnRequested, wakeOrderSocket } from '@/core/services/orderSocket';
 import { createSocketTokenReader } from '@core/utils/authStorage';
 import { STORAGE_KEYS } from '@core/utils/storage';
 import { showSystemNotification } from '@/core/firebase/pushClient';
@@ -32,11 +32,11 @@ const SELLER_TIMEOUT_TEXT = "Order cancelled because no response was received wi
 const POLL_INTERVAL_MS = 15000;
 const WEBVIEW_POLL_INTERVAL_MS = 5000;
 
-/** Match server `sellerPendingExpiresAt` — never reset to a full 60s when the modal opens late. */
+/** Match server `sellerPendingExpiresAt` — default to 300s (5 min) if not set. */
 function secondsLeftUntilSellerExpiry(order) {
     if (!order) return 0;
     const raw = order.sellerPendingExpiresAt ?? order.expiresAt;
-    if (!raw) return 60;
+    if (!raw) return 300;
     const ms = new Date(raw).getTime() - Date.now();
     return Math.max(0, Math.ceil(ms / 1000));
 }
@@ -79,7 +79,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const [shownReturnOrderIds, setShownReturnOrderIds] = useState(() => new Set());
     const [timeLeft, setTimeLeft] = useState(0);
     /** Total seconds in this acceptance window (for progress bar), set when modal opens */
-    const acceptWindowTotalRef = useRef(60);
+    const acceptWindowTotalRef = useRef(300);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [returnDropOtpAlert, setReturnDropOtpAlert] = useState(null); // { orderId, otp, expiresAt }
     const [sellerPickupOtpAlert, setSellerPickupOtpAlert] = useState(null); // { orderId, otp, expiresAt }
@@ -406,11 +406,39 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
         // Server auto-cancelled (or cancelled) the order: close the alert and say why.
         const unsubscribeSellerCancelled = onSellerOrderCancelled(getToken, (payload) => {
-            if (newOrderAlertRef.current?.orderId === payload?.orderId) {
+            const targetOrderId = payload?.orderId;
+            if (newOrderAlertRef.current?.orderId === targetOrderId) {
                 stopOrderRingtone();
                 setNewOrderAlert(null);
             }
             toast.error(payload?.message || SELLER_TIMEOUT_TEXT);
+            if (targetOrderId) {
+                setSellerOrders((prev) =>
+                    prev.map((o) =>
+                        o.orderId === targetOrderId || o.id === targetOrderId
+                            ? { ...o, status: "cancelled", workflowStatus: "CANCELLED" }
+                            : o
+                    )
+                );
+            }
+            if (fetchOrdersRef.current) fetchOrdersRef.current();
+        });
+
+        const unsubscribeOrderStatus = onOrderStatusUpdate(getToken, (payload) => {
+            const targetOrderId = payload?.orderId;
+            if (targetOrderId && (payload.workflowStatus === "CANCELLED" || payload.status === "cancelled")) {
+                if (newOrderAlertRef.current?.orderId === targetOrderId) {
+                    stopOrderRingtone();
+                    setNewOrderAlert(null);
+                }
+                setSellerOrders((prev) =>
+                    prev.map((o) =>
+                        o.orderId === targetOrderId || o.id === targetOrderId
+                            ? { ...o, status: "cancelled", workflowStatus: "CANCELLED" }
+                            : o
+                    )
+                );
+            }
             if (fetchOrdersRef.current) fetchOrdersRef.current();
         });
 
@@ -495,6 +523,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
             unsubscribeSellerNew();
             unsubscribeSellerReminder();
             unsubscribeSellerCancelled();
+            unsubscribeOrderStatus();
             unsubscribeDrop();
             unsubscribeSellerPickup();
             unsubscribeDeliveryArrived();
@@ -567,8 +596,20 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
         const left = secondsLeftUntilSellerExpiry(newOrderAlert);
         if (left <= 0) {
+            stopOrderRingtone();
             setNewOrderAlert(null);
             toast.error("This order has already expired — you can no longer accept it.");
+            const expiredId = newOrderAlert.orderId;
+            if (expiredId) {
+                setSellerOrders((prev) =>
+                    prev.map((o) =>
+                        o.orderId === expiredId || o.id === expiredId
+                            ? { ...o, status: "cancelled", workflowStatus: "CANCELLED" }
+                            : o
+                    )
+                );
+            }
+            if (fetchOrdersRef.current) fetchOrdersRef.current();
             return undefined;
         }
 
@@ -584,8 +625,20 @@ const DashboardLayout = ({ children, navItems, title }) => {
             }
             if (next <= 0) {
                 clearInterval(timer);
+                stopOrderRingtone();
+                const expiredId = newOrderAlertRef.current?.orderId;
                 setNewOrderAlert(null);
                 toast.error(SELLER_TIMEOUT_TEXT);
+                if (expiredId) {
+                    setSellerOrders((prev) =>
+                        prev.map((o) =>
+                            o.orderId === expiredId || o.id === expiredId
+                                ? { ...o, status: "cancelled", workflowStatus: "CANCELLED" }
+                                : o
+                        )
+                    );
+                }
+                if (fetchOrdersRef.current) fetchOrdersRef.current();
             }
         }, 1000);
 

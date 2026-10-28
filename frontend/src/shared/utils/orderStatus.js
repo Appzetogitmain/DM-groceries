@@ -56,6 +56,16 @@ function legacyFromWorkflow(workflowStatus, fallbackStatus) {
  */
 export function getLegacyStatusFromOrder(order) {
   if (!order) return "pending";
+
+  // If seller did not accept within the 5 minute window, it is cancelled
+  const exp = order.sellerPendingExpiresAt || order.expiresAt;
+  const isPendingSeller =
+    String(order.workflowStatus || "").toUpperCase() === WORKFLOW_STATUS.SELLER_PENDING ||
+    (String(order.status ?? "").toLowerCase() === "pending" && !order.sellerAcceptedAt);
+  if (isPendingSeller && exp && new Date(exp).getTime() <= Date.now()) {
+    return "cancelled";
+  }
+
   const v = Number(order.workflowVersion) || 0;
   if (v >= 2 && order.workflowStatus) {
     const workflowStatus = String(order.workflowStatus).toUpperCase();

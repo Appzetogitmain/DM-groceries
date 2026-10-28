@@ -49,6 +49,7 @@ import { applyDeliveredSettlement } from "./orderSettlement.js";
 import { incrementOrderUsageAndAlert } from "../middleware/subscriptionMiddleware.js";
 import { requireCanonicalOrderId } from "../utils/orderLookup.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
+import { buildKey, invalidate } from "./cacheService.js";
 import logger from "./logger.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
 
@@ -556,6 +557,7 @@ export async function processSellerTimeoutJob({ orderId }) {
       $set: {
         workflowStatus: WORKFLOW_STATUS.CANCELLED,
         status: "cancelled",
+        orderStatus: "cancelled",
         cancelledBy: "system",
         cancelReason: "Seller timeout (5m)",
       },
@@ -568,7 +570,27 @@ export async function processSellerTimeoutJob({ orderId }) {
   await removeSellerReminder(orderId);
   await compensateOrderCancellation(updated, orderId);
 
-  emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.CANCELLED }, updated.customer);
+  // Invalidate customer orders cache so fresh queries show cancelled
+  if (updated.customer) {
+    try {
+      await invalidate(buildKey("orders", "customer", `${updated.customer.toString()}:*`));
+    } catch (e) {
+      logger.warn("Failed to invalidate customer orders cache on seller timeout", { error: e.message });
+    }
+  }
+
+  emitOrderStatusUpdate(
+    orderId,
+    {
+      workflowStatus: WORKFLOW_STATUS.CANCELLED,
+      status: "cancelled",
+      orderStatus: "cancelled",
+      reason: "seller_timeout",
+      message: SELLER_TIMEOUT_SELLER_MESSAGE,
+    },
+    updated.customer,
+    updated.seller
+  );
   // Tell the seller's open app too, so any alert modal closes with the reason.
   emitToSeller(updated.seller?.toString(), {
     event: "order:cancelled",
