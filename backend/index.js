@@ -262,11 +262,18 @@ async function startHttpServer() {
   registerHttpServer(server);
   registerSocketIO(io);
   
-  // Optionally enable inline queue workers (not recommended for production)
-  if (process.env.ENABLE_INLINE_QUEUE_WORKER === "true") {
-    logger.warn('Inline queue worker enabled - not recommended for production');
-    const { registerOrderQueueProcessors } = await import("./app/queues/orderQueueProcessors.js");
-    registerOrderQueueProcessors();
+  // Optionally enable inline queue workers and scheduler (for single-instance production deployments)
+  const inlineWorkers = process.env.ENABLE_INLINE_QUEUE_WORKER === "true" || process.env.ENABLE_INLINE_WORKERS === "true";
+  const inlineScheduler = process.env.ENABLE_INLINE_SCHEDULER === "true";
+
+  if (inlineWorkers && !isComponentEnabled('worker')) {
+    logger.info('Inline queue worker enabled - running queue processors in HTTP process');
+    await startQueueWorkers();
+  }
+
+  if (inlineScheduler && !isComponentEnabled('scheduler')) {
+    logger.info('Inline scheduler enabled - running scheduled jobs in HTTP process');
+    await startScheduler();
   }
   
   return new Promise((resolve) => {
@@ -286,7 +293,14 @@ async function startHttpServer() {
  */
 async function startQueueWorkers() {
   const { registerOrderQueueProcessors } = await import("./app/queues/orderQueueProcessors.js");
-  const { sellerTimeoutQueue, sellerReminderQueue, deliveryTimeoutQueue, returnPickupTimeoutQueue } = await import("./app/queues/orderQueues.js");
+  const {
+    sellerTimeoutQueue,
+    sellerReminderQueue,
+    deliveryTimeoutQueue,
+    returnPickupTimeoutQueue,
+    paymentTimeoutQueue,
+    paymentReminderQueue,
+  } = await import("./app/queues/orderQueues.js");
   const { registerNotificationQueueProcessors } = await import(
     "./app/modules/notifications/notification.worker.js"
   );
@@ -302,14 +316,19 @@ async function startQueueWorkers() {
   registerBullQueue(sellerReminderQueue);
   registerBullQueue(deliveryTimeoutQueue);
   registerBullQueue(returnPickupTimeoutQueue);
+  registerBullQueue(paymentTimeoutQueue);
+  registerBullQueue(paymentReminderQueue);
   registerBullQueue(notificationQueue);
   registerBullQueue(notificationDeadQueue);
 
   logger.info('Queue workers started', {
     queues: [
       'seller-timeout',
+      'seller-reminder',
       'delivery-timeout',
       'return-pickup-timeout',
+      'payment-timeout',
+      'payment-reminder',
       'notifications',
       'notifications-dead',
     ],

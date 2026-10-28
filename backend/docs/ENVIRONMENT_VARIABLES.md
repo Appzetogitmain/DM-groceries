@@ -6,8 +6,11 @@ Complete reference for all environment variables. See `.env.example` for a templ
 
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
-| `PROCESS_ROLE` | `all` (dev) / `api` (prod) | No | Process role: `api`, `worker`, `scheduler`, `all` (**`all` is not allowed in `NODE_ENV=production`**) |
-| `APP_ROLE` | â€” | No | **Deprecated** alias for `PROCESS_ROLE` (kept for backward compatibility) |
+| `PROCESS_ROLE` | `all` (dev) / `api` (prod) | No | Process role: `api`, `worker`, `scheduler`, `all` |
+| `ALLOW_SINGLE_PROCESS_PRODUCTION` | `false` | No | Set to `true` to allow `PROCESS_ROLE=all` on a single production instance |
+| `ENABLE_INLINE_QUEUE_WORKER` | `false` | No | Set to `true` to run Bull queue processors inline inside the API server (single-instance setup) |
+| `ENABLE_INLINE_SCHEDULER` | `false` | No | Set to `true` to run cron sweep jobs inline inside the API server (single-instance setup) |
+| `APP_ROLE` | — | No | **Deprecated** alias for `PROCESS_ROLE` (kept for backward compatibility) |
 | `NODE_ENV` | `development` | No | Environment: `development`, `production`, `test` |
 | `PORT` | `7000` | No | HTTP server port (API role only) |
 | `HEALTH_CHECK_PORT` | `9090` | No | Health check port (worker/scheduler roles) |
