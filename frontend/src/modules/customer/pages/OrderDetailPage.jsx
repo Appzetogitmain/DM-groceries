@@ -47,6 +47,7 @@ import {
   joinOrderRoom,
   leaveOrderRoom,
   onOrderStatusUpdate,
+  onRiderLocationUpdate,
   onCustomerOtp,
   onDeliveryOtpGenerated,
   onReturnPickupOtp,
@@ -406,11 +407,33 @@ const OrderDetailPage = () => {
       }
     });
 
+    const offRiderLocation = onRiderLocationUpdate(getToken, (payload) => {
+      const isMatched = matchesOrderIdentifier(payload?.orderId, identifiersRef.current);
+      if (!isMatched) return;
+
+      const lat = Number(payload?.lat);
+      const lng = Number(payload?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+      const loc = {
+        lat,
+        lng,
+        heading: Number.isFinite(Number(payload?.heading)) ? Number(payload.heading) : null,
+        speed: Number.isFinite(Number(payload?.speed)) ? Number(payload.speed) : null,
+        accuracy: Number.isFinite(Number(payload?.accuracy)) ? Number(payload.accuracy) : null,
+        lastUpdatedAt: payload?.lastUpdatedAt || payload?.at || new Date().toISOString(),
+        source: "socket",
+      };
+
+      setLiveLocation(loc);
+    });
+
     return () => {
       offStatus();
       offOtp();
       offDeliveryOtpGen();
       offReturnOtp();
+      offRiderLocation();
       leaveOrderRoom(orderId, getToken);
     };
   }, [orderId]);
@@ -592,12 +615,14 @@ const OrderDetailPage = () => {
   const routePhase = hasValidLatLng(liveLocation) ? baseRoutePhase : "delivery";
   
   const routeMatchesPhase =
-    routePhase === "pickup"
-      ? routePolyline?.phase
-        ? routePolyline.phase === routePhase
-        : !!routePolyline?.polyline
-      : routePolyline?.phase === routePhase;
-  const activeRoutePolyline = routeMatchesPhase ? routePolyline : null;
+    routePolyline?.phase
+      ? routePolyline.phase === routePhase
+      : !!routePolyline?.polyline;
+  const activeRoutePolyline = routeMatchesPhase
+    ? routePolyline
+    : routePolyline?.polyline
+    ? routePolyline
+    : null;
   const estimatedArrival = useMemo(() => {
     if (!order) {
       return {

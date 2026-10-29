@@ -215,6 +215,13 @@ export function onOrderStatusUpdate(getToken, handler) {
   return () => s.off("order:status:update", handler);
 }
 
+export function onRiderLocationUpdate(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("rider:location:update", handler);
+  return () => s.off("rider:location:update", handler);
+}
+
 export function onTicketMessage(getToken, handler) {
   const s = getOrderSocket(getToken);
   if (!s || typeof handler !== "function") return () => {};

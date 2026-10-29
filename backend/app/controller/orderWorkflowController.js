@@ -316,7 +316,7 @@ export const getOrderRoute = async (req, res) => {
     }
 
     const route = await getCachedRoute(origin, dest, "driving", orderId, phase);
-    return handleResponse(res, 200, "Route", { ...route, destination: dest });
+    return handleResponse(res, 200, "Route", { ...route, destination: dest, origin });
   } catch (e) {
     return handleResponse(res, 500, e.message);
   }

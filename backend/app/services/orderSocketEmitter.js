@@ -76,6 +76,19 @@ export function emitOrderStatusUpdate(orderId, payload, customerId, sellerId) {
   s.to("admin:orders").emit("order:status:update", body);
 }
 
+/**
+ * Emit rider location update to the order room (clients that joined `join_order`).
+ */
+export function emitRiderLocationUpdate(orderId, snapshot) {
+  const s = getIo();
+  if (!s || !orderId) return;
+  s.to(`order:${orderId}`).emit("rider:location:update", {
+    orderId,
+    ...snapshot,
+    at: new Date().toISOString(),
+  });
+}
+
 export function emitToSeller(sellerId, { event, payload }) {
   const s = getIo();
   if (!s || !sellerId) return;

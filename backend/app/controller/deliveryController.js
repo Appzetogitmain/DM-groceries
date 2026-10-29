@@ -27,6 +27,7 @@ import crypto from "crypto";
 import Razorpay from "razorpay";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
+import { emitRiderLocationUpdate } from "../services/orderSocketEmitter.js";
 /* ===============================
    GET DELIVERY DASHBOARD STATS
 ================================ */
@@ -483,6 +484,7 @@ export const updateDeliveryLocation = async (req, res) => {
         // the canonical id of an order this rider is actually assigned to.
         writeDeliveryLocation(deliveryId, activeOrderId, snapshot).catch(() => {});
         if (activeOrderId) {
+            emitRiderLocationUpdate(activeOrderId, snapshot);
             appendTrailPoint(activeOrderId, { lat, lng, t: Date.now() }).catch(() => {});
         }
 

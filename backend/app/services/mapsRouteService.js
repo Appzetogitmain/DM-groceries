@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Client } from "@googlemaps/google-maps-services-js";
 import polyline from "@mapbox/polyline";
 import { getRedisClient } from "../config/redis.js";
@@ -15,65 +16,11 @@ function roundCoord(n) {
   return Math.round(n * 1e5) / 1e5;
 }
 
-/** Bump when route payload shape changes (invalidates Redis entries). */
+/** Cache key for route results */
 function cacheKey(origin, dest, mode) {
-  return `route:v4:${roundCoord(origin.lat)},${roundCoord(origin.lng)}:${roundCoord(dest.lat)},${roundCoord(dest.lng)}:${mode}`;
+  return `route:v2:${roundCoord(origin.lat)},${roundCoord(origin.lng)}:${roundCoord(dest.lat)},${roundCoord(dest.lng)}:${mode}`;
 }
 
-/** Directions step polyline — tolerate string or `{ points }` shapes. */
-function stepEncodedPolyline(step) {
-  if (!step || typeof step !== "object") return null;
-  const p = step.polyline;
-  if (typeof p === "string") return p;
-  if (p && typeof p.points === "string") return p.points;
-  return null;
-}
-
-/**
- * `overview_polyline` is heavily simplified: decoded points can be kilometers
- * apart, so maps draw long straight "chords" across blocks (looks like a second
- * route). Prefer merging each step's polyline — full road geometry.
- * Iterates all legs (multi-waypoint routes).
- */
-function mergeRouteStepPolylines(route) {
-  const legs = route?.legs;
-  if (!Array.isArray(legs) || legs.length === 0) return null;
-  const coords = [];
-  for (const leg of legs) {
-    if (!leg?.steps?.length) continue;
-    for (const step of leg.steps) {
-      const enc = stepEncodedPolyline(step);
-      if (!enc || typeof enc !== "string") continue;
-      let part;
-      try {
-        part = polyline.decode(enc);
-      } catch {
-        continue;
-      }
-      if (!Array.isArray(part) || part.length === 0) continue;
-      for (const pair of part) {
-        if (!Array.isArray(pair) || pair.length < 2) continue;
-        if (coords.length === 0) {
-          coords.push(pair);
-          continue;
-        }
-        const prev = coords[coords.length - 1];
-        if (prev[0] === pair[0] && prev[1] === pair[1]) continue;
-        coords.push(pair);
-      }
-    }
-  }
-  if (coords.length < 2) return null;
-  try {
-    return polyline.encode(coords);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Returns { polyline, bounds, distanceMeters } from Directions API with Redis cache.
- */
 function degradedPayload() {
   return { polyline: null, bounds: null, distanceMeters: null, duration: null, degraded: true };
 }
@@ -89,11 +36,23 @@ function hasValidPoint(point) {
 }
 
 function isRouteCacheCompatible(cached, origin, dest, phase, mode) {
-  if (!cached?.polyline) return false;
+  if (cached?.distance == null && cached?.distanceMeters == null) return false;
   if ((cached.phase || "pickup") !== phase) return false;
   if ((cached.mode || "driving") !== mode) return false;
   if (!hasValidPoint(origin) || !hasValidPoint(dest)) return false;
   if (!hasValidPoint(cached.origin) || !hasValidPoint(cached.destination)) {
+    return false;
+  }
+  if (cached?.source === 'haversine_fallback' || cached?.source === 'distance_matrix_api') {
+    return false;
+  }
+  // If the cached polyline has 2 points or fewer, it's a straight line, not a road route! Reject it!
+  try {
+    const pts = polyline.decode(cached.polyline);
+    if (!pts || pts.length <= 2) {
+      return false;
+    }
+  } catch {
     return false;
   }
 
@@ -115,9 +74,116 @@ function isRouteCacheCompatible(cached, origin, dest, phase, mode) {
 }
 
 /**
- * Returns { polyline, bounds, distanceMeters, degraded } from Directions API with Redis + Firebase cache.
- * Requires GOOGLE_MAPS_API_KEY and Directions API enabled in Google Cloud (billing on).
- * Does not cache failed or empty routes so fixing the key takes effect immediately.
+ * 1. Google Routes API v2 - modern Google Directions API recommended by Google
+ */
+async function fetchGoogleRoutes(origin, dest, mode, apiKey) {
+  try {
+    const travelMode =
+      mode === "walking" ? "WALK" : mode === "bicycling" ? "BICYCLE" : "DRIVE";
+    const resp = await axios.post(
+      "https://routes.googleapis.com/directions/v2:computeRoutes",
+      {
+        origin: {
+          location: { latLng: { latitude: origin.lat, longitude: origin.lng } },
+        },
+        destination: {
+          location: { latLng: { latitude: dest.lat, longitude: dest.lng } },
+        },
+        travelMode,
+        routingPreference: "TRAFFIC_UNAWARE",
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask":
+            "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.viewport",
+        },
+        timeout: 8000,
+      }
+    );
+
+    const route = resp.data?.routes?.[0];
+    if (route?.polyline?.encodedPolyline) {
+      const durSec = route.duration
+        ? parseInt(String(route.duration).replace("s", ""), 10)
+        : null;
+      return {
+        polyline: route.polyline.encodedPolyline,
+        bounds: route.viewport || null,
+        distanceMeters: route.distanceMeters ?? null,
+        duration: durSec,
+        source: "google_routes_v2",
+      };
+    }
+    return null;
+  } catch (err) {
+    console.warn(
+      `[Google Routes API Error]: ${err.response?.data?.error?.message || err.message}`
+    );
+    return null;
+  }
+}
+
+/**
+ * 2. Google Directions API - legacy fallback
+ */
+async function fetchGoogleDirections(origin, dest, mode, apiKey) {
+  try {
+    const resp = await client.directions({
+      params: {
+        origin: `${origin.lat},${origin.lng}`,
+        destination: `${dest.lat},${dest.lng}`,
+        mode,
+        key: apiKey,
+      },
+      timeout: 8000,
+    });
+
+    const route = resp.data?.routes?.[0];
+    const leg = route?.legs?.[0];
+    if (resp.data?.status === "OK" && route?.overview_polyline?.points) {
+      return {
+        polyline: route.overview_polyline.points,
+        bounds: route.bounds || null,
+        distanceMeters: leg?.distance?.value ?? null,
+        duration: leg?.duration?.value ?? null,
+        source: "google_directions",
+      };
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * 3. OSRM Road Router - real road network fallback
+ */
+async function fetchOsrmRoute(origin, dest) {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${dest.lng},${dest.lat}?overview=full&geometries=polyline`;
+    const resp = await axios.get(url, { timeout: 7000 });
+    const route = resp.data?.routes?.[0];
+    if (resp.data?.code === "Ok" && route?.geometry) {
+      return {
+        polyline: route.geometry,
+        bounds: null,
+        distanceMeters: Math.round(route.distance),
+        duration: Math.round(route.duration),
+        source: "osrm_roads",
+      };
+    }
+    return null;
+  } catch (err) {
+    console.warn(`[OSRM Road Router Error]: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Returns road-following route { polyline, bounds, distanceMeters, duration, degraded }
+ * using Google Directions API (primary) -> OSRM Road Router (fallback) -> Haversine (last resort).
  * 
  * @param {Object} origin - { lat, lng }
  * @param {Object} dest - { lat, lng }
@@ -126,7 +192,11 @@ function isRouteCacheCompatible(cached, origin, dest, phase, mode) {
  * @param {string} phase - "pickup" | "delivery"
  */
 export async function getCachedRoute(origin, dest, mode = "driving", orderId = null, phase = "pickup") {
-  // Try Firebase cache first if orderId is provided
+  if (!hasValidPoint(origin) || !hasValidPoint(dest)) {
+    return degradedPayload();
+  }
+
+  // 1. Try Firebase cache first if orderId is provided
   if (orderId) {
     try {
       const firebaseRoute = await getRoutePolyline(orderId);
@@ -135,7 +205,7 @@ export async function getCachedRoute(origin, dest, mode = "driving", orderId = n
         return {
           polyline: firebaseRoute.polyline,
           bounds: firebaseRoute.bounds,
-          distanceMeters: firebaseRoute.distance,
+          distanceMeters: firebaseRoute.distance ?? firebaseRoute.distanceMeters,
           duration: firebaseRoute.duration,
           degraded: false,
           source: 'firebase',
@@ -147,7 +217,7 @@ export async function getCachedRoute(origin, dest, mode = "driving", orderId = n
     }
   }
 
-  // Try Redis cache
+  // 2. Try Redis cache
   const redis = getRedisClient();
   const key = cacheKey(origin, dest, mode);
   if (redis) {
@@ -155,8 +225,19 @@ export async function getCachedRoute(origin, dest, mode = "driving", orderId = n
       const cached = await redis.get(key);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed?.polyline && !parsed.degraded) {
-          return { ...parsed, source: 'redis', phase };
+        if (
+          parsed?.distanceMeters != null &&
+          !parsed.degraded &&
+          parsed.source !== 'haversine_fallback'
+        ) {
+          try {
+            const pts = polyline.decode(parsed.polyline);
+            if (pts && pts.length > 2) {
+              return { ...parsed, source: 'redis', phase };
+            }
+          } catch {
+            /* ignore invalid polyline in redis */
+          }
         }
       }
     } catch {
@@ -167,49 +248,52 @@ export async function getCachedRoute(origin, dest, mode = "driving", orderId = n
   const apiKey =
     process.env.GOOGLE_MAPS_API_KEY?.trim() ||
     process.env.GOOGLE_MAPS_SERVER_KEY?.trim();
-  if (!apiKey) {
-    return degradedPayload();
+
+  let routeResult = null;
+
+  // Step A: Try Google Routes API v2 first using the Google Maps API key
+  if (apiKey) {
+    routeResult = await fetchGoogleRoutes(origin, dest, mode, apiKey);
   }
 
-  try {
-    const resp = await client.directions({
-      params: {
-        origin: `${origin.lat},${origin.lng}`,
-        destination: `${dest.lat},${dest.lng}`,
-        mode,
-        key: apiKey,
-      },
-      timeout: 10000,
-    });
+  // Step B: Legacy Google Directions fallback
+  if (!routeResult && apiKey) {
+    routeResult = await fetchGoogleDirections(origin, dest, mode, apiKey);
+  }
 
-    const status = resp.data?.status;
-    if (status && status !== "OK") {
-      return degradedPayload();
-    }
+  // Step C: If Google fails (e.g. quota/network), query OSRM road router to follow real streets
+  if (!routeResult) {
+    routeResult = await fetchOsrmRoute(origin, dest);
+  }
 
-    const route = resp.data.routes?.[0];
-    const leg = route?.legs?.[0];
-    const mergedFromSteps = mergeRouteStepPolylines(route);
-    const polyline =
-      mergedFromSteps || route?.overview_polyline?.points || null;
-    const distanceMeters = leg?.distance?.value ?? null;
-    const duration = leg?.duration?.value ?? null;
+  const isDegraded = !routeResult || routeResult.source === "haversine_fallback";
 
-    if (!polyline) {
-      return degradedPayload();
-    }
-
-    const payload = {
-      polyline,
-      bounds: route?.bounds || null,
-      distanceMeters,
-      duration,
-      degraded: false,
-      source: 'api',
-      phase,
+  // Step C: If both road network queries failed, straight-line fallback
+  if (!routeResult) {
+    const haversineM = distanceMeters(origin.lat, origin.lng, dest.lat, dest.lng);
+    const durationEst = Math.round((haversineM / 1000) * 120);
+    const directPolyline = polyline.encode([[origin.lat, origin.lng], [dest.lat, dest.lng]]);
+    routeResult = {
+      polyline: directPolyline,
+      bounds: null,
+      distanceMeters: Math.round(haversineM),
+      duration: durationEst,
+      source: "haversine_fallback",
     };
+  }
 
-    // Cache in Redis
+  const payload = {
+    polyline: routeResult.polyline,
+    bounds: routeResult.bounds || null,
+    distanceMeters: routeResult.distanceMeters,
+    duration: routeResult.duration,
+    degraded: isDegraded,
+    source: routeResult.source,
+    phase,
+  };
+
+  // Only cache valid road routes (do not cache straight line fallbacks)
+  if (!isDegraded) {
     if (redis) {
       try {
         await redis.set(key, JSON.stringify(payload), "EX", ROUTE_CACHE_TTL_SEC());
@@ -218,26 +302,25 @@ export async function getCachedRoute(origin, dest, mode = "driving", orderId = n
       }
     }
 
-    // Cache in Firebase if orderId is provided
     if (orderId) {
       try {
         await writeRoutePolyline(orderId, {
-          polyline,
+          polyline: payload.polyline,
           phase,
           origin,
           destination: dest,
           mode,
-          bounds: route?.bounds || null,
-          distance: distanceMeters,
-          duration,
+          bounds: payload.bounds,
+          distance: payload.distanceMeters,
+          duration: payload.duration,
         });
       } catch {
         /* ignore firebase write errors */
       }
     }
-
-    return payload;
-  } catch {
-    return degradedPayload();
   }
+
+  return payload;
 }
+
+export default { getCachedRoute };

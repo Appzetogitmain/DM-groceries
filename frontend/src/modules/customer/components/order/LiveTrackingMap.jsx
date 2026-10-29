@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GoogleMap, useJsApiLoader, Marker, Polyline } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, Marker, Polyline, OverlayView } from "@react-google-maps/api";
 import {
   MapPin,
   Navigation,
@@ -48,6 +48,87 @@ function hasValidLatLng(location) {
   );
 }
 
+function distanceMeters(from, to) {
+  if (
+    !from ||
+    !to ||
+    typeof from.lat !== "number" ||
+    typeof from.lng !== "number" ||
+    typeof to.lat !== "number" ||
+    typeof to.lng !== "number" ||
+    !Number.isFinite(from.lat) ||
+    !Number.isFinite(from.lng) ||
+    !Number.isFinite(to.lat) ||
+    !Number.isFinite(to.lng)
+  ) {
+    return null;
+  }
+  const r = 6371000;
+  const dLat = ((to.lat - from.lat) * Math.PI) / 180;
+  const dLng = ((to.lng - from.lng) * Math.PI) / 180;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to.lat * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function computeBearing(from, to) {
+  if (!from || !to) return 0;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to.lat * Math.PI) / 180;
+  const dLng = ((to.lng - from.lng) * Math.PI) / 180;
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  const brng = (Math.atan2(y, x) * 180) / Math.PI;
+  return (brng + 360) % 360;
+}
+
+function getClosestPointOnSegment(p, p1, p2) {
+  const dx = p2.lng - p1.lng;
+  const dy = p2.lat - p1.lat;
+  if (dx === 0 && dy === 0) return p1;
+  const u = ((p.lng - p1.lng) * dx + (p.lat - p1.lat) * dy) / (dx * dx + dy * dy);
+  if (u < 0) return p1;
+  if (u > 1) return p2;
+  return { lat: p1.lat + u * dy, lng: p1.lng + u * dx };
+}
+
+/** Pure JavaScript polyline decoder (no dependency on Google Maps SDK) */
+function decodePolyline(encoded) {
+  if (!encoded || typeof encoded !== "string") return [];
+  const points = [];
+  let index = 0, len = encoded.length;
+  let lat = 0, lng = 0;
+  while (index < len) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lng += dlng;
+
+    points.push({
+      lat: Math.round(lat * 1e-5 * 1e6) / 1e6,
+      lng: Math.round(lng * 1e-5 * 1e6) / 1e6,
+    });
+  }
+  return points;
+}
+
 const LiveTrackingMap = memo(({
   status = "out for delivery",
   eta = "8 mins",
@@ -64,7 +145,10 @@ const LiveTrackingMap = memo(({
   onOpenInMaps,
 }) => {
   const mapRef = useRef(null);
+  const initialFitDoneRef = useRef(false);
   const [mapInstance, setMapInstance] = useState(null);
+  const [clientRoadPath, setClientRoadPath] = useState(null);
+  const roadFetchInProgressRef = useRef(false);
   const isSearching = SEARCHING_STATUSES.includes(status?.toLowerCase());
   const [progress, setProgress] = useState(0);
   const [dots, setDots] = useState("");
@@ -115,31 +199,201 @@ const LiveTrackingMap = memo(({
 
   // Decode polyline from Firebase
   const decodedPath = useMemo(() => {
-    if (!routePolyline?.polyline || !isLoaded || !window.google?.maps?.geometry?.encoding) {
-      if (routePolyline && !routePolyline.polyline) {
-        console.log("[LiveTrackingMap] Route data exists but no polyline:", routePolyline);
-      }
-      return null;
-    }
-    try {
-      const decoded = window.google.maps.geometry.encoding.decodePath(routePolyline.polyline);
-      console.log(`[LiveTrackingMap] ✓ Decoded polyline with ${decoded.length} points`);
-      return decoded;
-    } catch (err) {
-      console.error("[LiveTrackingMap] Error decoding polyline:", err);
-      return null;
-    }
-  }, [routePolyline, isLoaded]);
+    if (!routePolyline?.polyline) return null;
+    const pts = decodePolyline(routePolyline.polyline);
+    return pts && pts.length > 2 ? pts : null;
+  }, [routePolyline?.polyline]);
 
-  const riderMarkerIcon = useMemo(() => {
-    if (!isLoaded || !window.google?.maps) return undefined;
+  const effectivePath = useMemo(() => {
+    if (clientRoadPath && clientRoadPath.length >= 2) return clientRoadPath;
+    if (decodedPath && decodedPath.length >= 2) return decodedPath;
+    return null;
+  }, [clientRoadPath, decodedPath]);
+
+  // Client-side road router: direct Google Routes API v2 fallback if backend polyline is not available
+  useEffect(() => {
+    if (!activeTargetLocation) return;
+    if (decodedPath && decodedPath.length >= 2) return;
+    const from = sellerLocation || (riderLocation && hasValidLatLng(riderLocation) ? riderLocation : null);
+    const to = activeTargetLocation;
+    if (!from || !to) return;
+    if (roadFetchInProgressRef.current) return;
+
+    roadFetchInProgressRef.current = true;
+
+    if (apiKey) {
+      fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": "routes.polyline.encodedPolyline,routes.distanceMeters,routes.duration",
+        },
+        body: JSON.stringify({
+          origin: { location: { latLng: { latitude: from.lat, longitude: from.lng } } },
+          destination: { location: { latLng: { latitude: to.lat, longitude: to.lng } } },
+          travelMode: "DRIVE",
+        }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          const enc = data?.routes?.[0]?.polyline?.encodedPolyline;
+          if (enc) {
+            const pts = decodePolyline(enc);
+            if (pts && pts.length >= 2) {
+              setClientRoadPath(pts);
+              return;
+            }
+          }
+          fallbackOsrm(from, to);
+        })
+        .catch(() => {
+          fallbackOsrm(from, to);
+        })
+        .finally(() => {
+          roadFetchInProgressRef.current = false;
+        });
+      return;
+    }
+
+    fallbackOsrm(from, to);
+
+    function fallbackOsrm(originPt, destPt) {
+      fetch(
+        `https://router.project-osrm.org/route/v1/driving/${originPt.lng},${originPt.lat};${destPt.lng},${destPt.lat}?overview=full&geometries=polyline`
+      )
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.code === "Ok" && data?.routes?.[0]?.geometry) {
+            const rawPts = decodePolyline(data.routes[0].geometry);
+            if (rawPts && rawPts.length >= 2) {
+              setClientRoadPath(rawPts);
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          roadFetchInProgressRef.current = false;
+        });
+    }
+  }, [apiKey, decodedPath, activeTargetLocation, sellerLocation]);
+
+  // Stable road route polyline: stays completely fixed along the road & strictly anchored
+  const routePath = useMemo(() => {
+    let basePath = null;
+    if (decodedPath && decodedPath.length >= 2) {
+      basePath = decodedPath;
+    } else if (clientRoadPath && clientRoadPath.length >= 2) {
+      basePath = clientRoadPath;
+    }
+
+    if (!basePath || basePath.length < 2) {
+      const from = sellerLocation || riderLocation;
+      const to = activeTargetLocation;
+      if (from && to && hasValidLatLng(from) && hasValidLatLng(to)) {
+        return [
+          { lat: Number(from.lat), lng: Number(from.lng) },
+          { lat: Number(to.lat), lng: Number(to.lng) },
+        ];
+      }
+      return [];
+    }
+
+    const pts = basePath.map((p) => ({
+      lat: typeof p?.lat === "function" ? p.lat() : Number(p?.lat),
+      lng: typeof p?.lng === "function" ? p.lng() : Number(p?.lng),
+    })).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+
+    if (pts.length < 2) return [];
+
+    // Direction check towards active target
+    if (activeTargetLocation) {
+      const d0To = distanceMeters(pts[0], activeTargetLocation) || 0;
+      const dLastTo = distanceMeters(pts[pts.length - 1], activeTargetLocation) || 0;
+      if (d0To < dLastTo) {
+        pts.reverse();
+      }
+    }
+
+    return pts;
+  }, [decodedPath, clientRoadPath, sellerLocation, activeTargetLocation]);
+
+  // Snapped rider along the polyline with proper heading
+  const snappedRider = useMemo(() => {
+    if (!riderLocation || !hasValidLatLng(riderLocation)) return null;
+    if (!routePath || routePath.length < 2) return riderLocation;
+
+    let closestPt = routePath[0];
+    let closestIdx = 0;
+    let minD = Infinity;
+
+    for (let i = 0; i < routePath.length - 1; i++) {
+      const pA = routePath[i];
+      const pB = routePath[i + 1];
+      const pSeg = getClosestPointOnSegment(riderLocation, pA, pB);
+      const d = distanceMeters(riderLocation, pSeg);
+      if (d != null && d < minD) {
+        minD = d;
+        closestPt = pSeg;
+        closestIdx = i;
+      }
+    }
+
+    const nextPt = routePath[Math.min(closestIdx + 1, routePath.length - 1)];
+    const heading = computeBearing(closestPt, nextPt);
 
     return {
-      url: deliveryIcon,
-      scaledSize: new window.google.maps.Size(44, 64),
-      anchor: new window.google.maps.Point(22, 64),
+      lat: closestPt.lat,
+      lng: closestPt.lng,
+      heading: heading || riderLocation.heading || 0,
     };
-  }, [isLoaded]);
+  }, [riderLocation, routePath]);
+
+  // Smooth gliding interpolation so rider glides along road between 1.5s-3s location pings
+  const [animatedRider, setAnimatedRider] = useState(null);
+  const animFrameRef = useRef(null);
+
+  useEffect(() => {
+    if (!snappedRider) {
+      setAnimatedRider(null);
+      return;
+    }
+
+    if (!animatedRider) {
+      setAnimatedRider(snappedRider);
+      return;
+    }
+
+    const startTime = performance.now();
+    const startLat = animatedRider.lat;
+    const startLng = animatedRider.lng;
+    const targetLat = snappedRider.lat;
+    const targetLng = snappedRider.lng;
+    const duration = 800; // 800ms smooth gliding transition
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const ease = 1 - Math.pow(1 - progress, 3);
+
+      setAnimatedRider({
+        lat: startLat + (targetLat - startLat) * ease,
+        lng: startLng + (targetLng - startLng) * ease,
+        heading: snappedRider.heading,
+      });
+
+      if (progress < 1) {
+        animFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    animFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [snappedRider?.lat, snappedRider?.lng, snappedRider?.heading]);
 
   const customerMarkerIcon = useMemo(() => {
     if (!isLoaded || !window.google?.maps) return undefined;
@@ -168,13 +422,14 @@ const LiveTrackingMap = memo(({
     return { lat: 20.5937, lng: 78.9629 };
   }, [activeTargetLocation, riderLocation]);
 
-  // Fit bounds when locations or route change
+  // Fit bounds ONCE when locations or route change
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !window.google) return;
+    if (!map || !window.google || initialFitDoneRef.current) return;
 
     if (hasValidLatLng(riderLocation)) {
       focusOnRider500m(map, riderLocation);
+      initialFitDoneRef.current = true;
       return;
     }
     
@@ -200,25 +455,27 @@ const LiveTrackingMap = memo(({
       
       if (hasPoints) {
         map.fitBounds(bounds, 60);
+        initialFitDoneRef.current = true;
       }
     } catch (err) {
       console.error("Error fitting bounds:", err);
     }
   }, [activeTargetLocation, riderLocation, decodedPath, focusOnRider500m]);
 
-  // Keep rider centered during live tracking with a smooth map pan.
+  // Keep rider centered during live tracking with a smooth map pan without altering user's zoom level!
   useEffect(() => {
     if (!isLoaded || !mapRef.current || !hasValidLatLng(riderLocation)) return undefined;
+
+    mapRef.current.panTo(riderLocation);
 
     const intervalId = setInterval(() => {
       const map = mapRef.current;
       if (!map || !hasValidLatLng(riderLocation)) return;
       map.panTo(riderLocation);
-      focusOnRider500m(map, riderLocation);
     }, RECENTER_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
-  }, [isLoaded, riderLocation?.lat, riderLocation?.lng, focusOnRider500m]);
+  }, [isLoaded, riderLocation?.lat, riderLocation?.lng]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -401,13 +658,42 @@ const LiveTrackingMap = memo(({
           fullscreenControl: false,
         }}
       >
-        {/* Rider Location Marker */}
-        {riderLocation && (
-          <Marker
-            position={riderLocation}
-            title="Delivery Partner"
-            icon={riderMarkerIcon}
-          />
+        {/* Rider Location Marker (Centered on Polyline & Rotating) */}
+        {(animatedRider || snappedRider || riderLocation) && (
+          <OverlayView
+            position={animatedRider || snappedRider || riderLocation}
+            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+            getPixelPositionOffset={() => ({
+              x: -20,
+              y: -20,
+            })}
+          >
+            <div
+              style={{
+                transform: `rotate(${
+                  (animatedRider || snappedRider)?.heading ?? riderHeading ?? 0
+                }deg)`,
+                transition: "transform 0.15s linear",
+                transformOrigin: "center center",
+                width: 40,
+                height: 40,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <img
+                src={deliveryIcon}
+                style={{
+                  width: 40,
+                  height: 40,
+                  objectFit: "contain",
+                  display: "block",
+                }}
+                alt="Delivery Partner"
+              />
+            </div>
+          </OverlayView>
         )}
 
         {/* Store Marker */}
@@ -428,28 +714,18 @@ const LiveTrackingMap = memo(({
           />
         )}
 
-        {/* Line connecting rider to destination - use cached polyline if available */}
-        {decodedPath && decodedPath.length > 0 ? (
+        {/* Single authentic road polyline strictly following the street */}
+        {routePath && routePath.length > 1 && (
           <Polyline
-            path={decodedPath}
+            path={routePath}
             options={{
-              strokeColor: "var(--primary)",
-              strokeOpacity: 0.8,
-              strokeWeight: 4,
-              geodesic: false,
-            }}
-          />
-        ) : riderLocation && hasValidLatLng(activeTargetLocation) ? (
-          <Polyline
-            path={[riderLocation, activeTargetLocation]}
-            options={{
-              strokeColor: "var(--primary)",
-              strokeOpacity: 0.6,
-              strokeWeight: 3,
+              strokeColor: "#2563eb",
+              strokeOpacity: 0.95,
+              strokeWeight: 5,
               geodesic: true,
             }}
           />
-        ) : null}
+        )}
       </GoogleMap>
 
       {/* 3. Floating Overlay Cards */}
@@ -593,4 +869,3 @@ const LiveTrackingMap = memo(({
 LiveTrackingMap.displayName = 'LiveTrackingMap';
 
 export default LiveTrackingMap;
-
