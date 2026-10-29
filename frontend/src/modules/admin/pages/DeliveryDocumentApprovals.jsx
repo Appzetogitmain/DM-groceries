@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Search, Eye, CheckCircle, XCircle } from "lucide-react";
+import { Search, Eye, CheckCircle, XCircle, FileText, ExternalLink, Loader2 } from "lucide-react";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { toast } from "sonner";
 import adminApi from "../services/api";
+import { openAdminDocument } from "../services/openDocument";
 
 const DeliveryDocumentApprovals = () => {
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [viewDoc, setViewDoc] = useState(null);
+  const [loadingDocUrl, setLoadingDocUrl] = useState(null);
 
   useEffect(() => {
     fetchPendingDocuments();
@@ -59,6 +61,47 @@ const DeliveryDocumentApprovals = () => {
     return fields.filter(f => pendingDocs && pendingDocs[f] && pendingDocs[f] !== "");
   };
 
+  const formatFieldName = (field) => {
+    const map = {
+      aadhar: "Aadhar Card",
+      pan: "PAN Card",
+      drivingLicense: "Driving License",
+      policeClearance: "Police Clearance",
+      bankPassbook: "Bank Passbook",
+    };
+    return map[field] || field.replace(/([A-Z])/g, " $1").trim();
+  };
+
+  const isPdfDocument = (url) => {
+    if (!url || typeof url !== "string") return false;
+    return url.toLowerCase().includes(".pdf");
+  };
+
+  const getDocumentDisplayUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") || "http://localhost:5000";
+    return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
+  const handleOpenDoc = async (url) => {
+    if (!url) {
+      toast.error("Document file not found");
+      return;
+    }
+    setLoadingDocUrl(url);
+    try {
+      const err = await openAdminDocument(url);
+      if (err) {
+        toast.error(err);
+      }
+    } catch (error) {
+      toast.error("Failed to open document");
+    } finally {
+      setLoadingDocUrl(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -97,7 +140,7 @@ const DeliveryDocumentApprovals = () => {
                       <div className="flex gap-2 flex-wrap">
                         {getPendingFields(partner.pendingDocuments).map(field => (
                           <span key={field} className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded">
-                            {field}
+                            {formatFieldName(field)}
                           </span>
                         ))}
                       </div>
@@ -118,13 +161,13 @@ const DeliveryDocumentApprovals = () => {
       {/* Review Modal */}
       {selectedPartner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden bg-white">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div>
                 <h3 className="font-bold text-lg text-gray-900">Review Documents: {selectedPartner.name}</h3>
                 <p className="text-xs text-gray-500 mt-0.5">{selectedPartner.phone}</p>
               </div>
-              <button onClick={() => setSelectedPartner(null)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSelectedPartner(null)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                 <XCircle size={24} />
               </button>
             </div>
@@ -135,22 +178,47 @@ const DeliveryDocumentApprovals = () => {
                 const oldDocUrl = selectedPartner.documents?.[field];
 
                 return (
-                  <div key={field} className="space-y-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <h4 className="font-semibold text-gray-800 capitalize border-b pb-2">{field}</h4>
-                    <div className="space-y-4">
+                  <div key={field} className="space-y-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col">
+                    <h4 className="font-semibold text-gray-800 capitalize border-b pb-2 text-sm">{formatFieldName(field)}</h4>
+                    <div className="space-y-4 flex-1">
                       {/* Old Document */}
                       <div>
-                        <p className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Current Document</p>
+                        <p className="text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Current Document</p>
                         {oldDocUrl ? (
-                          oldDocUrl.toLowerCase().includes('.pdf') ? (
-                            <a href={oldDocUrl} target="_blank" rel="noreferrer" className="text-indigo-600 text-sm hover:underline flex items-center gap-1">
-                              <Eye size={14} /> View Current PDF
-                            </a>
+                          isPdfDocument(oldDocUrl) ? (
+                            <button
+                              type="button"
+                              disabled={loadingDocUrl === oldDocUrl}
+                              onClick={() => handleOpenDoc(oldDocUrl)}
+                              className="w-full h-36 border border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100/70 text-indigo-700 rounded-xl flex flex-col items-center justify-center gap-2 p-3 transition-colors cursor-pointer group"
+                            >
+                              <div className="p-2.5 bg-indigo-100 rounded-lg group-hover:scale-105 transition-transform text-indigo-600">
+                                {loadingDocUrl === oldDocUrl ? <Loader2 size={22} className="animate-spin" /> : <FileText size={22} />}
+                              </div>
+                              <span className="text-xs font-semibold flex items-center gap-1.5">
+                                <Eye size={14} /> {loadingDocUrl === oldDocUrl ? "Opening PDF..." : "View Current PDF"}
+                              </span>
+                            </button>
                           ) : (
-                            <img src={oldDocUrl} alt="Old" className="w-full h-32 object-cover rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setViewDoc(oldDocUrl)} />
+                            <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-100 h-36">
+                              <img
+                                src={getDocumentDisplayUrl(oldDocUrl)}
+                                alt="Current Document"
+                                className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                onClick={() => setViewDoc(getDocumentDisplayUrl(oldDocUrl))}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDoc(oldDocUrl)}
+                                className="absolute bottom-2 right-2 bg-black/70 hover:bg-black/90 text-white text-[11px] font-medium px-2 py-1 rounded-md flex items-center gap-1 backdrop-blur-sm transition-all cursor-pointer"
+                                title="Open in new tab"
+                              >
+                                <ExternalLink size={12} /> Open
+                              </button>
+                            </div>
                           )
                         ) : (
-                          <div className="w-full h-32 bg-gray-50 flex items-center justify-center rounded border border-gray-200 border-dashed text-gray-400 text-sm">
+                          <div className="w-full h-36 bg-gray-50 flex items-center justify-center rounded-xl border border-gray-200 border-dashed text-gray-400 text-xs">
                             None uploaded
                           </div>
                         )}
@@ -158,13 +226,44 @@ const DeliveryDocumentApprovals = () => {
 
                       {/* New Document */}
                       <div>
-                        <p className="text-xs font-bold text-emerald-600 mb-1 uppercase tracking-wider">New Document</p>
-                        {newDocUrl.toLowerCase().includes('.pdf') ? (
-                          <a href={newDocUrl} target="_blank" rel="noreferrer" className="text-emerald-600 text-sm hover:underline flex items-center gap-1">
-                            <Eye size={14} /> View New PDF
-                          </a>
+                        <p className="text-xs font-bold text-emerald-600 mb-1.5 uppercase tracking-wider">New Document</p>
+                        {newDocUrl ? (
+                          isPdfDocument(newDocUrl) ? (
+                            <button
+                              type="button"
+                              disabled={loadingDocUrl === newDocUrl}
+                              onClick={() => handleOpenDoc(newDocUrl)}
+                              className="w-full h-36 border-2 border-emerald-500/40 bg-emerald-50/60 hover:bg-emerald-100/70 text-emerald-700 rounded-xl flex flex-col items-center justify-center gap-2 p-3 transition-colors cursor-pointer group shadow-sm"
+                            >
+                              <div className="p-2.5 bg-emerald-100 rounded-lg group-hover:scale-105 transition-transform text-emerald-600">
+                                {loadingDocUrl === newDocUrl ? <Loader2 size={22} className="animate-spin" /> : <FileText size={22} />}
+                              </div>
+                              <span className="text-xs font-semibold flex items-center gap-1.5">
+                                <Eye size={14} /> {loadingDocUrl === newDocUrl ? "Opening PDF..." : "View New PDF"}
+                              </span>
+                            </button>
+                          ) : (
+                            <div className="relative group rounded-xl overflow-hidden border-2 border-emerald-500/40 bg-gray-100 h-36 shadow-sm">
+                              <img
+                                src={getDocumentDisplayUrl(newDocUrl)}
+                                alt="New Document"
+                                className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                onClick={() => setViewDoc(getDocumentDisplayUrl(newDocUrl))}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDoc(newDocUrl)}
+                                className="absolute bottom-2 right-2 bg-emerald-700/80 hover:bg-emerald-800 text-white text-[11px] font-medium px-2 py-1 rounded-md flex items-center gap-1 backdrop-blur-sm transition-all cursor-pointer"
+                                title="Open in new tab"
+                              >
+                                <ExternalLink size={12} /> Open
+                              </button>
+                            </div>
+                          )
                         ) : (
-                          <img src={newDocUrl} alt="New" className="w-full h-40 object-cover rounded border-2 border-emerald-500/30 cursor-pointer shadow-sm hover:opacity-90 transition-opacity" onClick={() => setViewDoc(newDocUrl)} />
+                          <div className="w-full h-36 bg-gray-50 flex items-center justify-center rounded-xl border border-gray-200 border-dashed text-gray-400 text-xs">
+                            None uploaded
+                          </div>
                         )}
                       </div>
                     </div>
@@ -188,8 +287,8 @@ const DeliveryDocumentApprovals = () => {
       {/* Image Fullscreen Modal */}
       {viewDoc && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4" onClick={() => setViewDoc(null)}>
-          <img src={viewDoc} alt="Document" className="max-w-full max-h-[90vh] object-contain rounded" onClick={e => e.stopPropagation()} />
-          <button className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black/50 p-2 rounded-full" onClick={() => setViewDoc(null)}>
+          <img src={viewDoc} alt="Document" className="max-w-full max-h-[90vh] object-contain rounded shadow-2xl" onClick={e => e.stopPropagation()} />
+          <button className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black/50 p-2 rounded-full cursor-pointer" onClick={() => setViewDoc(null)}>
             <XCircle size={24} />
           </button>
         </div>
