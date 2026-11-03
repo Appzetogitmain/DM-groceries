@@ -1347,6 +1347,66 @@ export const getModerationProducts = async (req, res) => {
 /* ===============================
    ADMIN MODERATION ACTIONS
 ================================ */
+export const approveAllPendingProducts = async (req, res) => {
+  try {
+    const pendingFilter = {
+      approvalStatus: { $in: ["pending", "PENDING"] },
+    };
+    const pendingProducts = await Product.find(pendingFilter)
+      .select("_id name sellerId")
+      .lean();
+
+    if (!pendingProducts || pendingProducts.length === 0) {
+      return handleResponse(res, 200, "No pending products to approve", { count: 0 });
+    }
+
+    const note = req.body?.approvalNote ?? "Bulk approved by admin";
+    const moderationUpdate = buildAdminApprovedModerationUpdate(
+      req.user?.id || null,
+      note,
+    );
+
+    const result = await Product.updateMany(pendingFilter, {
+      $set: moderationUpdate,
+    });
+
+    for (const p of pendingProducts) {
+      try {
+        await enqueueProductIndex(p._id);
+        await invalidate(`cache:catalog:product:${p._id}`);
+        if (p.sellerId) {
+          emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_PRODUCT_APPROVED, {
+            sellerId: p.sellerId._id || p.sellerId,
+            title: "Product Approved ✅",
+            message: `Your product '${p.name}' has been approved.`,
+            productId: p._id,
+          });
+        }
+      } catch {
+        // Continue loop even if one cache or notification fails
+      }
+    }
+
+    await invalidate(buildKey("catalog", "productList", "*"));
+    await invalidate("cache:offersections:public:*");
+
+    try {
+      emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_PENDING_COUNTS_CHANGED, {
+        fromRole: "admin",
+        messageText: "All pending products approved",
+      });
+    } catch {
+      // Non-blocking
+    }
+
+    return handleResponse(res, 200, `Successfully approved ${result.modifiedCount || pendingProducts.length} pending product(s)`, {
+      count: result.modifiedCount || pendingProducts.length,
+    });
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
 export const approveProduct = async (req, res) => {
   try {
     const { id } = req.params;

@@ -299,7 +299,7 @@ const AdminRoutes = () => {
   const { hasPermission, isSuperAdmin } = usePermissions();
   const { getToken } = useAuth();
 
-  // "Waiting for review" counts shown as badges on Sellers, Delivery Drivers, Products, and Money Requests.
+  // "Waiting for review" & pending action counts shown as badges in the admin sidebar.
   const [pendingCounts, setPendingCounts] = useState({
     sellers: 0,
     deliveryApplications: 0,
@@ -309,6 +309,10 @@ const AdminRoutes = () => {
     withdrawals: 0,
     sellerWithdrawals: 0,
     deliveryWithdrawals: 0,
+    supportTickets: 0,
+    contactMessages: 0,
+    support: 0,
+    latestTransactionTime: null,
   });
   const refreshPendingCounts = useCallback(async () => {
     try {
@@ -322,7 +326,7 @@ const AdminRoutes = () => {
   useEffect(() => {
     refreshPendingCounts();
     const timer = setInterval(refreshPendingCounts, 30000);
-    // Real-time updates: new seller/driver registration, product created/updated, or withdrawal requested.
+    // Real-time updates: new seller/driver registration, support ticket, contact message, wallet transaction, withdrawal requested.
     const stopSocket = onNotificationNew(getToken, (data) => {
       const type = String(data?.eventType || "");
       if (
@@ -331,7 +335,13 @@ const AdminRoutes = () => {
         type === "ADMIN_PRODUCT_ADDED" ||
         type === "ADMIN_PRODUCT_UPDATED" ||
         type === "PRODUCT_MODERATION_REQUEST" ||
-        type === "ADMIN_WITHDRAWAL_REQUEST"
+        type === "ADMIN_WITHDRAWAL_REQUEST" ||
+        type === "ADMIN_SUPPORT_TICKET" ||
+        type === "ADMIN_NEW_CONTACT_MESSAGE" ||
+        type === "ADMIN_WALLET_UPDATE" ||
+        type === "ADMIN_WALLET_ADJUSTMENT" ||
+        type === "ADMIN_PENDING_COUNTS_CHANGED" ||
+        type === "ADMIN_NEW_ORDER"
       ) {
         refreshPendingCounts();
       }
@@ -373,15 +383,35 @@ const AdminRoutes = () => {
 
     return filteredNavItems.map((item) => {
       if (item?.label === "Customer Support") {
-        return supportCount > 0 ? { ...item, badgeCount: supportCount } : item;
+        const ticketBadge = Math.max(supportCount, count(pendingCounts.supportTickets));
+        const contactBadge = count(pendingCounts.contactMessages);
+        const totalSupport = ticketBadge + contactBadge;
+        return totalSupport > 0
+          ? {
+              ...withChildBadges(item, {
+                "/admin/support-tickets": ticketBadge,
+                "/admin/contact-messages": contactBadge,
+              }),
+              badgeCount: totalSupport,
+            }
+          : item;
+      }
+      if (item?.label === "Wallet" || item?.path === "/admin/wallet") {
+        const lastViewed = localStorage.getItem("admin_wallet_last_viewed");
+        const latestTxTime = pendingCounts.latestTransactionTime;
+        const hasNewWallet = Boolean(
+          latestTxTime &&
+          (!lastViewed || new Date(latestTxTime).getTime() > new Date(lastViewed).getTime())
+        );
+        return hasNewWallet ? { ...item, badgeCount: 1 } : item;
+      }
+      if (item?.label === "Money Requests" || item?.path === "/admin/withdrawals") {
+        const withPending = count(pendingCounts.withdrawals);
+        return withPending > 0 ? { ...item, badgeCount: withPending } : item;
       }
       if (item?.label === "Products") {
         const prodPending = count(pendingCounts.products);
         return prodPending > 0 ? { ...item, badgeCount: prodPending } : item;
-      }
-      if (item?.label === "Money Requests") {
-        const withPending = count(pendingCounts.withdrawals);
-        return withPending > 0 ? { ...item, badgeCount: withPending } : item;
       }
       if (item?.label === "Sellers") {
         const waiting = count(pendingCounts.sellers);

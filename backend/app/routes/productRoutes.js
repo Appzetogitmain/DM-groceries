@@ -7,6 +7,7 @@ import {
     deleteProduct,
     getProductById,
     getModerationProducts,
+    approveAllPendingProducts,
     approveProduct,
     rejectProduct,
 } from "../controller/productController.js";
@@ -33,6 +34,7 @@ router.get("/seller/me", verifyToken, allowRoles("seller"), requireApprovedSelle
 router.get("/stock-history", verifyToken, allowRoles("seller"), requireApprovedSeller, requireFeature("INVENTORY_MANAGEMENT"), getStockHistory);
 router.post("/adjust-stock", verifyToken, allowRoles("seller"), requireApprovedSeller, requireFeature("INVENTORY_MANAGEMENT"), adjustStock);
 router.get("/moderation", verifyToken, allowRoles("admin"), getModerationProducts);
+router.patch("/moderation/approve-all", verifyToken, allowRoles("admin"), approveAllPendingProducts);
 router.patch("/moderation/:id/approve", verifyToken, allowRoles("admin"), approveProduct);
 router.patch("/moderation/:id/reject", verifyToken, allowRoles("admin"), rejectProduct);
 router.get("/:id", optionalVerifyToken, getProductById);

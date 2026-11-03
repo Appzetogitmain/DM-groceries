@@ -145,6 +145,15 @@ const AdminWallet = () => {
     };
 
     useEffect(() => {
+        try {
+            localStorage.setItem("admin_wallet_last_viewed", new Date().toISOString());
+            window.dispatchEvent(new CustomEvent("admin:pending-counts-changed"));
+        } catch {
+            // Ignore storage errors
+        }
+    }, []);
+
+    useEffect(() => {
         const timer = setTimeout(() => {
             fetchData(1);
         }, 500);

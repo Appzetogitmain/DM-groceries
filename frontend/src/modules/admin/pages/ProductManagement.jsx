@@ -257,6 +257,32 @@ const ProductManagement = () => {
         setRejectionNote('');
     };
 
+    const [isApprovingAll, setIsApprovingAll] = useState(false);
+
+    const handleApproveAll = async () => {
+        const pendingCount = moderationCounts.pending;
+        if (pendingCount <= 0) {
+            toast.info("No pending products to approve");
+            return;
+        }
+
+        if (!window.confirm(`Are you sure you want to approve all ${pendingCount} pending product(s)?`)) {
+            return;
+        }
+
+        setIsApprovingAll(true);
+        try {
+            const res = await adminApi.approveAllPendingProducts();
+            toast.success(res?.data?.message || `Approved all ${pendingCount} product(s) successfully`);
+            window.dispatchEvent(new Event('admin:pending-counts-changed'));
+            fetchProducts(page);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to approve all pending products');
+        } finally {
+            setIsApprovingAll(false);
+        }
+    };
+
     const handleImageUpload = (e, type) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) {
@@ -392,6 +418,21 @@ const ProductManagement = () => {
                     </h1>
                     <p className="ds-description mt-0.5">Track your items, prices, and how many are left in stock.</p>
                 </div>
+                <button
+                    type="button"
+                    onClick={handleApproveAll}
+                    disabled={isApprovingAll}
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                    <HiOutlineCheckCircle className="h-4 w-4" />
+                    <span>
+                        {isApprovingAll
+                            ? "Approving All..."
+                            : moderationCounts.pending > 0
+                            ? `Approve All (${moderationCounts.pending})`
+                            : "Approve All"}
+                    </span>
+                </button>
             </div>
 
             {/* Quick Stats */}
@@ -428,26 +469,45 @@ const ProductManagement = () => {
             </div>
 
             <Card className="border-none shadow-sm ring-1 ring-slate-100 p-3 bg-white/60 backdrop-blur-xl">
-                <div className="flex flex-wrap gap-2">
-                    {[
-                        { key: 'all', label: 'All', count: moderationCounts.all },
-                        { key: 'approved', label: 'Approved', count: moderationCounts.approved },
-                        { key: 'rejected', label: 'Rejected', count: moderationCounts.rejected },
-                    ].map((item) => (
-                        <button
-                            key={item.key}
-                            type="button"
-                            onClick={() => setFilterApprovalStatus(item.key)}
-                            className={cn(
-                                "rounded-xl px-4 py-2 text-xs font-bold transition-all",
-                                filterApprovalStatus === item.key
-                                    ? "bg-slate-900 text-white"
-                                    : "bg-white ring-1 ring-slate-200 text-slate-600 hover:bg-slate-50"
-                            )}
-                        >
-                            {item.label} ({item.count})
-                        </button>
-                    ))}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { key: 'all', label: 'All', count: moderationCounts.all },
+                            { key: 'pending', label: 'Pending Review', count: moderationCounts.pending },
+                            { key: 'approved', label: 'Approved', count: moderationCounts.approved },
+                            { key: 'rejected', label: 'Rejected', count: moderationCounts.rejected },
+                        ].map((item) => (
+                            <button
+                                key={item.key}
+                                type="button"
+                                onClick={() => setFilterApprovalStatus(item.key)}
+                                className={cn(
+                                    "rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer",
+                                    filterApprovalStatus === item.key
+                                        ? "bg-slate-900 text-white"
+                                        : "bg-white ring-1 ring-slate-200 text-slate-600 hover:bg-slate-50",
+                                    item.key === 'pending' && item.count > 0 && filterApprovalStatus !== 'pending' && "text-amber-600 ring-amber-300 bg-amber-50/50"
+                                )}
+                            >
+                                {item.label} ({item.count})
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleApproveAll}
+                        disabled={isApprovingAll}
+                        className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    >
+                        <HiOutlineCheckCircle className="h-4 w-4" />
+                        <span>
+                            {isApprovingAll
+                                ? "Approving All..."
+                                : moderationCounts.pending > 0
+                                ? `Approve All (${moderationCounts.pending})`
+                                : "Approve All"}
+                        </span>
+                    </button>
                 </div>
             </Card>
 

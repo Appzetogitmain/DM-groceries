@@ -1,5 +1,7 @@
 import handleResponse from "../../utils/helper.js";
 import getPagination from "../../utils/pagination.js";
+import { emitNotificationEvent } from "../../modules/notifications/notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "../../modules/notifications/notification.constants.js";
 import {
   bulkSettleDeliveryTransactions,
   getAdminWalletOverview,
@@ -92,6 +94,15 @@ export const updateWithdrawalStatus = async (req, res) => {
 
     if (!transaction) {
       return handleResponse(res, 404, "Transaction not found");
+    }
+
+    try {
+      emitNotificationEvent(NOTIFICATION_EVENTS.ADMIN_PENDING_COUNTS_CHANGED, {
+        fromRole: "admin",
+        messageText: `Withdrawal request ${status.toLowerCase()}`,
+      });
+    } catch {
+      // Non-blocking
     }
 
     return handleResponse(res, 200, `Withdrawal ${status} successfully`);

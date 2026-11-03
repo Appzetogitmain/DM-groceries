@@ -51,6 +51,7 @@ const ContactMessages = () => {
     const setStatus = async (item, status) => {
         try {
             await adminApi.updateContactMessage(item._id, { status });
+            window.dispatchEvent(new CustomEvent("admin:pending-counts-changed"));
             fetchItems(page);
         } catch (error) {
             showToast(error.response?.data?.message || 'Update failed', 'error');
@@ -61,6 +62,7 @@ const ContactMessages = () => {
         if (!window.confirm(`Delete message from ${item.name}?`)) return;
         try {
             await adminApi.deleteContactMessage(item._id);
+            window.dispatchEvent(new CustomEvent("admin:pending-counts-changed"));
             showToast('Message deleted', 'success');
             fetchItems(page);
         } catch (error) {
