@@ -1,3 +1,6 @@
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import Admin from '../app/models/admin.js';
@@ -6,6 +9,7 @@ import Seller from '../app/models/seller.js';
 dotenv.config();
 
 const admins = [
+    { name: 'DM Groceries Admin', email: 'dmgroceries.vegetables@gmail.com', password: 'DMgro!@#123' },
     { name: 'Ankit Ahirwar', email: 'ankit@appzeto.com', password: 'Admin!@#123' },
     { name: 'Harshvardhan Panchal', email: 'harshvardhanpanc145@gmail.com', password: 'Admin!@#123' }
 ];
