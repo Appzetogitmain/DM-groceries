@@ -20,9 +20,13 @@ import {
     Phone,
     Mail,
     Play,
-    Apple
+    Apple,
+    Menu,
+    X
 } from 'lucide-react';
 import { useSettings } from '@core/context/SettingsContext';
+import SellWithUsSection from '../components/landing/SellWithUsSection';
+import DeliverWithUsSection from '../components/landing/DeliverWithUsSection';
 
 const img = (name) => `/${encodeURIComponent(name)}`;
 const HERO_BANNER = img('landing apge banner.png');
@@ -44,7 +48,9 @@ const navLinks = [
     { label: 'Features', href: '#features' },
     { label: 'How It Works', href: '#how' },
     { label: 'Categories', href: '#categories' },
-    { label: 'Contact', href: '/contact' }
+    { label: 'Contact', href: '/contact' },
+    { label: 'Sell with us', href: '#sell-with-us' },
+    { label: 'Deliver with us', href: '#deliver-with-us' }
 ];
 
 const whyItems = [
@@ -143,6 +149,7 @@ const LandingPage = () => {
     const [form, setForm] = useState(EMPTY_TESTIMONIAL);
     const [submitting, setSubmitting] = useState(false);
     const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', text }
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -184,12 +191,12 @@ const LandingPage = () => {
                         <img src={LOGO} alt={appName} className="h-11 sm:h-14 w-auto object-contain" />
                     </a>
 
-                    <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-700">
+                    <nav className="hidden lg:flex items-center gap-6 xl:gap-7 text-sm font-medium text-slate-700">
                         {navLinks.map((l, i) => (
                             <NavAnchor
                                 key={l.label}
                                 href={l.href}
-                                className={`py-1 hover:text-green-800 transition-colors ${i === 0 ? 'text-green-800 border-b-2 border-green-800' : ''
+                                className={`py-1 whitespace-nowrap hover:text-green-800 transition-colors ${i === 0 ? 'text-green-800 border-b-2 border-green-800' : ''
                                     }`}
                             >
                                 {l.label}
@@ -197,17 +204,41 @@ const LandingPage = () => {
                         ))}
                     </nav>
 
-                    <a
-                        href={PLAY_STORE_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 bg-green-800 hover:bg-green-900 text-white text-sm font-semibold px-4 sm:px-5 py-2.5 rounded-lg transition-colors shadow-md"
-                    >
-                        <Download size={16} />
-                        <span className="hidden sm:inline">Download App</span>
-                        <span className="sm:hidden">Download</span>
-                    </a>
+                    <div className="flex items-center gap-2.5">
+                        <a
+                            href={PLAY_STORE_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 bg-green-800 hover:bg-green-900 text-white text-sm font-semibold px-4 sm:px-5 py-2.5 rounded-lg transition-colors shadow-md"
+                        >
+                            <Download size={16} />
+                            <span className="hidden sm:inline">Download App</span>
+                            <span className="sm:hidden">Download</span>
+                        </a>
+                        <button
+                            type="button"
+                            aria-label="Toggle navigation menu"
+                            onClick={() => setMobileMenuOpen((prev) => !prev)}
+                            className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border border-green-100 text-slate-700 hover:bg-green-50 transition-colors"
+                        >
+                            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                        </button>
+                    </div>
                 </div>
+                {mobileMenuOpen && (
+                    <nav className="lg:hidden border-t border-green-100 bg-white px-4 py-3 space-y-1">
+                        {navLinks.map((l) => (
+                            <div key={l.label} onClick={() => setMobileMenuOpen(false)}>
+                                <NavAnchor
+                                    href={l.href}
+                                    className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-green-50 hover:text-green-800 transition-colors"
+                                >
+                                    {l.label}
+                                </NavAnchor>
+                            </div>
+                        ))}
+                    </nav>
+                )}
             </header>
 
             <main>
@@ -519,6 +550,9 @@ const LandingPage = () => {
                         </div>
                     </div>
                 </section>
+
+                <SellWithUsSection appName={appName} />
+                <DeliverWithUsSection />
             </main>
 
             {/* Footer */}

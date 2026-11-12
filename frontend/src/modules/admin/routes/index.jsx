@@ -31,6 +31,7 @@ import {
   Gift,
   Shield,
   CreditCard,
+  Inbox,
 } from "lucide-react";
 
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
@@ -55,12 +56,14 @@ const ProductManagement = React.lazy(
 const ActiveSellers = React.lazy(() => import("../pages/ActiveSellers"));
 const PendingSellers = React.lazy(() => import("../pages/PendingSellers"));
 const SellerLocations = React.lazy(() => import("../pages/SellerLocations"));
+const SellerLeads = React.lazy(() => import("../pages/SellerLeads"));
 const ActiveDeliveryBoys = React.lazy(
   () => import("../pages/ActiveDeliveryBoys"),
 );
 const PendingDeliveryBoys = React.lazy(
   () => import("../pages/PendingDeliveryBoys"),
 );
+const DeliveryLeads = React.lazy(() => import("../pages/DeliveryLeads"));
 const DeliveryDocumentApprovals = React.lazy(
   () => import("../pages/DeliveryDocumentApprovals"),
 );
@@ -184,6 +187,16 @@ const navItems = [
       { label: "Active Sellers", path: "/admin/sellers/active" },
       { label: "Waiting for Review", path: "/admin/sellers/pending" },
       { label: "Seller Locations", path: "/admin/seller-locations" },
+    ],
+  },
+  {
+    label: "Enquiry",
+    icon: Inbox,
+    color: "emerald",
+    section: "sellers",
+    children: [
+      { label: "Seller Leads", path: "/admin/sellers/leads" },
+      { label: "Delivery Leads", path: "/admin/delivery-boys/leads" },
     ],
   },
   {
@@ -312,6 +325,8 @@ const AdminRoutes = () => {
     supportTickets: 0,
     contactMessages: 0,
     support: 0,
+    sellerLeads: 0,
+    deliveryLeads: 0,
     latestTransactionTime: null,
   });
   const refreshPendingCounts = useCallback(async () => {
@@ -419,6 +434,20 @@ const AdminRoutes = () => {
           ? { ...withChildBadges(item, { "/admin/sellers/pending": waiting }), badgeCount: waiting }
           : item;
       }
+      if (item?.label === "Enquiry") {
+        const sellersNew = count(pendingCounts.sellerLeads);
+        const deliveryNew = count(pendingCounts.deliveryLeads);
+        const totalEnquiry = sellersNew + deliveryNew;
+        return totalEnquiry > 0
+          ? {
+              ...withChildBadges(item, {
+                "/admin/sellers/leads": sellersNew,
+                "/admin/delivery-boys/leads": deliveryNew,
+              }),
+              badgeCount: totalEnquiry,
+            }
+          : item;
+      }
       if (item?.label === "Delivery Drivers") {
         const apps = count(pendingCounts.deliveryApplications);
         const docs = count(pendingCounts.deliveryDocuments);
@@ -501,6 +530,11 @@ const AdminRoutes = () => {
             <PendingSellers />
           </PermissionGuard>
         } />
+        <Route path="/sellers/leads" element={
+          <PermissionGuard section="sellers" action="view" fallback={AccessDenied}>
+            <SellerLeads />
+          </PermissionGuard>
+        } />
         <Route path="/seller-locations" element={
           <PermissionGuard section="sellers" action="view" fallback={AccessDenied}>
             <SellerLocations />
@@ -580,6 +614,11 @@ const AdminRoutes = () => {
         <Route path="/delivery-boys/pending" element={
           <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
             <PendingDeliveryBoys />
+          </PermissionGuard>
+        } />
+        <Route path="/delivery-boys/leads" element={
+          <PermissionGuard section="delivery" action="view" fallback={AccessDenied}>
+            <DeliveryLeads />
           </PermissionGuard>
         } />
         <Route path="/delivery-boys/document-approvals" element={

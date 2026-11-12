@@ -30,6 +30,11 @@ export const adminDeliveryApi = {
     getActiveSosAlerts: () => axiosInstance.get('/admin/sos'),
     getResolvedSosAlerts: () => axiosInstance.get('/admin/sos/history'),
     resolveSosAlert: (id, data) => axiosInstance.put(`/admin/sos/${id}/resolve`, data),
+
+    // Landing page "Deliver with us -> Register now" leads
+    getDeliveryLeads: (params) => axiosInstance.get('/admin/delivery-leads', { params }),
+    updateDeliveryLead: (id, data) => axiosInstance.patch(`/admin/delivery-leads/${id}`, data),
+    deleteDeliveryLead: (id) => axiosInstance.delete(`/admin/delivery-leads/${id}`),
 };
 
 export default adminDeliveryApi;

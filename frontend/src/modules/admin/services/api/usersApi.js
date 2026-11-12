@@ -24,6 +24,11 @@ export const adminUsersApi = {
     approveSeller: (id) => axiosInstance.patch(`/admin/sellers/approve/${id}`),
     rejectSeller: (id, data) =>
         axiosInstance.delete(`/admin/sellers/reject/${id}`, { data }),
+
+    // Landing page "Sell with us -> Register now" leads
+    getSellerLeads: (params) => axiosInstance.get('/admin/seller-leads', { params }),
+    updateSellerLead: (id, data) => axiosInstance.patch(`/admin/seller-leads/${id}`, data),
+    deleteSellerLead: (id) => axiosInstance.delete(`/admin/seller-leads/${id}`),
 };
 
 export default adminUsersApi;

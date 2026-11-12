@@ -4,6 +4,8 @@ import Product from "../../models/product.js";
 import Transaction from "../../models/transaction.js";
 import Ticket from "../../models/ticket.js";
 import ContactMessage from "../../models/contactMessage.js";
+import SellerLead from "../../models/sellerLead.js";
+import DeliveryLead from "../../models/deliveryLead.js";
 import handleResponse from "../../utils/helper.js";
 
 // GET /admin/pending-counts
@@ -20,6 +22,8 @@ export const getPendingCounts = async (req, res) => {
       deliveryWithdrawals,
       supportTickets,
       contactMessages,
+      sellerLeads,
+      deliveryLeads,
       latestTransaction,
     ] = await Promise.all([
       // Same definition as the "Waiting for Review" sellers page.
@@ -58,6 +62,9 @@ export const getPendingCounts = async (req, res) => {
       ContactMessage.countDocuments({
         status: "new",
       }),
+      // New "Sell with us" & "Deliver with us" landing page leads
+      SellerLead.countDocuments({ status: "new" }),
+      DeliveryLead.countDocuments({ status: "new" }),
       // Most recent transaction for wallet new entry detection
       Transaction.findOne({})
         .sort({ createdAt: -1 })
@@ -67,6 +74,7 @@ export const getPendingCounts = async (req, res) => {
 
     const totalWithdrawals = Number(sellerWithdrawals || 0) + Number(deliveryWithdrawals || 0);
     const totalSupport = Number(supportTickets || 0) + Number(contactMessages || 0);
+    const totalEnquiries = Number(sellerLeads || 0) + Number(deliveryLeads || 0);
 
     return handleResponse(res, 200, "Pending counts fetched", {
       sellers,
@@ -81,6 +89,9 @@ export const getPendingCounts = async (req, res) => {
       supportTickets,
       contactMessages,
       support: totalSupport,
+      sellerLeads,
+      deliveryLeads,
+      enquiries: totalEnquiries,
       latestTransactionTime: latestTransaction?.createdAt || null,
     });
   } catch (error) {
