@@ -725,7 +725,8 @@ const Packages = () => {
                     isOpen={isCreateModalOpen}
                     onClose={() => setIsCreateModalOpen(false)}
                     title={editingPackage ? `Edit Package: ${editingPackage.name}` : 'Create New Package'}
-                    maxWidth="max-w-3xl"
+                    size="xl"
+                    maxWidth="max-w-4xl"
                 >
                     <form onSubmit={handleSubmitForm} className="space-y-6">
                         {/* Section 1: Basic Info */}
