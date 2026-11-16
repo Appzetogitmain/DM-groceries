@@ -32,6 +32,7 @@ import {
   Shield,
   CreditCard,
   Inbox,
+  Package as PackageIcon,
 } from "lucide-react";
 
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
@@ -52,6 +53,9 @@ const CategoryHierarchy = React.lazy(
 );
 const ProductManagement = React.lazy(
   () => import("../pages/ProductManagement"),
+);
+const PackagesManagement = React.lazy(
+  () => import("../pages/PackagesManagement"),
 );
 const ActiveSellers = React.lazy(() => import("../pages/ActiveSellers"));
 const PendingSellers = React.lazy(() => import("../pages/PendingSellers"));
@@ -152,6 +156,7 @@ const navItems = [
     ],
   },
   { label: "Products", path: "/admin/products", icon: Box, color: "amber", section: "products" },
+  { label: "Packages Management", path: "/admin/packages", icon: PackageIcon, color: "emerald", section: "products" },
   {
     label: "Marketing Tools",
     icon: Sparkles,
@@ -319,6 +324,7 @@ const AdminRoutes = () => {
     deliveryDocuments: 0,
     deliveryVehicles: 0,
     products: 0,
+    packages: 0,
     withdrawals: 0,
     sellerWithdrawals: 0,
     deliveryWithdrawals: 0,
@@ -428,6 +434,10 @@ const AdminRoutes = () => {
         const prodPending = count(pendingCounts.products);
         return prodPending > 0 ? { ...item, badgeCount: prodPending } : item;
       }
+      if (item?.label === "Packages Management" || item?.path === "/admin/packages") {
+        const pkgPending = count(pendingCounts.packages);
+        return pkgPending > 0 ? { ...item, badgeCount: pkgPending } : item;
+      }
       if (item?.label === "Sellers") {
         const waiting = count(pendingCounts.sellers);
         return waiting > 0
@@ -511,6 +521,11 @@ const AdminRoutes = () => {
         <Route path="/products" element={
           <PermissionGuard section="products" action="view" fallback={AccessDenied}>
             <ProductManagement />
+          </PermissionGuard>
+        } />
+        <Route path="/packages" element={
+          <PermissionGuard section="products" action="view" fallback={AccessDenied}>
+            <PackagesManagement />
           </PermissionGuard>
         } />
 

@@ -33,6 +33,7 @@ import customerMilestoneRoute from "./customerMilestoneRoutes.js";
 import sosRoute from "./sosRoutes.js";
 import posRoute from "./posRoutes.js";
 import subscriptionRoute from "./subscriptionRoutes.js";
+import packageRoute from "./packageRoutes.js";
 
 import express from "express";
 
@@ -66,6 +67,7 @@ const setupRoutes = (app) => {
     router.use("/settings", settingsRoute);
     router.use("/categories", categoryRoute);
     router.use("/products", productRoute);
+    router.use("/packages", packageRoute);
     router.use("/cart", cartRoute);
     router.use("/wishlist", wishlistRoute);
     router.use("/orders", orderRoute);

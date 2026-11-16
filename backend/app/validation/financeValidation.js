@@ -17,6 +17,10 @@ const orderItemSchema = Joi.object({
   quantity: Joi.number().integer().min(1).required(),
   price: Joi.number().min(0).optional(),
   image: Joi.string().allow("", null),
+  packageId: Joi.string().allow("", null).optional(),
+  packageName: Joi.string().allow("", null).optional(),
+  packagePricePerUnit: Joi.number().min(0).optional(),
+  originalPrice: Joi.number().min(0).optional(),
 }).or("product", "productId", "id");
 
 export const checkoutPreviewSchema = Joi.object({

@@ -13,7 +13,7 @@ export const DEFAULT_SETTINGS = {
   secondaryColor: "#64748b",
   companyName: "",
   taxId: "",
-  address: "",
+  address: "Surat, Gujarat",
   facebook: "",
   twitter: "",
   instagram: "",

@@ -79,6 +79,10 @@ function mapOrderItemsForPersistence(hydratedItems = []) {
     price: item.price,
     variantSlot: String(item.variantSku || item.variantSlot || "").trim() || undefined,
     image: item.image || "",
+    packageId: item.packageId || undefined,
+    packageName: item.packageName || undefined,
+    packagePricePerUnit: item.packagePricePerUnit || undefined,
+    originalPrice: item.originalPrice || undefined,
   }));
 }
 
@@ -156,6 +160,7 @@ async function resolveOrderItemsInput({
     product: item.productId,
     variantSku: String(item.variantSku || "").trim(),
     quantity: item.quantity,
+    packageId: item.packageId || undefined,
   }));
   return {
     orderItemsInput,

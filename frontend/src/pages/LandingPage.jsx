@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import axiosInstance from '@core/api/axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { isFlutterWebView, subscribeNativeBridgeReady } from '@core/utils/deviceUtils';
 import {
     ShoppingBasket,
@@ -87,10 +87,24 @@ const categories = [
 ];
 
 // In-page section anchors (#why) stay plain <a>; route paths (/contact) use client-side navigation.
-const NavAnchor = ({ href, className, children }) =>
-    href.startsWith('/')
-        ? <Link to={href} className={className}>{children}</Link>
-        : <a href={href} className={className}>{children}</a>;
+const NavAnchor = ({ href, className, children, onClick }) => {
+    if (href.startsWith('/')) {
+        return <Link to={href} className={className} onClick={onClick}>{children}</Link>;
+    }
+    const handleClick = (e) => {
+        if (onClick) onClick(e);
+        if (href.startsWith('#')) {
+            const targetId = href.slice(1);
+            const el = document.getElementById(targetId);
+            if (el) {
+                e.preventDefault();
+                el.scrollIntoView({ behavior: 'smooth' });
+                window.history.pushState(null, '', href);
+            }
+        }
+    };
+    return <a href={href} className={className} onClick={handleClick}>{children}</a>;
+};
 
 const EMPTY_TESTIMONIAL ={ name: '', city: '', rating: 5, message: '' };
 
@@ -125,11 +139,26 @@ const StoreButtons = ({ className = '' }) => (
 
 const LandingPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { settings } = useSettings();
     const appName = settings?.appName || 'DM Groceries';
     const catRef = useRef(null);
     const contactPhone = settings?.supportPhone || '+91 98765 43210';
     const contactEmail = settings?.supportEmail || 'support@dmgroceries.in';
+    const contactAddress = (!settings?.address || settings?.address === 'Indore, Madhya Pradesh') ? 'Surat, Gujarat' : settings.address;
+
+    // Scroll to section if hash exists in URL
+    useEffect(() => {
+        if (location.hash) {
+            const targetId = location.hash.slice(1);
+            const el = document.getElementById(targetId);
+            if (el) {
+                setTimeout(() => {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+            }
+        }
+    }, [location.hash]);
 
     // If opened inside mobile app/WebView, immediately redirect to Customer Home
     useEffect(() => {
@@ -580,14 +609,14 @@ const LandingPage = () => {
                         <div>
                             <h4 className="font-bold mb-3">Partner With Us</h4>
                             <ul className="space-y-2 text-sm text-green-100/80">
-                                <li><Link to="/join" className="hover:text-white">Become a Seller</Link></li>
-                                <li><Link to="/join" className="hover:text-white">Delivery Partner</Link></li>
+                                <li><NavAnchor href="#sell-with-us" className="hover:text-white">Become a Seller</NavAnchor></li>
+                                <li><NavAnchor href="#deliver-with-us" className="hover:text-white">Delivery Partner</NavAnchor></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="font-bold mb-3"><Link to="/contact" className="hover:text-white">Contact Us</Link></h4>
                             <ul className="space-y-3 text-sm text-green-100/80">
-                                <li className="flex items-center gap-2"><MapPin size={16} className="shrink-0" /> {settings?.address || 'Indore, Madhya Pradesh'}</li>
+                                <li className="flex items-center gap-2"><MapPin size={16} className="shrink-0" /> {contactAddress}</li>
                                 <li>
                                     <a href={`tel:${String(contactPhone).replace(/\s/g, '')}`} className="flex items-center gap-2 hover:text-white">
                                         <Phone size={16} className="shrink-0" /> {contactPhone}

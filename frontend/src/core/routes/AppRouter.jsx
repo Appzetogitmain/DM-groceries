@@ -28,6 +28,7 @@ import ContactPage from '../../pages/ContactPage';
 // Customer Pages (lazy-loaded)
 const Home = lazy(() => import('../../modules/customer/pages/Home'));
 const CategoriesPage = lazy(() => import('../../modules/customer/pages/CategoriesPage'));
+const PackagesPage = lazy(() => import('../../modules/customer/pages/PackagesPage'));
 const CategoryProductsPage = lazy(() => import('../../modules/customer/pages/CategoryProductsPage'));
 const WishlistPage = lazy(() => import('../../modules/customer/pages/WishlistPage'));
 const OffersPage = lazy(() => import('../../modules/customer/pages/OffersPage'));
@@ -208,6 +209,7 @@ const AppRouter = () => {
                     element: <CustomerLayoutWrapper />,
                     children: [
                         { index: true, element: <Home /> },
+                        { path: 'packages', element: <PackagesPage /> },
                         { path: 'categories', element: <CategoriesPage /> },
                         { path: 'category/:categoryName', element: <CategoryProductsPage /> },
                         { path: 'product/:id', element: <ProductDetailPage /> },

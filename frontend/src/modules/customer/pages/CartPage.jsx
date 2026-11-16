@@ -52,8 +52,8 @@ const CartPage = () => {
         }
     }, [cart]);
 
-    const handleRemove = (id, name, variantSku = "") => {
-        removeFromCart(id, variantSku);
+    const handleRemove = (id, name, variantSku = "", packageId = "") => {
+        removeFromCart(id, variantSku, packageId);
         showToast(`${name} removed from cart`, 'info');
     };
 
@@ -79,82 +79,103 @@ const CartPage = () => {
                             </div>
 
                             <div className="space-y-3">
-                                {cart.map((item) => (
-                                    <article
-                                        key={`${item.id}::${String(item.variantSku || "").trim()}`}
-                                        className="group overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/85 backdrop-blur-sm shadow-[0_12px_35px_rgba(15,23,42,0.08)] transition-transform duration-300 hover:-translate-y-0.5"
-                                    >
-                                        <div className="flex gap-4 p-4 md:p-5">
-                                            <div className="h-24 w-24 md:h-28 md:w-28 flex-shrink-0 overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-100">
-                                                <img
-                                                    src={applyCloudinaryTransform(item.image)}
-                                                    alt={item.name}
-                                                    loading="lazy"
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            </div>
+                                {cart.map((item) => {
+                                    const isPkg = Boolean(item.packageId || item.packagePricePerUnit);
+                                    const packPrice = Number(item.packagePricePerUnit);
+                                    const mrp = Number(item.originalPrice || item.price || 0);
+                                    const sale = Number(item.salePrice || 0);
+                                    const unit = !isNaN(packPrice) && packPrice > 0 ? packPrice : (sale > 0 && sale < mrp ? sale : mrp);
+                                    const total = Math.round(unit * Number(item.quantity || 0));
+                                    const totalMrp = Math.round(mrp * Number(item.quantity || 0));
+                                    const hasDiscount = totalMrp > total;
 
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="min-w-0">
-                                                        <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-brand-700">
-                                                            {item.category}
-                                                        </span>
-                                                        <h3 className="mt-2 truncate text-lg md:text-xl font-black tracking-tight text-slate-900">
-                                                            {item.name}
-                                                        </h3>
-                                                        <p className="mt-1 text-sm font-medium text-slate-500">
-                                                            1 kg
-                                                        </p>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={() => handleRemove(item.id, item.name, item.variantSku)}
-                                                        className="rounded-full border border-slate-200 bg-white p-2 text-slate-400 transition-colors hover:border-rose-200 hover:text-rose-500"
-                                                        aria-label={`Remove ${item.name}`}
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
+                                    return (
+                                        <article
+                                            key={`${item.id}::${String(item.variantSku || "").trim()}::${String(item.packageId || "")}`}
+                                            className="group overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/85 backdrop-blur-sm shadow-[0_12px_35px_rgba(15,23,42,0.08)] transition-transform duration-300 hover:-translate-y-0.5"
+                                        >
+                                            <div className="flex gap-4 p-4 md:p-5">
+                                                <div className="h-24 w-24 md:h-28 md:w-28 flex-shrink-0 overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-100">
+                                                    <img
+                                                        src={applyCloudinaryTransform(item.image)}
+                                                        alt={item.name}
+                                                        loading="lazy"
+                                                        className="h-full w-full object-cover"
+                                                    />
                                                 </div>
 
-                                                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                                    <div className="flex items-end gap-2">
-                                                        <div className="text-2xl font-black tracking-tight text-slate-900">
-                                                            ₹{(() => {
-                                                                const mrp = Number(item.price || 0);
-                                                                const sale = Number(item.salePrice || 0);
-                                                                const unit = sale > 0 && sale < mrp ? sale : mrp;
-                                                                return Math.round(unit * Number(item.quantity || 0));
-                                                            })()}
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            {isPkg ? (
+                                                                <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 border border-emerald-200">
+                                                                    Combo Pack Price • {item.packageName || "Combo"}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-brand-700">
+                                                                    {item.category || "Grocery"}
+                                                                </span>
+                                                            )}
+                                                            <h3 className="mt-2 truncate text-lg md:text-xl font-black tracking-tight text-slate-900">
+                                                                {item.name}
+                                                            </h3>
+                                                            {item.variantName && (
+                                                                <p className="mt-1 text-sm font-medium text-slate-500">
+                                                                    {item.variantName}
+                                                                </p>
+                                                            )}
                                                         </div>
-                                                        <div className="pb-0.5 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                                                            total
-                                                        </div>
+
+                                                        <button
+                                                            onClick={() => handleRemove(item.id, item.name, item.variantSku, item.packageId)}
+                                                            className="rounded-full border border-slate-200 bg-white p-2 text-slate-400 transition-colors hover:border-rose-200 hover:text-rose-500"
+                                                            aria-label={`Remove ${item.name}`}
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
                                                     </div>
 
-                                                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 shadow-sm">
-                                                        <button
-                                                            onClick={() => updateQuantity(item.id, -1, item.variantSku)}
-                                                            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-all hover:bg-white hover:text-slate-900 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-30"
-                                                            disabled={item.quantity <= 1}
-                                                        >
-                                                            <Minus size={15} strokeWidth={3} />
-                                                        </button>
-                                                        <span className="min-w-[24px] text-center text-sm font-black text-slate-900">
-                                                            {item.quantity}
-                                                        </span>
-                                                        <button
-                                                            onClick={() => updateQuantity(item.id, 1, item.variantSku)}
-                                                            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-all hover:bg-white hover:text-slate-900 hover:shadow-md"
-                                                        >
-                                                            <Plus size={15} strokeWidth={3} />
-                                                        </button>
+                                                    <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                                        <div className="flex items-baseline gap-2">
+                                                            <div className="text-2xl font-black tracking-tight text-slate-900">
+                                                                ₹{total}
+                                                            </div>
+                                                            {hasDiscount && (
+                                                                <div className="text-sm font-bold text-slate-400 line-through">
+                                                                    ₹{totalMrp}
+                                                                </div>
+                                                            )}
+                                                            {hasDiscount && (
+                                                                <span className="text-xs font-bold text-emerald-600">
+                                                                    (Save ₹{totalMrp - total})
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 shadow-sm">
+                                                            <button
+                                                                onClick={() => updateQuantity(item.id, -1, item.variantSku, item.packageId)}
+                                                                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-all hover:bg-white hover:text-slate-900 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-30"
+                                                                disabled={item.quantity <= 1}
+                                                            >
+                                                                <Minus size={15} strokeWidth={3} />
+                                                            </button>
+                                                            <span className="min-w-[24px] text-center text-sm font-black text-slate-900">
+                                                                {item.quantity}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => updateQuantity(item.id, 1, item.variantSku, item.packageId)}
+                                                                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-all hover:bg-white hover:text-slate-900 hover:shadow-md"
+                                                            >
+                                                                <Plus size={15} strokeWidth={3} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </article>
-                                ))}
+                                        </article>
+                                    );
+                                })}
                             </div>
 
                             <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/80 bg-white/80 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] sm:flex-row sm:items-center sm:justify-between">

@@ -1,5 +1,6 @@
 import Product from "../../models/product.js";
 import Category from "../../models/category.js";
+import Package from "../../models/package.js";
 import {
   PRODUCT_APPROVAL_STATUS,
   resolveProductApprovalStatus,
@@ -328,6 +329,10 @@ export async function hydrateOrderItems(
     .map((item) => item.product || item.productId || item._id || item.id)
     .filter(Boolean);
 
+  const packageIds = orderItems
+    .map((item) => item.packageId || item.package)
+    .filter(Boolean);
+
   const productQuery = Product.find({ _id: { $in: productIds } })
     .select("_id name salePrice price mainImage headerId sellerId status approvalStatus variants")
     .lean();
@@ -335,6 +340,16 @@ export async function hydrateOrderItems(
   const products = await productQuery;
 
   const productMap = new Map(products.map((product) => [String(product._id), product]));
+
+  let packageMap = new Map();
+  if (packageIds.length > 0) {
+    const packageQuery = Package.find({ _id: { $in: packageIds } })
+      .select("_id name items approvalStatus status")
+      .lean();
+    if (session) packageQuery.session(session);
+    const pkgs = await packageQuery;
+    packageMap = new Map(pkgs.map((p) => [String(p._id), p]));
+  }
 
   return orderItems.map((item) => {
     const productId = String(item.product || item.productId || item._id || item.id);
@@ -370,9 +385,29 @@ export async function hydrateOrderItems(
         ? resolvedVariant.salePrice || resolvedVariant.price || product.salePrice || product.price
         : product.salePrice || product.price,
     );
-    const inferredUnitPrice = enforceServerPricing
-      ? serverUnitPrice
-      : normalizeLinePrice(item.price) || serverUnitPrice;
+
+    // Check if this item is part of a verified package combo
+    const rawPkgId = String(item.packageId || item.package || "").trim();
+    const pkgDoc = rawPkgId ? packageMap.get(rawPkgId) : null;
+    let packageItem = null;
+    const isPkgActive = String(pkgDoc?.status || "").toLowerCase() === "active";
+    const isPkgApproved = String(pkgDoc?.approvalStatus || "").toLowerCase() === "approved";
+    if (pkgDoc && isPkgActive && isPkgApproved) {
+      packageItem = (pkgDoc.items || []).find((it) => {
+        const itId = it.productId?._id ? String(it.productId._id) : String(it.productId);
+        return itId === productId;
+      });
+    }
+
+    const packagePrice = packageItem
+      ? normalizeLinePrice(packageItem.packagePricePerUnit ?? packageItem.priceAtAddition)
+      : null;
+
+    const inferredUnitPrice = packagePrice !== null
+      ? packagePrice
+      : enforceServerPricing
+        ? serverUnitPrice
+        : normalizeLinePrice(item.price) || serverUnitPrice;
 
     return {
       productId,
@@ -384,6 +419,10 @@ export async function hydrateOrderItems(
       sellerId: String(product.sellerId),
       variantSku: rawVariantSku || "",
       variantName: resolvedVariant ? String(resolvedVariant?.name || "").trim() : "",
+      packageId: packageItem ? pkgDoc._id : null,
+      packageName: packageItem ? pkgDoc.name : "",
+      packagePricePerUnit: packagePrice,
+      originalPrice: packageItem ? normalizeLinePrice(packageItem.originalPrice || serverUnitPrice) : null,
     };
   });
 }
@@ -477,7 +516,13 @@ export async function generateOrderPaymentBreakdown({
   const delivery = calculateCustomerDeliveryFee(distanceKm, effectiveSettings);
   const rider = calculateRiderPayout(distanceKm, effectiveSettings);
 
-  if (effectiveSettings.freeDeliveryThreshold > 0 && productSubtotal >= effectiveSettings.freeDeliveryThreshold) {
+  const calculatedDeliveryFee = delivery.deliveryFeeCharged;
+  const isFreeDeliveryThresholdMet = Boolean(
+    effectiveSettings.freeDeliveryThreshold > 0 &&
+      productSubtotal >= effectiveSettings.freeDeliveryThreshold,
+  );
+
+  if (isFreeDeliveryThresholdMet) {
     delivery.deliveryFeeCharged = 0;
   }
 
@@ -549,6 +594,9 @@ export async function generateOrderPaymentBreakdown({
     currency: "INR",
     productSubtotal,
     deliveryFeeCharged: delivery.deliveryFeeCharged,
+    originalDeliveryFee: calculatedDeliveryFee,
+    isFreeDelivery: isFreeDeliveryThresholdMet,
+    freeDeliveryThreshold: effectiveSettings.freeDeliveryThreshold || 0,
     handlingFeeCharged: handling.handlingFeeCharged,
     tipTotal: normalizedTip,
     discountTotal: normalizedDiscount,

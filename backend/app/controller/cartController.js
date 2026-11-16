@@ -1,5 +1,6 @@
 import Cart from "../models/cart.js";
 import Product from "../models/product.js";
+import Package from "../models/package.js";
 import handleResponse from "../utils/helper.js";
 import { getApprovedOrLegacyFilter } from "../services/productModerationService.js";
 import { getIO } from "../socket/socketManager.js";
@@ -35,6 +36,10 @@ async function fetchPopulatedCart(cartId) {
       select: CART_POPULATE_FIELDS,
       match: CUSTOMER_VISIBLE_PRODUCT_MATCH,
     })
+    .populate({
+      path: "items.packageId",
+      select: "name slug packagePrice coverImage originalTotalPrice discountPercentage",
+    })
     .lean();
 
   return sanitizeCartItems(cart);
@@ -51,6 +56,10 @@ export const getCart = async (req, res) => {
         path: "items.productId",
         select: CART_POPULATE_FIELDS,
         match: CUSTOMER_VISIBLE_PRODUCT_MATCH,
+      })
+      .populate({
+        path: "items.packageId",
+        select: "name slug packagePrice coverImage originalTotalPrice discountPercentage",
       })
       .lean();
 
@@ -71,11 +80,34 @@ export const getCart = async (req, res) => {
 export const addToCart = async (req, res) => {
   try {
     const customerId = req.user.id;
-    const { productId, quantity = 1, variantSku = "" } = req.body;
+    const { productId, quantity = 1, variantSku = "", packageId = null } = req.body;
     const normalizedVariantSku = String(variantSku || "").trim();
+    const normalizedPackageId = packageId ? String(packageId).trim() : null;
+
     const customerVisibleProduct = await getCustomerVisibleProductById(productId);
     if (!customerVisibleProduct) {
       return handleResponse(res, 404, "Product is not available for purchase");
+    }
+
+    let packagePricePerUnit = null;
+    let originalPrice = null;
+
+    if (normalizedPackageId) {
+      const pkg = await Package.findById(normalizedPackageId).lean();
+      const isApproved = String(pkg?.approvalStatus || "").toLowerCase() === "approved";
+      const isActive = String(pkg?.status || "").toLowerCase() === "active";
+      if (!pkg || !isActive || !isApproved) {
+        return handleResponse(res, 400, "Selected package is not active or approved");
+      }
+      const pkgItem = (pkg.items || []).find((it) => {
+        const itId = it.productId?._id ? String(it.productId._id) : String(it.productId);
+        return itId === String(productId);
+      });
+      if (!pkgItem) {
+        return handleResponse(res, 400, "Product is not part of the selected package");
+      }
+      packagePricePerUnit = Number(pkgItem.packagePricePerUnit ?? pkgItem.priceAtAddition ?? 0);
+      originalPrice = Number(pkgItem.originalPrice ?? pkgItem.priceAtAddition ?? 0);
     }
 
     let cart = await Cart.findOne({ customerId }).populate("items.productId", "sellerId").lean();
@@ -105,13 +137,27 @@ export const addToCart = async (req, res) => {
     const itemIndex = cartDoc.items.findIndex(
       (item) =>
         item.productId.toString() === productId &&
-        String(item.variantSku || "").trim() === normalizedVariantSku,
+        String(item.variantSku || "").trim() === normalizedVariantSku &&
+        String(item.packageId || "") === String(normalizedPackageId || "")
     );
 
     if (itemIndex > -1) {
       cartDoc.items[itemIndex].quantity += quantity;
+      if (packagePricePerUnit !== null) {
+        cartDoc.items[itemIndex].packagePricePerUnit = packagePricePerUnit;
+      }
+      if (originalPrice !== null) {
+        cartDoc.items[itemIndex].originalPrice = originalPrice;
+      }
     } else {
-      cartDoc.items.push({ productId, variantSku: normalizedVariantSku, quantity });
+      cartDoc.items.push({
+        productId,
+        variantSku: normalizedVariantSku,
+        quantity,
+        packageId: normalizedPackageId || null,
+        packagePricePerUnit,
+        originalPrice,
+      });
     }
 
     await cartDoc.save();
@@ -136,8 +182,9 @@ export const addToCart = async (req, res) => {
 export const updateQuantity = async (req, res) => {
   try {
     const customerId = req.user.id;
-    const { productId, quantity, variantSku = "" } = req.body;
+    const { productId, quantity, variantSku = "", packageId = null } = req.body;
     const normalizedVariantSku = String(variantSku || "").trim();
+    const normalizedPackageId = packageId ? String(packageId).trim() : null;
 
     let cart = await Cart.findOne({ customerId });
 
@@ -148,9 +195,11 @@ export const updateQuantity = async (req, res) => {
     const itemIndex = cart.items.findIndex((item) => {
       if (!item || !item.productId) return false;
       const itemProductId = item.productId._id ? item.productId._id.toString() : item.productId.toString();
+      const itemPkgId = item.packageId ? item.packageId.toString() : "";
       return (
         itemProductId === productId &&
-        String(item.variantSku || "").trim() === normalizedVariantSku
+        String(item.variantSku || "").trim() === normalizedVariantSku &&
+        itemPkgId === (normalizedPackageId || "")
       );
     });
 
@@ -188,6 +237,7 @@ export const removeFromCart = async (req, res) => {
     const customerId = req.user.id;
     const { productId } = req.params;
     const normalizedVariantSku = String(req.query?.variantSku || "").trim();
+    const normalizedPackageId = req.query?.packageId ? String(req.query.packageId).trim() : null;
 
     let cart = await Cart.findOne({ customerId });
 
@@ -195,7 +245,7 @@ export const removeFromCart = async (req, res) => {
       return handleResponse(res, 404, "Cart not found");
     }
 
-    console.log("Removing item from cart:", { productId, normalizedVariantSku });
+    console.log("Removing item from cart:", { productId, normalizedVariantSku, normalizedPackageId });
     let removedCount = 0;
     
     // Iterate backwards so splice doesn't affect remaining indices
@@ -205,14 +255,12 @@ export const removeFromCart = async (req, res) => {
       
       if (!item || !item.productId) continue;
       const itemProductId = item.productId._id ? item.productId._id.toString() : item.productId.toString();
+      const itemPkgId = item.packageId ? item.packageId.toString() : "";
       
       if (itemProductId === productId) {
-        if (normalizedVariantSku) {
-          if (String(item.variantSku || "").trim() === normalizedVariantSku) {
-            shouldRemove = true;
-          }
-        } else {
-          // If no variantSku is provided, remove all lines for that product
+        let matchesVariant = !normalizedVariantSku || String(item.variantSku || "").trim() === normalizedVariantSku;
+        let matchesPackage = normalizedPackageId === null || itemPkgId === (normalizedPackageId || "");
+        if (matchesVariant && matchesPackage) {
           shouldRemove = true;
         }
       }

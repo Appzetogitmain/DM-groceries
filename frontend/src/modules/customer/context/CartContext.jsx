@@ -51,6 +51,15 @@ export const CartProvider = ({ children }) => {
       const product = item.productId;
       const variantKey = String(item.variantSku || "").trim();
       const { price, salePrice, variantName } = resolveVariantPricing(product, variantKey);
+      
+      const isPkg = Boolean(item.packageId);
+      const pkgObj = typeof item.packageId === "object" ? item.packageId : null;
+      const pkgPrice = Number(item.packagePricePerUnit);
+      const origPrice = Number(item.originalPrice);
+
+      const effectiveSalePrice = isPkg && !isNaN(pkgPrice) && pkgPrice > 0 ? pkgPrice : salePrice;
+      const effectiveRegularPrice = isPkg && !isNaN(origPrice) && origPrice > 0 ? origPrice : price;
+
       return {
         ...product,
         id: product?._id, // Normalize ID
@@ -58,9 +67,13 @@ export const CartProvider = ({ children }) => {
         quantity: item.quantity,
         variantSku: variantKey,
         variantName,
-        price,
-        salePrice,
+        price: effectiveRegularPrice,
+        salePrice: effectiveSalePrice,
         image: product?.mainImage, // Handle mapping for frontend
+        packageId: pkgObj?._id || item.packageId || null,
+        packageName: pkgObj?.name || "",
+        packagePricePerUnit: isPkg && !isNaN(pkgPrice) && pkgPrice > 0 ? pkgPrice : null,
+        originalPrice: isPkg && !isNaN(origPrice) && origPrice > 0 ? origPrice : null,
       };
     });
   };
@@ -161,20 +174,24 @@ export const CartProvider = ({ children }) => {
     };
   }, [cart, isAuthenticated]);
 
+  const getCartItemKey = (productId, variantSku = "", packageId = "") => {
+    return `${productId}::${String(variantSku || "").trim()}::${String(packageId || "").trim()}`;
+  };
+
   const performAddToCart = async (product) => {
     const variantSku = String(product?.variantSku || product?.variantName || "").trim();
     const id = product.id || product._id;
-    const key = `${id}::${variantSku || ""}`;
+    const key = getCartItemKey(id, variantSku, "");
     const { price, salePrice, variantName } = resolveVariantPricing(product, variantSku);
 
     // Optimistic UI update for instant feedback
     setCart((prev) => {
       const existingItem = prev.find(
-        (item) => `${item.id || item._id}::${String(item.variantSku || "").trim()}` === key,
+        (item) => getCartItemKey(item.id || item._id, item.variantSku, item.packageId) === key,
       );
       if (existingItem) {
         return prev.map((item) =>
-          `${item.id || item._id}::${String(item.variantSku || "").trim()}` === key
+          getCartItemKey(item.id || item._id, item.variantSku, item.packageId) === key
             ? { ...item, quantity: item.quantity + 1 }
             : item,
         );
@@ -185,11 +202,14 @@ export const CartProvider = ({ children }) => {
         {
           ...product,
           id,
+          _id: id,
           sellerId: extractSellerId(product), // Always store as plain string
           variantSku,
           variantName,
           price,
           salePrice,
+          packageId: null,
+          packageName: "",
           quantity: 1,
           image: product.image || product.mainImage,
         },
@@ -210,6 +230,74 @@ export const CartProvider = ({ children }) => {
         pendingRequestsRef.current -= 1;
         console.error("Error adding to cart on backend", error);
         // Re-fetch entire cart to ensure consistency on error
+        if (pendingRequestsRef.current === 0) {
+          await fetchCart();
+        }
+      }
+    }
+  };
+
+  const performAddPackageItemToCart = async ({ product, pkg, itemData, quantity = 1 }) => {
+    const variantSku = String(product?.variantSku || product?.variantName || "").trim();
+    const id = product.id || product._id;
+    const pkgId = String(pkg._id || pkg.id || "");
+    const pkgName = pkg.name || "Combo Package";
+    const packagePricePerUnit = Number(
+      itemData.packagePricePerUnit ?? itemData.priceAtAddition ?? product.salePrice ?? product.price ?? 0
+    );
+    const originalPrice = Number(
+      itemData.originalPrice ?? itemData.priceAtAddition ?? product.price ?? 0
+    );
+    const key = getCartItemKey(id, variantSku, pkgId);
+
+    setCart((prev) => {
+      const existingItem = prev.find(
+        (item) => getCartItemKey(item.id || item._id, item.variantSku, item.packageId) === key,
+      );
+      if (existingItem) {
+        return prev.map((item) =>
+          getCartItemKey(item.id || item._id, item.variantSku, item.packageId) === key
+            ? { ...item, quantity: item.quantity + quantity }
+            : item,
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          ...product,
+          id,
+          _id: id,
+          sellerId: extractSellerId(product) || extractSellerId(pkg),
+          variantSku,
+          variantName: product.variantName || "",
+          price: originalPrice,
+          salePrice: packagePricePerUnit,
+          packageId: pkgId,
+          packageName: pkgName,
+          packagePricePerUnit,
+          originalPrice,
+          quantity,
+          image: product.image || product.mainImage,
+        },
+      ];
+    });
+
+    if (isAuthenticated) {
+      pendingRequestsRef.current += 1;
+      try {
+        const response = await customerApi.addToCart({
+          productId: id,
+          variantSku,
+          quantity,
+          packageId: pkgId,
+        });
+        pendingRequestsRef.current -= 1;
+        await syncCart(response.data.result.items);
+      } catch (error) {
+        pendingRequestsRef.current -= 1;
+        const errMsg = error.response?.data?.message || error.message || "Failed to add package item";
+        console.error("Error adding package item to cart backend:", errMsg, error);
         if (pendingRequestsRef.current === 0) {
           await fetchCart();
         }
@@ -240,6 +328,39 @@ export const CartProvider = ({ children }) => {
     return true; // added successfully
   };
 
+  const addPackageToCart = async (pkg) => {
+    if (!pkg?.items || !Array.isArray(pkg.items) || pkg.items.length === 0) {
+      return false;
+    }
+
+    const packageSellerId =
+      extractSellerId(pkg) ||
+      extractSellerId(pkg.sellerId) ||
+      extractSellerId(pkg.items[0]?.productId) ||
+      "";
+
+    if (cart.length > 0) {
+      const existingSellerId = extractSellerId(cart[0]);
+      if (existingSellerId && packageSellerId && existingSellerId !== packageSellerId) {
+        setPendingVendorProduct(pkg.items[0]?.productId || { sellerId: packageSellerId });
+        return false;
+      }
+    }
+
+    for (const it of pkg.items) {
+      const prod = it.productId;
+      if (!prod) continue;
+      const targetQty = Math.max(1, Number(it.quantity) || 1);
+      await performAddPackageItemToCart({
+        product: prod,
+        pkg,
+        itemData: it,
+        quantity: targetQty,
+      });
+    }
+    return true;
+  };
+
   const confirmVendorReplace = async () => {
     if (!pendingVendorProduct) return;
     const productToAdd = pendingVendorProduct;
@@ -252,16 +373,16 @@ export const CartProvider = ({ children }) => {
     setPendingVendorProduct(null);
   };
 
-  const removeFromCart = async (productId, variantSku = "") => {
+  const removeFromCart = async (productId, variantSku = "", packageId = "") => {
     const normalizedVariantSku = String(variantSku || "").trim();
-    const key = `${productId}::${normalizedVariantSku || ""}`;
+    const normalizedPackageId = String(packageId || "").trim();
+    const key = getCartItemKey(productId, normalizedVariantSku, normalizedPackageId);
 
     // Optimistic update
     setCart((prev) =>
       prev.filter(
         (item) =>
-          `${item.id || item._id}::${String(item.variantSku || "").trim()}` !==
-          key,
+          getCartItemKey(item.id || item._id, item.variantSku, item.packageId) !== key,
       ),
     );
 
@@ -271,6 +392,7 @@ export const CartProvider = ({ children }) => {
         const response = await customerApi.removeFromCart(
           productId,
           normalizedVariantSku,
+          normalizedPackageId,
         );
         pendingRequestsRef.current -= 1;
         await syncCart(response.data.result.items);
@@ -284,19 +406,20 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const updateQuantity = async (productId, delta, variantSku = "") => {
+  const updateQuantity = async (productId, delta, variantSku = "", packageId = "") => {
     const normalizedVariantSku = String(variantSku || "").trim();
-    const key = `${productId}::${normalizedVariantSku || ""}`;
+    const normalizedPackageId = String(packageId || "").trim();
+    const key = getCartItemKey(productId, normalizedVariantSku, normalizedPackageId);
     const currentItem = cart.find(
       (item) =>
-        `${item.id || item._id}::${String(item.variantSku || "").trim()}` === key,
+        getCartItemKey(item.id || item._id, item.variantSku, item.packageId) === key,
     );
     if (!currentItem) return;
 
     const newQty = Math.max(0, currentItem.quantity + delta);
 
     if (newQty === 0) {
-      removeFromCart(productId, normalizedVariantSku);
+      removeFromCart(productId, normalizedVariantSku, normalizedPackageId);
       return;
     }
 
@@ -304,8 +427,7 @@ export const CartProvider = ({ children }) => {
     setCart((prev) =>
       prev.map((item) => {
         if (
-          `${item.id || item._id}::${String(item.variantSku || "").trim()}` ===
-          key
+          getCartItemKey(item.id || item._id, item.variantSku, item.packageId) === key
         ) {
           return { ...item, quantity: newQty };
         }
@@ -320,6 +442,7 @@ export const CartProvider = ({ children }) => {
           productId,
           quantity: newQty,
           variantSku: normalizedVariantSku,
+          packageId: normalizedPackageId || null,
         });
         pendingRequestsRef.current -= 1;
         await syncCart(response.data.result.items);
@@ -347,10 +470,15 @@ export const CartProvider = ({ children }) => {
   };
 
   const cartTotal = cart.reduce((total, item) => {
+    const packPrice = Number(item.packagePricePerUnit);
+    const sale = Number(item.salePrice || 0);
+    const mrp = Number(item.price || 0);
     const unit =
-      Number(item.salePrice || 0) > 0 && Number(item.salePrice) < Number(item.price || 0)
-        ? Number(item.salePrice)
-        : Number(item.price || 0);
+      !isNaN(packPrice) && packPrice > 0
+        ? packPrice
+        : sale > 0 && sale < mrp
+          ? sale
+          : mrp;
     return total + unit * Number(item.quantity || 0);
   }, 0);
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -358,6 +486,7 @@ export const CartProvider = ({ children }) => {
   const cartValue = useMemo(() => ({
     cart,
     addToCart,
+    addPackageToCart,
     removeFromCart,
     updateQuantity,
     clearCart,

@@ -104,10 +104,18 @@ function round2(value) {
 }
 
 function buildAggregateBreakdown(sellerBreakdowns = []) {
+  const isFreeDelivery = sellerBreakdowns.some((s) => s?.isFreeDelivery);
+  const originalDeliveryFee = sumField(sellerBreakdowns, "originalDeliveryFee");
+  const freeDeliveryThreshold = sellerBreakdowns[0]?.freeDeliveryThreshold || 0;
+  const deliverySettings = sellerBreakdowns[0]?.snapshots?.deliverySettings || {};
+
   const aggregate = {
     currency: sellerBreakdowns[0]?.currency || "INR",
     productSubtotal: sumField(sellerBreakdowns, "productSubtotal"),
     deliveryFeeCharged: sumField(sellerBreakdowns, "deliveryFeeCharged"),
+    originalDeliveryFee: originalDeliveryFee > 0 ? originalDeliveryFee : sumField(sellerBreakdowns, "deliveryFeeCharged"),
+    isFreeDelivery,
+    freeDeliveryThreshold,
     handlingFeeCharged: sumField(sellerBreakdowns, "handlingFeeCharged"),
     tipTotal: sumField(sellerBreakdowns, "tipTotal"),
     discountTotal: sumField(sellerBreakdowns, "discountTotal"),
@@ -136,6 +144,7 @@ function buildAggregateBreakdown(sellerBreakdowns = []) {
     distanceKmActual: sumField(sellerBreakdowns, "distanceKmActual"),
     distanceKmRounded: sumField(sellerBreakdowns, "distanceKmRounded"),
     snapshots: {
+      deliverySettings,
       perSeller: sellerBreakdowns.map((row, index) => ({
         index,
         sellerId: row.sellerId,
@@ -306,6 +315,10 @@ function applyFreeDeliveryToSellerBreakdowns(sellerBreakdownEntries = []) {
     const breakdown = entry?.breakdown;
     if (!breakdown) continue;
     const oldDeliveryFee = round2(Number(breakdown.deliveryFeeCharged || 0));
+    breakdown.isFreeDelivery = true;
+    if (!breakdown.originalDeliveryFee || breakdown.originalDeliveryFee === 0) {
+      breakdown.originalDeliveryFee = oldDeliveryFee;
+    }
     if (oldDeliveryFee <= 0) {
       breakdown.snapshots = breakdown.snapshots && typeof breakdown.snapshots === "object"
         ? breakdown.snapshots

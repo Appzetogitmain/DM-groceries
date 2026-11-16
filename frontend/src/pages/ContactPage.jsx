@@ -12,7 +12,7 @@ const ContactPage = () => {
     const appName = settings?.appName || 'DM Groceries';
     const email = settings?.supportEmail || 'support@dmgroceries.in';
     const phone = settings?.supportPhone || '+91 98765 43210';
-    const address = settings?.address || 'Indore, Madhya Pradesh';
+    const address = (!settings?.address || settings?.address === 'Indore, Madhya Pradesh') ? 'Surat, Gujarat' : settings.address;
 
     const [form, setForm] = useState(EMPTY);
     const [submitting, setSubmitting] = useState(false);

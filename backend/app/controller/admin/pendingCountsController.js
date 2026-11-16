@@ -6,6 +6,7 @@ import Ticket from "../../models/ticket.js";
 import ContactMessage from "../../models/contactMessage.js";
 import SellerLead from "../../models/sellerLead.js";
 import DeliveryLead from "../../models/deliveryLead.js";
+import Package from "../../models/package.js";
 import handleResponse from "../../utils/helper.js";
 
 // GET /admin/pending-counts
@@ -24,6 +25,7 @@ export const getPendingCounts = async (req, res) => {
       contactMessages,
       sellerLeads,
       deliveryLeads,
+      packages,
       latestTransaction,
     ] = await Promise.all([
       // Same definition as the "Waiting for Review" sellers page.
@@ -65,6 +67,8 @@ export const getPendingCounts = async (req, res) => {
       // New "Sell with us" & "Deliver with us" landing page leads
       SellerLead.countDocuments({ status: "new" }),
       DeliveryLead.countDocuments({ status: "new" }),
+      // Packages awaiting admin approval
+      Package.countDocuments({ approvalStatus: "pending" }),
       // Most recent transaction for wallet new entry detection
       Transaction.findOne({})
         .sort({ createdAt: -1 })
@@ -92,6 +96,7 @@ export const getPendingCounts = async (req, res) => {
       sellerLeads,
       deliveryLeads,
       enquiries: totalEnquiries,
+      packages: Number(packages || 0),
       latestTransactionTime: latestTransaction?.createdAt || null,
     });
   } catch (error) {

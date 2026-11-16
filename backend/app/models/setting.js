@@ -233,6 +233,31 @@ const settingSchema = new mongoose.Schema(
                 default: true,
             },
         },
+        packageSettings: {
+            maxProductsPerPackage: {
+                type: Number,
+                default: 10,
+                min: 2,
+            },
+            minProductsPerPackage: {
+                type: Number,
+                default: 2,
+                min: 1,
+            },
+            maxPackagesPerSeller: {
+                type: Number,
+                default: 10,
+                min: 1,
+            },
+            requireAdminApproval: {
+                type: Boolean,
+                default: true,
+            },
+            requireApprovalOnEdit: {
+                type: Boolean,
+                default: true,
+            },
+        },
     },
     {
         timestamps: true,

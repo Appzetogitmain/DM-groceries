@@ -81,11 +81,34 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
             </span>
           </div>
           <div className="flex justify-between items-center px-2">
-            <span className="text-slate-500 font-bold text-[13px] uppercase tracking-wider">
+            <span className="text-slate-500 font-bold text-[13px] uppercase tracking-wider flex items-center gap-1.5">
               Delivery Fee
+              {pricingPreview?.isFreeDelivery && (
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                  Free
+                </span>
+              )}
             </span>
-            <span className="font-black text-slate-800">₹{deliveryFee}</span>
+            <div className="text-right">
+              {pricingPreview?.isFreeDelivery && (pricingPreview?.originalDeliveryFee || 0) > 0 ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400 line-through font-bold">
+                    ₹{pricingPreview.originalDeliveryFee}
+                  </span>
+                  <span className="font-black text-emerald-600">FREE</span>
+                </div>
+              ) : deliveryFee === 0 ? (
+                <span className="font-black text-emerald-600">FREE</span>
+              ) : (
+                <span className="font-black text-slate-800">₹{deliveryFee}</span>
+              )}
+            </div>
           </div>
+          {pricingPreview?.isFreeDelivery && (pricingPreview?.freeDeliveryThreshold || 0) > 0 && (
+            <div className="px-2 -mt-2 text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+              <span>🎉 Free delivery unlocked on orders above ₹{pricingPreview.freeDeliveryThreshold}</span>
+            </div>
+          )}
           {pricingPreview &&
             typeof pricingPreview.distanceKmActual === "number" &&
             typeof pricingPreview.distanceKmRounded === "number" && (

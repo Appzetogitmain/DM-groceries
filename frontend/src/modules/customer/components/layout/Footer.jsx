@@ -8,6 +8,7 @@ const Footer = () => {
     const { settings } = useSettings();
     const logoUrl = "/Logo.png";
     const primaryColor = settings?.primaryColor || 'var(--primary)';
+    const contactAddress = (!settings?.address || settings?.address === 'Indore, Madhya Pradesh') ? 'Surat, Gujarat' : settings.address;
 
     return (
         <footer className="relative bg-[#051108] pt-20 pb-10 mt-20 text-slate-300 md:bg-gradient-to-br md:from-brand-700 md:via-brand-800 md:to-brand-900 md:pt-32 md:pb-16 md:mt-32 overflow-hidden">
@@ -67,7 +68,7 @@ const Footer = () => {
                             <li className="flex items-start gap-3 md:gap-5 group">
                                 <div className="hidden md:flex h-12 w-12 rounded-xl bg-white/10 items-center justify-center text-white transition-all shrink-0 group-hover:opacity-90"><MapPin size={22} /></div>
                                 <MapPin className="mt-1 shrink-0 md:hidden" size={18} style={{ color: primaryColor }} />
-                                <span className="md:text-base text-white md:pt-1 font-medium">{settings?.address || '—'}</span>
+                                <span className="md:text-base text-white md:pt-1 font-medium">{contactAddress}</span>
                             </li>
                             <li className="flex items-center gap-3 md:gap-5 group">
                                 <div className="hidden md:flex h-12 w-12 rounded-xl bg-white/10 items-center justify-center text-white transition-all shrink-0 group-hover:opacity-90"><Phone size={22} /></div>

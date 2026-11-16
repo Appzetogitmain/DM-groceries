@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from '../pages/Home';
 import CategoriesPage from '../pages/CategoriesPage';
+import PackagesPage from '../pages/PackagesPage';
 import CategoryProductsPage from '../pages/CategoryProductsPage';
 import WishlistPage from '../pages/WishlistPage';
 import CartPage from '../pages/CartPage';
@@ -41,6 +42,7 @@ const CustomerRoutes = () => {
                         <ScrollToTop />
                         <Routes>
                             <Route path="/" element={<Home />} />
+                            <Route path="packages" element={<PackagesPage />} />
                             <Route path="categories" element={<CategoriesPage />} />
                             <Route path="category/:categoryName" element={<CategoryProductsPage />} />
                             <Route path="product/:id" element={<ProductDetailPage />} />

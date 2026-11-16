@@ -25,12 +25,14 @@ const objectIdLike = trimmedString.min(8).max(64);
 // production traffic actually sent the legacy key — the rename is
 // purely internal.
 const variantSkuField = trimmedString.max(64).optional().allow("");
+const packageIdField = objectIdLike.optional().allow(null, "");
 
 /** POST /cart/add — add an item to the customer's cart. */
 export const addToCartSchema = Joi.object({
   productId: objectIdLike.required(),
   quantity: Joi.number().integer().min(1).max(99).required(),
   variantSku: variantSkuField,
+  packageId: packageIdField,
 });
 
 /** PUT /cart/update — update quantity (and optionally variantSku) for an existing line item. */
@@ -38,11 +40,13 @@ export const updateCartItemSchema = Joi.object({
   productId: objectIdLike.required(),
   quantity: Joi.number().integer().min(0).max(99).required(),
   variantSku: variantSkuField,
+  packageId: packageIdField,
 });
 
 /** DELETE /cart/remove/:productId — variantSku is read from `req.query`. */
 export const removeCartItemQuerySchema = Joi.object({
   variantSku: variantSkuField,
+  packageId: packageIdField,
 });
 
 /** POST /cart/merge — used when an anonymous cart is merged into a user cart on login. */
@@ -53,6 +57,7 @@ export const mergeCartSchema = Joi.object({
         productId: objectIdLike.required(),
         quantity: Joi.number().integer().min(1).max(99).required(),
         variantSku: variantSkuField,
+        packageId: packageIdField,
       }),
     )
     .min(1)

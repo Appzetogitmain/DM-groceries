@@ -14,12 +14,14 @@ import {
   HiOutlineCreditCard,
   HiOutlineMapPin,
   HiOutlineComputerDesktop,
+  HiOutlineRectangleStack,
 } from "react-icons/hi2";
 
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
 const ProductManagement = React.lazy(
   () => import("../pages/ProductManagement"),
 );
+const Packages = React.lazy(() => import("../pages/Packages"));
 const StockManagement = React.lazy(() => import("../pages/StockManagement"));
 const AddProduct = React.lazy(() => import("../pages/AddProduct"));
 // Note: Orders is imported eagerly above to avoid dynamic import issues
@@ -39,6 +41,7 @@ const Subscription = React.lazy(() => import("../pages/Subscription"));
 const navItems = [
   { label: "Dashboard", path: "/seller", icon: HiOutlineSquares2X2, end: true },
   { label: "Products", path: "/seller/products", icon: HiOutlineCube },
+  { label: "Packages", path: "/seller/packages", icon: HiOutlineRectangleStack },
   { label: "Stock", path: "/seller/inventory", icon: HiOutlineArchiveBox },
   { label: "Orders", path: "/seller/orders", icon: HiOutlineTruck },
   { label: "Returns", path: "/seller/returns", icon: HiOutlineArchiveBox },
@@ -92,6 +95,7 @@ const SellerRoutes = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/products" element={<ProductManagement />} />
         <Route path="/products/add" element={<AddProduct />} />
+        <Route path="/packages" element={<Packages />} />
         <Route path="/inventory" element={<StockManagement />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/returns" element={<Returns />} />

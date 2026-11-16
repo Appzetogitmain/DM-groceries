@@ -52,6 +52,16 @@ export const sellerApi = {
     assignReturnDelivery: (orderId, data) => axiosInstance.put(`/orders/returns/${orderId}/assign-delivery`, data),
     updateReturnQcStatus: (orderId, data) => axiosInstance.put(`/orders/returns/${orderId}/qc`, data),
 
+    // Packages
+    getPackages: (params) => axiosInstance.get('/packages/seller', { params }),
+    getPackageQuota: () => axiosInstance.get('/packages/seller/quota'),
+    getEligibleProductsForPackage: (params) => axiosInstance.get('/packages/seller/eligible-products', { params }),
+    getPackageById: (id) => axiosInstance.get(`/packages/seller/${id}`),
+    createPackage: (data) => axiosInstance.post('/packages/seller', data),
+    updatePackage: (id, data) => axiosInstance.put(`/packages/seller/${id}`, data),
+    deletePackage: (id) => axiosInstance.delete(`/packages/seller/${id}`),
+    togglePackageStatus: (id) => axiosInstance.patch(`/packages/seller/${id}/toggle-status`),
+
     // Subscriptions
     getAvailablePlans: () => axiosInstance.get('/seller/subscriptions/plans'),
     getCurrentSubscription: () => axiosInstance.get('/seller/subscriptions/current'),

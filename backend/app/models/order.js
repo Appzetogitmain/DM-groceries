@@ -60,6 +60,14 @@ const orderSchema = new mongoose.Schema(
         },
         variantSlot: String,
         image: String,
+        packageId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Package",
+          default: null,
+        },
+        packageName: String,
+        packagePricePerUnit: Number,
+        originalPrice: Number,
       },
     ],
     address: {

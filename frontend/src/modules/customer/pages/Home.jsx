@@ -37,6 +37,7 @@ import {
 } from "../constants/homeConstants";
 import PromoMarquee from "../components/home/PromoMarquee";
 import QuickCategorySlider from "../components/home/QuickCategorySlider";
+import SuperSaverCombos from "../components/home/SuperSaverCombos";
 import LowestPriceSection from "../components/home/LowestPriceSection";
 import OfferSections from "../components/home/OfferSections";
 import PullToRefresh from "../components/shared/PullToRefresh";
@@ -447,6 +448,7 @@ const Home = () => {
           </motion.div>
 
           <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/user/category/${id}`)} />
+          <SuperSaverCombos />
           <LowestPriceSection products={products} onSeeAll={() => navigate("/user/category/all")} />
           <OfferSections sections={offerSections} noServiceData={noServiceData} />
 

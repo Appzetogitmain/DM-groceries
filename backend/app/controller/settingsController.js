@@ -61,6 +61,7 @@ const ALLOWED_KEYS = [
   "lowStockAlertsEnabled",
   "returnsEnabled",
   "productApproval",
+  "packageSettings",
   "platformFee",
   "freeDeliveryThreshold",
 ];
@@ -152,6 +153,13 @@ const updateSettingsSchema = Joi.object({
   productApproval: Joi.object({
     sellerCreateRequiresApproval: Joi.boolean(),
     sellerEditRequiresApproval: Joi.boolean(),
+  }).unknown(false),
+  packageSettings: Joi.object({
+    maxProductsPerPackage: Joi.number().min(2).max(100),
+    minProductsPerPackage: Joi.number().min(1).max(50),
+    maxPackagesPerSeller: Joi.number().min(1).max(500),
+    requireAdminApproval: Joi.boolean(),
+    requireApprovalOnEdit: Joi.boolean(),
   }).unknown(false),
 }).unknown(false);
 

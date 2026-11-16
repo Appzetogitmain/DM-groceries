@@ -13,8 +13,13 @@ export const customerApi = {
     getWithDedupe("/customer/transactions", params),
   getCategories: (params) =>
     getWithDedupe("/categories", params, { ttl: 60 * 1000 }), // 1 min for categories
+  // Products
   getProducts: (params) => getWithDedupe("/products", params),
   getProductById: (id, params) => getWithDedupe(`/products/${id}`, params),
+
+  // Packages & Combos
+  getPackages: (params) => getWithDedupe("/packages/public", params, { ttl: 30 * 1000 }),
+  getPackageById: (id) => getWithDedupe(`/packages/public/${id}`, {}, { ttl: 30 * 1000 }),
 
   // Sellers & Location
   getNearbySellers: (params) => getWithDedupe("/seller/nearby", params),
@@ -29,11 +34,13 @@ export const customerApi = {
     invalidateCache("/cart");
     return axiosInstance.put("/cart/update", data);
   },
-  removeFromCart: (productId, variantSku = "") => {
+  removeFromCart: (productId, variantSku = "", packageId = "") => {
     invalidateCache("/cart");
     const params = {};
     const normalizedVariantSku = String(variantSku || "").trim();
     if (normalizedVariantSku) params.variantSku = normalizedVariantSku;
+    const normalizedPackageId = String(packageId || "").trim();
+    if (normalizedPackageId) params.packageId = normalizedPackageId;
     return axiosInstance.delete(`/cart/remove/${productId}`, { params });
   },
   clearCart: () => {

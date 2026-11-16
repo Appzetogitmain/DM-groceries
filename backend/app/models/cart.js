@@ -34,6 +34,20 @@ const cartSchema = new mongoose.Schema(
                     min: 1,
                     default: 1,
                 },
+                // Optional package/bundle linkage
+                packageId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Package",
+                    default: null,
+                },
+                packagePricePerUnit: {
+                    type: Number,
+                    default: null,
+                },
+                originalPrice: {
+                    type: Number,
+                    default: null,
+                },
             },
         ],
     },
