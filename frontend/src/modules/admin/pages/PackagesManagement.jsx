@@ -607,7 +607,8 @@ const PackagesManagement = () => {
                     isOpen={Boolean(previewPackage)}
                     onClose={() => setPreviewPackage(null)}
                     title="Package Details & Included Products"
-                    maxWidth="max-w-2xl"
+                    size="lg"
+                    maxWidth="max-w-3xl"
                 >
                     <div className="space-y-5">
                         <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
