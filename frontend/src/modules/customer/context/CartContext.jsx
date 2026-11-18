@@ -4,6 +4,7 @@ import { useAuth } from "../../../core/context/AuthContext";
 import { getJSON, setJSON, remove as removeStorage, STORAGE_KEYS } from "@core/utils/storage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const CartContext = createContext();
 
@@ -43,6 +44,7 @@ export const CartProvider = ({ children }) => {
   const pendingRequestsRef = React.useRef(0);
   const lsDebounceRef = useRef(null);
   const [pendingVendorProduct, setPendingVendorProduct] = useState(null);
+  const [pendingVendorPackage, setPendingVendorPackage] = useState(null);
   const [pendingVendorList, setPendingVendorList] = useState(null);
 
   // Clear cart locally when user logs out is handled by the useEffect dependency on isAuthenticated
@@ -344,6 +346,7 @@ export const CartProvider = ({ children }) => {
     if (cart.length > 0) {
       const existingSellerId = extractSellerId(cart[0]);
       if (existingSellerId && packageSellerId && existingSellerId !== packageSellerId) {
+        setPendingVendorPackage(pkg);
         setPendingVendorProduct(pkg.items[0]?.productId || { sellerId: packageSellerId });
         return false;
       }
@@ -402,15 +405,33 @@ export const CartProvider = ({ children }) => {
   };
 
   const confirmVendorReplace = async () => {
-    if (!pendingVendorProduct && !pendingVendorList) return;
+    if (!pendingVendorProduct && !pendingVendorList && !pendingVendorPackage) return;
     const productToAdd = pendingVendorProduct;
     const listToAdd = pendingVendorList;
+    const packageToAdd = pendingVendorPackage;
+
     setPendingVendorProduct(null);
     setPendingVendorList(null);
+    setPendingVendorPackage(null);
+
     await clearCart();
-    if (listToAdd) {
+
+    if (packageToAdd) {
+      for (const it of packageToAdd.items || []) {
+        const prod = it.productId;
+        if (!prod) continue;
+        const targetQty = Math.max(1, Number(it.quantity) || 1);
+        await performAddPackageItemToCart({
+          product: prod,
+          pkg: packageToAdd,
+          itemData: it,
+          quantity: targetQty,
+        });
+      }
+      toast.success(`Added "${packageToAdd.name}" (${packageToAdd.items?.length || 0} items) to your cart!`);
+    } else if (listToAdd) {
       await performAddListItemsToCart(listToAdd);
-    } else if (productToAdd) {
+    } else if (productToAdd && !productToAdd.isPlaceholder) {
       await performAddToCart(productToAdd);
     }
   };
@@ -418,6 +439,7 @@ export const CartProvider = ({ children }) => {
   const cancelVendorReplace = () => {
     setPendingVendorProduct(null);
     setPendingVendorList(null);
+    setPendingVendorPackage(null);
   };
 
   const removeFromCart = async (productId, variantSku = "", packageId = "") => {
@@ -547,7 +569,7 @@ export const CartProvider = ({ children }) => {
   return (
     <CartContext.Provider value={cartValue}>
       {children}
-      <Dialog open={!!pendingVendorProduct} onOpenChange={(open) => !open && cancelVendorReplace()}>
+      <Dialog open={Boolean(pendingVendorProduct || pendingVendorPackage || pendingVendorList)} onOpenChange={(open) => !open && cancelVendorReplace()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Replace cart items?</DialogTitle>
