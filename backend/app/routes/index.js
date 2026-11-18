@@ -34,6 +34,7 @@ import sosRoute from "./sosRoutes.js";
 import posRoute from "./posRoutes.js";
 import subscriptionRoute from "./subscriptionRoutes.js";
 import packageRoute from "./packageRoutes.js";
+import customerListRoute from "./customerListRoutes.js";
 
 import express from "express";
 
@@ -63,6 +64,8 @@ const setupRoutes = (app) => {
     router.use("/admin/subscriptions", subscriptionRoute);
     router.use("/admin", adminRoute);
     router.use("/customer/milestones", customerMilestoneRoute);
+    router.use("/customer/lists", customerListRoute);
+    router.use("/lists", customerListRoute);
     router.use("/seller", sellerRoute);
     router.use("/settings", settingsRoute);
     router.use("/categories", categoryRoute);

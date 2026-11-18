@@ -622,12 +622,13 @@ export async function getCustomerOrders(customerId, pagination) {
       const [orders, total] = await Promise.all([
         Order.find({ customer: customerId })
           .select(
-            "orderId checkoutGroupId customer seller items address payment pricing status workflowStatus workflowVersion returnStatus timeSlot createdAt sellerPendingExpiresAt expiresAt sellerAcceptedAt",
+            "orderId checkoutGroupId customer seller items address payment pricing status workflowStatus workflowVersion returnStatus timeSlot createdAt sellerPendingExpiresAt expiresAt sellerAcceptedAt isListOrder listId listName",
           )
           .sort({ createdAt: -1, _id: -1 })
           .skip(skip)
           .limit(limit)
           .populate("items.product", "name mainImage price salePrice")
+          .populate("seller", "shopName name storeName")
           .lean(),
         Order.countDocuments({ customer: customerId }),
       ]);

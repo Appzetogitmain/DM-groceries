@@ -583,6 +583,13 @@ function eventDefinition(eventType, payload = {}) {
         title: (payload) => payload.title || "Price Drop Alert! 📉",
         body: (payload) => payload.message || "Great news! A product you've been watching just got cheaper.",
       };
+    case NOTIFICATION_EVENTS.CUSTOMER_LIST_REMINDER:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) => normalizeIdList(payload.userId || payload.customerId),
+        title: (payload) => payload.title || "Your basket may finish soon",
+        body: (payload) => payload.message || "It's time to restock your saved list. Reorder in one tap!",
+      };
     case NOTIFICATION_EVENTS.SELLER_STORE_APPROVED:
       return {
         role: NOTIFICATION_ROLES.SELLER,
@@ -652,6 +659,17 @@ function eventData(eventType, payload = {}, role) {
       eventType,
       link: `${getFrontendBaseUrl()}/user/notifications`,
       ...(payload.data || {}),
+    };
+  }
+
+  if (eventType === NOTIFICATION_EVENTS.CUSTOMER_LIST_REMINDER) {
+    const imageUrl = String(payload.data?.imageUrl || "").trim() || undefined;
+    return {
+      eventType,
+      ...(payload.data || {}),
+      imageUrl,
+      image: imageUrl,
+      link: `${getFrontendBaseUrl()}/user/notifications`,
     };
   }
 

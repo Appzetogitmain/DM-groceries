@@ -21,6 +21,30 @@ export const customerApi = {
   getPackages: (params) => getWithDedupe("/packages/public", params, { ttl: 30 * 1000 }),
   getPackageById: (id) => getWithDedupe(`/packages/public/${id}`, {}, { ttl: 30 * 1000 }),
 
+  // Custom Grocery Lists / Baskets
+  getCustomerLists: (params) => getWithDedupe("/customer/lists", params, { ttl: 5000 }),
+  getCustomerListById: (id) => getWithDedupe(`/customer/lists/${id}`, {}, { ttl: 5000 }),
+  createCustomerList: (data) => {
+    invalidateCache("/customer/lists");
+    return axiosInstance.post("/customer/lists", data);
+  },
+  updateCustomerList: (id, data) => {
+    invalidateCache("/customer/lists");
+    return axiosInstance.put(`/customer/lists/${id}`, data);
+  },
+  deleteCustomerList: (id) => {
+    invalidateCache("/customer/lists");
+    return axiosInstance.delete(`/customer/lists/${id}`);
+  },
+  addCustomerListToCart: (id, data = {}) => {
+    invalidateCache("/cart");
+    return axiosInstance.post(`/customer/lists/${id}/add-to-cart`, data);
+  },
+  snoozeCustomerListReminder: (id, data = {}) => {
+    invalidateCache("/customer/lists");
+    return axiosInstance.post(`/customer/lists/${id}/reminder/snooze`, data);
+  },
+
   // Sellers & Location
   getNearbySellers: (params) => getWithDedupe("/seller/nearby", params),
 

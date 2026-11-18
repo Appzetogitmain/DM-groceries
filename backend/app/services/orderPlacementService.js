@@ -549,6 +549,9 @@ export async function placeOrderAtomic({
         checkoutGroupId,
         checkoutGroupSize: pricingSnapshot.sellerCount,
         checkoutGroupIndex: index,
+        isListOrder: Boolean(normalizedPayload.isListOrder),
+        listId: normalizedPayload.listId || null,
+        listName: normalizedPayload.listName || null,
         placement: {
           idempotencyKey: idempotencyKey || undefined,
           idempotencyKeyExpiry,

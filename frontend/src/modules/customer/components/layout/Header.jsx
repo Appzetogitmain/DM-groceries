@@ -7,6 +7,7 @@ import { useCart } from '../../context/CartContext';
 import { useLocation as useAppLocation } from "../../context/LocationContext";
 import { useSettings } from '@core/context/SettingsContext';
 import LocationDrawer from '../shared/LocationDrawer';
+import { cn } from '@/lib/utils';
 
 const Header = () => {
     const { settings } = useSettings();
@@ -14,6 +15,7 @@ const Header = () => {
     const { cartCount } = useCart();
     const location = useLocation();
     const isCheckoutPage = location.pathname === '/checkout' || location.pathname === '/user/checkout';
+    const isPackagesPage = location.pathname.startsWith('/user/packages') || location.pathname.startsWith('/packages');
     const [isLocationOpen, setIsLocationOpen] = useState(false);
     const { currentLocation, refreshLocation } = useAppLocation();
 
@@ -84,21 +86,40 @@ const Header = () => {
                         }}
                         className="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform border-0 bg-transparent p-0 text-left"
                     >
-                        <div className="h-10 w-10 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 shadow-sm">
-                            <MapPin size={22} className="text-white fill-current" />
+                        <div className={cn(
+                            "h-10 w-10 rounded-2xl flex items-center justify-center shadow-sm backdrop-blur-md transition-colors",
+                            isPackagesPage
+                                ? "bg-white border border-slate-200 text-[#1A4516] shadow-sm"
+                                : "bg-white/20 border border-white/30 text-white"
+                        )}>
+                            <MapPin size={22} className={cn("fill-current", isPackagesPage ? "text-[#1A4516]" : "text-white")} />
                         </div>
                         <div className="flex flex-col leading-tight">
-                            <span className="text-[10px] font-black text-white/80 uppercase tracking-widest flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                            <span className={cn(
+                                "text-[10px] font-black uppercase tracking-widest flex items-center gap-1",
+                                isPackagesPage ? "text-slate-600" : "text-white/80"
+                            )}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill={isPackagesPage ? "#1A4516" : "white"} stroke={isPackagesPage ? "#1A4516" : "white"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
                                 {currentLocation.time}
                             </span>
-                            <div className="flex items-center gap-1 font-black text-white text-base">
-                                <span className="max-w-[150px] truncate">{currentLocation.name}</span> <span className="text-[10px] opacity-70">▼</span>
+                            <div className={cn(
+                                "flex items-center gap-1 font-black text-base",
+                                isPackagesPage ? "text-slate-900" : "text-white"
+                            )}>
+                                <span className="max-w-[150px] truncate">{currentLocation.name}</span> <span className={cn("text-[10px]", isPackagesPage ? "text-slate-500" : "opacity-70")}>▼</span>
                             </div>
                         </div>
                     </button>
                     <div className="flex items-center gap-2">
-                        <Link to="/user/wishlist" className="relative flex items-center justify-center p-2.5 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white shadow-sm active:scale-95 transition-transform">
+                        <Link
+                            to="/user/wishlist"
+                            className={cn(
+                                "relative flex items-center justify-center p-2.5 rounded-2xl shadow-sm active:scale-95 transition-transform backdrop-blur-md",
+                                isPackagesPage
+                                    ? "bg-white border border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
+                                    : "bg-white/20 border border-white/30 text-white"
+                            )}
+                        >
                             <Heart size={20} />
                             {wishlistCount > 0 && (
                                 <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow-sm">
@@ -106,7 +127,15 @@ const Header = () => {
                                 </span>
                             )}
                         </Link>
-                        <Link to="/user/checkout" className="relative flex items-center justify-center p-2.5 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white shadow-sm active:scale-95 transition-transform">
+                        <Link
+                            to="/user/checkout"
+                            className={cn(
+                                "relative flex items-center justify-center p-2.5 rounded-2xl shadow-sm active:scale-95 transition-transform backdrop-blur-md",
+                                isPackagesPage
+                                    ? "bg-white border border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
+                                    : "bg-white/20 border border-white/30 text-white"
+                            )}
+                        >
                             <ShoppingCart size={20} />
                             {cartCount > 0 && (
                                 <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 rounded-full bg-yellow-400 text-brand-900 text-[10px] font-black flex items-center justify-center border-2 border-brand-800 shadow-sm animate-in zoom-in duration-300">
@@ -118,12 +147,23 @@ const Header = () => {
                 </div>
 
                 {/* Main Header Capsule */}
-                <div className="px-4 md:px-8 h-18 bg-white/95 backdrop-blur-sm rounded-full shadow-2xl flex items-center justify-between border border-white/20">
+                <div className={cn(
+                    "px-4 md:px-8 h-18 bg-white/95 backdrop-blur-sm rounded-full shadow-2xl flex items-center justify-between border",
+                    isPackagesPage ? "border-slate-200/90 shadow-lg md:shadow-xl" : "border-white/20"
+                )}>
                     {/* Logo */}
-                    <div className="flex items-center gap-6 mr-4 md:mr-12">
+                    <div className={cn(
+                        "flex items-center gap-6 mr-4 md:mr-12",
+                        isPackagesPage && "w-full md:w-auto justify-between md:justify-start mr-0 md:mr-12"
+                    )}>
                         <Link to="/user" className="flex items-center gap-1">
                             <span className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: settings?.primaryColor || 'var(--primary)' }}>{settings?.appName || 'App'}</span>
                         </Link>
+                        {isPackagesPage && (
+                            <span className="md:hidden inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-900 border border-emerald-200">
+                                Combos & Packs
+                            </span>
+                        )}
 
                         {/* Location Selector (Desktop ONLY) */}
                         <button
@@ -155,8 +195,8 @@ const Header = () => {
                         <Link to="/user/offers" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Offers</Link>
                     </nav>
 
-                    {/* Search Bar - Hidden on checkout page */}
-                    {!isCheckoutPage && (
+                    {/* Search Bar - Hidden on checkout page and packages page */}
+                    {!isCheckoutPage && !isPackagesPage && (
                         <div className="flex-1 flex items-center max-w-sm ml-4 md:ml-8 mr-4 md:mr-8">
                             <div className="relative w-full">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />

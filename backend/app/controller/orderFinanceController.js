@@ -26,6 +26,7 @@ import { WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
 import { ORDER_PAYMENT_STATUS } from "../constants/finance.js";
 import { createPaymentOrderForOrderRef } from "../services/paymentService.js";
 import { buildKey, invalidate } from "../services/cacheService.js";
+import { armListReminderAfterOrder } from "../services/customerListReminderService.js";
 
 export const selectPaymentMethod = async (req, res) => {
   try {
@@ -177,6 +178,9 @@ export const createOrderWithFinancialSnapshot = async (req, res) => {
       // coupon engine fills the discount in via `couponCode`/`couponId`
       // instead.
       couponCode: validated.couponCode || null,
+      isListOrder: Boolean(validated.isListOrder),
+      listId: validated.listId || null,
+      listName: validated.listName || null,
     };
     const idempotencyKey = String(req.headers["idempotency-key"] || "").trim() || null;
 
@@ -185,6 +189,18 @@ export const createOrderWithFinancialSnapshot = async (req, res) => {
       payload,
       idempotencyKey,
     });
+
+    // "My List" restock reminder: arm it in the background once a list
+    // order is placed. Fire-and-forget — never blocks or fails checkout.
+    if (!placement.duplicate && payload.isListOrder && payload.listId) {
+      armListReminderAfterOrder({
+        listId: payload.listId,
+        customerId,
+        orderProductIds: (payload.items || []).map(
+          (it) => it?.product || it?.productId || it?.id,
+        ),
+      }).catch(() => {});
+    }
 
     return handleResponse(
       res,

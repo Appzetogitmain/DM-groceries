@@ -83,7 +83,7 @@ const PackagesPage = () => {
   }, [packages, searchTerm, priceFilter]);
 
   return (
-    <div className="min-h-screen bg-[#F5F7F8] pt-[190px] md:pt-[205px] pb-24">
+    <div className="min-h-screen bg-[#F5F7F8] pt-[175px] md:pt-[135px] pb-24">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         {/* Top Navigation & Breadcrumbs */}
         <div className="flex items-center justify-between mb-4">

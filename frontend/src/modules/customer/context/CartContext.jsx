@@ -43,6 +43,7 @@ export const CartProvider = ({ children }) => {
   const pendingRequestsRef = React.useRef(0);
   const lsDebounceRef = useRef(null);
   const [pendingVendorProduct, setPendingVendorProduct] = useState(null);
+  const [pendingVendorList, setPendingVendorList] = useState(null);
 
   // Clear cart locally when user logs out is handled by the useEffect dependency on isAuthenticated
   const normalizeBackendCart = (items) => {
@@ -178,7 +179,8 @@ export const CartProvider = ({ children }) => {
     return `${productId}::${String(variantSku || "").trim()}::${String(packageId || "").trim()}`;
   };
 
-  const performAddToCart = async (product) => {
+  const performAddToCart = async (product, options = {}) => {
+    const targetQty = Math.max(1, Number(options.quantity || product.targetQuantity || 1));
     const variantSku = String(product?.variantSku || product?.variantName || "").trim();
     const id = product.id || product._id;
     const key = getCartItemKey(id, variantSku, "");
@@ -192,7 +194,7 @@ export const CartProvider = ({ children }) => {
       if (existingItem) {
         return prev.map((item) =>
           getCartItemKey(item.id || item._id, item.variantSku, item.packageId) === key
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + targetQty }
             : item,
         );
       }
@@ -210,7 +212,7 @@ export const CartProvider = ({ children }) => {
           salePrice,
           packageId: null,
           packageName: "",
-          quantity: 1,
+          quantity: targetQty,
           image: product.image || product.mainImage,
         },
       ];
@@ -222,7 +224,7 @@ export const CartProvider = ({ children }) => {
         const response = await customerApi.addToCart({
           productId: id,
           variantSku,
-          quantity: 1,
+          quantity: targetQty,
         });
         pendingRequestsRef.current -= 1;
         await syncCart(response.data.result.items);
@@ -361,16 +363,61 @@ export const CartProvider = ({ children }) => {
     return true;
   };
 
+  const performAddListItemsToCart = async (list) => {
+    for (const it of list?.items || []) {
+      const prod = it.productId?._id ? it.productId : it;
+      const targetQty = Math.max(1, Number(it.quantity) || 1);
+      await performAddToCart(prod, { quantity: targetQty });
+    }
+    if (list?._id) {
+      try {
+        await customerApi.addCustomerListToCart(list._id, { replaceCart: true });
+      } catch (e) {
+        // Non-blocking
+      }
+    }
+  };
+
+  const addCustomListToCart = async (list) => {
+    if (!list?.items || !Array.isArray(list.items) || list.items.length === 0) {
+      return false;
+    }
+
+    const listSellerId =
+      extractSellerId(list.sellerId) ||
+      extractSellerId(list.items[0]?.productId) ||
+      "";
+
+    if (cart.length > 0) {
+      const existingSellerId = extractSellerId(cart[0]);
+      if (existingSellerId && listSellerId && existingSellerId !== listSellerId) {
+        setPendingVendorList(list);
+        setPendingVendorProduct(list.items[0]?.productId || { sellerId: listSellerId });
+        return false;
+      }
+    }
+
+    await performAddListItemsToCart(list);
+    return true;
+  };
+
   const confirmVendorReplace = async () => {
-    if (!pendingVendorProduct) return;
+    if (!pendingVendorProduct && !pendingVendorList) return;
     const productToAdd = pendingVendorProduct;
+    const listToAdd = pendingVendorList;
     setPendingVendorProduct(null);
+    setPendingVendorList(null);
     await clearCart();
-    await performAddToCart(productToAdd);
+    if (listToAdd) {
+      await performAddListItemsToCart(listToAdd);
+    } else if (productToAdd) {
+      await performAddToCart(productToAdd);
+    }
   };
 
   const cancelVendorReplace = () => {
     setPendingVendorProduct(null);
+    setPendingVendorList(null);
   };
 
   const removeFromCart = async (productId, variantSku = "", packageId = "") => {
@@ -487,6 +534,7 @@ export const CartProvider = ({ children }) => {
     cart,
     addToCart,
     addPackageToCart,
+    addCustomListToCart,
     removeFromCart,
     updateQuantity,
     clearCart,

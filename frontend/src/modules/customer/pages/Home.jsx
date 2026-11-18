@@ -39,6 +39,7 @@ import PromoMarquee from "../components/home/PromoMarquee";
 import QuickCategorySlider from "../components/home/QuickCategorySlider";
 import SuperSaverCombos from "../components/home/SuperSaverCombos";
 import LowestPriceSection from "../components/home/LowestPriceSection";
+import MakeYourOwnListSection from "../components/home/MakeYourOwnListSection";
 import OfferSections from "../components/home/OfferSections";
 import PullToRefresh from "../components/shared/PullToRefresh";
 
@@ -450,6 +451,7 @@ const Home = () => {
           <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/user/category/${id}`)} />
           <SuperSaverCombos />
           <LowestPriceSection products={products} onSeeAll={() => navigate("/user/category/all")} />
+          <MakeYourOwnListSection />
           <OfferSections sections={offerSections} noServiceData={noServiceData} />
 
           {sectionsForRenderer.length > 0 && (

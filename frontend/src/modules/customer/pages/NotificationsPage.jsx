@@ -2,14 +2,82 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Bell, BellRing, Check } from "lucide-react";
 import { customerApi } from "../services/customerApi";
+import { useCart } from "../context/CartContext";
 import { toast } from "sonner";
 import { notificationImageUrl } from "@/lib/utils";
 
+const LIST_REMINDER_TYPE = "CUSTOMER_LIST_REMINDER";
+
+const formatReminderTime = (date) => {
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
+    const time = d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true }).toUpperCase();
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return `Today, ${time}`;
+    if (d.toDateString() === yesterday.toDateString()) return `Yesterday, ${time}`;
+    return `${d.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}, ${time}`;
+};
+
 const NotificationsPage = () => {
     const navigate = useNavigate();
+    const { addCustomListToCart } = useCart();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [markingRead, setMarkingRead] = useState(false);
+    // listId currently being acted on, and lists snoozed during this visit
+    const [reminderActionId, setReminderActionId] = useState(null);
+    const [snoozedListIds, setSnoozedListIds] = useState(() => new Set());
+
+    const handleReorderList = async (listId) => {
+        if (!listId || reminderActionId) return;
+        setReminderActionId(listId);
+        try {
+            const res = await customerApi.getCustomerListById(listId);
+            const list = res.data?.result;
+            if (!list || !Array.isArray(list.items) || list.items.length === 0) {
+                toast.error("This list is no longer available");
+                return;
+            }
+            try {
+                localStorage.setItem(
+                    "DM_ACTIVE_LIST_ORDER",
+                    JSON.stringify({
+                        listId: list._id,
+                        listName: list.name || "Custom Grocery Basket",
+                        items: list.items
+                            .map((it) => String(it.productId?._id || it.productId || ""))
+                            .filter(Boolean),
+                    })
+                );
+            } catch (e) {}
+
+            const added = await addCustomListToCart(list);
+            if (added) {
+                toast.success(`Loaded "${list.name}" into your cart!`);
+                navigate("/user/checkout");
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to load list into cart");
+        } finally {
+            setReminderActionId(null);
+        }
+    };
+
+    const handleRemindLater = async (listId) => {
+        if (!listId || reminderActionId) return;
+        setReminderActionId(listId);
+        try {
+            await customerApi.snoozeCustomerListReminder(listId, { hours: 24 });
+            setSnoozedListIds((prev) => new Set(prev).add(String(listId)));
+            toast.success("Okay, we'll remind you tomorrow");
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to snooze reminder");
+        } finally {
+            setReminderActionId(null);
+        }
+    };
 
     useEffect(() => {
         fetchNotifications();
@@ -92,6 +160,51 @@ const NotificationsPage = () => {
             <div className="px-4 space-y-3 max-w-2xl mx-auto">
                 {notifications.length > 0 ? (
                     notifications.map((notification) => {
+                        if (notification.type === LIST_REMINDER_TYPE && notification.data?.listId) {
+                            const listId = String(notification.data.listId);
+                            const isBusy = reminderActionId === listId;
+                            const isSnoozed = snoozedListIds.has(listId);
+                            return (
+                                <div
+                                    key={notification.id}
+                                    className="p-4 rounded-3xl border-2 border-[#1A4516]/25 bg-white shadow-xs"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-white bg-[#1A4516] px-2.5 py-1 rounded-full">
+                                            My List
+                                        </span>
+                                        <span className="text-xs text-slate-500 font-medium">
+                                            {formatReminderTime(notification.createdAt)}
+                                        </span>
+                                    </div>
+                                    <h3 className="mt-2.5 text-lg font-black text-slate-900 leading-snug">
+                                        {notification.title}
+                                    </h3>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        {notification.message || notification.body}
+                                    </p>
+                                    <div className="mt-4 grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleReorderList(listId)}
+                                            disabled={isBusy}
+                                            className="py-3 rounded-2xl bg-[#1A4516] text-white font-black text-sm hover:bg-[#1A4516]/90 transition active:scale-95 disabled:opacity-60"
+                                        >
+                                            {isBusy ? "Please wait..." : "Reorder now"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemindLater(listId)}
+                                            disabled={isBusy || isSnoozed}
+                                            className="py-3 rounded-2xl border-2 border-[#1A4516] text-[#1A4516] font-black text-sm hover:bg-emerald-50 transition active:scale-95 disabled:opacity-60"
+                                        >
+                                            {isSnoozed ? "Reminder set" : "Remind later"}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        }
+
                         const imageUrl = notificationImageUrl(notification);
                         return (
                         <div 

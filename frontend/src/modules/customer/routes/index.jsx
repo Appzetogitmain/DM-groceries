@@ -8,6 +8,8 @@ import WishlistPage from '../pages/WishlistPage';
 import CartPage from '../pages/CartPage';
 import OffersPage from '../pages/OffersPage';
 import ProfilePage from '../pages/ProfilePage';
+import MyListsPage from '../pages/MyListsPage';
+import CreateListPage from '../pages/CreateListPage';
 import OrdersPage from '../pages/OrdersPage';
 import OrderTransactionsPage from '../pages/OrderTransactionsPage';
 import AddressesPage from '../pages/AddressesPage';
@@ -52,6 +54,9 @@ const CustomerRoutes = () => {
                             <Route path="offers" element={<OffersPage />} />
 
                             {/* Protected Customer Routes */}
+                            <Route path="lists" element={<ProtectedRoute><MyListsPage /></ProtectedRoute>} />
+                            <Route path="lists/create" element={<ProtectedRoute><CreateListPage /></ProtectedRoute>} />
+                            <Route path="lists/edit/:id" element={<ProtectedRoute><CreateListPage /></ProtectedRoute>} />
                             <Route path="wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
                             <Route path="orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
                             <Route path="orders/:orderId" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />

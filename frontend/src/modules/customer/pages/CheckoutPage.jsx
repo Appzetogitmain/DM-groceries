@@ -788,6 +788,31 @@ const CheckoutPage = () => {
 
     setIsPlacingOrder(true);
     try {
+      const activeListOrder = (() => {
+        try {
+          const marker = JSON.parse(localStorage.getItem("DM_ACTIVE_LIST_ORDER") || "null");
+          if (!marker) return null;
+          // Only a cart made of this list's products counts as a list order.
+          // A stale marker on a normal cart is discarded so normal orders
+          // are never tagged as list orders (and never get list reminders).
+          const listProductIds = Array.isArray(marker.items)
+            ? new Set(marker.items.map((id) => String(id)))
+            : null;
+          if (listProductIds && listProductIds.size > 0) {
+            const cartMatchesList = cart.every((item) =>
+              listProductIds.has(String(item.id || item._id))
+            );
+            if (!cartMatchesList) {
+              localStorage.removeItem("DM_ACTIVE_LIST_ORDER");
+              return null;
+            }
+          }
+          return marker;
+        } catch (e) {
+          return null;
+        }
+      })();
+
       const taxAmount = pricingPreview?.taxTotal || 0;
       const orderData = {
         address: buildAddressForOrder(),
@@ -797,6 +822,13 @@ const CheckoutPage = () => {
         tipAmount: selectedTip,
         timeSlot: selectedTimeSlot,
         walletAmount: walletAmountToUse,
+        ...(activeListOrder?.listName
+          ? {
+              isListOrder: true,
+              listId: activeListOrder.listId || undefined,
+              listName: activeListOrder.listName,
+            }
+          : {}),
         items: cart.map((item) => ({
           product: item.id || item._id,
           name: item.name,
@@ -833,6 +865,19 @@ const CheckoutPage = () => {
         }
 
         // PENDING / COD flow
+        if (activeListOrder) {
+          try {
+            const listOrders = JSON.parse(localStorage.getItem("DM_PLACED_LIST_ORDERS") || "[]");
+            listOrders.unshift({
+              orderId: mainOrderId,
+              listId: activeListOrder.listId,
+              listName: activeListOrder.listName,
+              placedAt: new Date().toISOString(),
+            });
+            localStorage.setItem("DM_PLACED_LIST_ORDERS", JSON.stringify(listOrders.slice(0, 50)));
+          } catch (e) {}
+          localStorage.removeItem("DM_ACTIVE_LIST_ORDER");
+        }
         clearCart();
         showToast("Order placed — waiting for seller to accept.", "success");
         setOrderId(mainOrderId);

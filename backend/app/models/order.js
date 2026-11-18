@@ -192,6 +192,21 @@ const orderSchema = new mongoose.Schema(
         default: "DIRECT_ITEMS",
       },
     },
+    isListOrder: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    listId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CustomerList",
+      default: null,
+    },
+    listName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     orderStatus: {
       type: String,
       default: "pending",

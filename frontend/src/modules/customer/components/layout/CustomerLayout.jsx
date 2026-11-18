@@ -157,14 +157,15 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
     // Normalize path by removing /user prefix if present for uniform check
     const normalizedPath = path.replace(/^\/user/, '') || '/';
 
-    const hideHeaderRoutes = ['/', '/categories', '/orders', '/transactions', '/profile', '/profile/edit', '/wishlist', '/addresses', '/wallet', '/support', '/help', '/settings', '/privacy', '/about', '/checkout', '/search', '/chat', '/notifications', '/rewards'];
+    const isListBuilder = normalizedPath.startsWith('/lists/create') || normalizedPath.startsWith('/lists/edit');
+    const hideHeaderRoutes = ['/', '/categories', '/orders', '/transactions', '/profile', '/profile/edit', '/wishlist', '/addresses', '/wallet', '/support', '/help', '/settings', '/privacy', '/about', '/checkout', '/search', '/chat', '/notifications', '/rewards', '/lists'];
     const hideBottomNavRoutes = ['/checkout', '/search', '/chat', '/profile/edit', '/support', '/privacy'];
     const hideCartRoutes = ['/checkout', '/search', '/chat', '/settings', '/profile', '/profile/edit'];
 
     // If props are passed, use them. Otherwise, use route-based logic.
-    const showHeader = showHeaderProp !== undefined ? showHeaderProp : (!hideHeaderRoutes.includes(normalizedPath) && !normalizedPath.startsWith('/category') && !normalizedPath.startsWith('/orders'));
-    const showBottomNav = showBottomNavProp !== undefined ? showBottomNavProp : !hideBottomNavRoutes.includes(normalizedPath);
-    const showCart = showCartProp !== undefined ? showCartProp : (!hideCartRoutes.includes(normalizedPath) && !normalizedPath.startsWith('/orders'));
+    const showHeader = showHeaderProp !== undefined ? showHeaderProp : (!hideHeaderRoutes.includes(normalizedPath) && !normalizedPath.startsWith('/category') && !normalizedPath.startsWith('/orders') && !normalizedPath.startsWith('/lists'));
+    const showBottomNav = showBottomNavProp !== undefined ? showBottomNavProp : (!hideBottomNavRoutes.includes(normalizedPath) && !isListBuilder);
+    const showCart = showCartProp !== undefined ? showCartProp : (!hideCartRoutes.includes(normalizedPath) && !normalizedPath.startsWith('/orders') && !normalizedPath.startsWith('/lists'));
 
     // Condition to hide the MobileFooterMessage ("India's last minute app") on specific pages
     const hideFooterMessageRoutes = ['/profile', '/profile/edit', '/settings'];

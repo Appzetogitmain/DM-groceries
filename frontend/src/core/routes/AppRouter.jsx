@@ -29,6 +29,8 @@ import ContactPage from '../../pages/ContactPage';
 const Home = lazy(() => import('../../modules/customer/pages/Home'));
 const CategoriesPage = lazy(() => import('../../modules/customer/pages/CategoriesPage'));
 const PackagesPage = lazy(() => import('../../modules/customer/pages/PackagesPage'));
+const MyListsPage = lazy(() => import('../../modules/customer/pages/MyListsPage'));
+const CreateListPage = lazy(() => import('../../modules/customer/pages/CreateListPage'));
 const CategoryProductsPage = lazy(() => import('../../modules/customer/pages/CategoryProductsPage'));
 const WishlistPage = lazy(() => import('../../modules/customer/pages/WishlistPage'));
 const OffersPage = lazy(() => import('../../modules/customer/pages/OffersPage'));
@@ -90,7 +92,7 @@ const CustomerLayoutWrapper = () => {
 const LEGACY_CUSTOMER_SEGMENTS = [
     'categories', 'category', 'offers', 'wishlist', 'orders', 'profile', 'checkout', 'search',
     'wallet', 'addresses', 'settings', 'help', 'chat', 'support', 'privacy', 'about',
-    'notifications', 'rewards', 'payment-status', 'transactions', 'shop-by-store', 'product',
+    'notifications', 'rewards', 'payment-status', 'transactions', 'shop-by-store', 'product', 'lists',
 ];
 
 const LegacyCustomerRedirect = () => {
@@ -210,6 +212,9 @@ const AppRouter = () => {
                     children: [
                         { index: true, element: <Home /> },
                         { path: 'packages', element: <PackagesPage /> },
+                        { path: 'lists', element: <ProtectedRoute><MyListsPage /></ProtectedRoute> },
+                        { path: 'lists/create', element: <ProtectedRoute><CreateListPage /></ProtectedRoute> },
+                        { path: 'lists/edit/:id', element: <ProtectedRoute><CreateListPage /></ProtectedRoute> },
                         { path: 'categories', element: <CategoriesPage /> },
                         { path: 'category/:categoryName', element: <CategoryProductsPage /> },
                         { path: 'product/:id', element: <ProductDetailPage /> },

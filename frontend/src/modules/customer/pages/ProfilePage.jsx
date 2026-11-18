@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     User, MapPin, Package, Wallet, ChevronRight,
-    LogOut, Heart, HelpCircle, Bell, Users, Settings, Edit2, Gift
+    LogOut, Heart, HelpCircle, Bell, Users, Settings, Edit2, Gift, ListOrdered
 } from 'lucide-react';
 import { useAuth } from '@core/context/AuthContext';
 import { useSettings } from '@core/context/SettingsContext';
@@ -121,6 +121,7 @@ const ProfilePage = () => {
                     </div>
                     <div className="space-y-1">
                         <MenuItem icon={Package} label="My Orders" path="/user/orders" />
+                        <MenuItem icon={ListOrdered} label="My Custom Lists & Baskets" path="/user/lists" />
                         <MenuItem icon={MapPin} label="My Addresses" path="/user/addresses" />
                         <MenuItem icon={Wallet} label="My Wallet" rightText={`₹${user?.walletBalance || 0}`} path="/user/wallet" />
                         <MenuItem icon={Gift} label="My Rewards" path="/user/rewards" />
