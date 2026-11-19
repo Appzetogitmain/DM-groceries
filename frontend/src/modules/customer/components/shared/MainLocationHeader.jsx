@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import Lottie from "lottie-react";
 import LocationDrawer from "./LocationDrawer";
+import HeaderSearchBox from "./HeaderSearchBox";
 import { useLocation } from "../../context/LocationContext";
 import { useProductDetail } from "../../context/ProductDetailContext";
 import { useCart } from "../../context/CartContext";
@@ -21,8 +22,6 @@ import LogoImage from "../../../../assets/Logo.png";
 // MUI Icons
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import SearchIcon from "@mui/icons-material/Search";
-import MicIcon from "@mui/icons-material/Mic";
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
@@ -174,34 +173,6 @@ const MainLocationHeader = ({
   const logoUrl = "/Logo.png";
   const navigate = useNavigate();
 
-  // Search Logic
-  // The header search bar is a real input: the user types here first, and only
-  // on submit (Enter / keyboard "Search" key / search icon) do we open the
-  // search page with the query already applied.
-  const [headerQuery, setHeaderQuery] = useState("");
-
-  const submitHeaderSearch = (e) => {
-    e?.preventDefault?.();
-    const query = headerQuery.trim();
-    if (!query) return;
-    navigate(`/user/search?q=${encodeURIComponent(query)}`, { state: { query } });
-  };
-
-  const handleSearchIconClick = (e, inputId) => {
-    e.preventDefault();
-    if (headerQuery.trim()) {
-      submitHeaderSearch();
-    } else {
-      document.getElementById(inputId)?.focus();
-    }
-  };
-
-  // Voice search lives on the search page
-  const handleMicClick = (e) => {
-    e.preventDefault();
-    navigate("/user/search");
-  };
-
   // Search placeholder animation (removed for static text in new design)
   const searchPlaceholder = "Search for vegetables, fruits, grocery...";
 
@@ -350,37 +321,11 @@ const MainLocationHeader = ({
 
             {/* Center Section: Search Bar */}
             <div className="flex-1 max-w-[450px] lg:max-w-2xl px-6">
-              <motion.form
-                role="search"
-                onSubmit={submitHeaderSearch}
-                whileHover={{ scale: 1.01 }}
-                style={{ backgroundColor: searchBarBg }}
-                className="rounded-full px-4 h-11 shadow-md flex items-center border border-white/50 transition-all duration-200 focus-within:ring-2 focus-within:ring-brand-400/60">
-                <button
-                  type="button"
-                  aria-label="Search"
-                  onClick={(e) => handleSearchIconClick(e, "header-search-desktop")}
-                  className="flex items-center bg-transparent border-0 p-0 cursor-pointer">
-                  <SearchIcon sx={{ color: "#000000", fontSize: 20 }} />
-                </button>
-                <input
-                  id="header-search-desktop"
-                  type="search"
-                  inputMode="search"
-                  enterKeyHint="search"
-                  value={headerQuery}
-                  onChange={(e) => setHeaderQuery(e.target.value)}
-                  placeholder={searchPlaceholder || "Search Products..."}
-                  className="flex-1 bg-transparent border-none outline-none pl-2 text-slate-800 font-semibold placeholder:text-black text-[15px]"
-                />
-                <button
-                  type="button"
-                  aria-label="Voice search"
-                  onClick={handleMicClick}
-                  className="flex items-center gap-2 border-0 border-l border-slate-100 pl-3 bg-transparent cursor-pointer">
-                  <MicIcon sx={{ color: "#000000", fontSize: 20 }} />
-                </button>
-              </motion.form>
+              <HeaderSearchBox
+                variant="desktop"
+                placeholder={searchPlaceholder}
+                backgroundColor={searchBarBg}
+              />
             </div>
 
             {/* Right Section: Action Icons */}
@@ -485,36 +430,11 @@ const MainLocationHeader = ({
 
           {/* Search Bar (MOBILE ONLY) */}
           <div className="relative z-10 mt-[1.5px] mb-3 flex items-center gap-2 md:hidden">
-            <motion.form
-              role="search"
-              onSubmit={submitHeaderSearch}
-              style={{ backgroundColor: searchBarBg }}
-              className="flex-1 rounded-[10px] px-3 h-10 shadow-md flex items-center border border-white/50 transition-all duration-200 focus-within:ring-2 focus-within:ring-brand-400/60">
-              <button
-                type="button"
-                aria-label="Search"
-                onClick={(e) => handleSearchIconClick(e, "header-search-mobile")}
-                className="flex items-center bg-transparent border-0 p-0 cursor-pointer">
-                <SearchIcon sx={{ color: "#000000", fontSize: 18 }} />
-              </button>
-              <input
-                id="header-search-mobile"
-                type="search"
-                inputMode="search"
-                enterKeyHint="search"
-                value={headerQuery}
-                onChange={(e) => setHeaderQuery(e.target.value)}
-                placeholder={searchPlaceholder || "Search Products..."}
-                className="flex-1 bg-transparent border-none outline-none pl-2 text-slate-800 font-semibold placeholder:text-black text-[16px]"
-              />
-              <button
-                type="button"
-                aria-label="Voice search"
-                onClick={handleMicClick}
-                className="flex items-center gap-2 border-0 border-l border-slate-100 pl-2.5 bg-transparent cursor-pointer">
-                <MicIcon sx={{ color: "#000000", fontSize: 18 }} />
-              </button>
-            </motion.form>
+            <HeaderSearchBox
+              variant="mobile"
+              placeholder={searchPlaceholder}
+              backgroundColor={searchBarBg}
+            />
           </div>
 
           {/* Categories Navigation (Desktop & Mobile). Skipped when there are no tabs, so no empty strip is left. */}
