@@ -172,6 +172,27 @@ const getHomePageDataCacheKey = (location) => {
 const getCachedHomePageData = (location) =>
   homePageDataCache.get(getHomePageDataCacheKey(location)) || null;
 
+const FALLBACK_PRODUCT_IMAGE = "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400";
+const HEADER_PRODUCTS_PAGE_SIZE = 40;
+
+const normalizeProduct = (p) => ({
+  ...p,
+  id: p._id,
+  image: p.mainImage || p.image || FALLBACK_PRODUCT_IMAGE,
+  price: p.salePrice || p.price,
+  originalPrice: p.price,
+  weight: p.weight || "1 unit",
+  deliveryTime: "8-15 mins",
+});
+
+const extractProductList = (res) => {
+  const raw = res?.data?.result;
+  if (Array.isArray(res?.data?.results)) return res.data.results;
+  if (Array.isArray(raw?.items)) return raw.items;
+  if (Array.isArray(raw)) return raw;
+  return [];
+};
+
 const Home = () => {
   const { scrollY } = useScroll();
   const { isOpen: isProductDetailOpen } = useProductDetail();
@@ -212,6 +233,11 @@ const Home = () => {
   const [pendingReturn, setPendingReturn] = useState(null);
   const [offerSections, setOfferSections] = useState(() => cachedHomePageData?.offerSections || []);
   const [noServiceData, setNoServiceData] = useState(null);
+  const [headerProducts, setHeaderProducts] = useState([]);
+  const [headerProductsPage, setHeaderProductsPage] = useState(1);
+  const [headerProductsTotalPages, setHeaderProductsTotalPages] = useState(1);
+  const [isHeaderProductsLoading, setIsHeaderProductsLoading] = useState(false);
+  const headerProductsRequestRef = useRef(0);
 
   useEffect(() => {
     productsRef.current = products || [];
@@ -346,6 +372,53 @@ const Home = () => {
     fetchHeaderSections();
   }, [activeCategory]);
 
+  // Products for the selected header category (same location/radius rule as home products)
+  const isHeaderSelected = Boolean(activeCategory && activeCategory._id !== "all");
+
+  const fetchHeaderProducts = async (page = 1) => {
+    if (!isHeaderSelected) return;
+    const lat = currentLocation?.latitude;
+    const lng = currentLocation?.longitude;
+    const requestId = ++headerProductsRequestRef.current;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setHeaderProducts([]);
+      setHeaderProductsTotalPages(1);
+      return;
+    }
+    setIsHeaderProductsLoading(true);
+    try {
+      const res = await customerApi.getProducts({
+        headerId: activeCategory._id,
+        lat,
+        lng,
+        page,
+        limit: HEADER_PRODUCTS_PAGE_SIZE,
+      });
+      if (requestId !== headerProductsRequestRef.current) return; // stale response
+      const list = extractProductList(res).map(normalizeProduct);
+      setHeaderProducts((prev) => {
+        if (page === 1) return list;
+        const seen = new Set(prev.map((p) => String(p.id)));
+        return [...prev, ...list.filter((p) => !seen.has(String(p.id)))];
+      });
+      setHeaderProductsPage(page);
+      setHeaderProductsTotalPages(Number(res?.data?.result?.totalPages) || 1);
+    } catch (e) {
+      if (requestId === headerProductsRequestRef.current && page === 1) setHeaderProducts([]);
+    } finally {
+      if (requestId === headerProductsRequestRef.current) setIsHeaderProductsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setHeaderProducts([]);
+    setHeaderProductsPage(1);
+    setHeaderProductsTotalPages(1);
+    if (isHeaderSelected) fetchHeaderProducts(1);
+    else headerProductsRequestRef.current++;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory?._id, currentLocation?.latitude, currentLocation?.longitude]);
+
   useEffect(() => {
     const fetchHeroConfig = async () => {
       try {
@@ -448,10 +521,54 @@ const Home = () => {
             )}
           </motion.div>
 
-          <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/user/category/${id}`)} />
-          <SuperSaverCombos />
-          <LowestPriceSection products={products} onSeeAll={() => navigate("/user/category/all")} />
           <MakeYourOwnListSection />
+          <SuperSaverCombos />
+          <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/user/category/${id}`)} />
+          {isHeaderSelected ? (
+            <div className="w-full px-4 md:px-8 lg:px-[50px] mt-2 mb-6">
+              <div className="flex items-end justify-between mb-3 px-1">
+                <h3 className="text-[18px] sm:text-[20px] font-bold text-[#132018] tracking-tight uppercase leading-none">
+                  {activeCategory.name}
+                </h3>
+                {headerProducts.length > 0 && (
+                  <span className="text-[11px] font-medium text-slate-500">
+                    {headerProducts.length} products
+                  </span>
+                )}
+              </div>
+              {isHeaderProductsLoading && headerProducts.length === 0 ? (
+                <div className="py-16 flex justify-center">
+                  <div className="h-8 w-8 border-2 border-[#1A4516] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : headerProducts.length === 0 ? (
+                <div className="py-12 text-center bg-white rounded-2xl border border-slate-200">
+                  <p className="text-sm font-bold text-slate-700">No products in {activeCategory.name} yet</p>
+                  <p className="text-xs text-slate-400 mt-1">Check back soon or explore other categories.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                    {headerProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} neutralBg={true} />
+                    ))}
+                  </div>
+                  {headerProductsPage < headerProductsTotalPages && (
+                    <div className="flex justify-center mt-5">
+                      <button
+                        onClick={() => fetchHeaderProducts(headerProductsPage + 1)}
+                        disabled={isHeaderProductsLoading}
+                        className="px-6 py-2.5 rounded-xl bg-[#1A4516] text-white text-xs font-bold shadow-sm active:scale-95 transition disabled:opacity-60"
+                      >
+                        {isHeaderProductsLoading ? "Loading..." : "Load more"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            <LowestPriceSection products={products} onSeeAll={() => navigate("/user/category/all")} />
+          )}
           <OfferSections sections={offerSections} noServiceData={noServiceData} />
 
           {sectionsForRenderer.length > 0 && (

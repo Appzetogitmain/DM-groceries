@@ -20,6 +20,7 @@ import {
 } from "../controller/packageController.js";
 import {
   verifyToken,
+  optionalVerifyToken,
   allowRoles,
   requireApprovedSeller,
 } from "../middleware/authMiddleware.js";
@@ -104,8 +105,8 @@ router.patch(
 // ==========================================
 // PUBLIC / CUSTOMER ROUTES
 // ==========================================
-router.get("/public", getPublicPackages);
-router.get("/public/:id", getPublicPackageById);
+router.get("/public", optionalVerifyToken, getPublicPackages);
+router.get("/public/:id", optionalVerifyToken, getPublicPackageById);
 
 export default router;
 

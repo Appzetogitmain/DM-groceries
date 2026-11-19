@@ -12,6 +12,34 @@ import {
   validateAndPreparePackageItems,
   emitPackageChangeSocket,
 } from "../services/packageService.js";
+import {
+  parseCustomerCoordinates,
+  getNearbySellerIdsForCustomer,
+} from "../services/customerVisibilityService.js";
+
+/**
+ * Same rule as products: customers/guests only see items from sellers whose
+ * serviceRadius covers their location. Admin/seller/delivery are not filtered.
+ */
+function isCustomerVisibilityRequest(req) {
+  const role = String(req.user?.role || "").toLowerCase();
+  return !role || (role !== "admin" && role !== "seller" && role !== "delivery");
+}
+
+/**
+ * Returns { error } when lat/lng are missing for a customer request,
+ * { nearbySet: Set<string> } when radius filtering applies, or
+ * { nearbySet: null } when no filtering applies.
+ */
+async function resolveNearbySellerSet(req) {
+  if (!isCustomerVisibilityRequest(req)) return { nearbySet: null };
+  const coords = parseCustomerCoordinates(req.query || {});
+  if (!coords.valid) {
+    return { error: "lat and lng are required for customer package visibility" };
+  }
+  const ids = await getNearbySellerIdsForCustomer(coords.lat, coords.lng);
+  return { nearbySet: new Set(ids.map(String)) };
+}
 
 // ==========================================
 // ADMIN CONTROLLERS
@@ -789,8 +817,31 @@ export const getPublicPackages = async (req, res) => {
       approvalStatus: "approved",
     };
 
-    if (sellerId && sellerId !== "all") {
-      filter.sellerId = sellerId;
+    const { error: locationError, nearbySet } = await resolveNearbySellerSet(req);
+    if (locationError) {
+      return handleResponse(res, 400, locationError);
+    }
+
+    const requestedSellerId = sellerId && sellerId !== "all" ? String(sellerId) : null;
+
+    if (nearbySet) {
+      const allowedSellerIds = requestedSellerId
+        ? [...nearbySet].filter((id) => id === requestedSellerId)
+        : [...nearbySet];
+
+      if (!allowedSellerIds.length) {
+        return handleResponse(res, 200, "No packages available in your area", {
+          packages: [],
+          items: [],
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        });
+      }
+      filter.sellerId = { $in: allowedSellerIds };
+    } else if (requestedSellerId) {
+      filter.sellerId = requestedSellerId;
     }
 
     if (search && search.trim()) {
@@ -857,6 +908,15 @@ export const getPublicPackageById = async (req, res) => {
 
     if (!pkg) {
       return handleResponse(res, 404, "Package not found or inactive.");
+    }
+
+    const { error: locationError, nearbySet } = await resolveNearbySellerSet(req);
+    if (locationError) {
+      return handleResponse(res, 400, locationError);
+    }
+    const pkgSellerId = String(pkg.sellerId?._id || pkg.sellerId || "");
+    if (nearbySet && !nearbySet.has(pkgSellerId)) {
+      return handleResponse(res, 404, "Package not available in your area.");
     }
 
     return handleResponse(res, 200, "Package retrieved successfully", pkg);

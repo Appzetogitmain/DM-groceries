@@ -10,6 +10,7 @@ import { useSettings } from '@core/context/SettingsContext';
 import { useLocation as useAppLocation } from '../../context/LocationContext';
 import { cn } from '@/lib/utils';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
+import { pickDefaultVariant, getVariantKey, getVariantStock } from '../../utils/variantUtils';
 import { customerApi } from '../../services/customerApi';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
@@ -118,11 +119,8 @@ const ProductDetailSheet = () => {
         setLocalHasReviewed(false);
         setReviews([]);
 
-        if (selectedProduct && selectedProduct.variants && selectedProduct.variants.length > 0) {
-            setSelectedVariant(selectedProduct.variants[0]);
-        } else {
-            setSelectedVariant(null);
-        }
+        // Pre-select first variant that is not out of stock (null when no variants)
+        setSelectedVariant(pickDefaultVariant(selectedProduct));
         setActiveImageIndex(0);
 
         if (selectedProduct?.id || selectedProduct?._id) {
@@ -263,11 +261,13 @@ const ProductDetailSheet = () => {
             document.body.style.overflow = "hidden"; // Prevent background scroll
             document.body.style.touchAction = "none"; // Disable swipe background panning
             document.documentElement.style.overflow = "hidden";
+            window.__lenis?.stop();
         } else {
             controls.start("hidden");
             document.body.style.overflow = "unset";
             document.body.style.touchAction = "auto";
             document.documentElement.style.overflow = "unset";
+            window.__lenis?.start();
             setIsExpanded(false);
         }
 
@@ -276,6 +276,7 @@ const ProductDetailSheet = () => {
             document.body.style.overflow = "unset";
             document.body.style.touchAction = "auto";
             document.documentElement.style.overflow = "unset";
+            window.__lenis?.start();
         }
     }, [isOpen, controls]);
 
@@ -374,7 +375,16 @@ const ProductDetailSheet = () => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={closeProduct}
-                        className="fixed inset-0 bg-black/60 z-[220] backdrop-blur-sm"
+                        onWheel={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
+                        onTouchMove={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
+                        data-lenis-prevent
+                        className="fixed inset-0 bg-black/60 z-[220] backdrop-blur-sm overscroll-contain"
                     />
 
                     {/* ============================================================ */}
@@ -385,12 +395,14 @@ const ProductDetailSheet = () => {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.96, y: 30 }}
                         transition={{ type: 'spring', damping: 28, stiffness: 380 }}
-                        className="hidden md:flex fixed z-[230] top-[72px] bottom-[16px] left-[3%] right-[3%] lg:left-[6%] lg:right-[6%] xl:left-[12%] xl:right-[12%] bg-white rounded-3xl shadow-[0_40px_100px_rgba(0,0,0,0.25)] overflow-hidden"
+                        data-lenis-prevent
+                        onWheel={(e) => e.stopPropagation()}
+                        className="hidden md:flex fixed z-[230] top-[72px] bottom-[16px] left-[3%] right-[3%] lg:left-[6%] lg:right-[6%] xl:left-[12%] xl:right-[12%] bg-white rounded-3xl shadow-[0_40px_100px_rgba(0,0,0,0.25)] overflow-hidden overscroll-contain"
                     >
                         {/* Parent flex container that holds both sides together so the whole modal scrolls */}
-                        <div className="flex w-full min-h-full">
+                        <div className="flex w-full h-full overflow-hidden">
                                 {/* Left: Image Gallery — sticky to window so it doesn't scroll out of view if you want */}
-                                <div className="relative w-[42%] lg:w-[44%] flex-shrink-0 flex flex-col min-h-full sticky top-0" style={{ background: 'linear-gradient(145deg, #f9fafb 0%, #f1f8f2 50%, #fafbfc 100%)' }}>
+                                <div className="relative w-[42%] lg:w-[44%] flex-shrink-0 flex flex-col h-full overflow-hidden" style={{ background: 'linear-gradient(145deg, #f9fafb 0%, #f1f8f2 50%, #fafbfc 100%)' }}>
                                     {/* Top bar with back + wishlist */}
                                     <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-5 z-20">
                                         <motion.button
@@ -489,7 +501,10 @@ const ProductDetailSheet = () => {
                                 </div>
 
                                 {/* Right: Product Info (scrollable naturally) */}
-                                <div className="flex-1 flex flex-col bg-white">
+                                <div
+                                    data-lenis-prevent
+                                    className="flex-1 flex flex-col bg-white h-full overflow-y-auto overscroll-contain no-scrollbar"
+                                >
                                     <div className="flex-1 px-7 py-6 lg:px-8 lg:py-7 space-y-3">
 
                                         {/* Top badges row */}
@@ -644,47 +659,16 @@ const ProductDetailSheet = () => {
                                                             onClick={() => setSelectedVariant(v)}
                                                             className={cn(
                                                                 'px-4 py-2 font-[600] rounded-lg text-[13px] transition-all border-2',
-                                                                selectedVariant?.sku === v.sku
+                                                                getVariantKey(selectedVariant) === getVariantKey(v)
                                                                     ? 'bg-brand-50 border-primary text-primary shadow-md shadow-brand-100/50'
                                                                     : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
                                                             )}
                                                         >
-                                                            {v.name}
+                                                            {v.name}{getVariantStock(v, selectedProduct) <= 0 && <span className="ml-1 text-[10px] font-semibold text-red-500">(Out of stock)</span>}
                                                         </motion.button>
                                                     ))}
                                                 </div>
                                             </motion.div>
-                                        )}
-
-                                        {/* Decorative Divider */}
-                                        <div className="relative -mt-1 -mb-1">
-                                            <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-                                            <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-2 h-2 bg-white border border-gray-200 rounded-full" />
-                                        </div>
-
-                                        {/* Variants Selection (Desktop) */}
-                                        {selectedProduct.variants && selectedProduct.variants.length > 0 && (
-                                            <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50 mt-4">
-                                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Select Variant</h4>
-                                                <div className="flex gap-2.5 flex-wrap">
-                                                    {selectedProduct.variants.map((v, idx) => (
-                                                        <motion.button
-                                                            key={idx}
-                                                            whileHover={{ scale: 1.02 }}
-                                                            whileTap={{ scale: 0.98 }}
-                                                            onClick={() => setSelectedVariant(v)}
-                                                            className={cn(
-                                                                'px-4 py-2 font-black rounded-xl text-xs transition-all border-2',
-                                                                selectedVariant?.sku === v.sku
-                                                                    ? 'bg-white border-primary text-primary shadow-sm shadow-brand-100'
-                                                                    : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200'
-                                                            )}
-                                                        >
-                                                            {v.name}
-                                                        </motion.button>
-                                                    ))}
-                                                </div>
-                                            </div>
                                         )}
 
                                         {/* Product Information Accordion (Desktop) */}
@@ -858,8 +842,9 @@ const ProductDetailSheet = () => {
                             mass: 0.8
                         }}
                         className={cn(
-                            "md:hidden fixed z-[230] bg-white shadow-2xl overflow-hidden flex flex-col",
+                            "md:hidden fixed z-[230] bg-white shadow-2xl overflow-hidden flex flex-col overscroll-contain",
                         )}
+                        data-lenis-prevent
                         style={{ willChange: "transform, top, bottom, left, width, border-radius" }}
                     >
                         {/* Drag Handle (Visible only when not fully expanded) */}
@@ -885,8 +870,9 @@ const ProductDetailSheet = () => {
 
                         {/* Scrollable Content */}
                         <div
+                            data-lenis-prevent
                             className={cn(
-                                "flex-1 overflow-x-hidden no-scrollbar pb-24 bg-white",
+                                "flex-1 overflow-x-hidden no-scrollbar pb-24 bg-white overscroll-contain",
                                 isExpanded ? "overflow-y-auto" : "overflow-y-hidden"
                             )}
                             onScroll={handleScroll}
@@ -956,13 +942,13 @@ const ProductDetailSheet = () => {
                                                     onClick={() => setSelectedVariant(v)}
                                                     className={cn(
                                                         "flex-shrink-0 px-5 py-2.5 font-bold rounded-xl text-sm transition-all relative border-2",
-                                                        selectedVariant?.sku === v.sku
+                                                        getVariantKey(selectedVariant) === getVariantKey(v)
                                                             ? "bg-[#ecfeff] border-primary text-primary shadow-sm shadow-brand-100"
                                                             : "bg-slate-50 border-slate-100 text-slate-500"
                                                     )}
                                                 >
-                                                    {v.name}
-                                                    {selectedVariant?.sku === v.sku && (
+                                                    {v.name}{getVariantStock(v, selectedProduct) <= 0 && <span className="ml-1 text-[10px] font-semibold text-red-500">(Out of stock)</span>}
+                                                    {getVariantKey(selectedVariant) === getVariantKey(v) && (
                                                         <div className="absolute top-0 right-0 w-3 h-3 bg-primary rounded-bl-lg" />
                                                     )}
                                                 </motion.button>

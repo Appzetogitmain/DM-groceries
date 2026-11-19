@@ -8,6 +8,12 @@ import { useCart } from "../../context/CartContext";
 import { useToast } from "@shared/components/ui/Toast";
 import { useCartAnimation } from "../../context/CartAnimationContext";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
+import {
+  pickDefaultVariant,
+  getVariantKey,
+  getVariantStock,
+  getVariantPricing,
+} from "../../utils/variantUtils";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock } from "lucide-react";
@@ -30,42 +36,20 @@ const ProductCard = React.memo(
 
     const imageRef = React.useRef(null);
 
+    // Multi-variant products: show the first variant that is not out of stock (its price,
+    // stock and name). Card is out of stock only if ALL variants are.
     const defaultVariant = React.useMemo(() => {
-      const variants = Array.isArray(product?.variants) ? product.variants : [];
-      if (variants.length === 0) return null;
+      const picked = pickDefaultVariant(product);
+      if (!picked) return null;
 
-      const displayed = Number(product?.price || 0);
-      const displayedOriginal = Number(product?.originalPrice || 0);
-
-      const matchesDisplayedPrice = (variant) => {
-        const mrp = Number(variant?.price || 0);
-        const sale = Number(variant?.salePrice || 0);
-        const effective = sale > 0 && sale < mrp ? sale : mrp;
-
-        if (Number.isFinite(displayedOriginal) && displayedOriginal > displayed) {
-          // Try to match both (sale + original) when card shows a discount.
-          if (effective === displayed && (mrp === displayedOriginal || displayedOriginal === 0)) {
-            return true;
-          }
-        }
-
-        return effective === displayed || mrp === displayed;
-      };
-
-      const picked = variants.find(matchesDisplayedPrice) || variants[0];
-      const key = String(picked?.sku || picked?.name || "").trim();
-      
-      const variantMrp = Number(picked?.price || 0);
-      const variantSale = Number(picked?.salePrice || 0);
-      const hasDiscount = variantSale > 0 && variantSale < variantMrp;
-      
+      const pricing = getVariantPricing(picked, product);
       return {
-        key,
+        key: getVariantKey(picked),
         name: String(picked?.name || "").trim(),
-        displayPrice: hasDiscount ? variantSale : (variantMrp || displayed),
-        displayOriginalPrice: hasDiscount ? variantMrp : (displayedOriginal > displayed ? displayedOriginal : null),
-        discountPercent: hasDiscount ? Math.round(((variantMrp - variantSale) / variantMrp) * 100) : (displayedOriginal > displayed ? Math.round(((displayedOriginal - displayed) / displayedOriginal) * 100) : 0),
-        stock: picked?.stock !== undefined ? picked.stock : product?.stock || 0
+        displayPrice: pricing.displayPrice || Number(product?.price || 0),
+        displayOriginalPrice: pricing.originalPrice,
+        discountPercent: pricing.discountPercent,
+        stock: getVariantStock(picked, product),
       };
     }, [product]);
 
@@ -292,7 +276,7 @@ const ProductCard = React.memo(
                 "bg-[#F5FBF5] text-[#1A4516] font-bold rounded px-1.5 py-0 tracking-wide",
                 compact ? "text-[8px]" : "text-[8px] sm:text-[9px]",
               )}>
-              {product.weight || "1 unit"}
+              {defaultVariant?.name || product.weight || "1 unit"}
             </div>
           </div>
 

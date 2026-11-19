@@ -22,12 +22,22 @@ const LenisScroll = () => {
             // Allow native scrolling inside nested scroll containers.
             // Add `data-lenis-prevent` to any element that should keep its own scroll.
             prevent: (node) => {
+                // If body or document has overflow hidden (modal/drawer open), block Lenis from scrolling the background
+                if (
+                    document.body.style.overflow === 'hidden' ||
+                    document.documentElement.style.overflow === 'hidden' ||
+                    document.body.classList.contains('overflow-hidden')
+                ) {
+                    return true;
+                }
                 if (!node || typeof node.closest !== 'function') return false;
                 return Boolean(
                     node.closest('[data-lenis-prevent], [data-lenis-prevent-wheel], [data-lenis-prevent-touch]')
                 );
             },
         });
+
+        window.__lenis = lenis;
 
         let rafId;
 
@@ -41,6 +51,7 @@ const LenisScroll = () => {
         return () => {
             cancelAnimationFrame(rafId);
             lenis.destroy();
+            window.__lenis = null;
         };
     }, []);
 

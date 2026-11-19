@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import Product from "../models/product.js";
+import Category from "../models/category.js";
 import Order from "../models/order.js";
 import Review from "../models/review.js";
 import { handleResponse } from "../utils/helper.js";
@@ -256,7 +258,22 @@ export const getProducts = async (req, res) => {
     const finalCategoryId = category || categoryId;
     const finalSubcategoryId = subcategory || subcategoryId;
 
-    if (finalHeaderId && finalHeaderId !== "all") query.headerId = finalHeaderId;
+    if (finalHeaderId && finalHeaderId !== "all") {
+      // A header's products = products tagged with the header OR placed in any
+      // category under that header (some products only carry categoryId).
+      if (mongoose.Types.ObjectId.isValid(String(finalHeaderId))) {
+        const childCategoryIds = await Category.find({
+          parentId: finalHeaderId,
+          type: "category",
+        }).distinct("_id");
+        query.$or = [
+          { headerId: finalHeaderId },
+          ...(childCategoryIds.length ? [{ categoryId: { $in: childCategoryIds } }] : []),
+        ];
+      } else {
+        query.headerId = finalHeaderId;
+      }
+    }
     if (finalCategoryId && finalCategoryId !== "all") query.categoryId = finalCategoryId;
     if (finalSubcategoryId && finalSubcategoryId !== "all") query.subcategoryId = finalSubcategoryId;
 

@@ -13,7 +13,7 @@ import {
 ================================ */
 export const adjustStock = async (req, res) => {
     try {
-        const { productId, type, quantity, note } = req.body;
+        const { productId, variantId, variantSku, type, quantity, note } = req.body;
         const sellerId = req.user.id;
 
         const product = await Product.findOne({ _id: productId, sellerId });
@@ -21,25 +21,62 @@ export const adjustStock = async (req, res) => {
             return handleResponse(res, 404, "Product not found or unauthorized");
         }
 
-        const qtyChange = Number(quantity);
-        const previousStock = Number(product.stock || 0);
-        const finalStock = type === 'Restock' ? product.stock + qtyChange : product.stock - qtyChange;
+        const qtyChange = Math.abs(Number(quantity));
+        if (isNaN(qtyChange) || qtyChange <= 0) {
+            return handleResponse(res, 400, "Valid quantity is required");
+        }
 
-        if (finalStock < 0) {
-            return handleResponse(res, 400, "Stock cannot be negative");
+        let variant = null;
+        if (variantId || variantSku) {
+            if (Array.isArray(product.variants) && product.variants.length > 0) {
+                variant = product.variants.find(
+                    (v) =>
+                        (variantId && v._id && v._id.toString() === variantId.toString()) ||
+                        (variantSku && v.sku && v.sku.toString().trim() === variantSku.toString().trim())
+                );
+            }
+            if (!variant) {
+                return handleResponse(res, 404, "Selected variant not found on product");
+            }
+        }
+
+        const previousStock = Number(product.stock || 0);
+        let finalStock;
+        let variantInfo = "";
+
+        if (variant) {
+            const previousVarStock = Number(variant.stock || 0);
+            const finalVarStock = type === 'Restock' ? previousVarStock + qtyChange : previousVarStock - qtyChange;
+            if (finalVarStock < 0) {
+                return handleResponse(res, 400, "Variant stock cannot be negative");
+            }
+            variant.stock = finalVarStock;
+            variantInfo = ` (${variant.name || 'Variant'}${variant.sku ? ` - ${variant.sku}` : ''})`;
+
+            // Recalculate top-level product stock as sum of all variants
+            finalStock = product.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+            product.stock = finalStock;
+        } else {
+            finalStock = type === 'Restock' ? previousStock + qtyChange : previousStock - qtyChange;
+            if (finalStock < 0) {
+                return handleResponse(res, 400, "Stock cannot be negative");
+            }
+            product.stock = finalStock;
         }
 
         // 1. Update Product Stock
-        product.stock = finalStock;
         await product.save();
 
         // 2. Create History Entry
+        const defaultNote = `Manual ${type} adjustment${variantInfo}`;
+        const finalNote = note ? (variantInfo ? `${note}${variantInfo}` : note) : defaultNote;
+
         const historyEntry = new StockHistory({
             product: productId,
             seller: sellerId,
             type, // Restock, Correction
             quantity: type === 'Restock' ? qtyChange : -qtyChange,
-            note: note || `Manual ${type} adjustment`
+            note: finalNote
         });
 
         await historyEntry.save();

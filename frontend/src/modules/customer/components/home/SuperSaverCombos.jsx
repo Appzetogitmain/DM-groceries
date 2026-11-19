@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { ChevronRight, Plus, Sparkles, X, Check, Package as PackageIcon } from "lucide-react";
+import { ChevronRight, Plus, Sparkles, Check, Package as PackageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { customerApi } from "../../services/customerApi";
 import { useCart } from "../../context/CartContext";
+import { useLocation as useAppLocation } from "../../context/LocationContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import PackageDetailModal from "../shared/PackageDetailModal";
 
 const SuperSaverCombos = () => {
   const navigate = useNavigate();
   const { addPackageToCart } = useCart();
+  const { currentLocation } = useAppLocation();
+  const lat = currentLocation?.latitude;
+  const lng = currentLocation?.longitude;
   const [packages, setPackages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [previewPackage, setPreviewPackage] = useState(null);
@@ -17,8 +22,16 @@ const SuperSaverCombos = () => {
   useEffect(() => {
     let isMounted = true;
     const fetchCombos = async () => {
+      // Same rule as products: only show combos from sellers serving this location
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        if (isMounted) {
+          setPackages([]);
+          setIsLoading(false);
+        }
+        return;
+      }
       try {
-        const res = await customerApi.getPackages({ limit: 12 });
+        const res = await customerApi.getPackages({ limit: 12, lat, lng });
         if (res.data?.success && isMounted) {
           const list =
             res.data.result?.packages ||
@@ -39,7 +52,28 @@ const SuperSaverCombos = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [lat, lng]);
+
+  useEffect(() => {
+    if (previewPackage) {
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+      document.documentElement.style.overflow = "hidden";
+      window.__lenis?.stop();
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.touchAction = "auto";
+      document.documentElement.style.overflow = "unset";
+      window.__lenis?.start();
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.touchAction = "auto";
+      document.documentElement.style.overflow = "unset";
+      window.__lenis?.start();
+    };
+  }, [previewPackage]);
 
   const handleAddToCart = async (e, pkg) => {
     e.stopPropagation();
@@ -201,141 +235,15 @@ const SuperSaverCombos = () => {
         </div>
       </div>
 
-      {/* QUICK VIEW / DETAIL MODAL */}
-      {previewPackage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => setPreviewPackage(null)}
-        >
-          <div
-            className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Image Header */}
-            <div className="relative aspect-[16/9] w-full bg-slate-100">
-              {previewPackage.coverImage ? (
-                <img
-                  src={previewPackage.coverImage}
-                  alt={previewPackage.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-amber-50 text-amber-600">
-                  <PackageIcon className="h-16 w-16 opacity-60" />
-                </div>
-              )}
-              <button
-                onClick={() => setPreviewPackage(null)}
-                className="absolute top-3 right-3 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition"
-              >
-                <X size={16} />
-              </button>
-
-              <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-800 shadow-sm">
-                Save ₹{Math.max(0, previewPackage.originalTotalPrice - previewPackage.packagePrice)} ({previewPackage.discountPercentage}% OFF)
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-5 space-y-4">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 leading-tight">
-                  {previewPackage.name}
-                </h3>
-                {previewPackage.sellerId?.shopName && (
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Sold by <span className="font-semibold text-slate-700">{previewPackage.sellerId.shopName}</span>
-                  </p>
-                )}
-                {previewPackage.description && (
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    {previewPackage.description}
-                  </p>
-                )}
-              </div>
-
-              {/* Child Products List */}
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">
-                  Items in this Pack ({previewPackage.items?.length || 0})
-                </p>
-                <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto pr-1 border border-slate-100 rounded-xl">
-                  {(previewPackage.items || []).map((it, idx) => {
-                    const prod = it.productId || {};
-                    return (
-                      <div key={idx} className="flex items-center justify-between p-2.5 text-xs bg-slate-50/50">
-                        <div className="flex items-center gap-2.5">
-                          {prod.mainImage ? (
-                            <img
-                              src={prod.mainImage}
-                              alt={prod.name}
-                              className="w-9 h-9 rounded-lg object-cover border border-slate-200"
-                            />
-                          ) : (
-                            <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center text-slate-400 border border-slate-200">
-                              <PackageIcon size={14} />
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-bold text-slate-800 line-clamp-1">{prod.name || "Product"}</p>
-                            <p className="text-[10px] text-slate-400">
-                              Qty: <strong className="text-slate-700">{it.quantity}x</strong>
-                              {it.originalPrice > (it.packagePricePerUnit || it.priceAtAddition) && (
-                                <> • Regular: <span className="line-through">₹{it.originalPrice}</span></>
-                              )}
-                              {(it.packagePricePerUnit || it.priceAtAddition) && (
-                                <> • Combo: <span className="font-semibold text-emerald-700">₹{it.packagePricePerUnit || it.priceAtAddition}</span></>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-slate-800 block">
-                            ₹{Number((it.packagePricePerUnit || it.priceAtAddition) * it.quantity).toFixed(2)}
-                          </span>
-                          {it.originalPrice > (it.packagePricePerUnit || it.priceAtAddition) && (
-                            <span className="text-[9px] font-bold text-emerald-600 block">
-                              Save ₹{Number((it.originalPrice - (it.packagePricePerUnit || it.priceAtAddition)) * it.quantity).toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Bottom Add to Cart CTA */}
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                <div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xl font-black text-slate-900">
-                      ₹{previewPackage.packagePrice}
-                    </span>
-                    {previewPackage.originalTotalPrice > previewPackage.packagePrice && (
-                      <span className="text-xs text-slate-400 line-through">
-                        ₹{previewPackage.originalTotalPrice}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-medium">Inclusive of all taxes</span>
-                </div>
-
-                <button
-                  onClick={(e) => {
-                    handleAddToCart(e, previewPackage);
-                    setPreviewPackage(null);
-                  }}
-                  disabled={previewPackage.stock <= 0}
-                  className="px-6 py-2.5 rounded-xl bg-[#1A4516] hover:bg-[#143711] text-white font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {previewPackage.stock <= 0 ? "Out of Stock" : "Add Combo to Cart"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PackageDetailModal
+        pkg={previewPackage}
+        isAdding={addingId === previewPackage?._id}
+        onClose={() => setPreviewPackage(null)}
+        onAddToCart={async (e, pkg) => {
+          await handleAddToCart(e, pkg);
+          setPreviewPackage(null);
+        }}
+      />
     </div>
   );
 };

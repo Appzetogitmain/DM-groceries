@@ -18,7 +18,9 @@ import {
     HiOutlineClipboardDocumentList,
     HiOutlineXMark,
     HiOutlineCheck,
-    HiOutlineCalendarDays
+    HiOutlineCalendarDays,
+    HiOutlineChevronDown,
+    HiOutlineChevronUp
 } from 'react-icons/hi2';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -37,6 +39,8 @@ const StockManagement = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+    const [selectedVariant, setSelectedVariant] = useState(null);
+    const [expandedItems, setExpandedItems] = useState({});
     const [adjustType, setAdjustType] = useState('Restock');
     const [adjustValue, setAdjustValue] = useState('');
     const [adjustNote, setAdjustNote] = useState('');
@@ -99,15 +103,23 @@ const StockManagement = () => {
             const safeProducts = Array.isArray(collected) ? collected : [];
 
             setInventory(
-                safeProducts.map(p => ({
-                    ...p,
-                    id: p._id,
-                    threshold: p.lowStockAlert || 5,
-                    status:
-                        p.stock === 0
-                            ? 'Out of Stock'
-                            : (p.stock <= (p.lowStockAlert || 5) ? 'Low Stock' : 'In Stock')
-                }))
+                safeProducts.map(p => {
+                    const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+                    const computedStock = hasVariants
+                        ? p.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
+                        : (Number(p.stock) || 0);
+                    const threshold = p.lowStockAlert || 5;
+                    return {
+                        ...p,
+                        id: p._id,
+                        stock: computedStock,
+                        threshold,
+                        status:
+                            computedStock === 0
+                                ? 'Out of Stock'
+                                : (computedStock <= threshold ? 'Low Stock' : 'In Stock')
+                    };
+                })
             );
         } catch (error) {
             toast.error("Failed to load inventory");
@@ -160,6 +172,13 @@ const StockManagement = () => {
         });
     }, [inventory, searchTerm, filterStatus]);
 
+    const toggleExpand = (id) => {
+        setExpandedItems((prev) => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
     const handleFullAdjustment = async () => {
         const value = parseInt(adjustValue);
         if (isNaN(value) || value <= 0) {
@@ -168,12 +187,19 @@ const StockManagement = () => {
         }
 
         try {
-            const res = await sellerApi.adjustStock({
+            const payload = {
                 productId: selectedItem.id,
                 type: adjustType === 'Restock' ? 'Restock' : 'Correction',
-                quantity: adjustType === 'Restock' ? value : -value,
+                quantity: value,
                 note: adjustNote
-            });
+            };
+
+            if (selectedVariant) {
+                if (selectedVariant._id) payload.variantId = selectedVariant._id;
+                if (selectedVariant.sku) payload.variantSku = selectedVariant.sku;
+            }
+
+            const res = await sellerApi.adjustStock(payload);
 
             if (res.data.success) {
                 toast.success("Stock adjusted successfully");
@@ -185,8 +211,15 @@ const StockManagement = () => {
         }
     };
 
-    const openAdjustModal = (item) => {
+    const openAdjustModal = (item, variant = null) => {
         setSelectedItem(item);
+        if (variant) {
+            setSelectedVariant(variant);
+        } else if (Array.isArray(item?.variants) && item.variants.length > 0) {
+            setSelectedVariant(item.variants[0]);
+        } else {
+            setSelectedVariant(null);
+        }
         setAdjustValue('');
         setAdjustNote('');
         setIsAdjustModalOpen(true);
@@ -330,71 +363,169 @@ const StockManagement = () => {
                                                 {filteredInventory
                                                     .slice((page - 1) * pageSize, page * pageSize)
                                                     .map((item) => (
-                                                        <motion.tr
-                                                            key={item.id}
-                                                            initial={{ opacity: 0 }}
-                                                            animate={{ opacity: 1 }}
-                                                            exit={{ opacity: 0 }}
-                                                            className="group hover:bg-slate-50/80 transition-all cursor-default"
-                                                        >
-                                                            <td className="px-6 py-5">
-                                                                <div className="flex items-center gap-4 group">
-                                                                    <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 group-hover:scale-105 transition-transform overflow-hidden">
-                                                                        {item.mainImage ? (
-                                                                            <img src={item.mainImage} alt={item.name} className="h-full w-full object-cover" />
-                                                                        ) : (
-                                                                            <HiOutlineCube className="h-6 w-6" />
-                                                                        )}
-                                                                    </div>
-                                                                    <div>
-                                                                        <h4 className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors">
-                                                                            {item.name}
-                                                                        </h4>
-                                                                        <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
-                                                                            Product Code: {item.sku || 'N/A'}
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-5">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="flex flex-col">
-                                                                        <span
-                                                                            className={cn(
-                                                                                "text-sm font-black",
-                                                                                item.stock <= item.threshold ? "text-rose-600" : "text-slate-900"
+                                                        <React.Fragment key={item.id}>
+                                                            <motion.tr
+                                                                initial={{ opacity: 0 }}
+                                                                animate={{ opacity: 1 }}
+                                                                exit={{ opacity: 0 }}
+                                                                className="group hover:bg-slate-50/80 transition-all cursor-default"
+                                                            >
+                                                                <td className="px-6 py-5">
+                                                                    <div className="flex items-center gap-4 group">
+                                                                        <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 group-hover:scale-105 transition-transform overflow-hidden">
+                                                                            {item.mainImage ? (
+                                                                                <img src={item.mainImage} alt={item.name} className="h-full w-full object-cover" />
+                                                                            ) : (
+                                                                                <HiOutlineCube className="h-6 w-6" />
                                                                             )}
-                                                                        >
-                                                                            {item.stock} units
-                                                                        </span>
-                                                                        {item.stock <= item.threshold && (
-                                                                            <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded w-fit mt-0.5">
-                                                                                Low Stock
-                                                                            </span>
-                                                                        )}
+                                                                        </div>
+                                                                        <div>
+                                                                            <h4 className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors">
+                                                                                {item.name}
+                                                                            </h4>
+                                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                                <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                                                                                    Product Code: {item.sku || 'N/A'}
+                                                                                </span>
+                                                                                {Array.isArray(item.variants) && item.variants.length > 0 && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            toggleExpand(item.id);
+                                                                                        }}
+                                                                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                                                                    >
+                                                                                        <span>{item.variants.length} Variants</span>
+                                                                                        {expandedItems[item.id] ? (
+                                                                                            <HiOutlineChevronUp className="h-3 w-3" />
+                                                                                        ) : (
+                                                                                            <HiOutlineChevronDown className="h-3 w-3" />
+                                                                                        )}
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-5">
-                                                                <Badge
-                                                                    variant={item.status === 'In Stock' ? 'success' : 'destructive'}
-                                                                    className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg"
-                                                                >
-                                                                    {item.status}
-                                                                </Badge>
-                                                            </td>
-                                                            <td className="px-6 py-5">
-                                                                <p className="text-sm font-black text-slate-900">₹{item.price}</p>
-                                                            </td>
-                                                            <td className="px-6 py-5 text-right">
-                                                                <button
-                                                                    onClick={() => openAdjustModal(item)}
-                                                                    className="px-4 py-2 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors"
-                                                                >
-                                                                    Adjust Stock
-                                                                </button>
-                                                            </td>
-                                                        </motion.tr>
+                                                                </td>
+                                                                <td className="px-6 py-5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="flex flex-col">
+                                                                            <span
+                                                                                className={cn(
+                                                                                    "text-sm font-black",
+                                                                                    item.stock <= item.threshold ? "text-rose-600" : "text-slate-900"
+                                                                                )}
+                                                                            >
+                                                                                {item.stock} units
+                                                                            </span>
+                                                                            {item.stock <= item.threshold && (
+                                                                                <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded w-fit mt-0.5">
+                                                                                    Low Stock
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-5">
+                                                                    <Badge
+                                                                        variant={item.status === 'In Stock' ? 'success' : 'destructive'}
+                                                                        className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg"
+                                                                    >
+                                                                        {item.status}
+                                                                    </Badge>
+                                                                </td>
+                                                                <td className="px-6 py-5">
+                                                                    <p className="text-sm font-black text-slate-900">₹{item.price}</p>
+                                                                </td>
+                                                                <td className="px-6 py-5 text-right">
+                                                                    <button
+                                                                        onClick={() => openAdjustModal(item)}
+                                                                        className="px-4 py-2 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors"
+                                                                    >
+                                                                        Adjust Stock
+                                                                    </button>
+                                                                </td>
+                                                            </motion.tr>
+                                                            {Array.isArray(item.variants) && item.variants.length > 0 && expandedItems[item.id] && (
+                                                                <tr className="bg-slate-50/70 border-b border-slate-100">
+                                                                    <td colSpan={5} className="py-3 px-6 pl-14">
+                                                                        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm space-y-3">
+                                                                            <div className="flex items-center justify-between">
+                                                                                <span className="text-[11px] font-black uppercase tracking-widest text-slate-700">
+                                                                                    Individual Variants ({item.variants.length})
+                                                                                </span>
+                                                                                <span className="text-[10px] text-slate-500 font-semibold">
+                                                                                    Combined Total: <strong className="text-slate-900">{item.stock} units</strong>
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="divide-y divide-slate-100">
+                                                                                {item.variants.map((v, vIdx) => {
+                                                                                    const vStock = Number(v.stock || 0);
+                                                                                    const isLow = vStock > 0 && vStock <= item.threshold;
+                                                                                    const isOut = vStock === 0;
+                                                                                    return (
+                                                                                        <div
+                                                                                            key={v._id || v.sku || vIdx}
+                                                                                            className="py-2.5 flex items-center justify-between gap-4 text-xs hover:bg-slate-50/60 px-2 rounded-xl transition-colors"
+                                                                                        >
+                                                                                            <div className="min-w-[140px]">
+                                                                                                <p className="font-bold text-slate-900 text-sm">{v.name}</p>
+                                                                                                <p className="text-[10px] font-mono text-slate-500 uppercase tracking-tighter">
+                                                                                                    SKU: {v.sku || 'N/A'}
+                                                                                                </p>
+                                                                                            </div>
+                                                                                            <div className="text-left min-w-[90px]">
+                                                                                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Price</span>
+                                                                                                <span className="font-bold text-slate-900">
+                                                                                                    ₹{v.salePrice && v.salePrice > 0 ? v.salePrice : v.price}
+                                                                                                </span>
+                                                                                                {v.salePrice && v.salePrice > 0 && (
+                                                                                                    <span className="ml-1 text-[10px] text-slate-400 line-through">₹{v.price}</span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <div className="text-left min-w-[120px]">
+                                                                                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Stock</span>
+                                                                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                                                                    <span className={cn(
+                                                                                                        "font-black text-sm",
+                                                                                                        isOut ? "text-rose-600" : isLow ? "text-amber-600" : "text-emerald-700"
+                                                                                                    )}>
+                                                                                                        {vStock} units
+                                                                                                    </span>
+                                                                                                    {isOut ? (
+                                                                                                        <span className="text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">
+                                                                                                            Out of Stock
+                                                                                                        </span>
+                                                                                                    ) : isLow ? (
+                                                                                                        <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                                                                                                            Low Stock
+                                                                                                        </span>
+                                                                                                    ) : (
+                                                                                                        <span className="text-[9px] font-black uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                                                                                            In Stock
+                                                                                                        </span>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <div className="text-right">
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => openAdjustModal(item, v)}
+                                                                                                    className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all shadow-sm active:scale-95"
+                                                                                                >
+                                                                                                    Adjust Variant Stock
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </React.Fragment>
                                                     ))}
                                             </AnimatePresence>
                                         )}
@@ -517,9 +648,55 @@ const StockManagement = () => {
                                     </div>
                                     <div>
                                         <h4 className="text-sm font-black text-slate-900">{selectedItem.name}</h4>
-                                        <p className="text-[10px] font-bold text-slate-600">CURRENT STOCK: <span className="text-slate-900 font-black">{selectedItem.stock} UNITS</span></p>
+                                        <p className="text-[10px] font-bold text-slate-600">
+                                            {selectedVariant ? (
+                                                <>
+                                                    VARIANT: <span className="text-indigo-600 font-black">{selectedVariant.name}</span>
+                                                    {' • '}CURRENT STOCK: <span className="text-slate-900 font-black">{selectedVariant.stock || 0} UNITS</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    CURRENT STOCK: <span className="text-slate-900 font-black">{selectedItem.stock} UNITS</span>
+                                                </>
+                                            )}
+                                        </p>
                                     </div>
                                 </div>
+
+                                {Array.isArray(selectedItem.variants) && selectedItem.variants.length > 0 && (
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">
+                                            Select Variant to Adjust
+                                        </label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                                            {selectedItem.variants.map((v) => {
+                                                const isSelected = selectedVariant && (
+                                                    (selectedVariant._id && v._id && selectedVariant._id === v._id) ||
+                                                    (selectedVariant.sku && v.sku && selectedVariant.sku === v.sku)
+                                                );
+                                                return (
+                                                    <button
+                                                        key={v._id || v.sku}
+                                                        type="button"
+                                                        onClick={() => setSelectedVariant(v)}
+                                                        className={cn(
+                                                            "flex flex-col text-left p-2.5 rounded-xl border text-xs transition-all",
+                                                            isSelected
+                                                                ? "border-indigo-600 bg-indigo-50/70 text-indigo-900 font-bold ring-2 ring-indigo-500/20"
+                                                                : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                                                        )}
+                                                    >
+                                                        <span className="font-bold">{v.name}</span>
+                                                        <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-medium">
+                                                            <span>SKU: {v.sku || 'N/A'}</span>
+                                                            <span className="font-bold text-slate-900">{v.stock || 0} units</span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="space-y-4">
                                     <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200">

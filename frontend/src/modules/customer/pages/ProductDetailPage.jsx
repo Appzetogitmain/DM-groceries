@@ -11,6 +11,7 @@ import { useLocation as useAppLocation } from '../context/LocationContext';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
 import { useSettings } from '@core/context/SettingsContext';
 import Lottie from 'lottie-react';
+import { pickDefaultVariant, getVariantKey, getVariantStock, getVariantPricing } from '../utils/variantUtils';
 
 const ProductDetailPage = () => {
     const { id } = useParams();
@@ -31,6 +32,7 @@ const ProductDetailPage = () => {
     const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
     const [localHasReviewed, setLocalHasReviewed] = useState(false);
     const [noServiceData, setNoServiceData] = useState(null);
+    const [selectedVariant, setSelectedVariant] = useState(null);
 
     // Dynamically load no-service Lottie on mount
     useEffect(() => {
@@ -61,6 +63,13 @@ const ProductDetailPage = () => {
                     images: [p.mainImage, ...(p.galleryImages || [])].filter(Boolean)
                 };
                 setProduct(formatted);
+                // Keep the user's chosen variant on refresh if it still exists,
+                // otherwise default to the first variant that is not out of stock.
+                setSelectedVariant((prev) => {
+                    const prevKey = getVariantKey(prev);
+                    const still = prevKey && (formatted.variants || []).find((v) => getVariantKey(v) === prevKey);
+                    return still || pickDefaultVariant(formatted);
+                });
                 setActiveImage(formatted.images[0] || 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=600&auto=format&fit=crop');
                 fetchReviews();
             }
@@ -188,9 +197,23 @@ const ProductDetailPage = () => {
         );
     }
 
-    const cartItem = cart.find(item => item.id === product.id);
+    const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+    const variantKey = hasVariants ? getVariantKey(selectedVariant) : "";
+    const cartItem = cart.find(
+        (item) =>
+            `${item.id || item._id}::${String(item.variantSku || "").trim()}` ===
+            `${product.id}::${variantKey}`,
+    );
     const quantity = cartItem ? cartItem.quantity : 0;
     const isWishlisted = isInWishlist(product.id);
+
+    const currentStock = hasVariants && selectedVariant
+        ? getVariantStock(selectedVariant, product)
+        : Number(product.stock || 0);
+    const pricing = hasVariants && selectedVariant
+        ? getVariantPricing(selectedVariant, product)
+        : getVariantPricing({ price: product.price, salePrice: product.salePrice }, product);
+    const lowStockAt = product.lowStockAlert || 5;
 
     return (
         <div className="relative z-10 py-8 w-full max-w-[1920px] mx-auto px-4 md:px-[50px] animate-in fade-in duration-700 mt-24">
@@ -250,16 +273,42 @@ const ProductDetailPage = () => {
                         </h1>
 
                         <div className="flex items-baseline gap-4 mb-5">
-                            <span className="text-4xl font-black text-primary">₹{product.salePrice || product.price}</span>
-                            {(product.salePrice && product.salePrice < product.price) && (
-                                <span className="text-lg text-slate-400 line-through font-bold">₹{product.price}</span>
+                            <span className="text-4xl font-black text-primary">₹{pricing.displayPrice}</span>
+                            {pricing.originalPrice && (
+                                <span className="text-lg text-slate-400 line-through font-bold">₹{pricing.originalPrice}</span>
                             )}
-                            {product.salePrice && product.salePrice < product.price && (
+                            {pricing.discountPercent > 0 && (
                                 <span className="text-xs bg-red-50 text-red-500 px-2 py-1 rounded-lg font-black uppercase">
-                                    {Math.round(((product.price - product.salePrice) / product.price) * 100)}% OFF
+                                    {pricing.discountPercent}% OFF
                                 </span>
                             )}
                         </div>
+
+                        {hasVariants && (
+                            <div className="mb-5">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Select Variant</h4>
+                                <div className="flex gap-2.5 flex-wrap">
+                                    {product.variants.map((v, idx) => {
+                                        const isSelected = getVariantKey(selectedVariant) === getVariantKey(v);
+                                        const isOos = getVariantStock(v, product) <= 0;
+                                        return (
+                                            <button
+                                                key={getVariantKey(v) || idx}
+                                                onClick={() => setSelectedVariant(v)}
+                                                className={cn(
+                                                    "px-4 py-2 font-black rounded-xl text-xs transition-all border-2 bg-white",
+                                                    isSelected ? "border-primary text-primary shadow-sm" : "border-slate-100 text-slate-500 hover:border-slate-200",
+                                                    isOos && !isSelected && "opacity-60"
+                                                )}
+                                            >
+                                                {v.name}
+                                                {isOos && <span className="ml-1 text-[10px] font-semibold text-red-500">(Out of stock)</span>}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         <p className="text-slate-600 text-lg leading-relaxed mb-6 font-medium max-w-2xl">
                             {product.description || "Fresh and premium quality product sourced directly from local vendors."}
@@ -267,27 +316,27 @@ const ProductDetailPage = () => {
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-                        {product.stock <= 0 ? (
+                        {currentStock <= 0 ? (
                             <div className="flex-1 bg-gray-100 text-gray-400 h-16 w-full sm:w-64 rounded-2xl font-black text-lg flex items-center justify-center gap-2 border border-gray-200 uppercase tracking-widest">
                                 OUT OF STOCK
                             </div>
                         ) : quantity > 0 ? (
                             <div className="flex items-center bg-primary text-primary-foreground rounded-2xl h-16 w-full sm:w-auto px-2 shadow-xl shadow-brand-100">
                                 <button
-                                    onClick={() => updateQuantity(product.id, -1, "")}
+                                    onClick={() => updateQuantity(product.id, -1, variantKey)}
                                     className="w-12 h-12 flex items-center justify-center hover:bg-white/20 rounded-xl transition-all"
                                 >
                                     <Minus size={24} strokeWidth={3} />
                                 </button>
                                 <span className="w-16 text-center font-black text-xl">{quantity}</span>
                                 <button
-                                    disabled={quantity >= product.stock}
+                                    disabled={quantity >= currentStock}
                                     onClick={() => {
-                                        if (quantity >= product.stock) {
-                                            showToast(`Only ${product.stock} units available in stock.`, "error");
+                                        if (quantity >= currentStock) {
+                                            showToast(`Only ${currentStock} units available in stock.`, "error");
                                             return;
                                         }
-                                        updateQuantity(product.id, 1, "");
+                                        updateQuantity(product.id, 1, variantKey);
                                     }}
                                     className="w-12 h-12 flex items-center justify-center hover:bg-white/20 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
@@ -297,11 +346,15 @@ const ProductDetailPage = () => {
                         ) : (
                             <Button
                                 onClick={async () => {
-                                    if (product.stock <= 0) {
+                                    if (currentStock <= 0) {
                                         showToast("This item is currently out of stock", "error");
                                         return;
                                     }
-                                    const added = await addToCart(product);
+                                    const added = await addToCart({
+                                        ...product,
+                                        variantSku: variantKey,
+                                        variantName: String(selectedVariant?.name || "").trim(),
+                                    });
                                     if (added === false) return;
                                     showToast(`${product.name} added to cart`, 'success');
                                 }}
@@ -324,12 +377,12 @@ const ProductDetailPage = () => {
                     <div className="grid grid-cols-3 gap-4">
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-sm">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Weight</p>
-                            <p className="text-sm font-black text-slate-800">{product.weight || '1 unit'}</p>
+                            <p className="text-sm font-black text-slate-800">{selectedVariant?.name || product.weight || '1 unit'}</p>
                         </div>
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-sm">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Stock</p>
-                            <p className={`text-sm font-black ${product.stock <= 0 ? "text-red-500" : product.stock <= (product.lowStockAlert || 5) ? "text-orange-500" : "text-slate-800"}`}>
-                                {product.stock <= 0 ? 'Out of Stock' : product.stock <= (product.lowStockAlert || 5) ? `Only ${product.stock} left!` : 'In Stock'}
+                            <p className={`text-sm font-black ${currentStock <= 0 ? "text-red-500" : currentStock <= lowStockAt ? "text-orange-500" : "text-slate-800"}`}>
+                                {currentStock <= 0 ? 'Out of Stock' : currentStock <= lowStockAt ? `Only ${currentStock} left!` : 'In Stock'}
                             </p>
                         </div>
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-sm">
