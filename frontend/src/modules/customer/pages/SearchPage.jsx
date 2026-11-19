@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation as useRouterLocation } from 'react-router-dom';
 import { Search, Mic, ArrowLeft, X, TrendingUp, ChevronRight, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,6 +37,25 @@ const SearchPage = () => {
     });
 
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const inputRef = useRef(null);
+
+    // Focus the search input as soon as the page opens so the user can type directly
+    useEffect(() => {
+        const focusInput = () => {
+            const el = inputRef.current;
+            if (!el) return;
+            el.focus({ preventScroll: true });
+            const len = el.value.length;
+            el.setSelectionRange?.(len, len);
+        };
+        focusInput();
+        const raf = requestAnimationFrame(focusInput);
+        const timer = setTimeout(focusInput, 150);
+        return () => {
+            cancelAnimationFrame(raf);
+            clearTimeout(timer);
+        };
+    }, []);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -236,8 +255,11 @@ const SearchPage = () => {
                                 <Search size={18} strokeWidth={3} className="text-slate-400" />
                             </div>
                             <input
+                                ref={inputRef}
                                 autoFocus
                                 type="text"
+                                inputMode="search"
+                                enterKeyHint="search"
                                 placeholder='Search items, categories...'
                                 value={query}
                                 onKeyDown={handleKeyDown}
