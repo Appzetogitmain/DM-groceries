@@ -142,122 +142,39 @@ const MakeYourOwnListSection = () => {
           </div>
         </div>
 
-        {/* User's Saved Lists or Inspiration Presets */}
-        {savedLists.length > 0 ? (
-          <div>
-            <div className="flex items-center justify-between mb-3 px-1">
-              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-200">
-                Your Saved Baskets ({savedLists.length})
-              </span>
-              <Link
-                to="/user/lists"
-                className="text-xs font-bold text-emerald-300 hover:text-white transition flex items-center gap-1"
+        {/* Popular Basket Ideas — Always displayed as inspiration presets */}
+        <div>
+          <span className="text-[11px] font-black uppercase tracking-wider text-emerald-200 block mb-3 px-1">
+            Popular Basket Ideas — Tap to Customize
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {INSPIRATION_TEMPLATES.map((tmpl, idx) => (
+              <div
+                key={idx}
+                onClick={() => handleOpenBuilderWithTemplate(tmpl.name)}
+                className="p-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 transition cursor-pointer active:scale-95 flex flex-col justify-between gap-3 text-left group"
               >
-                View & Manage All <ArrowRight size={12} />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {savedLists.slice(0, 3).map((list) => {
-                const sellerName =
-                  list.sellerId?.shopName ||
-                  list.sellerId?.storeName ||
-                  list.sellerId?.name ||
-                  "Local Store";
-                return (
-                  <div
-                    key={list._id}
-                    className="p-4 rounded-2xl bg-white/95 text-slate-900 border border-white/30 shadow-md flex flex-col justify-between gap-3 group hover:shadow-lg transition"
+                <div>
+                  <span
+                    className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block mb-2 ${tmpl.badgeColor}`}
                   >
-                    <div>
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <h4 className="font-black text-sm text-slate-900 line-clamp-1">
-                          {list.name}
-                        </h4>
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 shrink-0">
-                          {list.items?.length || 0} items
-                        </span>
-                      </div>
-                      <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mb-2">
-                        <Store size={12} className="text-emerald-700 shrink-0" />
-                        <span className="truncate">{sellerName}</span>
-                      </p>
-
-                      <div className="flex items-center gap-1 overflow-hidden py-1">
-                        {list.items?.slice(0, 4).map((it, idx) => (
-                          <img
-                            key={idx}
-                            src={it.productId?.mainImage || "/vegetable-basket-banner.png"}
-                            alt=""
-                            className="w-8 h-8 rounded-lg object-cover border border-slate-100 shrink-0 bg-slate-50"
-                          />
-                        ))}
-                        {list.items?.length > 4 && (
-                          <span className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 font-bold text-[10px] flex items-center justify-center shrink-0">
-                            +{list.items.length - 4}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
-                      <div className="shrink-0">
-                        <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight">
-                          Est. Total
-                        </span>
-                        <span className="text-sm font-black text-[#1A4516]">
-                          ₹{Number(list.totalAmount || 0).toFixed(2)}
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={(e) => handleQuickReorder(e, list)}
-                        disabled={reorderingId === list._id}
-                        className="px-3.5 py-1.5 rounded-xl bg-[#1A4516] text-white font-black text-[11px] hover:bg-[#1A4516]/90 transition active:scale-95 shadow-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap disabled:opacity-50"
-                      >
-                        <RotateCcw size={12} />
-                        {reorderingId === list._id ? "Adding..." : "1-Click Reorder"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <div>
-            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-200 block mb-3 px-1">
-              Popular Basket Ideas — Tap to Customize
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {INSPIRATION_TEMPLATES.map((tmpl, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => handleOpenBuilderWithTemplate(tmpl.name)}
-                  className="p-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 transition cursor-pointer active:scale-95 flex flex-col justify-between gap-3 text-left group"
-                >
-                  <div>
-                    <span
-                      className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block mb-2 ${tmpl.badgeColor}`}
-                    >
-                      {tmpl.itemsCount}
-                    </span>
-                    <h4 className="font-bold text-sm text-white group-hover:text-emerald-200 transition">
-                      {tmpl.name}
-                    </h4>
-                    <p className="text-[11px] text-emerald-100/70 mt-1 font-medium">
-                      {tmpl.tag}
-                    </p>
-                  </div>
-
-                  <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                    Start this list <ArrowRight size={12} />
+                    {tmpl.itemsCount}
                   </span>
+                  <h4 className="font-bold text-sm text-white group-hover:text-emerald-200 transition">
+                    {tmpl.name}
+                  </h4>
+                  <p className="text-[11px] text-emerald-100/70 mt-1 font-medium">
+                    {tmpl.tag}
+                  </p>
                 </div>
-              ))}
-            </div>
+
+                <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                  Start this list <ArrowRight size={12} />
+                </span>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
       {/* List Builder Modal */}
