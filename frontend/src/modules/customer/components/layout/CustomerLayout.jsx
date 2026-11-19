@@ -7,6 +7,7 @@ import ProductDetailSheet from '../shared/ProductDetailSheet';
 import MobileFooterMessage from './MobileFooterMessage';
 import { useProductDetail } from '../../context/ProductDetailContext';
 import { cn } from '@/lib/utils';
+import { useKeyboardOpen } from '@/shared/hooks/useKeyboardOpen';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@core/context/AuthContext';
 import { 
@@ -152,6 +153,8 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
         };
     }, [token, user]);
 
+    const isKeyboardOpen = useKeyboardOpen();
+
     // Route-based visibility logic
     const path = location.pathname.replace(/\/$/, '') || '/';
     // Normalize path by removing /user prefix if present for uniform check
@@ -174,7 +177,8 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
     // Hide elements on mobile only when product detail is open
     // On desktop, we want to keep the header visible even if the modal is open
     const finalShowHeaderMobile = showHeader && !isProductDetailOpen;
-    const finalShowBottomNavMobile = showBottomNav && !isProductDetailOpen;
+    // ...and hide bottom bars while the on-screen keyboard is open
+    const finalShowBottomNavMobile = showBottomNav && !isProductDetailOpen && !isKeyboardOpen;
     const finalShowFooterMessageMobile = showFooterMessage && !isProductDetailOpen;
 
     return (
@@ -197,7 +201,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
                 {children}
             </main>
 
-            {showCart && <MiniCart />}
+            {showCart && !isKeyboardOpen && <MiniCart />}
             <ProductDetailSheet />
             <LocationRequiredModal />
             <CustomerPaymentReminderModal
