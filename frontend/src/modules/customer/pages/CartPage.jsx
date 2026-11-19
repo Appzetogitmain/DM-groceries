@@ -6,6 +6,7 @@ import {
     Minus,
     Plus,
     Trash2,
+    Lock,
     ArrowRight,
     Sparkles,
     ShieldCheck,
@@ -18,7 +19,7 @@ import { customerApi } from '../services/customerApi';
 import ProductCard from '../components/shared/ProductCard';
 
 const CartPage = () => {
-    const { cart, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
+    const { cart, removeFromCart, removePackageFromCart, updateQuantity, cartTotal, clearCart } = useCart();
     const { showToast } = useToast();
     const itemCount = cart.reduce((count, item) => count + item.quantity, 0);
     const [emptyBoxData, setEmptyBoxData] = useState(null);
@@ -127,9 +128,14 @@ const CartPage = () => {
                                                         </div>
 
                                                         <button
-                                                            onClick={() => handleRemove(item.id, item.name, item.variantSku, item.packageId)}
+                                                            onClick={() =>
+                                                                isPkg && item.packageId
+                                                                    ? removePackageFromCart(item.packageId) // whole combo goes
+                                                                    : handleRemove(item.id, item.name, item.variantSku, item.packageId)
+                                                            }
                                                             className="rounded-full border border-slate-200 bg-white p-2 text-slate-400 transition-colors hover:border-rose-200 hover:text-rose-500"
-                                                            aria-label={`Remove ${item.name}`}
+                                                            aria-label={isPkg ? `Remove combo ${item.packageName || ""}` : `Remove ${item.name}`}
+                                                            title={isPkg ? "Remove entire combo" : undefined}
                                                         >
                                                             <Trash2 size={18} />
                                                         </button>
@@ -152,6 +158,16 @@ const CartPage = () => {
                                                             )}
                                                         </div>
 
+                                                        {isPkg ? (
+                                                            // Combo items: fixed quantity, no +/- controls
+                                                            <div
+                                                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-4 py-2"
+                                                                title="Quantity is fixed for combo pack items"
+                                                            >
+                                                                <Lock size={13} className="text-slate-400" />
+                                                                <span className="text-sm font-black text-slate-700">Qty {item.quantity}</span>
+                                                            </div>
+                                                        ) : (
                                                         <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 shadow-sm">
                                                             <button
                                                                 onClick={() => updateQuantity(item.id, -1, item.variantSku, item.packageId)}
@@ -170,6 +186,7 @@ const CartPage = () => {
                                                                 <Plus size={15} strokeWidth={3} />
                                                             </button>
                                                         </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

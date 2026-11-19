@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Lock } from "lucide-react";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 
 /**
@@ -17,6 +17,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
   cart,
   onUpdateQuantity,
   onRemoveFromCart,
+  onRemovePackage,
   onMoveToWishlist,
 }) {
   return (
@@ -71,15 +72,37 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
                 </p>
               )}
               
-              <button
-                onClick={() => onMoveToWishlist(item)}
-                className="text-xs text-slate-500 underline hover:text-[#1A4516] transition-colors"
-              >
-                Move to wishlist
-              </button>
+              {isPackageItem ? (
+                // Combo items can't be split — removing removes the whole combo.
+                onRemovePackage && item.packageId && (
+                  <button
+                    onClick={() => onRemovePackage(item.packageId)}
+                    className="text-xs text-slate-500 underline hover:text-rose-600 transition-colors"
+                  >
+                    Remove combo
+                  </button>
+                )
+              ) : (
+                <button
+                  onClick={() => onMoveToWishlist(item)}
+                  className="text-xs text-slate-500 underline hover:text-[#1A4516] transition-colors"
+                >
+                  Move to wishlist
+                </button>
+              )}
             </div>
 
             <div className="flex flex-col items-end gap-2 flex-shrink-0">
+              {isPackageItem ? (
+                // Combo items: quantity is fixed by the package — no +/- controls.
+                <div
+                  className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5"
+                  title="Quantity is fixed for combo pack items"
+                >
+                  <Lock size={11} className="text-slate-400" />
+                  <span className="text-slate-700 font-bold text-xs">Qty {item.quantity}</span>
+                </div>
+              ) : (
               <div className="flex items-center gap-2 bg-[#1A4516] rounded-lg px-2 py-1 shadow-xs">
                 <button
                   onClick={() => {
@@ -102,6 +125,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
                   <Plus size={14} strokeWidth={3} />
                 </button>
               </div>
+              )}
 
               <div className="text-right leading-tight">
                 <p className="text-base font-black text-slate-800">₹{total}</p>

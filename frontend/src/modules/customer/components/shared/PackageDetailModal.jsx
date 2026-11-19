@@ -80,7 +80,9 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
   return (
     <div
       data-lenis-prevent
-      className="fixed inset-0 z-[60] flex items-end md:items-center justify-center md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      // z above BottomNav (z-[500]) and header (z-200) so the sticky mobile
+      // "Add to Cart" bar is never covered.
+      className="fixed inset-0 z-[650] flex items-end md:items-center justify-center md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
@@ -272,7 +274,10 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
           </div>
 
           {/* Sticky mobile CTA */}
-          <div className="md:hidden border-t border-slate-100 p-4 flex items-center justify-between gap-3 bg-white">
+          <div
+            className="md:hidden shrink-0 border-t border-slate-100 px-4 pt-3 flex items-center justify-between gap-3 bg-white shadow-[0_-8px_20px_-12px_rgba(0,0,0,0.15)]"
+            style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
+          >
             <div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-lg font-black text-slate-900">₹{formatMoney(price)}</span>

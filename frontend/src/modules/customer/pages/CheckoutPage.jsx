@@ -92,6 +92,7 @@ const CheckoutPage = () => {
     cartCount,
     updateQuantity,
     removeFromCart,
+    removePackageFromCart,
     clearCart,
   } = useCart();
   const { wishlist, addToWishlist, fetchFullWishlist, isFullDataFetched } =
@@ -1095,6 +1096,7 @@ const CheckoutPage = () => {
               cart={cart}
               onUpdateQuantity={updateQuantity}
               onRemoveFromCart={removeFromCart}
+              onRemovePackage={removePackageFromCart}
               onMoveToWishlist={handleMoveToWishlist}
               showAll={showAllCartItems}
               onToggleShowAll={() => setShowAllCartItems((v) => !v)}

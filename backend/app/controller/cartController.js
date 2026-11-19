@@ -204,6 +204,15 @@ export const updateQuantity = async (req, res) => {
     });
 
     if (itemIndex > -1) {
+      // Items that came from a Bachat combo/package have a fixed quantity —
+      // the customer can only remove the whole combo, not change item counts.
+      if (cart.items[itemIndex].packageId) {
+        return handleResponse(
+          res,
+          400,
+          "Quantity of combo pack items cannot be changed. Remove the combo instead.",
+        );
+      }
       cart.items[itemIndex].quantity = quantity;
       if (cart.items[itemIndex].quantity <= 0) {
         cart.items.splice(itemIndex, 1);

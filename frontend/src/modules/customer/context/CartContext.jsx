@@ -475,6 +475,17 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  // Remove every item that belongs to the given combo/package.
+  const removePackageFromCart = async (packageId) => {
+    const pkgId = String(packageId || "").trim();
+    if (!pkgId) return;
+    const pkgItems = cart.filter((item) => String(item.packageId || "").trim() === pkgId);
+    // Sequential so each backend response syncs a consistent cart state.
+    for (const item of pkgItems) {
+      await removeFromCart(item.id || item._id, item.variantSku, pkgId);
+    }
+  };
+
   const updateQuantity = async (productId, delta, variantSku = "", packageId = "") => {
     const normalizedVariantSku = String(variantSku || "").trim();
     const normalizedPackageId = String(packageId || "").trim();
@@ -484,6 +495,8 @@ export const CartProvider = ({ children }) => {
         getCartItemKey(item.id || item._id, item.variantSku, item.packageId) === key,
     );
     if (!currentItem) return;
+    // Combo (package) items have a fixed quantity; only the whole combo can be removed.
+    if (currentItem.packageId) return;
 
     const newQty = Math.max(0, currentItem.quantity + delta);
 
@@ -558,6 +571,7 @@ export const CartProvider = ({ children }) => {
     addPackageToCart,
     addCustomListToCart,
     removeFromCart,
+    removePackageFromCart,
     updateQuantity,
     clearCart,
     cartTotal,

@@ -61,6 +61,7 @@ const ProductCard = React.memo(
       () =>
         cart.find(
           (item) =>
+            !item.packageId && // combo items are separate cart lines with fixed qty
             `${item.id || item._id}::${String(item.variantSku || "").trim()}` ===
             cartKey,
         ),
