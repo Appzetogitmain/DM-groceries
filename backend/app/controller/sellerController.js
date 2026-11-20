@@ -8,17 +8,24 @@ import Wallet from "../models/wallet.js";
 import Subscription from "../models/subscription.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
+import { invalidate } from "../services/cacheService.js";
+import {
+  SHOP_CLOSED_REASON_ORDER_LIMIT,
+  getLimitReachedSellerIds,
+  hasSellerReachedOrderLimit,
+} from "../services/sellerOrderLimitService.js";
 
 /* ===============================
    GET SHOP STATUS
 ================================ */
 export const getShopStatus = async (req, res) => {
   try {
-    const seller = await Seller.findById(req.user.id).select("isShopOpen isActive");
+    const seller = await Seller.findById(req.user.id).select("isShopOpen isActive shopClosedReason");
     if (!seller) return handleResponse(res, 404, "Seller not found");
     return handleResponse(res, 200, "Shop status fetched", {
       isShopOpen: seller.isShopOpen,
       isActive: seller.isActive,
+      shopClosedReason: seller.shopClosedReason || null,
     });
   } catch (error) {
     return handleResponse(res, 500, error.message);
@@ -30,15 +37,27 @@ export const getShopStatus = async (req, res) => {
 ================================ */
 export const toggleShopStatus = async (req, res) => {
   try {
-    const seller = await Seller.findById(req.user.id).select("isShopOpen isActive");
+    const seller = await Seller.findById(req.user.id).select("isShopOpen isActive email shopClosedReason");
     if (!seller) return handleResponse(res, 404, "Seller not found");
 
     if (!seller.isActive) {
       return handleResponse(res, 403, "Your shop is not approved yet. Contact support.");
     }
 
+    // Can't go online while the subscription order limit is used up
+    if (!seller.isShopOpen && (await hasSellerReachedOrderLimit(seller._id, seller))) {
+      return handleResponse(
+        res,
+        403,
+        "Your order limit is reached, so your shop is offline. Upgrade or renew your plan to go online again.",
+        { isShopOpen: false, shopClosedReason: SHOP_CLOSED_REASON_ORDER_LIMIT },
+      );
+    }
+
     seller.isShopOpen = !seller.isShopOpen;
+    seller.shopClosedReason = null; // manual open/close clears any automatic reason
     await seller.save();
+    await invalidate("cache:sellers:nearby:*").catch(() => {});
 
     return handleResponse(
       res,
@@ -100,11 +119,19 @@ export const getNearbySellers = async (req, res) => {
       return distance <= (seller.serviceRadius || 5);
     });
 
+    // Hide sellers whose subscription order limit is used up
+    const limitReached = await getLimitReachedSellerIds(
+      nearbySellers.map((s) => s._id),
+    );
+    const visibleSellers = limitReached.size
+      ? nearbySellers.filter((s) => !limitReached.has(String(s._id)))
+      : nearbySellers;
+
     return handleResponse(
       res,
       200,
       "Nearby sellers fetched successfully",
-      nearbySellers,
+      visibleSellers,
     );
   } catch (error) {
     return handleResponse(res, 500, error.message);

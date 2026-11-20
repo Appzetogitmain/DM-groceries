@@ -7,6 +7,7 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import { handleResponse } from "../../utils/helper.js";
 import logger from "../../services/logger.js";
+import { reopenShopAfterOrderLimitReset } from "../../services/sellerOrderLimitService.js";
 
 // ========================================
 // Lazily-built Razorpay client
@@ -221,6 +222,8 @@ export const createSubscriptionOrder = async (req, res) => {
                 finalAmount: 0,
             });
             await subscription.save();
+            // New limit → reopen a shop that was closed because the old limit was used up
+            await reopenShopAfterOrderLimitReset(sellerId);
 
             return handleResponse(res, 201, "Free subscription activated", {
                 subscription,
@@ -374,6 +377,8 @@ export const verifySubscriptionPayment = async (req, res) => {
             finalAmount: payment.finalAmount,
         });
         await subscription.save();
+        // New limit → reopen a shop that was closed because the old limit was used up
+        await reopenShopAfterOrderLimitReset(sellerId);
 
         // Link subscription to payment
         payment.subscription = subscription._id;

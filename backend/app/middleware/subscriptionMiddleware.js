@@ -2,6 +2,10 @@ import Subscription from "../models/subscription.js";
 import handleResponse from "../utils/helper.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
+import {
+    enforceOrderLimitForSeller,
+    isSubscriptionLimitReached,
+} from "../services/sellerOrderLimitService.js";
 
 /**
  * Middleware: Require an active subscription with a specific feature.
@@ -144,6 +148,11 @@ export const incrementOrderUsageAndAlert = async (sellerId) => {
         // Skip for unlimited plans
         if (updated.orderLimit === null || updated.orderLimit === undefined) {
             return updated;
+        }
+
+        // Limit reached → take the shop offline (exempt sellers are skipped inside)
+        if (isSubscriptionLimitReached(updated)) {
+            await enforceOrderLimitForSeller(sellerId, updated);
         }
 
         const usagePercent = (updated.ordersUsed / updated.orderLimit) * 100;

@@ -271,6 +271,25 @@ const Home = () => {
     if (persist && cacheKey) homePageDataCache.set(cacheKey, data);
   };
 
+  // The page is shown from the in-memory cache when returning to Home; still
+  // fetch the latest Experience Studio layout in the background so a layout
+  // saved by the admin (order / hidden sections) shows without a full reload.
+  const refreshHomeLayout = async (cacheKey, cached) => {
+    try {
+      const res = await customerApi.getExperienceSections({ pageType: "home" });
+      if (!res?.data?.success) return;
+      const fresh = res.data.result || res.data.results;
+      if (!Array.isArray(fresh)) return;
+      const sig = (list) => (list || []).map((s) => `${s._id}:${s.order}:${s.status}:${s.updatedAt || ""}`).join("|");
+      if (sig(fresh) === sig(cached.experienceSections)) return;
+      setExperienceSections(fresh);
+      homePageDataCache.set(cacheKey, { ...cached, experienceSections: fresh });
+      hydrateSelectedSectionProducts(fresh);
+    } catch {
+      // keep showing the cached layout
+    }
+  };
+
   const fetchData = async ({ forceRefresh = false } = {}) => {
     const cacheKey = getHomePageDataCacheKey(currentLocation);
     if (!forceRefresh) {
@@ -278,6 +297,7 @@ const Home = () => {
       if (cached) {
         applyHomePageData(cached, { cacheKey, persist: false });
         setIsLoading(false);
+        refreshHomeLayout(cacheKey, cached);
         return;
       }
     }
@@ -359,17 +379,22 @@ const Home = () => {
   const heroConfigCache = useRef(heroConfigMemoryCache);
 
   useEffect(() => {
+    let cancelled = false; // ignore responses for a tab the user already left
     const fetchHeaderSections = async () => {
       if (!activeCategory || activeCategory._id === "all") { setHeaderSections([]); return; }
       const cacheKey = activeCategory._id;
-      if (headerSectionsCache.current[cacheKey]) { setHeaderSections(headerSectionsCache.current[cacheKey]); return; }
+      const cached = headerSectionsCache.current[cacheKey];
+      // Show the cached layout instantly, then still fetch the latest (admin may have saved changes)
+      if (cached) setHeaderSections(cached);
       try {
         const res = await customerApi.getExperienceSections({ pageType: "header", headerId: activeCategory._id });
+        if (cancelled) return;
         if (res.data.success) { const sections = Array.isArray(res.data.result || res.data.results) ? (res.data.result || res.data.results) : []; headerSectionsCache.current[cacheKey] = sections; setHeaderSections(sections); await hydrateSelectedSectionProducts(sections); }
-        else setHeaderSections([]);
-      } catch (e) { setHeaderSections([]); }
+        else if (!cached) setHeaderSections([]);
+      } catch (e) { if (!cancelled && !cached) setHeaderSections([]); }
     };
     fetchHeaderSections();
+    return () => { cancelled = true; };
   }, [activeCategory]);
 
   // Products for the selected header category (same location/radius rule as home products)
@@ -462,7 +487,57 @@ const Home = () => {
     return quickCategories;
   }, [heroConfig.categoryIds, categoryMap, quickCategories]);
 
-  const sectionsForRenderer = headerSections.length ? headerSections : experienceSections;
+  // Page layout from Experience Studio. Built-in sections (displayType "builtin")
+  // carry the admin's order and on/off state for the fixed blocks (banner, list,
+  // combos, categories, products); custom sections are rendered by SectionRenderer.
+  const pageSections = useMemo(() => {
+    const base = headerSections.length ? headerSections : experienceSections;
+    // A header page with no custom sections of its own still shows the home ones
+    if (headerSections.length && !headerSections.some((s) => s.displayType !== "builtin")) {
+      return [...headerSections, ...experienceSections.filter((s) => s.displayType !== "builtin")];
+    }
+    return base;
+  }, [headerSections, experienceSections]);
+  const hasBuiltinLayout = pageSections.some((s) => s.displayType === "builtin");
+  const sectionsForRenderer = useMemo(
+    () => pageSections.filter((s) => s.displayType !== "builtin" && s.status !== "inactive"),
+    [pageSections],
+  );
+
+  // Visual order (CSS `order`, steps of 2 so Offer sections fit right after
+  // "products") + which built-ins are switched off. Without a saved layout the
+  // page keeps its original order: banner, list, combos, categories, products,
+  // offers, then custom sections.
+  const layoutOrder = useMemo(() => {
+    const DEFAULT_BUILTINS = ["hero", "my_list", "combos", "shop_by_category", "products"];
+    const order = {};
+    const hidden = new Set();
+    const customGroups = [];
+    let pos = 0;
+    if (!hasBuiltinLayout) {
+      DEFAULT_BUILTINS.forEach((key) => { order[key] = pos; pos += 2; });
+      if (sectionsForRenderer.length) customGroups.push({ key: "custom-0", order: pos, sections: sectionsForRenderer });
+      return { order, hidden, customGroups };
+    }
+    let group = null;
+    for (const s of pageSections) {
+      if (s.displayType === "builtin") {
+        group = null;
+        if (order[s.builtinKey] !== undefined) continue;
+        order[s.builtinKey] = pos;
+        if (s.status === "inactive") hidden.add(s.builtinKey);
+        pos += 2;
+        continue;
+      }
+      if (s.status === "inactive") continue;
+      if (!group) { group = { key: `custom-${pos}`, order: pos, sections: [] }; customGroups.push(group); pos += 2; }
+      group.sections.push(s);
+    }
+    DEFAULT_BUILTINS.forEach((key) => { if (order[key] === undefined) { order[key] = pos; pos += 2; } });
+    return { order, hidden, customGroups };
+  }, [hasBuiltinLayout, pageSections, sectionsForRenderer]);
+  const showBuiltin = (key) => !layoutOrder.hidden.has(key);
+  const builtinStyle = (key) => ({ order: layoutOrder.order[key] });
   const isMobile = useMemo(() => isMobileOrWebView(), []);
   const opacity = useTransform(scrollY, (heroVisible && !isMobile) ? [0, 300] : [0, 0], [1, 0.6]);
   const y = useTransform(scrollY, (heroVisible && !isMobile) ? [0, 300] : [0, 0], [0, 80]);
@@ -471,10 +546,10 @@ const Home = () => {
 
   useEffect(() => {
     if (!pendingReturn?.sectionId) return;
-    const allSections = headerSections.length ? headerSections : experienceSections;
+    const allSections = sectionsForRenderer;
     if (!allSections.length) return;
     if (allSections.some((s) => s._id === pendingReturn.sectionId)) { const el = document.getElementById(`section-${pendingReturn.sectionId}`); if (el) { el.scrollIntoView({ behavior: "instant", block: "start" }); removeStorage(STORAGE_KEYS.EXPERIENCE_RETURN, { storage: "session" }); setPendingReturn(null); } }
-  }, [headerSections, experienceSections, pendingReturn]);
+  }, [sectionsForRenderer, pendingReturn]);
 
   const renderFloatingElements = (type, isVisible = true) => {
     if (isMobile) return null;
@@ -496,7 +571,9 @@ const Home = () => {
           <button onClick={() => window.location.reload()} className="mt-12 px-10 py-4 bg-primary text-white font-black rounded-[24px] uppercase text-[13px] tracking-widest transition-all active:scale-95">Check Again</button>
         </div>
       ) : (
-        <>
+        <div className="flex flex-col">
+          {showBuiltin("hero") && (
+          <div style={builtinStyle("hero")}>
           <motion.div ref={heroRef} className="block md:hidden will-change-transform" style={isMobile ? { opacity: 1 } : { opacity, y, scale, pointerEvents }}>
             {heroConfig?.banners?.items?.length > 0 ? (
               <div className="mt-4 mb-2">
@@ -520,11 +597,13 @@ const Home = () => {
               </div>
             )}
           </motion.div>
+          </div>
+          )}
 
-          <MakeYourOwnListSection />
-          <SuperSaverCombos />
-          <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/user/category/${id}`)} />
-          {isHeaderSelected ? (
+          {showBuiltin("my_list") && <div style={builtinStyle("my_list")}><MakeYourOwnListSection /></div>}
+          {showBuiltin("combos") && <div style={builtinStyle("combos")}><SuperSaverCombos /></div>}
+          {showBuiltin("shop_by_category") && <div style={builtinStyle("shop_by_category")}><QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/user/category/${id}`)} /></div>}
+          {showBuiltin("products") && (<div style={builtinStyle("products")}>{isHeaderSelected ? (
             <div className="w-full px-4 md:px-8 lg:px-[50px] mt-2 mb-6">
               <div className="flex items-end justify-between mb-3 px-1">
                 <h3 className="text-[18px] sm:text-[20px] font-bold text-[#132018] tracking-tight uppercase leading-none">
@@ -568,15 +647,21 @@ const Home = () => {
             </div>
           ) : (
             <LowestPriceSection products={products} onSeeAll={() => navigate("/user/category/all")} />
-          )}
-          <OfferSections sections={offerSections} noServiceData={noServiceData} />
+          )}</div>)}
+          {/* Offer sections stay right after the products block */}
+          <div style={{ order: (layoutOrder.order.products ?? 0) + 1 }}>
+            <OfferSections sections={offerSections} noServiceData={noServiceData} />
+          </div>
 
-          {sectionsForRenderer.length > 0 && (
-            <div className="container mx-auto px-4 md:px-8 lg:px-[50px] py-10 md:py-16">
-              <SectionRenderer sections={sectionsForRenderer} productsById={productsById} categoriesById={categoryMap} subcategoriesById={subcategoryMap} />
+          {/* Custom Experience Studio sections, placed between the built-in ones */}
+          {layoutOrder.customGroups.map((group) => (
+            // Small vertical padding: these groups now sit between other sections
+            // (which already have their own margins), not only at the page bottom
+            <div key={group.key} style={{ order: group.order }} className="container mx-auto px-4 md:px-8 lg:px-[50px] pt-1 pb-6 md:pt-2 md:pb-8">
+              <SectionRenderer sections={group.sections} productsById={productsById} categoriesById={categoryMap} subcategoriesById={subcategoryMap} />
             </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
       </div>
     </PullToRefresh>

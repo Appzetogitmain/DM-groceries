@@ -6,6 +6,12 @@ import handleResponse from "../utils/helper.js";
 import mongoose from "mongoose";
 import { buildKey, getOrSet, getTTL, invalidate } from "../services/cacheService.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
+import {
+  ensureBuiltinSections,
+  getNextSectionOrder,
+  isBuiltinSection,
+  repairDuplicateSectionOrders,
+} from "../services/builtinSectionsService.js";
 
 /* ===============================
    Helpers
@@ -210,6 +216,14 @@ export const getAdminExperienceSections = async (req, res) => {
     if (pageType) query.pageType = pageType;
     if (headerId) query.headerId = headerId;
 
+    // Make the app's built-in sections (banner, list, combos, …) manageable here,
+    // and repair duplicate orders so admin preview and app show the same order
+    if (pageType && (pageType === "home" || mongoose.Types.ObjectId.isValid(String(headerId || "")))) {
+      const created = await ensureBuiltinSections(pageType, headerId || null);
+      const repaired = await repairDuplicateSectionOrders(pageType, headerId || null);
+      if (created || repaired) await invalidate("cache:experience:public:*");
+    }
+
     const sections = await ExperienceSection.find(query)
       .sort({ order: 1, createdAt: 1 })
       .lean();
@@ -228,14 +242,17 @@ export const createExperienceSection = async (req, res) => {
     const base = await validateBasePayload(req.body);
     const config = await validateAndNormalizeConfig(base.displayType, base.config);
 
-    const count = await ExperienceSection.countDocuments({
-      pageType: base.pageType,
-      headerId: base.headerId,
-    });
+    // New sections go to the end of the page unless an explicit order is sent.
+    // (validateBasePayload defaults order to 0, so check the raw request body.)
+    const hasExplicitOrder =
+      req.body.order !== undefined && req.body.order !== null && req.body.order !== "";
+    const order = hasExplicitOrder
+      ? Number(req.body.order)
+      : await getNextSectionOrder(base.pageType, base.headerId);
 
     const section = await ExperienceSection.create({
       ...base,
-      order: base.order ?? count,
+      order,
       config,
     });
     await invalidate("cache:experience:public:*");
@@ -255,6 +272,20 @@ export const updateExperienceSection = async (req, res) => {
     const existing = await ExperienceSection.findById(id);
     if (!existing) {
       return handleResponse(res, 404, "Section not found");
+    }
+
+    // Built-in sections: only Active/Inactive can change (order via reorder)
+    if (isBuiltinSection(existing)) {
+      const { status } = req.body || {};
+      if (status !== undefined) {
+        if (!["active", "inactive"].includes(status)) {
+          return handleResponse(res, 400, "Invalid status");
+        }
+        existing.status = status;
+        await existing.save();
+        await invalidate("cache:experience:public:*");
+      }
+      return handleResponse(res, 200, "Experience section updated", existing);
     }
 
     const merged = {
@@ -289,8 +320,22 @@ export const updateExperienceSection = async (req, res) => {
 export const deleteExperienceSection = async (req, res) => {
   try {
     const { id } = req.params;
-    const section = await ExperienceSection.findByIdAndDelete(id);
+    if (!mongoose.Types.ObjectId.isValid(String(id || ""))) {
+      return handleResponse(res, 400, "Invalid section ID");
+    }
+    const target = await ExperienceSection.findById(id).select("displayType").lean();
+    if (!target) {
+      return handleResponse(res, 404, "Section not found");
+    }
+    if (isBuiltinSection(target)) {
+      return handleResponse(
+        res,
+        400,
+        "Built-in sections can't be deleted. Set them to Inactive to hide them.",
+      );
+    }
 
+    const section = await ExperienceSection.findByIdAndDelete(id);
     if (!section) {
       return handleResponse(res, 404, "Section not found");
     }
@@ -351,7 +396,12 @@ export const getPublicExperienceSections = async (req, res) => {
       return handleResponse(res, 400, "pageType is required");
     }
 
-    const query = { pageType, status: "active" };
+    // Built-in sections are returned even when inactive (with their status) so
+    // the app knows they were switched off; custom sections only when active.
+    const query = {
+      pageType,
+      $or: [{ status: "active" }, { displayType: "builtin" }],
+    };
     if (pageType === "header") {
       if (!headerId) {
         return handleResponse(res, 400, "headerId is required for header pageType");

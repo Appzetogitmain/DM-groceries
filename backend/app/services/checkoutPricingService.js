@@ -13,6 +13,7 @@ import {
   hydrateOrderItems,
 } from "./finance/pricingService.js";
 import { computeOrderDiscount } from "./finance/couponService.js";
+import { hasSellerReachedOrderLimit } from "./sellerOrderLimitService.js";
 
 function normalizeLocation(location = null) {
   const lat = Number(location?.lat);
@@ -44,12 +45,25 @@ async function computeDistanceKmForSeller({ sellerId, addressLocation, session =
   const normalizedLocation = normalizeLocation(addressLocation);
   if (!normalizedLocation) return { distanceKm: 0, distanceSource: "haversine" };
 
-  const query = Seller.findById(sellerId).select("location serviceRadius shopName").lean();
+  const query = Seller.findById(sellerId)
+    .select("location serviceRadius shopName isShopOpen email")
+    .lean();
   if (session) query.session(session);
   const seller = await query;
   if (!seller) {
     const err = new Error("Seller not found");
     err.statusCode = 404;
+    throw err;
+  }
+  // Offline shops (closed by the seller, or order limit reached) can't take orders
+  if (
+    seller.isShopOpen === false ||
+    (await hasSellerReachedOrderLimit(sellerId, seller))
+  ) {
+    const err = new Error(
+      `${seller.shopName || "This store"} is currently offline. Please remove its items from your cart to continue.`,
+    );
+    err.statusCode = 400;
     throw err;
   }
   const coords = seller?.location?.coordinates;

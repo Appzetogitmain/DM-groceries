@@ -14,11 +14,13 @@ import {
     HiOutlineDevicePhoneMobile,
     HiOutlineLink,
     HiOutlineSparkles,
-    HiOutlineXMark
+    HiOutlineXMark,
+    HiOutlineLockClosed
 } from 'react-icons/hi2';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { adminApi } from '../services/adminApi';
+import ExperiencePreview from '../components/ExperiencePreview';
 
 const DISPLAY_TYPES = [
     { id: 'banners', label: 'Banners' },
@@ -27,14 +29,33 @@ const DISPLAY_TYPES = [
     { id: 'products', label: 'Products' },
 ];
 
+// The app's fixed sections (displayType "builtin"): reorder + Active/Inactive only
+const BUILTIN_DESCRIPTIONS = {
+    hero: 'Top "Shop Now" banner (set in Hero & categories per page). Shown on phones only',
+    my_list: '"Make Your Own Grocery List" card',
+    combos: 'Bachat Combos (your active packages)',
+    shop_by_category: 'Shop by Category grid',
+    products: 'Lowest Price products (category products on header pages)',
+};
+
+// The "All" header tab in the customer app shows the Home Page sections
+const isAllHeader = (h) =>
+    String(h?.slug || '').trim().toLowerCase() === 'all' ||
+    String(h?.name || '').trim().toLowerCase() === 'all';
+
 const ContentManager = () => {
     const { showToast } = useToast();
     const [searchParams] = useSearchParams();
-    const [pageType, setPageType] = useState('header');
+    // Start on the Home Page: that's the "All" tab customers land on
+    const [pageType, setPageType] = useState('home');
     const [headerCategories, setHeaderCategories] = useState([]);
     const [selectedHeaderId, setSelectedHeaderId] = useState('');
     const [sections, setSections] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isSavingOrder, setIsSavingOrder] = useState(false);
+    const [previewHeroConfig, setPreviewHeroConfig] = useState(null);
+    // Section ids in the order last saved on the server (to detect unsaved changes)
+    const [savedOrderIds, setSavedOrderIds] = useState([]);
 
     const [activeTab, setActiveTab] = useState('banners');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,13 +105,31 @@ const ContentManager = () => {
                 const tree = res.data.results || res.data.result || [];
                 const headers = Array.isArray(tree) ? tree : [];
                 setHeaderCategories(headers);
-                if (!selectedHeaderId && headers.length) {
-                    setSelectedHeaderId(headers[0]._id);
+                // "All" is the customer home page (pageType "home"), so it is not a
+                // header page here; default to the first real header category.
+                const firstHeader = headers.find((h) => !isAllHeader(h));
+                if (!selectedHeaderId && firstHeader) {
+                    setSelectedHeaderId(firstHeader._id);
                 }
             }
         } catch (e) {
             console.error(e);
             showToast('Failed to load header categories', 'error');
+        }
+    };
+
+    // Hero banner + "Shop by Category" for the preview. Same rule as the app:
+    // a header page without its own hero config falls back to the home one.
+    const loadPreviewHeroConfig = async (params) => {
+        const hasContent = (c) => Boolean(c && (c.banners?.items?.length || c.categoryIds?.length));
+        try {
+            const res = await adminApi.getHeroConfig(params);
+            const config = res.data?.result || res.data?.results || null;
+            if (hasContent(config) || params.pageType === 'home') return config;
+            const homeRes = await adminApi.getHeroConfig({ pageType: 'home' });
+            return homeRes.data?.result || homeRes.data?.results || null;
+        } catch {
+            return null; // preview falls back to the default banner / all categories
         }
     };
 
@@ -100,13 +139,15 @@ const ContentManager = () => {
         try {
             const params = { pageType };
             if (pageType === 'header') params.headerId = selectedHeaderId;
-            const res = await adminApi.getExperienceSections(params);
-            if (res.data.success) {
-                const list = res.data.results || res.data.result || res.data;
-                setSections(Array.isArray(list) ? list : []);
-            } else {
-                setSections([]);
-            }
+            const [res, hero] = await Promise.all([
+                adminApi.getExperienceSections(params),
+                loadPreviewHeroConfig(params),
+            ]);
+            const raw = res.data.success ? (res.data.results || res.data.result || res.data) : [];
+            const list = Array.isArray(raw) ? raw : [];
+            setSections(list);
+            setSavedOrderIds(list.map((s) => s._id));
+            setPreviewHeroConfig(hero);
         } catch (e) {
             console.error(e);
             showToast('Failed to load experience sections', 'error');
@@ -164,7 +205,34 @@ const ContentManager = () => {
         setIsModalOpen(true);
     };
 
+    // Built-in sections (banner, list, combos, categories, products) can only be
+    // switched Active/Inactive; they can't be deleted or reconfigured.
+    const [builtinEditing, setBuiltinEditing] = useState(null);
+    const [builtinStatus, setBuiltinStatus] = useState('active');
+    const [isSavingBuiltin, setIsSavingBuiltin] = useState(false);
+
+    const saveBuiltinStatus = async () => {
+        if (!builtinEditing) return;
+        setIsSavingBuiltin(true);
+        try {
+            await adminApi.updateExperienceSection(builtinEditing._id, { status: builtinStatus });
+            setSections((prev) => prev.map((s) => (s._id === builtinEditing._id ? { ...s, status: builtinStatus } : s)));
+            showToast(builtinStatus === 'active' ? 'Section is now visible' : 'Section hidden', 'success');
+            setBuiltinEditing(null);
+        } catch (e) {
+            console.error(e);
+            showToast(e.response?.data?.message || 'Failed to update section', 'error');
+        } finally {
+            setIsSavingBuiltin(false);
+        }
+    };
+
     const openEditModal = (section) => {
+        if (section.displayType === 'builtin') {
+            setBuiltinEditing(section);
+            setBuiltinStatus(section.status || 'active');
+            return;
+        }
         setEditingItem(section);
         const { displayType, title, status, config = {} } = section;
         const next = {
@@ -198,6 +266,7 @@ const ContentManager = () => {
             await adminApi.deleteExperienceSection(id);
             showToast('Section deleted', 'success');
             setSections(prev => prev.filter(s => s._id !== id));
+            setSavedOrderIds(prev => prev.filter(sid => sid !== id));
         } catch (e) {
             console.error(e);
             showToast('Failed to delete section', 'error');
@@ -290,6 +359,8 @@ const ContentManager = () => {
                 const res = await adminApi.createExperienceSection(payload);
                 const created = res.data.result || res.data.results || res.data;
                 setSections(prev => [...prev, created]);
+                // The server also puts new sections at the end, so this isn't an unsaved change
+                setSavedOrderIds(prev => [...prev, created._id]);
                 showToast('Section created', 'success');
             }
             setIsModalOpen(false);
@@ -299,7 +370,52 @@ const ContentManager = () => {
         }
     };
 
-    const handleReorder = async (direction, section) => {
+    // Order changes (drag in the preview or the ↑ ↓ arrows) are a draft until
+    // "Save" is pressed; Save writes the order the customer app uses.
+    const isOrderDirty = useMemo(
+        () => sections.map((s) => s._id).join(',') !== savedOrderIds.join(','),
+        [sections, savedOrderIds]
+    );
+
+    const saveSectionOrder = async () => {
+        if (!isOrderDirty || isSavingOrder) return;
+        const next = sections.map((s, idx) => ({ ...s, order: idx }));
+        setIsSavingOrder(true);
+        try {
+            await adminApi.reorderExperienceSections(next.map((s) => ({ id: s._id, order: s.order })));
+            setSections(next);
+            setSavedOrderIds(next.map((s) => s._id));
+            showToast('Layout saved. Customers will see the new order.', 'success');
+        } catch (e) {
+            console.error(e);
+            showToast(e.response?.data?.message || 'Failed to save the layout', 'error');
+        } finally {
+            setIsSavingOrder(false);
+        }
+    };
+
+    const discardOrderChanges = () => {
+        const position = new Map(savedOrderIds.map((id, i) => [id, i]));
+        setSections((prev) =>
+            [...prev].sort((a, b) => (position.get(a._id) ?? Infinity) - (position.get(b._id) ?? Infinity))
+        );
+    };
+
+    // Ask before leaving a page that has an unsaved layout
+    const confirmDiscardIfDirty = () =>
+        !isOrderDirty || window.confirm('You have unsaved layout changes. Discard them?');
+
+    useEffect(() => {
+        if (!isOrderDirty) return undefined;
+        const onBeforeUnload = (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', onBeforeUnload);
+        return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    }, [isOrderDirty]);
+
+    const handleReorder = (direction, section) => {
         const index = sections.findIndex(s => s._id === section._id);
         if (index < 0) return;
         const newIndex = direction === 'up' ? index - 1 : index + 1;
@@ -308,15 +424,7 @@ const ContentManager = () => {
         const copy = [...sections];
         const [removed] = copy.splice(index, 1);
         copy.splice(newIndex, 0, removed);
-
-        const items = copy.map((s, idx) => ({ id: s._id, order: idx }));
-        try {
-            await adminApi.reorderExperienceSections(items);
-            setSections(copy.map((s, idx) => ({ ...s, order: idx })));
-        } catch (e) {
-            console.error(e);
-            showToast('Failed to reorder sections', 'error');
-        }
+        setSections(copy);
     };
 
     const updateBannerItem = (idx, changes) => {
@@ -394,12 +502,14 @@ const ContentManager = () => {
             <div className="flex flex-wrap gap-4 items-center mt-6">
                 <div className="flex p-1.5 bg-slate-100 rounded-xl">
                     {[
-                        { id: 'home', label: 'Home Page' },
+                        { id: 'home', label: 'Home Page ("All" tab)' },
                         { id: 'header', label: 'Header Category Pages' },
                     ].map((opt) => (
                         <button
                             key={opt.id}
-                            onClick={() => setPageType(opt.id)}
+                            onClick={() => {
+                                if (opt.id !== pageType && confirmDiscardIfDirty()) setPageType(opt.id);
+                            }}
                             className={cn(
                                 "px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
                                 pageType === opt.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
@@ -414,21 +524,26 @@ const ContentManager = () => {
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Header Category</span>
                         <select
                             value={selectedHeaderId}
-                            onChange={(e) => setSelectedHeaderId(e.target.value)}
+                            onChange={(e) => {
+                                if (confirmDiscardIfDirty()) setSelectedHeaderId(e.target.value);
+                            }}
                             className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
                         >
-                            {headerCategories.map((h) => (
+                            {headerCategories.filter((h) => !isAllHeader(h)).map((h) => (
                                 <option key={h._id} value={h._id}>{h.name}</option>
                             ))}
                         </select>
+                        <span className="text-[10px] text-slate-400">
+                            For &quot;All&quot;, use <button type="button" onClick={() => { if (confirmDiscardIfDirty()) setPageType('home'); }} className="font-bold text-primary underline">Home Page</button>
+                        </span>
                     </div>
                 )}
             </div>
 
-            {/* Canvas Area */}
-            <div className="grid grid-cols-1 gap-4">
+            {/* Canvas Area: section list (left) + live phone preview (right) */}
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-8 items-start mt-6">
                 {/* Visual Editor */}
-                <div className="space-y-6">
+                <div className="space-y-6 min-w-0">
                     {/* Section list */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between px-2">
@@ -454,7 +569,10 @@ const ContentManager = () => {
 
                         <div className="space-y-4">
                             {sections.map((section, idx) => {
-                                const displayMeta = DISPLAY_TYPES.find(d => d.id === section.displayType);
+                                const isBuiltin = section.displayType === 'builtin';
+                                const displayMeta = isBuiltin
+                                    ? { label: 'Built-in' }
+                                    : DISPLAY_TYPES.find(d => d.id === section.displayType);
                                 return (
                                     <Card key={section._id} className="p-4 border-none shadow-lg ring-1 ring-slate-100 bg-white rounded-xl group">
                                         <div className="flex items-center gap-4">
@@ -463,6 +581,7 @@ const ContentManager = () => {
                                                 {section.displayType === 'categories' && <HiOutlineSparkles className="h-6 w-6" />}
                                                 {section.displayType === 'subcategories' && <HiOutlineSparkles className="h-6 w-6" />}
                                                 {section.displayType === 'products' && <HiOutlineDevicePhoneMobile className="h-6 w-6" />}
+                                                {isBuiltin && <HiOutlineLockClosed className="h-6 w-6" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
@@ -480,6 +599,7 @@ const ContentManager = () => {
                                                     {section.title || '(No heading)'}
                                                 </h4>
                                                 <p className="text-[11px] text-slate-500">
+                                                    {isBuiltin && (BUILTIN_DESCRIPTIONS[section.builtinKey] || 'App section')}
                                                     {section.displayType === 'banners' && `${section.config?.banners?.items?.length || 0} banners configured`}
                                                     {section.displayType === 'categories' && `${section.config?.categories?.categoryIds?.length || 0} categories • ${section.config?.categories?.rows || 1} rows`}
                                                     {section.displayType === 'subcategories' && `${section.config?.subcategories?.subcategoryIds?.length || 0} subcategories • ${section.config?.subcategories?.rows || 1} rows`}
@@ -516,12 +636,21 @@ const ContentManager = () => {
                                                     >
                                                         <HiOutlinePencilSquare className="h-5 w-5" />
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDeleteSection(section._id)}
-                                                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                                                    >
-                                                        <HiOutlineTrash className="h-5 w-5" />
-                                                    </button>
+                                                    {isBuiltin ? (
+                                                        <span
+                                                            className="p-2 text-slate-200 cursor-not-allowed"
+                                                            title="Built-in sections can't be deleted. Edit to set Inactive."
+                                                        >
+                                                            <HiOutlineLockClosed className="h-5 w-5" />
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleDeleteSection(section._id)}
+                                                            className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                                        >
+                                                            <HiOutlineTrash className="h-5 w-5" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -531,7 +660,77 @@ const ContentManager = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Live Preview with drag & drop */}
+                <ExperiencePreview
+                    sections={sections}
+                    headerCategories={headerCategories}
+                    pageLabel={pageType === 'home' ? 'All' : (selectedHeader?.name || 'Category')}
+                    isHomePage={pageType === 'home'}
+                    heroConfig={previewHeroConfig}
+                    onReorder={setSections}
+                    onEdit={openEditModal}
+                    isSaving={isSavingOrder}
+                    isDirty={isOrderDirty}
+                    onSave={saveSectionOrder}
+                    onDiscard={discardOrderChanges}
+                />
             </div>
+
+            {/* Built-in section: only Active / Inactive */}
+            <Modal
+                isOpen={Boolean(builtinEditing)}
+                onClose={() => setBuiltinEditing(null)}
+                title={builtinEditing?.title || 'Built-in section'}
+                size="sm"
+                footer={
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setBuiltinEditing(null)}
+                            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={saveBuiltinStatus}
+                            disabled={isSavingBuiltin}
+                            className="px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest disabled:opacity-60"
+                        >
+                            {isSavingBuiltin ? 'Saving…' : 'Save'}
+                        </button>
+                    </div>
+                }
+            >
+                <div className="space-y-4">
+                    <p className="text-xs text-slate-500">
+                        {BUILTIN_DESCRIPTIONS[builtinEditing?.builtinKey] || 'App section'}
+                    </p>
+                    <div className="flex p-1.5 bg-slate-100 rounded-xl w-fit">
+                        {[
+                            { id: 'active', label: 'Active (visible)' },
+                            { id: 'inactive', label: 'Inactive (hidden)' },
+                        ].map((opt) => (
+                            <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => setBuiltinStatus(opt.id)}
+                                className={cn(
+                                    'px-4 py-2 rounded-lg text-[11px] font-black transition-all',
+                                    builtinStatus === opt.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                                )}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                    <p className="flex items-start gap-1.5 text-[11px] text-slate-400">
+                        <HiOutlineLockClosed className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        Built-in sections can&apos;t be deleted or edited. You can hide them, and drag them in the preview to change their position.
+                    </p>
+                </div>
+            </Modal>
 
             {/* Modal */}
             <Modal

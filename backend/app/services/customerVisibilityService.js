@@ -1,6 +1,7 @@
 import Seller from "../models/seller.js";
 import { calculateDistance } from "../utils/helper.js";
 import { buildKey, getOrSet, getTTL } from "./cacheService.js";
+import { getLimitReachedSellerIds } from "./sellerOrderLimitService.js";
 
 const MAX_SELLER_SEARCH_DISTANCE_M = 100000;
 
@@ -47,7 +48,7 @@ export async function getNearbySellerIdsForCustomer(lat, lng) {
       .select("_id location serviceRadius")
       .lean();
 
-    return sellers
+    const inRangeIds = sellers
       .filter((seller) => {
         const coords = seller?.location?.coordinates;
         if (!Array.isArray(coords) || coords.length < 2) return false;
@@ -59,6 +60,13 @@ export async function getNearbySellerIdsForCustomer(lat, lng) {
         return distanceKm <= (seller.serviceRadius || 5);
       })
       .map((seller) => String(seller._id));
+
+    // Sellers whose subscription order limit is used up are offline: their
+    // products must not show to customers (exempt sellers are never removed).
+    const limitReached = await getLimitReachedSellerIds(inRangeIds);
+    return limitReached.size
+      ? inRangeIds.filter((id) => !limitReached.has(id))
+      : inRangeIds;
   };
 
   return getOrSet(buildNearbySellersKey(lat, lng), fetchFn, getTTL("nearbySellers"));

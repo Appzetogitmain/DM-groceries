@@ -155,6 +155,13 @@ const sellerSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Why the shop was closed automatically (null = open, or closed by the seller).
+    // "ORDER_LIMIT": subscription order limit reached; reopened on new subscription.
+    shopClosedReason: {
+      type: String,
+      enum: [null, "ORDER_LIMIT"],
+      default: null,
+    },
     location: {
       type: {
         type: String,

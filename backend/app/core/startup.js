@@ -289,6 +289,17 @@ async function startup() {
       }
     }
 
+    // Step 6c: Take offline any seller already at their subscription order limit
+    if (isComponentEnabled('http')) {
+      try {
+        const { enforceOrderLimitForAllSellers } = await import('../services/sellerOrderLimitService.js');
+        const closed = await enforceOrderLimitForAllSellers();
+        if (closed > 0) console.log(`[Startup] Set ${closed} seller shop(s) offline: order limit reached`);
+      } catch (error) {
+        console.error('[Startup] Warning: Failed to enforce seller order limits:', error.message);
+      }
+    }
+
     // Step 7: Start search index worker (if worker role)
     if (isComponentEnabled('worker')) {
       try {

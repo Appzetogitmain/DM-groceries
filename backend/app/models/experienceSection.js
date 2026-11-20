@@ -69,8 +69,15 @@ const experienceSectionSchema = new mongoose.Schema(
     },
     displayType: {
       type: String,
-      enum: ["banners", "categories", "subcategories", "products"],
+      // "builtin" = one of the app's fixed sections (see builtinKey); these can
+      // be reordered and switched on/off but never deleted or reconfigured.
+      enum: ["banners", "categories", "subcategories", "products", "builtin"],
       required: true,
+    },
+    builtinKey: {
+      type: String,
+      enum: [null, "hero", "my_list", "combos", "shop_by_category", "products"],
+      default: null,
     },
     title: {
       type: String,
@@ -92,6 +99,11 @@ const experienceSectionSchema = new mongoose.Schema(
 );
 
 experienceSectionSchema.index({ pageType: 1, headerId: 1, order: 1 });
+// One copy of each built-in section per page
+experienceSectionSchema.index(
+  { pageType: 1, headerId: 1, builtinKey: 1 },
+  { unique: true, partialFilterExpression: { displayType: "builtin" } },
+);
 
 export default mongoose.model("ExperienceSection", experienceSectionSchema);
 
