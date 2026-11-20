@@ -18,6 +18,9 @@ import { useLocation as useAppLocation } from '../context/LocationContext';
 import { useSettings } from '@core/context/SettingsContext';
 import Lottie from 'lottie-react';
 
+// Fallback for "All" when the admin hasn't uploaded an image for the "All" header
+const DEFAULT_ALL_ICON = 'https://cdn-icons-png.flaticon.com/128/2321/2321831.png';
+
 const CategoryProductsPage = () => {
     const { categoryName: catId } = useParams();
     const navigate = useNavigate();
@@ -28,7 +31,7 @@ const CategoryProductsPage = () => {
     const { isOpen: isProductDetailOpen } = useProductDetail();
     const [selectedSubCategory, setSelectedSubCategory] = useState(initialSubcategoryId);
     const [category, setCategory] = useState(null);
-    const [subCategories, setSubCategories] = useState([{ id: 'all', name: 'All', icon: 'https://cdn-icons-png.flaticon.com/128/2321/2321831.png' }]);
+    const [subCategories, setSubCategories] = useState([{ id: 'all', name: 'All', icon: DEFAULT_ALL_ICON }]);
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [noServiceData, setNoServiceData] = useState(null);
@@ -104,7 +107,12 @@ const CategoryProductsPage = () => {
                         name: s.name,
                         icon: s.image || 'https://cdn-icons-png.flaticon.com/128/2321/2321801.png'
                     }));
-                    setSubCategories([{ id: 'all', name: 'All', icon: 'https://cdn-icons-png.flaticon.com/128/2321/2321831.png' }, ...subs]);
+                    // "All" uses the image set on the default "All" header in Admin → Header Categories
+                    const allHeader = tree.find((h) =>
+                        h?.type === 'header' &&
+                        (String(h.slug || '').trim().toLowerCase() === 'all' ||
+                            String(h.name || '').trim().toLowerCase() === 'all'));
+                    setSubCategories([{ id: 'all', name: 'All', icon: allHeader?.image || DEFAULT_ALL_ICON }, ...subs]);
                 }
             }
         } catch (error) {

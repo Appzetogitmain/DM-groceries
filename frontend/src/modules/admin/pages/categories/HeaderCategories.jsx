@@ -14,6 +14,7 @@ import {
   ArrowUp,
   ArrowDown,
   Save,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -55,6 +56,16 @@ const makeSlug = (value) =>
     .replace(/[^\w-]+/g, "")
     .replace(/-+/g, "-");
 
+/**
+ * The "All" header is a built-in default (the backend creates it and refuses
+ * to delete it). Admins can only change its icon / image / colours here; that
+ * image is what customers see for "All".
+ */
+const isAllHeader = (cat) =>
+  Boolean(cat) &&
+  (String(cat.slug || "").trim().toLowerCase() === "all" ||
+    String(cat.name || "").trim().toLowerCase() === "all");
+
 const HeaderCategories = () => {
   const [categories, setCategories] = useState([]);
   const [page, setPage] = useState(1);
@@ -70,6 +81,7 @@ const HeaderCategories = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
+  const isEditingAllHeader = isAllHeader(editingItem);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -183,7 +195,9 @@ const HeaderCategories = () => {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedItems(categories.map((c) => c._id || c.id));
+      setSelectedItems(
+        categories.filter((c) => !isAllHeader(c)).map((c) => c._id || c.id),
+      );
     } else {
       setSelectedItems([]);
     }
@@ -243,6 +257,7 @@ const HeaderCategories = () => {
       Object.keys(formData).forEach((key) => {
         if (key === "type") return;
         if (key === "adminCommission" || key === "handlingFees") {
+          if (isEditingAllHeader) return; // not applicable to "All"
           data.append(key, formData[key] === "" ? "0" : String(formData[key]));
           return;
         }
@@ -276,6 +291,12 @@ const HeaderCategories = () => {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    if (isAllHeader(deleteTarget)) {
+      toast.error('The default "All" category cannot be deleted');
+      setIsDeleteModalOpen(false);
+      setDeleteTarget(null);
+      return;
+    }
 
     try {
       await adminApi.deleteCategory(deleteTarget._id || deleteTarget.id);
@@ -388,7 +409,8 @@ const HeaderCategories = () => {
                     checked={
                       selectedItems.length > 0 &&
                       categories.length > 0 &&
-                      selectedItems.length === categories.length
+                      selectedItems.length ===
+                        categories.filter((c) => !isAllHeader(c)).length
                     }
                     onChange={handleSelectAll}
                   />
@@ -440,6 +462,8 @@ const HeaderCategories = () => {
                         className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                         checked={selectedItems.includes(cat._id || cat.id)}
                         onChange={() => handleSelect(cat._id || cat.id)}
+                        disabled={isAllHeader(cat)}
+                        title={isAllHeader(cat) ? "Default category" : undefined}
                       />
                     </td>
                     <td className="py-3 px-4">
@@ -470,14 +494,32 @@ const HeaderCategories = () => {
                       </div>
                     </td>
                     <td className="py-3 px-4 font-medium text-gray-900">
-                      {cat.name}
+                      <span className="inline-flex items-center gap-2">
+                        {cat.name}
+                        {isAllHeader(cat) && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700 border border-brand-200"
+                            title="Default category: cannot be deleted. Edit it to change the icon/image customers see for 'All'.">
+                            <Lock className="w-3 h-3" />
+                            Default
+                          </span>
+                        )}
+                      </span>
                     </td>
                     <td className="py-3 px-4 text-gray-500">{cat.slug}</td>
                     <td className="py-3 px-4 text-gray-500 font-medium">
-                      {cat.adminCommission ?? 0}%
+                      {isAllHeader(cat) ? (
+                        <span className="text-gray-300">—</span>
+                      ) : (
+                        `${cat.adminCommission ?? 0}%`
+                      )}
                     </td>
                     <td className="py-3 px-4 text-gray-500 font-medium">
-                      ₹{cat.handlingFees ?? 0}
+                      {isAllHeader(cat) ? (
+                        <span className="text-gray-300">—</span>
+                      ) : (
+                        `₹${cat.handlingFees ?? 0}`
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <Badge
@@ -493,14 +535,22 @@ const HeaderCategories = () => {
                         className="p-1 text-gray-500 hover:text-brand-600 transition-colors">
                         <Edit className="w-5 h-5" />
                       </button>
-                      <button
-                        onClick={() => {
-                          setDeleteTarget(cat);
-                          setIsDeleteModalOpen(true);
-                        }}
-                        className="p-1 text-gray-500 hover:text-red-600 transition-colors">
-                        <Trash className="w-5 h-5" />
-                      </button>
+                      {isAllHeader(cat) ? (
+                        <span
+                          className="inline-block p-1 text-gray-300 cursor-not-allowed align-middle"
+                          title="Default category cannot be deleted">
+                          <Lock className="w-5 h-5" />
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setDeleteTarget(cat);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="p-1 text-gray-500 hover:text-red-600 transition-colors">
+                          <Trash className="w-5 h-5" />
+                        </button>
+                      )}
 
                       {/* Reorder Arrows */}
                       <button
@@ -747,6 +797,7 @@ const HeaderCategories = () => {
                   <input
                     type="text"
                     value={formData.name}
+                    readOnly={isEditingAllHeader}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
@@ -754,9 +805,19 @@ const HeaderCategories = () => {
                         slug: makeSlug(e.target.value),
                       })
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    className={cn(
+                      "w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500",
+                      isEditingAllHeader && "bg-gray-50 text-gray-600 cursor-not-allowed",
+                    )}
                     placeholder="e.g., Electronics"
                   />
+                  {isEditingAllHeader && (
+                    <p className="text-xs text-gray-500">
+                      This is the default "All" category. Its name can't be
+                      changed and it can't be deleted. The icon/image you set
+                      above is shown to customers for "All".
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -778,15 +839,18 @@ const HeaderCategories = () => {
                   </label>
                   <select
                     value={formData.status}
+                    disabled={isEditingAllHeader}
                     onChange={(e) =>
                       setFormData({ ...formData, status: e.target.value })
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    className="disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
                 </div>
 
+                {/* "All" is only a display tab: no commission / handling fee */}
+                {!isEditingAllHeader && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">
@@ -820,6 +884,7 @@ const HeaderCategories = () => {
                     />
                   </div>
                 </div>
+                )}
               </div>
 
               <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 shrink-0">

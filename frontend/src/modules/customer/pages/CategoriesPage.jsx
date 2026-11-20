@@ -195,6 +195,12 @@ const CategoriesPage = () => {
                                                 </div>
                                             </div>
                                         </div>
+                                        <p
+                                            className="mt-1 px-0.5 text-center text-[11px] md:text-[13px] font-semibold leading-tight text-slate-800 line-clamp-2 break-words"
+                                            title={category.name}
+                                        >
+                                            {category.name}
+                                        </p>
                                     </Link>
                                 </div>
                             ))}

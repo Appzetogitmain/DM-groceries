@@ -47,7 +47,9 @@ describe("cache invalidation on category mutations", () => {
         lean: async () => ({ type: "header", parentId: null }),
       }),
     });
-    mockFind.mockResolvedValue([]);
+    mockFind.mockReturnValue({
+      select: () => ({ lean: async () => [] }),
+    });
     mockFindByIdAndDelete.mockResolvedValue({ _id: "cat-1" });
     mockFindOne.mockReturnValue({ lean: async () => null });
   });
@@ -86,10 +88,57 @@ describe("cache invalidation on category mutations", () => {
   test("deleteCategory invalidates category caches", async () => {
     await deleteCategory(
       {
-        params: { id: "cat-1" },
+        params: { id: "507f1f77bcf86cd799439011" },
       },
       {},
     );
     expect(mockInvalidate).toHaveBeenCalledWith("cache:catalog:categories:*");
+  });
+
+  test("deleteCategory refuses to delete the default \"All\" header", async () => {
+    mockFindById.mockReturnValue({
+      select: () => ({
+        lean: async () => ({ type: "header", name: "All", slug: "all" }),
+      }),
+    });
+    await deleteCategory({ params: { id: "507f1f77bcf86cd799439011" } }, {});
+    expect(mockFindByIdAndDelete).not.toHaveBeenCalled();
+    expect(mockHandleResponse).toHaveBeenCalledWith(
+      expect.anything(),
+      400,
+      expect.stringContaining("cannot be deleted"),
+    );
+  });
+
+  test("updateCategory keeps the \"All\" header's name/slug/status but saves its image and icon", async () => {
+    mockFindById.mockReturnValue({
+      select: () => ({
+        lean: async () => ({ type: "header", parentId: null, name: "All", slug: "all" }),
+      }),
+    });
+    await updateCategory(
+      {
+        params: { id: "507f1f77bcf86cd799439011" },
+        body: {
+          name: "Everything",
+          slug: "everything",
+          status: "inactive",
+          adminCommission: "5",
+          handlingFees: "10",
+          iconId: "grocery",
+          image: "https://example.com/all.png",
+        },
+      },
+      {},
+    );
+    const [, update] = mockFindByIdAndUpdate.mock.calls[0];
+    expect(update.$set).toEqual(
+      expect.objectContaining({ iconId: "grocery", image: "https://example.com/all.png" }),
+    );
+    expect(update.$set).not.toHaveProperty("name");
+    expect(update.$set).not.toHaveProperty("slug");
+    expect(update.$set).not.toHaveProperty("status");
+    expect(update.$set).not.toHaveProperty("adminCommission");
+    expect(update.$set).not.toHaveProperty("handlingFees");
   });
 });

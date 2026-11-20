@@ -6,6 +6,10 @@ import { uploadToCloudinary } from "../services/mediaService.js";
 import mongoose from "mongoose";
 import { invalidateCategoryName } from "../services/entityNameCache.js";
 import { buildSearchRegex } from "../utils/regex.js";
+import {
+  ALL_HEADER_LOCKED_FIELDS,
+  isAllHeaderCategory,
+} from "../services/defaultCategoryService.js";
 
 function normalizeUrl(value) {
   if (!value || typeof value !== "string") return "";
@@ -257,8 +261,13 @@ export const updateCategory = async (req, res) => {
         if (req.body.image && typeof req.body.image === 'object') delete categoryData.image;
     }
 
-    const existing = await Category.findById(id).select("type parentId").lean();
+    const existing = await Category.findById(id).select("type parentId name slug").lean();
     if (!existing) return handleResponse(res, 404, "Category not found");
+
+    // The default "All" header keeps its identity; only its look can change
+    if (isAllHeaderCategory(existing)) {
+      for (const field of ALL_HEADER_LOCKED_FIELDS) delete categoryData[field];
+    }
 
     const hasParentId = Object.prototype.hasOwnProperty.call(categoryData, "parentId");
     if (hasParentId) {
@@ -307,6 +316,19 @@ export const updateCategory = async (req, res) => {
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(String(id || ""))) {
+      return handleResponse(res, 400, "Invalid category ID");
+    }
+
+    const target = await Category.findById(id).select("type name slug").lean();
+    if (!target) return handleResponse(res, 404, "Category not found");
+    if (isAllHeaderCategory(target)) {
+      return handleResponse(
+        res,
+        400,
+        'The "All" header category is a default and cannot be deleted. You can still edit its icon, image and colours.',
+      );
+    }
 
     const deleteWithChildren = async (parentId) => {
       const children = await Category.find({ parentId }).select("_id").lean();

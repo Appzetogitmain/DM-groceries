@@ -278,6 +278,17 @@ async function startup() {
       console.error('[Startup] Warning: Failed to create indexes:', error.message);
     }
     
+    // Step 6b: Make sure the default "All" header category exists
+    if (isComponentEnabled('http')) {
+      try {
+        const { ensureAllHeaderCategory } = await import('../services/defaultCategoryService.js');
+        const { created } = await ensureAllHeaderCategory();
+        if (created) console.log('[Startup] Created default "All" header category');
+      } catch (error) {
+        console.error('[Startup] Warning: Failed to ensure "All" header category:', error.message);
+      }
+    }
+
     // Step 7: Start search index worker (if worker role)
     if (isComponentEnabled('worker')) {
       try {
