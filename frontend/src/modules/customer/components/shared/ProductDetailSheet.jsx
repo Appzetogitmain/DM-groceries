@@ -14,6 +14,8 @@ import { pickDefaultVariant, getVariantKey, getVariantStock } from '../../utils/
 import { customerApi } from '../../services/customerApi';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { getLocalizedItemLabel as itemName } from "../../i18n/format";
 
 const AccordionItem = ({ title, children, id, icon, expandedSections, toggleSection }) => {
     const isOpen = expandedSections.includes(id);
@@ -69,6 +71,7 @@ const ProductDetailSheet = () => {
     const location = useLocation();
     const isWishlistPage = location.pathname === '/wishlist';
     const { showToast } = useToast();
+    const { t } = useTranslation();
     const { settings } = useSettings();
     const { currentLocation } = useAppLocation();
     const supportEmail = settings?.supportEmail || 'support@example.com';
@@ -176,7 +179,7 @@ const ProductDetailSheet = () => {
                 comment: newReview.comment
             });
             if (res.data.success) {
-                showToast("Review submitted successfully", "success");
+                showToast(t('product.reviewSubmitted'), "success");
                 setNewReview({ rating: 5, comment: '' });
                 setLocalHasReviewed(true);
                 setReviews(prev => [{
@@ -189,7 +192,7 @@ const ProductDetailSheet = () => {
                 }, ...prev]);
             }
         } catch (error) {
-            showToast(error.response?.data?.message || "Failed to submit review", "error");
+            showToast(error.response?.data?.message || t('product.reviewFailed'), "error");
         } finally {
             setIsSubmittingReview(false);
         }
@@ -300,7 +303,7 @@ const ProductDetailSheet = () => {
         e.stopPropagation();
         toggleWishlistGlobal(selectedProduct);
         showToast(
-            isWishlisted ? `${selectedProduct.name} removed from wishlist` : `${selectedProduct.name} added to wishlist`,
+            isWishlisted ? t('wishlist.removedItem', { name: itemName(selectedProduct) }) : t('wishlist.addedItem', { name: itemName(selectedProduct) }),
             isWishlisted ? 'info' : 'success'
         );
     };
@@ -308,7 +311,7 @@ const ProductDetailSheet = () => {
     const handleAddToCart = async () => {
         const currentStock = selectedVariant?.stock !== undefined ? selectedVariant.stock : selectedProduct?.stock || 0;
         if (currentStock <= 0) {
-            showToast("This item is currently out of stock", "error");
+            showToast(t('product.outOfStockToast'), "error");
             return;
         }
         const added = await addToCart({
@@ -316,7 +319,7 @@ const ProductDetailSheet = () => {
             variantSku: String(selectedVariant?.sku || selectedVariant?.name || "").trim(),
         });
         if (added === false) return; // vendor-conflict popup was shown instead
-        showToast(`${selectedProduct.name} added to cart`, 'success');
+        showToast(t('cart.addedItem', { name: itemName(selectedProduct) }), 'success');
         
         if (isWishlistPage) {
             const isWishlisted = isInWishlist(selectedProduct.id || selectedProduct._id);
@@ -329,7 +332,7 @@ const ProductDetailSheet = () => {
     const handleIncrement = () => {
         const currentStock = selectedVariant?.stock !== undefined ? selectedVariant.stock : selectedProduct?.stock || 0;
         if (quantity >= currentStock) {
-            showToast(`Only ${currentStock} units available in stock.`, "error");
+            showToast(t('product.onlyUnitsAvailable', { count: currentStock }), "error");
             return;
         }
         updateQuantity(selectedProduct.id, 1, String(selectedVariant?.sku || selectedVariant?.name || "").trim());
@@ -423,7 +426,7 @@ const ProductDetailSheet = () => {
                                                     transition={{ type: 'spring', delay: 0.2 }}
                                                     className="bg-gradient-to-r from-primary to-[var(--brand-400)] text-white text-[10px] font-[800] px-3 py-1.5 rounded-xl uppercase tracking-wider shadow-md shadow-brand-200/40"
                                                 >
-                                                    {Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}% OFF
+                                                    {t('product.percentOff', { percent: Math.round(((originalPrice - displayPrice) / originalPrice) * 100) })}
                                                 </motion.div>
                                             )}
 
@@ -477,7 +480,7 @@ const ProductDetailSheet = () => {
                                                     exit={{ scale: 0.93, opacity: 0 }}
                                                     transition={{ duration: 0.15 }}
                                                     src={applyCloudinaryTransform(allImages[activeImageIndex], "f_auto,q_auto:best,w_1200,dpr_auto")}
-                                                    alt={`${selectedProduct.name} ${activeImageIndex + 1}`}
+                                                    alt={`${itemName(selectedProduct)} ${activeImageIndex + 1}`}
                                                     className="w-full h-full object-contain mix-blend-multiply drop-shadow-2xl hover:scale-[1.03] transition-transform duration-500 absolute inset-0 m-auto p-12"
                                                 />
                                             </AnimatePresence>
@@ -548,7 +551,7 @@ const ProductDetailSheet = () => {
                                             transition={{ delay: 0.15 }}
                                         >
                                             <h1 className="text-[19px] lg:text-[22px] font-black text-[#111827] leading-[1.2] tracking-tight mb-1">
-                                                {selectedProduct.name}
+                                                {itemName(selectedProduct)}
                                             </h1>
                                             {selectedProduct.weight && (
                                                 <span className="text-[13px] text-gray-400 font-bold uppercase tracking-wider">{selectedProduct.weight}</span>
@@ -585,7 +588,7 @@ const ProductDetailSheet = () => {
                                                 </div>
                                                 <div>
                                                     {currentStock <= 0 ? (
-                                                        <div className="text-red-500 font-bold text-sm mb-2">Out of stock</div>
+                                                        <div className="text-red-500 font-bold text-sm mb-2">{t('product.outOfStock')}</div>
                                                     ) : currentStock <= (selectedProduct.lowStockAlert || 5) ? (
                                                         <div className="text-orange-500 font-bold text-sm mb-2">Only {currentStock} left!</div>
                                                     ) : null}
@@ -601,7 +604,7 @@ const ProductDetailSheet = () => {
                                                         </div>
                                                     ) : currentStock <= 0 ? (
                                                         <div className="bg-gray-100 text-gray-400 h-12 px-8 rounded-xl font-black text-[13px] flex items-center justify-center gap-2 border border-gray-200 uppercase tracking-widest w-fit">
-                                                            OUT OF STOCK
+                                                            {t('product.outOfStockCaps')}
                                                         </div>
                                                     ) : (
                                                     <motion.button
@@ -611,7 +614,7 @@ const ProductDetailSheet = () => {
                                                         className="bg-gradient-to-r from-primary to-[var(--brand-400)] text-white h-12 px-8 rounded-xl font-black text-[13px] flex items-center gap-2 shadow-lg shadow-brand-100 hover:shadow-brand-200 transition-all uppercase tracking-widest border border-white/20"
                                                     >
                                                         <ShoppingBag size={16} strokeWidth={3} />
-                                                        Add to Cart
+                                                        {t('product.addToCart')}
                                                     </motion.button>
                                                     )}
                                                 </div>
@@ -632,7 +635,7 @@ const ProductDetailSheet = () => {
                                                 >
                                                     <div className="flex items-center gap-2">
                                                         <ShoppingBag size={14} strokeWidth={2.0} />
-                                                        <span className="text-[12px] font-[700] uppercase tracking-wider">View Cart</span>
+                                                        <span className="text-[12px] font-[700] uppercase tracking-wider">{t('cart.viewCart')}</span>
                                                     </div>
                                                     <div className="flex items-center justify-center gap-1.5 bg-white/10 px-2 py-1 rounded-lg">
                                                         <span className="text-[13px] font-[800] tracking-tight">₹{cartTotal}</span>
@@ -650,7 +653,7 @@ const ProductDetailSheet = () => {
                                                 transition={{ delay: 0.25 }}
                                                 className="bg-gray-50/60 rounded-xl p-3 border border-gray-100/70"
                                             >
-                                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2.5">Select Variant</h4>
+                                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2.5">{t('product.selectVariant')}</h4>
                                                 <div className="flex gap-3 flex-wrap">
                                                     {selectedProduct.variants.map((v, idx) => (
                                                         <motion.button
@@ -665,7 +668,7 @@ const ProductDetailSheet = () => {
                                                                     : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
                                                             )}
                                                         >
-                                                            {v.name}{getVariantStock(v, selectedProduct) <= 0 && <span className="ml-1 text-[10px] font-semibold text-red-500">(Out of stock)</span>}
+                                                            {v.name}{getVariantStock(v, selectedProduct) <= 0 && <span className="ml-1 text-[10px] font-semibold text-red-500">({t('product.outOfStock')})</span>}
                                                         </motion.button>
                                                     ))}
                                                 </div>
@@ -678,7 +681,7 @@ const ProductDetailSheet = () => {
                                             {cleanDesc && (
                                                 <AccordionItem expandedSections={expandedSections} toggleSection={toggleSection}
                                                     id="description" 
-                                                    title="Product Description" 
+                                                    title={t('product.description')} 
                                                     icon={<Clock size={16} />}
                                                 >
                                                     <div
@@ -691,15 +694,15 @@ const ProductDetailSheet = () => {
                                             {/* Product Details */}
                                             <AccordionItem expandedSections={expandedSections} toggleSection={toggleSection}
                                                 id="details" 
-                                                title="Product Details" 
+                                                title={t('product.details')} 
                                                 icon={<Search size={16} />}
                                             >
                                                 <div className="grid grid-cols-2 gap-3 mt-1">
                                                     {[
-                                                        { label: 'Shelf Life', value: '3 Days', emoji: '📅' },
-                                                        { label: 'Country of Origin', value: 'India', emoji: '🇮🇳' },
-                                                        { label: 'FSSAI License', value: '1001234567890', emoji: '🛡️' },
-                                                        { label: 'Customer Care', value: supportEmail, emoji: '📧' }
+                                                        { label: t('product.shelfLife'), value: t('product.threeDays'), emoji: '📅' },
+                                                        { label: t('product.countryOfOrigin'), value: t('product.india'), emoji: '🇮🇳' },
+                                                        { label: t('product.fssai'), value: '1001234567890', emoji: '🛡️' },
+                                                        { label: t('product.customerCare'), value: supportEmail, emoji: '📧' }
                                                     ].map((d) => (
                                                         <div key={d.label} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 group hover:bg-white hover:shadow-sm transition-all">
                                                             <span className="text-[10px] text-slate-400 block mb-0.5 font-bold uppercase tracking-wider">{d.label}</span>
@@ -712,7 +715,7 @@ const ProductDetailSheet = () => {
                                             {/* Customer Reviews */}
                                             <AccordionItem expandedSections={expandedSections} toggleSection={toggleSection}
                                                 id="reviews" 
-                                                title={`Customer Reviews (${reviews.length > 0 ? reviews.length : '120+'})`}
+                                                title={t('product.customerReviewsCount', { count: reviews.length > 0 ? reviews.length : '120+' })}
                                                 icon={<Star size={16} />}
                                             >
                                                 <div className="space-y-6 mt-2">
@@ -726,13 +729,13 @@ const ProductDetailSheet = () => {
                                                     {/* Review Form */}
                                                     {selectedProduct?.hasReviewed || extendedProduct?.hasReviewed || localHasReviewed ? (
                                                         <div className="bg-brand-50 p-4 rounded-2xl border border-brand-100 mb-6 text-center">
-                                                            <p className="text-[11px] font-bold text-primary uppercase tracking-wide">You have already reviewed this product. Thank you!</p>
+                                                            <p className="text-[11px] font-bold text-primary uppercase tracking-wide">{t('product.alreadyReviewed')}</p>
                                                         </div>
                                                     ) : (selectedProduct?.hasPurchased || extendedProduct?.hasPurchased) ? (
                                                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
                                                             <h4 className="font-black text-slate-800 text-xs mb-3 flex items-center gap-2">
                                                                 <MessageSquare size={13} className="text-primary" />
-                                                                Rate this product
+                                                                {t('product.rateProduct')}
                                                             </h4>
                                                             <form onSubmit={handleReviewSubmit} className="space-y-3">
                                                                 <div className="flex gap-1.5">
@@ -752,15 +755,15 @@ const ProductDetailSheet = () => {
                                                                         </motion.button>
                                                                     ))}
                                                                 </div>
-                                                                <textarea value={newReview.comment} onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })} placeholder="Share your experience..." className="w-full bg-white border border-slate-100 rounded-xl p-3 text-xs font-medium min-h-[80px] outline-none focus:border-primary transition-all resize-none shadow-sm" />
+                                                                <textarea value={newReview.comment} onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })} placeholder={t('product.shareExperience')} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-xs font-medium min-h-[80px] outline-none focus:border-primary transition-all resize-none shadow-sm" />
                                                                 <Button type="submit" disabled={isSubmittingReview} className="w-full h-10 bg-primary hover:opacity-90 text-white font-black rounded-xl text-[11px] uppercase tracking-[0.1em] transition-all shadow-lg shadow-brand-100">
-                                                                    {isSubmittingReview ? 'Submitting...' : 'Post Review'}
+                                                                    {isSubmittingReview ? t('wallet.submitting') : t('product.postReview')}
                                                                     </Button>
                                                             </form>
                                                         </div>
                                                     ) : (
                                                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6 text-center">
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">You must purchase this product to rate it</p>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('product.mustPurchase')}</p>
                                                         </div>
                                                     )}
 
@@ -776,8 +779,8 @@ const ProductDetailSheet = () => {
                                                                             <div className="h-8 w-8 rounded-full bg-brand-50 flex items-center justify-center text-[11px] font-black text-primary border border-brand-100">{r.userId?.name?.[0] || 'A'}</div>
                                                                             <div>
                                                                                 <p className="text-[12px] font-black text-slate-800">
-                                                                                    {r.userId?.name || 'Anonymous'}
-                                                                                    {r.status === 'pending' && <span className="ml-2 text-[10px] font-bold text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded uppercase">Pending</span>}
+                                                                                    {r.userId?.name || t('product.anonymous')}
+                                                                                    {r.status === 'pending' && <span className="ml-2 text-[10px] font-bold text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded uppercase">{t('orderStatus.pending')}</span>}
                                                                                 </p>
                                                                                 <div className="flex gap-0.5 mt-0.5">{[...Array(5)].map((_, i) => <Star key={i} size={9} className={cn(i < r.rating ? 'text-primary fill-primary' : 'text-slate-200')} />)}</div>
                                                                             </div>
@@ -790,7 +793,7 @@ const ProductDetailSheet = () => {
                                                         ) : (
                                                             <div className="py-10 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                                                                 <MessageSquare size={20} className="text-slate-300 mx-auto mb-2" />
-                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No reviews yet — be the first!</p>
+                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('product.noReviews')}</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -896,7 +899,7 @@ const ProductDetailSheet = () => {
                                                 animate={{ scale: 1, opacity: 1 }}
                                                 transition={{ duration: 0.4 }}
                                                 src={applyCloudinaryTransform(img, "f_auto,q_auto:best,w_1200,dpr_auto")}
-                                                alt={`${selectedProduct.name} ${i + 1}`}
+                                                alt={`${itemName(selectedProduct)} ${i + 1}`}
                                                 className="w-full h-full object-contain mix-blend-multiply drop-shadow-xl"
                                             />
                                         </div>
@@ -928,13 +931,13 @@ const ProductDetailSheet = () => {
                                 </div>
 
                                 <h2 className="text-xl font-black text-[#1A1A1A] leading-tight mb-2">
-                                    {selectedProduct.name}
+                                    {itemName(selectedProduct)}
                                 </h2>
 
                                 {/* Variants Selection (Mobile) */}
                                 {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                                     <div className="mt-4 mb-2">
-                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Select Variant</h4>
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{t('product.selectVariant')}</h4>
                                         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                                             {selectedProduct.variants.map((v, idx) => (
                                                 <motion.button
@@ -948,7 +951,7 @@ const ProductDetailSheet = () => {
                                                             : "bg-slate-50 border-slate-100 text-slate-500"
                                                     )}
                                                 >
-                                                    {v.name}{getVariantStock(v, selectedProduct) <= 0 && <span className="ml-1 text-[10px] font-semibold text-red-500">(Out of stock)</span>}
+                                                    {v.name}{getVariantStock(v, selectedProduct) <= 0 && <span className="ml-1 text-[10px] font-semibold text-red-500">({t('product.outOfStock')})</span>}
                                                     {getVariantKey(selectedVariant) === getVariantKey(v) && (
                                                         <div className="absolute top-0 right-0 w-3 h-3 bg-primary rounded-bl-lg" />
                                                     )}
@@ -964,7 +967,7 @@ const ProductDetailSheet = () => {
                                     {cleanDesc && (
                                         <AccordionItem expandedSections={expandedSections} toggleSection={toggleSection}
                                             id="description" 
-                                            title="Product Description" 
+                                            title={t('product.description')} 
                                             icon={<Clock size={18} strokeWidth={2.5} />}
                                         >
                                             <div
@@ -977,15 +980,15 @@ const ProductDetailSheet = () => {
                                     {/* Product Details */}
                                     <AccordionItem expandedSections={expandedSections} toggleSection={toggleSection}
                                         id="details" 
-                                        title="Product Details" 
+                                        title={t('product.details')} 
                                         icon={<Search size={18} strokeWidth={2.5} />}
                                     >
                                         <div className="grid grid-cols-2 gap-3 mt-1">
                                             {[
-                                                { label: 'Shelf Life', value: '3 Days' },
-                                                { label: 'Country of Origin', value: 'India' },
-                                                { label: 'FSSAI License', value: '1001234567890' },
-                                                { label: 'Customer Care', value: supportEmail }
+                                                { label: t('product.shelfLife'), value: t('product.threeDays') },
+                                                { label: t('product.countryOfOrigin'), value: t('product.india') },
+                                                { label: t('product.fssai'), value: '1001234567890' },
+                                                { label: t('product.customerCare'), value: supportEmail }
                                             ].map((d) => (
                                                 <div key={d.label} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                                                     <span className="text-gray-400 block mb-0.5 text-[10px] font-bold uppercase tracking-wider">{d.label}</span>
@@ -998,7 +1001,7 @@ const ProductDetailSheet = () => {
                                     {/* Customer Reviews */}
                                     <AccordionItem expandedSections={expandedSections} toggleSection={toggleSection}
                                         id="reviews" 
-                                        title={`Customer Reviews (${reviews.length > 0 ? reviews.length : '120+'})`}
+                                        title={t('product.customerReviewsCount', { count: reviews.length > 0 ? reviews.length : '120+' })}
                                         icon={<Star size={18} strokeWidth={2.5} />}
                                     >
                                         <div className="space-y-6 mt-2">
@@ -1012,12 +1015,12 @@ const ProductDetailSheet = () => {
                                             {/* Review Form */}
                                             {(selectedProduct?.hasReviewed || extendedProduct?.hasReviewed || localHasReviewed) ? (
                                                 <div className="bg-brand-50 p-5 rounded-3xl border border-brand-100 mb-6 text-center">
-                                                    <p className="text-[12px] font-bold text-primary uppercase tracking-wide">You have already reviewed this product. Thank you!</p>
+                                                    <p className="text-[12px] font-bold text-primary uppercase tracking-wide">{t('product.alreadyReviewed')}</p>
                                                 </div>
                                             ) : (selectedProduct?.hasPurchased || extendedProduct?.hasPurchased) ? (
                                                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 mb-6">
-                                                    <h4 className="font-black text-slate-800 text-sm mb-1">Rate this product</h4>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-4">Reviews are moderated</p>
+                                                    <h4 className="font-black text-slate-800 text-sm mb-1">{t('product.rateProduct')}</h4>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-4">{t('product.reviewsModerated')}</p>
                                                     <form onSubmit={handleReviewSubmit} className="space-y-4">
                                                         <div className="flex gap-2">
                                                             {[1, 2, 3, 4, 5].map((s) => (
@@ -1034,15 +1037,15 @@ const ProductDetailSheet = () => {
                                                                 </button>
                                                             ))}
                                                         </div>
-                                                        <textarea value={newReview.comment} onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })} placeholder="Write your experience..." className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-sm font-medium min-h-[100px] outline-none focus:border-primary transition-all resize-none shadow-sm" />
+                                                        <textarea value={newReview.comment} onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })} placeholder={t('product.shareExperience')} className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-sm font-medium min-h-[100px] outline-none focus:border-primary transition-all resize-none shadow-sm" />
                                                         <Button type="submit" disabled={isSubmittingReview} className="w-full h-12 bg-primary hover:opacity-90 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg shadow-brand-100">
-                                                            {isSubmittingReview ? "Submitting..." : "Post Review"}
+                                                            {isSubmittingReview ? t('wallet.submitting') : t('product.postReview')}
                                                         </Button>
                                                     </form>
                                                 </div>
                                             ) : (
                                                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 mb-6 text-center">
-                                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">You must purchase this product to rate it</p>
+                                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{t('product.mustPurchase')}</p>
                                                 </div>
                                             )}
 
@@ -1057,7 +1060,7 @@ const ProductDetailSheet = () => {
                                                                 <div className="flex items-center gap-2">
                                                                     <div className="h-8 w-8 rounded-full bg-brand-50 flex items-center justify-center text-[10px] font-black text-primary border border-brand-100">{r.userId?.name?.[0] || 'A'}</div>
                                                                     <div>
-                                                                        <p className="text-xs font-black text-slate-800">{r.userId?.name || 'Anonymous'}</p>
+                                                                        <p className="text-xs font-black text-slate-800">{r.userId?.name || t('product.anonymous')}</p>
                                                                         <div className="flex gap-0.5">{[...Array(5)].map((_, i) => <Star key={i} size={10} className={cn(i < r.rating ? 'text-primary fill-primary' : 'text-slate-200')} />)}</div>
                                                                     </div>
                                                                 </div>
@@ -1069,7 +1072,7 @@ const ProductDetailSheet = () => {
                                                 ) : (
                                                     <div className="py-12 text-center bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
                                                         <MessageSquare size={24} className="text-slate-300 mx-auto mb-3" />
-                                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No reviews yet — be the first!</p>
+                                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('product.noReviews')}</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -1092,7 +1095,7 @@ const ProductDetailSheet = () => {
                                                     ₹{originalPrice}
                                                 </span>
                                                 <span className="bg-red-50 text-red-500 text-[10px] font-black px-1.5 py-0.5 rounded leading-none">
-                                                    {Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}% OFF
+                                                    {t('product.percentOff', { percent: Math.round(((originalPrice - displayPrice) / originalPrice) * 100) })}
                                                 </span>
                                             </div>
                                         )}
@@ -1100,7 +1103,7 @@ const ProductDetailSheet = () => {
                                             ₹{displayPrice}
                                         </div>
                                         {currentStock <= 0 ? (
-                                            <div className="text-red-500 font-bold text-xs mt-1">Out of stock</div>
+                                            <div className="text-red-500 font-bold text-xs mt-1">{t('product.outOfStock')}</div>
                                         ) : currentStock <= (selectedProduct.lowStockAlert || 5) ? (
                                             <div className="text-orange-500 font-bold text-xs mt-1">Only {currentStock} left!</div>
                                         ) : null}
@@ -1127,7 +1130,7 @@ const ProductDetailSheet = () => {
                                         </div>
                                     ) : currentStock <= 0 ? (
                                         <div className="flex-1 bg-gray-100 text-gray-400 h-[56px] rounded-2xl font-black text-sm flex items-center justify-center gap-2 border border-gray-200 uppercase tracking-[0.05em] whitespace-nowrap px-4">
-                                            OUT OF STOCK
+                                            {t('product.outOfStockCaps')}
                                         </div>
                                     ) : (
                                         <motion.button
@@ -1137,7 +1140,7 @@ const ProductDetailSheet = () => {
                                             className="flex-1 bg-gradient-to-r from-primary to-[var(--brand-400)] text-white h-[56px] rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-brand-100 transition-all border border-white/20 uppercase tracking-[0.05em] whitespace-nowrap px-4"
                                         >
                                             <ShoppingBag size={18} strokeWidth={3} />
-                                            ADD TO CART
+                                            {t('product.addToCartCaps')}
                                         </motion.button>
                                     )}
                                 </div>
@@ -1155,7 +1158,7 @@ const ProductDetailSheet = () => {
                                             className="w-full bg-gradient-to-r from-primary to-[var(--brand-400)] text-white h-[64px] rounded-2xl flex items-center justify-between px-5 shadow-xl shadow-brand-200/50 hover:shadow-brand-300 transition-all active:scale-[0.98] border border-white/20 relative overflow-hidden group"
                                         >
                                             <div className="flex flex-col items-start leading-none">
-                                                <span className="text-[13px] font-[1000] uppercase tracking-wide">View cart</span>
+                                                <span className="text-[13px] font-[1000] uppercase tracking-wide">{t('cart.viewCart')}</span>
                                                 <span className="text-[11px] font-bold opacity-90 mt-1">{cartCount} {cartCount === 1 ? 'item' : 'items'} in cart</span>
                                             </div>
                                             <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTranslation } from "react-i18next";
 
 const PosKeyboardShortcuts = ({ 
     onNewBill, 
@@ -7,6 +8,7 @@ const PosKeyboardShortcuts = ({
     onHoldCart,
     onCheckout
 }) => {
+    const { t } = useTranslation();
     
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -18,7 +20,7 @@ const PosKeyboardShortcuts = ({
             switch(e.key) {
                 case 'F1':
                     onNewBill && onNewBill();
-                    toast.info('Started new bill');
+                    toast.info(t('sPos.newBillStarted'));
                     break;
                 case 'F2':
                     onFocusSearch && onFocusSearch();
@@ -42,19 +44,19 @@ const PosKeyboardShortcuts = ({
         <div className="bg-gray-800 text-gray-300 text-xs py-2 px-4 hidden md:flex gap-6 justify-center border-t border-gray-700 w-full shrink-0">
             <div className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors" onClick={onNewBill}>
                 <span className="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">F1</span>
-                <span>New Bill</span>
+                <span>{t('sPos.newBill')}</span>
             </div>
             <div className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors" onClick={onFocusSearch}>
                 <span className="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">F2</span>
-                <span>Search/Barcode</span>
+                <span>{t('sPos.searchBarcode')}</span>
             </div>
             <div className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors" onClick={onHoldCart}>
                 <span className="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">F5</span>
-                <span>Hold Cart</span>
+                <span>{t('sPos.holdCart')}</span>
             </div>
             <div className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors" onClick={onCheckout}>
                 <span className="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">F10</span>
-                <span>Checkout</span>
+                <span>{t('sPos.checkout')}</span>
             </div>
         </div>
     );

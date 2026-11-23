@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import DashboardLayout from "@shared/layout/DashboardLayout";
 import { setActiveRole, ROLES } from "@core/auth/activeRoleStore";
 import Orders from "../pages/Orders";
+import { useTranslation } from "react-i18next";
+import SellerLanguageProvider from "../i18n/SellerLanguageProvider";
 import {
   HiOutlineSquares2X2,
   HiOutlineCube,
@@ -39,40 +41,42 @@ const PrivacyPage = React.lazy(() => import("../pages/PrivacyPage"));
 const Subscription = React.lazy(() => import("../pages/Subscription"));
 
 const navItems = [
-  { label: "Dashboard", path: "/seller", icon: HiOutlineSquares2X2, end: true },
-  { label: "Products", path: "/seller/products", icon: HiOutlineCube },
-  { label: "Packages", path: "/seller/packages", icon: HiOutlineRectangleStack },
-  { label: "Stock", path: "/seller/inventory", icon: HiOutlineArchiveBox },
-  { label: "Orders", path: "/seller/orders", icon: HiOutlineTruck },
-  { label: "Returns", path: "/seller/returns", icon: HiOutlineArchiveBox },
-  { label: "Track Orders", path: "/seller/tracking", icon: HiOutlineMapPin },
+  { labelKey: "nav.dashboard", path: "/seller", icon: HiOutlineSquares2X2, end: true },
+  { labelKey: "nav.products", path: "/seller/products", icon: HiOutlineCube },
+  { labelKey: "nav.packages", path: "/seller/packages", icon: HiOutlineRectangleStack },
+  { labelKey: "nav.stock", path: "/seller/inventory", icon: HiOutlineArchiveBox },
+  { labelKey: "nav.orders", path: "/seller/orders", icon: HiOutlineTruck },
+  { labelKey: "nav.returns", path: "/seller/returns", icon: HiOutlineArchiveBox },
+  { labelKey: "nav.trackOrders", path: "/seller/tracking", icon: HiOutlineMapPin },
   {
-    label: "Sales Reports",
+    labelKey: "nav.salesReports",
     path: "/seller/analytics",
     icon: HiOutlineChartBarSquare,
   },
   {
-    label: "Money Request",
+    labelKey: "nav.moneyRequest",
     path: "/seller/withdrawals",
     icon: HiOutlineCurrencyDollar,
   },
   {
-    label: "Payment History",
+    labelKey: "nav.paymentHistory",
     path: "/seller/transactions",
     icon: HiOutlineCreditCard,
   },
   {
-    label: "Earnings",
+    labelKey: "nav.earnings",
     path: "/seller/earnings",
     icon: HiOutlineCurrencyDollar,
   },
-  { label: "POS Billing", path: "/seller/pos", icon: HiOutlineComputerDesktop },
-  { label: "POS History", path: "/seller/pos-history", icon: HiOutlineComputerDesktop },
-  { label: "Subscription", path: "/seller/subscription", icon: HiOutlineCreditCard },
-  { label: "Profile", path: "/seller/profile", icon: HiOutlineUser },
+  { labelKey: "nav.posBilling", path: "/seller/pos", icon: HiOutlineComputerDesktop },
+  { labelKey: "nav.posHistory", path: "/seller/pos-history", icon: HiOutlineComputerDesktop },
+  { labelKey: "nav.subscription", path: "/seller/subscription", icon: HiOutlineCreditCard },
+  { labelKey: "nav.profile", path: "/seller/profile", icon: HiOutlineUser },
 ];
 
-const SellerRoutes = () => {
+const SellerRoutesInner = () => {
+  const { t } = useTranslation();
+  const translatedNavItems = navItems.map(({ labelKey, ...item }) => ({ ...item, label: t(labelKey) }));
   useEffect(() => {
     setActiveRole(ROLES.SELLER);
   }, []);
@@ -90,7 +94,7 @@ const SellerRoutes = () => {
   }
 
   return (
-    <DashboardLayout navItems={navItems} title="Seller Panel">
+    <DashboardLayout navItems={translatedNavItems} title={t("nav.panelTitle")}>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/products" element={<ProductManagement />} />
@@ -113,5 +117,11 @@ const SellerRoutes = () => {
     </DashboardLayout>
   );
 };
+
+const SellerRoutes = () => (
+  <SellerLanguageProvider>
+    <SellerRoutesInner />
+  </SellerLanguageProvider>
+);
 
 export default SellerRoutes;

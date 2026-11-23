@@ -8,6 +8,7 @@ import { useToast } from "@shared/components/ui/Toast";
 import axiosInstance from "@core/api/axios";
 import { customerApi } from "../services/customerApi";
 import { useSupportUnread } from "@core/context/SupportUnreadContext";
+import { useTranslation } from "react-i18next";
 import {
   joinTicketRoom,
   leaveTicketRoom,
@@ -87,6 +88,7 @@ const ChatPage = () => {
   const { settings } = useSettings();
   const { token } = useAuth();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const { setIsViewingSupportChat, setActiveTicketId, markTicketRead } = useSupportUnread();
 
   const appName = settings?.appName || "App";
@@ -166,18 +168,18 @@ const ChatPage = () => {
     setMessages([
       {
         id: "welcome-1",
-        text: `Hi there! 👋 Welcome to ${appName} Support.`,
+        text: t("chat.welcome1", { appName }),
         sender: "support",
         time: "",
       },
       {
         id: "welcome-2",
-        text: "Send a message and an admin will reply here.",
+        text: t("chat.welcome2"),
         sender: "support",
         time: "",
       },
     ]);
-  }, [appName]);
+  }, [appName, t]);
 
   useEffect(() => {
     if (!token) return;
@@ -211,13 +213,13 @@ const ChatPage = () => {
           setMessages([
             {
               id: "welcome-1",
-              text: `Hi there! 👋 Welcome to ${appName} Support.`,
+              text: t("chat.welcome1", { appName }),
               sender: "support",
               time: "",
             },
             {
               id: "welcome-2",
-              text: "Send a message and an admin will reply here.",
+              text: t("chat.welcome2"),
               sender: "support",
               time: "",
             },
@@ -225,7 +227,7 @@ const ChatPage = () => {
         }
       } catch (error) {
         if (!mounted) return;
-        showToast("Failed to load support chat", "error");
+        showToast(t("chat.loadFailed"), "error");
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -266,8 +268,8 @@ const ChatPage = () => {
       // Best-effort system notification (in addition to FCM push) for incoming admin replies.
       if (incoming.sender === "support" && document.hidden) {
         notifySupportMessage({
-          title: "Support reply",
-          body: incoming.text || "New message",
+          title: t("chat.supportReply"),
+          body: incoming.text || t("layout.newMessage"),
           link: ticketIdRef.current
             ? `/chat?ticketId=${encodeURIComponent(String(ticketIdRef.current))}`
             : "/chat",
@@ -359,7 +361,7 @@ const ChatPage = () => {
       setSelectedImage(null);
       setSelectedImageFile(null);
     } catch (error) {
-      showToast("Failed to send message", "error");
+      showToast(t("chat.sendFailed"), "error");
     } finally {
       setIsSending(false);
     }
@@ -397,11 +399,11 @@ const ChatPage = () => {
             </div>
             <div>
               <h1 className="text-base font-black text-slate-800 leading-none">
-                Support Chat
+                {t("chat.title")}
               </h1>
               <p className="text-[10px] text-brand-600 font-bold mt-1 uppercase tracking-wider flex items-center gap-1">
                 <span className="h-1 w-1 bg-brand-500 rounded-full"></span>
-                Online
+                {t("chat.online")}
               </p>
             </div>
           </div>
@@ -411,18 +413,18 @@ const ChatPage = () => {
             <a
               href={supportPhoneHref}
               className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
-              aria-label={`Call support at ${supportPhone}`}
-              title={`Call support: ${supportPhone}`}
+              aria-label={t("chat.callSupportAt", { phone: supportPhone })}
+              title={t("chat.callSupportAt", { phone: supportPhone })}
             >
               <Phone size={20} />
             </a>
           ) : (
             <button
               type="button"
-              onClick={() => showToast("Support number not configured", "info")}
+              onClick={() => showToast(t("chat.noSupportNumber"), "info")}
               className="p-2 rounded-full text-slate-300 cursor-not-allowed"
-              aria-label="Support number not configured"
-              title="Support number not configured"
+              aria-label={t("chat.noSupportNumber")}
+              title={t("chat.noSupportNumber")}
             >
               <Phone size={20} />
             </button>
@@ -433,14 +435,14 @@ const ChatPage = () => {
       <div
         className="flex-1 overflow-y-auto px-4 py-6 pb-24 space-y-6 min-h-0 overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch]"
         tabIndex={0}
-        aria-label="Support chat messages"
+        aria-label={t("chat.messagesLabel")}
         data-lenis-prevent
         data-lenis-prevent-touch
         data-lenis-prevent-wheel
       >
         {isLoading && (
           <div className="text-center text-xs font-bold text-slate-400">
-            Loading chat…
+            {t("chat.loading")}
           </div>
         )}
 
@@ -462,7 +464,7 @@ const ChatPage = () => {
                 {msg.mediaUrl ? (
                   <img
                     src={msg.mediaUrl}
-                    alt="Attachment"
+                    alt={t("chat.attachment")}
                     loading="lazy"
                     className="max-w-[220px] w-full rounded-xl border border-black/10"
                   />
@@ -517,7 +519,7 @@ const ChatPage = () => {
               <div className="relative">
                 <img
                   src={selectedImage}
-                  alt="Preview"
+                  alt={t("chat.preview")}
                   loading="lazy"
                   className="h-20 w-20 object-cover rounded-lg"
                 />
@@ -553,7 +555,7 @@ const ChatPage = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-40 cursor-default"
-                aria-label="Close attachments menu"
+                aria-label={t("chat.closeAttachments")}
                 onClick={() => setShowAttachmentMenu(false)}
               />
               <motion.div
@@ -570,7 +572,7 @@ const ChatPage = () => {
                   }}
                   className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  Open camera
+                  {t("chat.openCamera")}
                 </button>
                 <div className="h-px bg-slate-100" />
                 <button
@@ -581,7 +583,7 @@ const ChatPage = () => {
                   }}
                   className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  Upload from gallery
+                  {t("chat.uploadFromGallery")}
                 </button>
               </motion.div>
             </>
@@ -632,7 +634,7 @@ const ChatPage = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="Type a message..."
+            placeholder={t("chat.typeMessage")}
             className="bg-transparent text-sm w-full py-2.5 outline-none text-slate-700 placeholder:text-slate-400 font-medium"
           />
           <button

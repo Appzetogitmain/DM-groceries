@@ -49,6 +49,8 @@ const orderSchema = new mongoose.Schema(
           required: true,
         },
         name: String,
+        nameHi: String,
+        nameGu: String,
         quantity: {
           type: Number,
           required: true,
@@ -66,6 +68,8 @@ const orderSchema = new mongoose.Schema(
           default: null,
         },
         packageName: String,
+        packageNameHi: String,
+        packageNameGu: String,
         packagePricePerUnit: Number,
         originalPrice: Number,
       },

@@ -10,9 +10,11 @@ import { cn } from '@/lib/utils';
 import { useLocation as useAppLocation } from '../context/LocationContext';
 import { getJSON, setJSON, STORAGE_KEYS } from '@core/utils/storage';
 import Lottie from 'lottie-react';
+import { useTranslation } from 'react-i18next';
 
 const SearchPage = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const location = useRouterLocation();
     const { isOpen: isProductDetailOpen } = useProductDetail();
     const { settings } = useSettings();
@@ -75,7 +77,7 @@ const SearchPage = () => {
     const handleVoiceSearch = () => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            alert('Voice search is not supported in your browser. Please try Chrome.');
+            alert(t('search.voice.unsupported'));
             return;
         }
 
@@ -110,7 +112,7 @@ const SearchPage = () => {
             console.error('Speech recognition error:', event.error);
             setIsListening(false);
             if (event.error === 'not-allowed') {
-                alert('Microphone access denied. Please enable it in your browser settings.');
+                alert(t('search.voice.denied'));
             } else {
                 console.warn('Voice recognition stopped due to error:', event.error);
             }
@@ -260,7 +262,7 @@ const SearchPage = () => {
                                 type="text"
                                 inputMode="search"
                                 enterKeyHint="search"
-                                placeholder='Search items, categories...'
+                                placeholder={t('search.pagePlaceholder')}
                                 value={query}
                                 onKeyDown={handleKeyDown}
                                 onChange={(e) => setQuery(e.target.value)}
@@ -301,9 +303,9 @@ const SearchPage = () => {
                     <section>
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-black text-slate-800 tracking-tight">
-                                Search Results
+                                {t('search.results')}
                             </h2>
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{results.length} found</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('search.foundCount', { count: results.length })}</span>
                         </div>
 
                         {results.length > 0 ? (
@@ -323,8 +325,8 @@ const SearchPage = () => {
                                         <div className="w-48 h-48 md:w-64 md:h-64" />
                                     )}
                                 </div>
-                                <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">No items found</h3>
-                                <p className="text-slate-500 font-medium max-w-xs">We couldn't find anything for "{query}". Try different keywords!</p>
+                                <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">{t('search.noItemsFound')}</h3>
+                                <p className="text-slate-500 font-medium max-w-xs">{t('search.noItemsBody', { query })}</p>
                             </div>
                         )}
                     </section>
@@ -333,7 +335,7 @@ const SearchPage = () => {
                         {/* 1. Recently Searched Item Section */}
                         {pastSearches.length > 0 && (
                             <section>
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Recently Searched</h3>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">{t('search.recentlySearched')}</h3>
                                 <div className="flex gap-2 overflow-x-auto no-scrollbar">
                                     {pastSearches.map((term) => (
                                         <div
@@ -360,13 +362,13 @@ const SearchPage = () => {
                         {/* 2. Lowest Price Ever Section */}
                         <section>
                             <div className="flex justify-between items-center mb-5">
-                                <h2 className="text-xl font-black text-slate-800 tracking-tight">Lowest Price Ever!</h2>
+                                <h2 className="text-xl font-black text-slate-800 tracking-tight">{t('search.lowestPriceEver')}</h2>
                                 <button 
                                     className="flex items-center gap-1 md:gap-1.5 px-3 py-1 md:px-4 md:py-1.5 bg-slate-50 hover:bg-slate-100 rounded-full text-xs md:text-sm font-black transition-all" 
                                     style={{ color: settings?.primaryColor || 'var(--primary)' }}
                                     onClick={() => navigate('/user/category/all')}
                                 >
-                                    See All <ChevronRight size={14} strokeWidth={3} />
+                                    {t('common.seeAll')} <ChevronRight size={14} strokeWidth={3} />
                                 </button>
                             </div>
                             <div className="flex gap-2 md:gap-4 overflow-x-auto no-scrollbar -mx-5 px-5 pb-3 snap-x">

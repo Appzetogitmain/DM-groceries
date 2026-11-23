@@ -13,8 +13,10 @@ import PosReceipt from '../components/pos/PosReceipt';
 import PosKeyboardShortcuts from '../components/pos/PosKeyboardShortcuts';
 import PosHeldOrders from '../components/pos/PosHeldOrders';
 import '../styles/pos.css';
+import { useTranslation } from "react-i18next";
 
 const POS = () => {
+    const { t } = useTranslation();
     // Add class to body to hide sidebar when POS mounts
     useEffect(() => {
         document.body.classList.add('hide-sidebar');
@@ -71,7 +73,7 @@ const POS = () => {
             const existing = prev.find(item => item.productId === product._id);
             if (existing) {
                 if (existing.quantity >= product.stock) {
-                    toast.error(`Only ${product.stock} items available in stock`);
+                    toast.error(t('sPos.onlyAvailable', { count: product.stock }));
                     return prev;
                 }
                 return prev.map(item => 
@@ -99,7 +101,7 @@ const POS = () => {
         setCart(prev => prev.map(item => {
             if (item.productId === productId) {
                 if (newQuantity > item.stock) {
-                    toast.error(`Only ${item.stock} items available in stock`);
+                    toast.error(t('sPos.onlyAvailable', { count: item.stock }));
                     return item;
                 }
                 return { ...item, quantity: newQuantity };
@@ -134,23 +136,23 @@ const POS = () => {
     // Checkout
     const handleCheckout = async () => {
         if (cart.length === 0) {
-            toast.error('Cart is empty');
+            toast.error(t('sPos.cartEmptyToast'));
             return;
         }
         if (!customer || !customer.phone) {
-            toast.error('Please select or add a customer');
+            toast.error(t('sPos.selectCustomer'));
             return;
         }
         
         if (paymentMode === 'CASH' && cashReceived < total) {
-            toast.error('Cash received is less than total amount');
+            toast.error(t('sPos.cashLess'));
             return;
         }
         
         if (paymentMode === 'MIXED') {
             const totalPaid = (cashReceived || 0) + (onlineAmountPaid || 0);
             if (totalPaid < total) {
-                toast.error('Total payment received is less than bill amount');
+                toast.error(t('sPos.paymentLess'));
                 return;
             }
         }
@@ -172,12 +174,12 @@ const POS = () => {
             const res = await posApi.createOrder(payload);
             
             if (res.data?.success) {
-                toast.success('Bill generated successfully!');
+                toast.success(t('sPos.billGenerated'));
                 setCompletedOrder(res.data.result);
                 setShowReceipt(true);
             }
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Failed to generate bill');
+            toast.error(error?.response?.data?.message || t('sPos.billFailed'));
         } finally {
             setIsProcessing(false);
         }
@@ -197,7 +199,7 @@ const POS = () => {
     // Held Cart operations
     const holdCart = () => {
         if (cart.length === 0) {
-            toast.error('Cart is empty');
+            toast.error(t('sPos.cartEmptyToast'));
             return;
         }
         
@@ -210,13 +212,13 @@ const POS = () => {
         };
         
         setHeldCarts(prev => [newHold, ...prev]);
-        toast.success('Cart put on hold');
+        toast.success(t('sPos.onHold'));
         clearCart();
     };
     
     const restoreCart = (heldCart) => {
         if (cart.length > 0) {
-            toast.error('Current cart is not empty. Hold it first.');
+            toast.error(t('sPos.holdFirst'));
             return;
         }
         
@@ -226,12 +228,12 @@ const POS = () => {
         
         // Remove from held carts
         setHeldCarts(prev => prev.filter(hc => hc.id !== heldCart.id));
-        toast.info('Cart restored');
+        toast.info(t('sPos.restored'));
     };
     
     const removeHeldCart = (id) => {
         setHeldCarts(prev => prev.filter(hc => hc.id !== id));
-        toast.info('Held cart discarded');
+        toast.info(t('sPos.discarded'));
     };
 
     const focusSearch = () => {
@@ -274,11 +276,11 @@ const POS = () => {
                         {/* Totals */}
                         <div className="space-y-2 mb-2">
                             <div className="flex justify-between text-gray-500 text-sm">
-                                <span>Subtotal</span>
+                                <span>{t('sOrders.subtotal')}</span>
                                 <span>₹{subtotal.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-xl font-bold text-gray-900 border-t border-dashed border-gray-300 pt-2">
-                                <span>TOTAL</span>
+                                <span>{t('sPos.totalCaps')}</span>
                                 <span>₹{total.toFixed(2)}</span>
                             </div>
                         </div>
@@ -303,7 +305,7 @@ const POS = () => {
                                 disabled={cart.length === 0 || isProcessing}
                                 className="px-4 py-3 text-red-600 bg-red-50 hover:bg-red-100 font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Clear
+{t("sProducts.clear")}
                             </button>
                             <button 
                                 onClick={handleCheckout}
@@ -315,7 +317,7 @@ const POS = () => {
                                 ) : (
                                     <HiOutlineCalculator size={24} />
                                 )}
-                                Generate Bill (F10)
+                                {t('sPos.generateBill')}
                             </button>
                         </div>
                     </div>

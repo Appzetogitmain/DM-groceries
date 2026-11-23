@@ -19,8 +19,13 @@ import { useCart } from "../context/CartContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ListBuilderModal from "../components/list/ListBuilderModal";
+import { useTranslation } from "react-i18next";
+import { getLocalizedItemLabel as itemName } from "../i18n/format";
+import { useCustomerLanguage } from "../i18n/CustomerLanguageProvider";
 
 const MyListsPage = () => {
+  const { t } = useTranslation();
+  const { intlLocale } = useCustomerLanguage();
   const navigate = useNavigate();
   const { addCustomListToCart, addToCart } = useCart();
 
@@ -75,7 +80,7 @@ const MyListsPage = () => {
               return {
                 ...order,
                 isListOrder: true,
-                matchedListName: order.listName || "Custom Basket",
+                matchedListName: order.listName || t("lists.customBasket"),
               };
             }
 
@@ -91,7 +96,7 @@ const MyListsPage = () => {
               return {
                 ...order,
                 isListOrder: true,
-                matchedListName: foundInStorage.listName || matchedList?.name || "Custom Basket",
+                matchedListName: foundInStorage.listName || matchedList?.name || t("lists.customBasket"),
                 matchedSellerName:
                   matchedList?.sellerId?.shopName ||
                   matchedList?.sellerId?.storeName ||
@@ -155,7 +160,7 @@ const MyListsPage = () => {
           "DM_ACTIVE_LIST_ORDER",
           JSON.stringify({
             listId: list._id,
-            listName: list.name || "Custom Grocery Basket",
+            listName: list.name || t("lists.defaultBasketName"),
             items: (list.items || [])
               .map((it) => String(it.productId?._id || it.productId || ""))
               .filter(Boolean),
@@ -165,24 +170,24 @@ const MyListsPage = () => {
 
       const added = await addCustomListToCart(list);
       if (added) {
-        toast.success(`Loaded "${list.name}" (${list.items?.length || 0} items) into cart!`);
+        toast.success(t("lists.loadedIntoCartWithCount", { name: list.name, count: list.items?.length || 0 }));
         navigate("/user/checkout");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to load list into cart");
+      toast.error(err.response?.data?.message || t("lists.loadIntoCartFailed"));
     } finally {
       setTimeout(() => setActionInProgressId(null), 600);
     }
   };
 
   const handleDeleteList = async (listId) => {
-    if (!window.confirm("Are you sure you want to delete this list?")) return;
+    if (!window.confirm(t("lists.deleteConfirm"))) return;
     try {
       await customerApi.deleteCustomerList(listId);
-      toast.success("List deleted successfully");
+      toast.success(t("lists.deleted"));
       setSavedLists((prev) => prev.filter((l) => l._id !== listId));
     } catch (err) {
-      toast.error("Failed to delete list");
+      toast.error(t("lists.deleteFailed"));
     }
   };
 
@@ -214,31 +219,31 @@ const MyListsPage = () => {
       .filter(Boolean);
 
     if (items.length === 0) {
-      toast.error("No valid items in this order to save");
+      toast.error(t("lists.noItemsToSave"));
       return;
     }
 
     try {
       const orderDate = order.createdAt
-        ? new Date(order.createdAt).toLocaleDateString("en-IN", {
+        ? new Date(order.createdAt).toLocaleDateString(intlLocale, {
             month: "short",
             day: "numeric",
           })
-        : "Past";
+        : t("lists.past");
       const payload = {
-        name: `Basket from ${orderDate} Order`,
+        name: t("lists.basketFromOrder", { date: orderDate }),
         sellerId: sellerId ? String(sellerId) : undefined,
         items,
       };
 
       const res = await customerApi.createCustomerList(payload);
       if (res.data?.success) {
-        toast.success("Order saved to your Custom Lists!");
+        toast.success(t("lists.orderSaved"));
         await fetchSavedLists();
         setActiveTab("saved");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to save order as list");
+      toast.error(err.response?.data?.message || t("lists.saveOrderFailed"));
     }
   };
 
@@ -268,6 +273,8 @@ const MyListsPage = () => {
               _id: String(prodId),
               id: String(prodId),
               name: it.name || prod.name || "Product",
+              nameHi: it.nameHi || prod.nameHi,
+              nameGu: it.nameGu || prod.nameGu,
               price: it.price || prod.salePrice || prod.price || 0,
               salePrice: it.price || prod.salePrice || prod.price || 0,
               mainImage: it.image || prod.mainImage,
@@ -279,7 +286,7 @@ const MyListsPage = () => {
         .filter(Boolean);
 
       if (items.length === 0) {
-        toast.error("No valid items in this order to reorder");
+        toast.error(t("lists.noItemsToReorder"));
         return;
       }
 
@@ -294,7 +301,7 @@ const MyListsPage = () => {
           "DM_ACTIVE_LIST_ORDER",
           JSON.stringify({
             listId: order.listId || undefined,
-            listName: order.matchedListName || order.listName || "Custom Grocery Basket",
+            listName: order.matchedListName || order.listName || t("lists.defaultBasketName"),
             items: items.map((it) => it.productId._id),
           })
         );
@@ -302,11 +309,11 @@ const MyListsPage = () => {
 
       const added = await addCustomListToCart(customListObj);
       if (added) {
-        toast.success(`Loaded ${items.length} items into cart!`);
+        toast.success(t("lists.loadedItems", { count: items.length }));
         navigate("/user/checkout");
       }
     } catch (err) {
-      toast.error("Failed to reorder past items");
+      toast.error(t("lists.reorderFailed"));
     } finally {
       setTimeout(() => setActionInProgressId(null), 600);
     }
@@ -322,7 +329,7 @@ const MyListsPage = () => {
             className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition"
           >
             <ChevronLeft size={16} />
-            Back
+            {t("common.back")}
           </button>
 
           <button
@@ -330,7 +337,7 @@ const MyListsPage = () => {
             className="px-4 py-2 rounded-xl bg-[#1A4516] text-white font-black text-xs hover:bg-[#1A4516]/90 transition shadow-xs flex items-center gap-1.5 active:scale-95"
           >
             <ListPlus size={15} />
-            + New List
+            + {t("lists.newList")}
           </button>
         </div>
 
@@ -339,13 +346,13 @@ const MyListsPage = () => {
           <div>
             <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full mb-1.5">
               <Sparkles size={11} />
-              Single-Store Smart Baskets
+              {t("lists.badge")}
             </span>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              My Custom Grocery Lists
+              {t("lists.title")}
             </h1>
             <p className="text-xs text-slate-500 font-medium mt-1">
-              Save your frequent ration & snack lists. Re-order the entire basket anytime in a single tap.
+              {t("lists.subtitle")}
             </p>
           </div>
         </div>
@@ -362,7 +369,7 @@ const MyListsPage = () => {
             )}
           >
             <BookmarkCheck size={15} />
-            Saved Baskets ({savedLists.length})
+            {t("lists.savedTab", { count: savedLists.length })}
           </button>
           <button
             onClick={() => setActiveTab("history")}
@@ -374,7 +381,7 @@ const MyListsPage = () => {
             )}
           >
             <Clock size={15} />
-            Past Order Baskets ({pastOrders.length})
+            {t("lists.historyTab", { count: pastOrders.length })}
           </button>
         </div>
 
@@ -383,20 +390,20 @@ const MyListsPage = () => {
           <div className="space-y-4">
             {isLoading ? (
               <div className="text-center py-16 text-xs text-slate-400 font-medium">
-                Loading your saved lists...
+                {t("lists.loading")}
               </div>
             ) : savedLists.length === 0 ? (
               <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/80 shadow-xs">
                 <ShoppingBag size={42} className="mx-auto text-slate-300 mb-3" />
-                <h3 className="text-base font-black text-slate-800">No Saved Baskets Yet</h3>
+                <h3 className="text-base font-black text-slate-800">{t("lists.emptyTitle")}</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5 font-medium">
-                  Create your first personalized list of groceries and reorder anytime in 1-click.
+                  {t("lists.emptyBody")}
                 </p>
                 <button
                   onClick={() => navigate("/user/lists/create", { state: { fromLists: true } })}
                   className="px-5 py-2.5 rounded-xl bg-[#1A4516] text-white text-xs font-black hover:bg-[#1A4516]/90 transition active:scale-95 shadow-md"
                 >
-                  + Create First List
+                + {t("lists.createFirst")}
                 </button>
               </div>
             ) : (
@@ -405,7 +412,7 @@ const MyListsPage = () => {
                   list.sellerId?.shopName ||
                   list.sellerId?.storeName ||
                   list.sellerId?.name ||
-                  "Local Store";
+                  t("lists.localStore");
                 return (
                   <div
                     key={list._id}
@@ -420,7 +427,7 @@ const MyListsPage = () => {
                           <Store size={13} className="text-emerald-700" />
                           <span>{sellerName}</span>
                           <span className="text-slate-300">•</span>
-                          <span>{list.items?.length || 0} unique items</span>
+                          <span>{t("lists.uniqueItems", { count: list.items?.length || 0 })}</span>
                         </p>
                       </div>
 
@@ -428,14 +435,14 @@ const MyListsPage = () => {
                         <button
                           onClick={() => navigate(`/user/lists/edit/${list._id}`, { state: { fromLists: true } })}
                           className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
-                          title="Edit List"
+                          title={t("lists.editList")}
                         >
                           <Pencil size={14} />
                         </button>
                         <button
                           onClick={() => handleDeleteList(list._id)}
                           className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 transition"
-                          title="Delete List"
+                          title={t("lists.deleteList")}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -458,10 +465,10 @@ const MyListsPage = () => {
                             />
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-bold text-slate-900 truncate">
-                                {prod?.name || "Product"}
+                                {itemName(prod) || t("product.product")}
                               </p>
                               <p className="text-[11px] text-slate-500 font-medium">
-                                Qty: <strong>{it.quantity || 1}</strong> • ₹{Number(it.livePrice || it.unitPriceSnapshot || 0).toFixed(2)}
+                                {t("orderDetail.qtyLabel", { qty: "" }).replace(/\s+$/, "")} <strong>{it.quantity || 1}</strong> • ₹{Number(it.livePrice || it.unitPriceSnapshot || 0).toFixed(2)}
                               </p>
                             </div>
                           </div>
@@ -473,7 +480,7 @@ const MyListsPage = () => {
                     <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-4">
                       <div className="shrink-0">
                         <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight">
-                          Est. Total Amount
+                          {t("lists.estTotal")}
                         </span>
                         <span className="text-base sm:text-lg font-black text-[#1A4516]">
                           ₹{Number(list.totalAmount || 0).toFixed(2)}
@@ -486,7 +493,7 @@ const MyListsPage = () => {
                         className="px-4 sm:px-5 py-2.5 rounded-xl bg-[#1A4516] text-white font-black text-xs hover:bg-[#1A4516]/90 transition active:scale-95 shadow-md flex items-center gap-2 shrink-0 whitespace-nowrap disabled:opacity-50"
                       >
                         <RotateCcw size={14} />
-                        {actionInProgressId === list._id ? "Loading Cart..." : "Add Entire Basket to Cart"}
+                        {actionInProgressId === list._id ? t("lists.loadingCart") : t("lists.addBasket")}
                       </button>
                     </div>
                   </div>
@@ -502,20 +509,20 @@ const MyListsPage = () => {
             {pastOrders.length === 0 ? (
               <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/80 shadow-xs">
                 <PackageCheck size={42} className="mx-auto text-slate-300 mb-3" />
-                <h3 className="text-base font-black text-slate-800">No Past Basket Orders Found</h3>
+                <h3 className="text-base font-black text-slate-800">{t("lists.historyEmptyTitle")}</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 font-medium">
-                  When you place an order from your custom grocery lists or baskets, your basket order history will appear here.
+                  {t("lists.historyEmptyBody")}
                 </p>
               </div>
             ) : (
               pastOrders.map((order) => {
                 const orderDate = order.createdAt
-                  ? new Date(order.createdAt).toLocaleDateString("en-IN", {
+                  ? new Date(order.createdAt).toLocaleDateString(intlLocale, {
                       year: "numeric",
                       month: "short",
                       day: "numeric",
                     })
-                  : "Recent";
+                  : t("lists.recent");
 
                 const matchedListObj = savedLists.find(
                   (sl) =>
@@ -542,7 +549,7 @@ const MyListsPage = () => {
                 const basketName =
                   order.matchedListName ||
                   order.listName ||
-                  "Custom Grocery Basket";
+                  t("lists.defaultBasketName");
 
                 return (
                   <div
@@ -554,10 +561,10 @@ const MyListsPage = () => {
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <span className="text-xs font-black uppercase text-emerald-900 bg-emerald-100 border border-emerald-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
                             <Sparkles size={11} className="text-emerald-700" />
-                            Basket: {basketName}
+                            {t("lists.basketLabel", { name: basketName })}
                           </span>
                           <span className="text-xs font-extrabold text-slate-500">
-                            Order #{String(order.orderId || order._id).slice(-6).toUpperCase()}
+                            {t("orders.orderNumber", { id: String(order.orderId || order._id).slice(-6).toUpperCase() })}
                           </span>
                           <span className="text-slate-300">•</span>
                           <span className="text-xs text-slate-400 font-semibold">{orderDate}</span>
@@ -566,7 +573,7 @@ const MyListsPage = () => {
                           <Store size={13} className="text-emerald-700" />
                           <span>{sellerName}</span>
                           <span className="text-slate-300">•</span>
-                          <span>{order.items?.length || 0} items</span>
+                          <span>{t("common.item", { count: order.items?.length || 0 })}</span>
                         </p>
                       </div>
 
@@ -576,7 +583,7 @@ const MyListsPage = () => {
                           className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition active:scale-95 flex items-center gap-1"
                         >
                           <BookmarkCheck size={13} className="text-emerald-700" />
-                          Save as New List
+                          {t("lists.saveAsNew")}
                         </button>
                       </div>
                     </div>
@@ -595,7 +602,7 @@ const MyListsPage = () => {
                           />
                           <div className="min-w-0 pr-1">
                             <p className="text-xs font-semibold text-slate-900 truncate">
-                              {it.name || it.product?.name || it.productName || "Product"}
+                              {itemName(it.name ? it : it.product) || it.productName || t("product.product")}
                             </p>
                             <span className="text-[10px] text-slate-500 font-bold">
                               x{it.quantity || 1}
@@ -609,7 +616,7 @@ const MyListsPage = () => {
                     <div className="pt-3 flex items-center justify-between gap-4 border-t border-slate-100">
                       <div className="shrink-0">
                         <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight">
-                          Order Total
+                          {t("lists.orderTotal")}
                         </span>
                         <span className="text-base sm:text-lg font-black text-[#1A4516]">
                           ₹{Number(order.pricing?.total || order.totalAmount || 0).toFixed(2)}
@@ -622,7 +629,7 @@ const MyListsPage = () => {
                         className="px-4 py-2 rounded-xl bg-[#1A4516] text-white font-black text-xs hover:bg-[#1A4516]/90 transition active:scale-95 shadow-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap disabled:opacity-50"
                       >
                         <RotateCcw size={13} />
-                        {actionInProgressId === order._id ? "Loading..." : "Reorder Entire Basket"}
+                        {actionInProgressId === order._id ? t("common.loading") : t("lists.reorderBasket")}
                       </button>
                     </div>
                   </div>

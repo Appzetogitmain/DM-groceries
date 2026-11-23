@@ -22,8 +22,11 @@ import { sellerApi } from "../services/sellerApi";
 import { useToast } from "@shared/components/ui/Toast";
 import { Loader2 } from "lucide-react";
 import Pagination from "@shared/components/ui/Pagination";
+import { useTranslation } from "react-i18next";
+import { sellerLocale } from "../i18n/format";
 
 const DeliveryTracking = () => {
+  const { t } = useTranslation();
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -84,23 +87,23 @@ const DeliveryTracking = () => {
               image: order.deliveryBoy.image || "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop",
               rating: order.deliveryBoy.averageRating || 0,
             } : {
-              name: "Not Assigned",
-              phone: "N/A",
+              name: t("sTrack.notAssigned"),
+              phone: t("sReturns.na"),
               avatar: "?",
               image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop",
               rating: 0,
             },
             location: order.status === 'delivered' && order.updatedAt
-              ? `Delivered at ${new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-              : "In Progress",
+              ? t('sTrack.deliveredAt', { time: new Date(order.updatedAt).toLocaleTimeString(sellerLocale(), { hour: '2-digit', minute: '2-digit' }) })
+              : t("sTrack.inProgress"),
             orderDate: order.createdAt
-              ? new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+              ? new Date(order.createdAt).toLocaleDateString(sellerLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' })
               : "",
             startTime: order.createdAt
-              ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              ? new Date(order.createdAt).toLocaleTimeString(sellerLocale(), { hour: '2-digit', minute: '2-digit' })
               : "",
-            estimatedDelivery: "20-30 mins",
-            customerName: order.customer?.name || "Customer",
+            estimatedDelivery: t("sTrack.eta"),
+            customerName: order.customer?.name || t("sDash.customer"),
             address: order.address
               ? `${order.address.address || ""}, ${order.address.city || ""}`.trim()
               : "",
@@ -111,7 +114,7 @@ const DeliveryTracking = () => {
       setDeliveries(formattedDeliveries);
     } catch (error) {
       console.error("Tracking Error:", error);
-      showToast("Failed to fetch tracking data", "error");
+      showToast(t("sTrack.fetchFailed"), "error");
     } finally {
       setLoading(false);
     }
@@ -147,21 +150,21 @@ const DeliveryTracking = () => {
   const stats = useMemo(
     () => [
       {
-        label: "On the Way",
+        label: t("sTrack.onTheWay"),
         value: deliveries.filter((d) => d.status === "On the Way").length,
         icon: HiOutlineTruck,
         color: "text-brand-600",
         bg: "bg-brand-50",
       },
       {
-        label: "At Store",
+        label: t("sTrack.atStore"),
         value: deliveries.filter((d) => d.status === "Picked Up").length,
         icon: HiOutlineMapPin,
         color: "text-amber-600",
         bg: "bg-amber-50",
       },
       {
-        label: "Completed Today",
+        label: t("sTrack.completedToday"),
         value: deliveries.filter((d) => d.status === "Delivered").length,
         icon: HiOutlineCheckCircle,
         color: "text-brand-600",
@@ -190,15 +193,15 @@ const DeliveryTracking = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-              Delivery Tracking
+{t("sTrack.title")}
               <Badge
                 variant="primary"
                 className="text-[9px] px-1.5 py-0 font-bold tracking-wider uppercase bg-brand-100 text-brand-700">
-                Live Fleet
+{t("sTrack.liveFleet")}
               </Badge>
             </h1>
             <p className="text-slate-600 text-sm mt-0.5 font-medium">
-              Monitor active deliveries and assigned partners.
+{t("sTrack.subtitle")}
             </p>
           </div>
         </div>
@@ -208,7 +211,7 @@ const DeliveryTracking = () => {
       {loading ? (
         <div className="min-h-[400px] flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-100 shadow-sm">
           <Loader2 className="h-10 w-10 text-primary animate-spin" />
-          <p className="text-slate-600 font-bold mt-4 uppercase tracking-widest text-xs">Tracking Fleet...</p>
+          <p className="text-slate-600 font-bold mt-4 uppercase tracking-widest text-xs">{t("sTrack.trackingFleet")}</p>
         </div>
       ) : (
         <>
@@ -263,7 +266,7 @@ const DeliveryTracking = () => {
                             ? "text-primary bg-white/50"
                             : "text-slate-600 hover:text-slate-700",
                         )}>
-                        {tab}
+                        {t(`sTrack.tabs.${tab}`)}
                         {activeTab === tab && (
                           <motion.div
                             layoutId="tab-underline-tracking"
@@ -278,7 +281,7 @@ const DeliveryTracking = () => {
                       <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-primary transition-all" />
                       <input
                         type="text"
-                        placeholder="Search ID or Partner..."
+                        placeholder={t("sTrack.searchPh")}
                         className="w-full pl-9 pr-3 py-1.5 bg-slate-100/50 border-none rounded-lg text-xs font-bold text-slate-700 placeholder:text-slate-400 focus:ring-1 focus:ring-primary/10 transition-all outline-none"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -317,7 +320,7 @@ const DeliveryTracking = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[8px] font-black text-primary uppercase tracking-[0.1em] mb-0.5">
-                                Partner
+{t("sTrack.partner")}
                               </p>
                               <h3 className="text-xs font-black text-slate-900 leading-none truncate">
                                 {dlv.deliveryBoy.name}
@@ -345,7 +348,7 @@ const DeliveryTracking = () => {
                                   variant={getStatusVariant(dlv.status)}
                                   className="text-[7px] font-black px-1.5 py-0 rounded-full uppercase tracking-widest shrink-0"
                                 >
-                                  {dlv.status}
+                                  {t(`sTrack.state.${String(dlv.status).replace(/\s+/g, '_')}`, { defaultValue: dlv.status })}
                                 </Badge>
                               </div>
                               <h4 className="text-[10px] font-bold text-slate-500 flex items-center gap-1 flex-wrap">
@@ -355,7 +358,7 @@ const DeliveryTracking = () => {
                             </div>
                             <div className="sm:text-right shrink-0">
                               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                                Timing
+{t("sTrack.timing")}
                               </p>
                               <p className="text-[10px] font-black text-primary tracking-tight mt-0.5">
                                 {dlv.startTime || "—"}
@@ -388,10 +391,10 @@ const DeliveryTracking = () => {
                       <HiOutlineTruck className="h-10 w-10 text-slate-200" />
                     </div>
                     <h3 className="text-base font-black text-slate-900">
-                      No active tracking found
+{t("sTrack.noneFound")}
                     </h3>
                     <p className="text-sm text-slate-600 font-bold uppercase tracking-widest mt-2">
-                      Adjust filters or search terms
+{t("sTrack.adjust")}
                     </p>
                   </div>
                 )}

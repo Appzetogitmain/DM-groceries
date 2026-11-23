@@ -248,7 +248,12 @@ export const getProducts = async (req, res) => {
           // P3-5: substring search is preserved (so customer-facing UX
           // doesn't shift) but the term is now regex-escaped to avoid
           // injection and runtime errors on `(`, `*`, etc.
-          query.name = buildSearchRegex(term, { anchored: false });
+          const searchRegex = buildSearchRegex(term, { anchored: false });
+          // Also match seller-entered Hindi / Gujarati names.
+          query.$and = [
+            ...(query.$and || []),
+            { $or: [{ name: searchRegex }, { nameHi: searchRegex }, { nameGu: searchRegex }] },
+          ];
         }
       }
     }
@@ -380,7 +385,7 @@ export const getProducts = async (req, res) => {
       const [rawProducts, total] = await Promise.all([
         Product.find(finalQuery)
           .select(
-            "name slug description sku price salePrice stock brand weight mainImage galleryImages headerId categoryId subcategoryId sellerId status approvalStatus approvalRequestedAt approvalReviewedAt approvalReviewedBy approvalNote lastSubmittedByRole isFeatured variants createdAt",
+            "name nameHi nameGu slug description sku price salePrice stock brand weight mainImage galleryImages headerId categoryId subcategoryId sellerId status approvalStatus approvalRequestedAt approvalReviewedAt approvalReviewedBy approvalNote lastSubmittedByRole isFeatured variants createdAt",
           )
           // No .populate() — names resolved via cache-backed entityNameCache
           .sort(sortQuery)
@@ -503,10 +508,10 @@ export const getSellerProducts = async (req, res) => {
     ] = await Promise.all([
       Product.find(query)
         .select(
-          "name slug description sku price salePrice stock lowStockAlert brand weight mainImage galleryImages headerId categoryId subcategoryId sellerId status approvalStatus approvalRequestedAt approvalReviewedAt approvalReviewedBy approvalNote lastSubmittedByRole isFeatured variants createdAt",
+          "name nameHi nameGu slug description sku price salePrice stock lowStockAlert brand weight mainImage galleryImages headerId categoryId subcategoryId sellerId status approvalStatus approvalRequestedAt approvalReviewedAt approvalReviewedBy approvalNote lastSubmittedByRole isFeatured variants createdAt",
         )
         .populate("headerId", "name")
-        .populate("categoryId", "name")
+        .populate("categoryId", "name nameHi nameGu")
         .populate("subcategoryId", "name")
         .populate("sellerId", "shopName")
         .sort(sortQuery)
@@ -1117,10 +1122,10 @@ export const getProductById = async (req, res) => {
       async () =>
         Product.findById(id)
           .select(
-            "name slug description sku price salePrice stock lowStockAlert brand weight mainImage galleryImages headerId categoryId subcategoryId sellerId status approvalStatus approvalRequestedAt approvalReviewedAt approvalReviewedBy approvalNote lastSubmittedByRole isFeatured variants createdAt",
+            "name nameHi nameGu slug description sku price salePrice stock lowStockAlert brand weight mainImage galleryImages headerId categoryId subcategoryId sellerId status approvalStatus approvalRequestedAt approvalReviewedAt approvalReviewedBy approvalNote lastSubmittedByRole isFeatured variants createdAt",
           )
           .populate("headerId", "name")
-          .populate("categoryId", "name")
+          .populate("categoryId", "name nameHi nameGu")
           .populate("subcategoryId", "name")
           .populate("sellerId", "shopName")
           .lean(),
@@ -1300,10 +1305,10 @@ export const getModerationProducts = async (req, res) => {
       await Promise.all([
         Product.find(moderatedQuery)
           .select(
-            "name slug description sku price salePrice stock lowStockAlert brand weight mainImage galleryImages headerId categoryId subcategoryId sellerId status approvalStatus approvalRequestedAt approvalReviewedAt approvalReviewedBy approvalNote lastSubmittedByRole isFeatured variants createdAt",
+            "name nameHi nameGu slug description sku price salePrice stock lowStockAlert brand weight mainImage galleryImages headerId categoryId subcategoryId sellerId status approvalStatus approvalRequestedAt approvalReviewedAt approvalReviewedBy approvalNote lastSubmittedByRole isFeatured variants createdAt",
           )
           .populate("headerId", "name")
-          .populate("categoryId", "name")
+          .populate("categoryId", "name nameHi nameGu")
           .populate("subcategoryId", "name")
           .populate("sellerId", "shopName name")
           .populate("approvalReviewedBy", "name email")
@@ -1439,7 +1444,7 @@ export const approveProduct = async (req, res) => {
       { new: true, runValidators: true },
     )
       .populate("headerId", "name")
-      .populate("categoryId", "name")
+      .populate("categoryId", "name nameHi nameGu")
       .populate("subcategoryId", "name")
       .populate("sellerId", "shopName name")
       .populate("approvalReviewedBy", "name email");
@@ -1488,7 +1493,7 @@ export const rejectProduct = async (req, res) => {
       { new: true, runValidators: true },
     )
       .populate("headerId", "name")
-      .populate("categoryId", "name")
+      .populate("categoryId", "name nameHi nameGu")
       .populate("subcategoryId", "name")
       .populate("sellerId", "shopName name")
       .populate("approvalReviewedBy", "name email");

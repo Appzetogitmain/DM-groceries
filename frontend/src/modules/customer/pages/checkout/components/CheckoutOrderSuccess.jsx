@@ -1,6 +1,7 @@
 import React from "react";
 import { Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 /**
  * CheckoutOrderSuccess
@@ -10,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
  *   show    – boolean — controls visibility via AnimatePresence
  */
 const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({ orderId, show }) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {show && (
@@ -30,7 +32,7 @@ const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({ orderId,
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
             className="text-3xl font-black text-slate-800 mb-2">
-            Order placed
+            {t("checkout.orderPlaced")}
           </motion.h2>
           <motion.p
             initial={{ y: 20, opacity: 0 }}
@@ -40,7 +42,7 @@ const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({ orderId,
             #{orderId?.slice(-6)} — waiting for the seller to accept (5m). If
             they don&apos;t, the order will cancel automatically.
             <br />
-            Redirecting to order details…
+            {t("checkout.redirectingToOrder")}
           </motion.p>
           <motion.div
             initial={{ width: 0 }}

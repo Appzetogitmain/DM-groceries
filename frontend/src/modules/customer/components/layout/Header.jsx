@@ -8,9 +8,13 @@ import { useLocation as useAppLocation } from "../../context/LocationContext";
 import { useSettings } from '@core/context/SettingsContext';
 import LocationDrawer from '../shared/LocationDrawer';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { translateEta } from '../../i18n/format';
 
+import useLocalizedLocationName from '../../i18n/useLocalizedLocation';
 const Header = () => {
     const { settings } = useSettings();
+    const { t } = useTranslation();
     const { count: wishlistCount } = useWishlist();
     const { cartCount } = useCart();
     const location = useLocation();
@@ -18,9 +22,10 @@ const Header = () => {
     const isPackagesPage = location.pathname.startsWith('/user/packages') || location.pathname.startsWith('/packages');
     const [isLocationOpen, setIsLocationOpen] = useState(false);
     const { currentLocation, refreshLocation } = useAppLocation();
+    const displayLocationName = useLocalizedLocationName(currentLocation);
 
     // Search placeholder animation
-    const [searchPlaceholder, setSearchPlaceholder] = useState('Search ');
+    const [searchPlaceholder, setSearchPlaceholder] = useState(() => `${t('header.searchPrefix')} `);
     const [typingState, setTypingState] = useState({
         textIndex: 0,
         charIndex: 0,
@@ -28,12 +33,13 @@ const Header = () => {
         isPaused: false
     });
 
-    const staticText = "Search ";
-    const typingPhrases = ['"bread"', '"milk"', '"chocolate"', '"eggs"', '"chips"'];
+    const staticText = `${t('header.searchPrefix')} `;
+    const translatedPhrases = t('header.searchPhrases', { returnObjects: true });
+    const typingPhrases = (Array.isArray(translatedPhrases) && translatedPhrases.length ? translatedPhrases : ['bread', 'milk', 'chocolate', 'eggs', 'chips']).map((p) => `"${p}"`);
 
     React.useEffect(() => {
         const { textIndex, charIndex, isDeleting, isPaused } = typingState;
-        const currentPhrase = typingPhrases[textIndex];
+        const currentPhrase = typingPhrases[textIndex % typingPhrases.length];
 
         if (isPaused) {
             const timeout = setTimeout(() => {
@@ -100,19 +106,20 @@ const Header = () => {
                                 isPackagesPage ? "text-slate-600" : "text-white/80"
                             )}>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill={isPackagesPage ? "#1A4516" : "white"} stroke={isPackagesPage ? "#1A4516" : "white"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                                {currentLocation.time}
+                                {translateEta(t, currentLocation.time)}
                             </span>
                             <div className={cn(
                                 "flex items-center gap-1 font-black text-base",
                                 isPackagesPage ? "text-slate-900" : "text-white"
                             )}>
-                                <span className="max-w-[150px] truncate">{currentLocation.name}</span> <span className={cn("text-[10px]", isPackagesPage ? "text-slate-500" : "opacity-70")}>▼</span>
+                                <span className="max-w-[150px] truncate">{displayLocationName}</span> <span className={cn("text-[10px]", isPackagesPage ? "text-slate-500" : "opacity-70")}>▼</span>
                             </div>
                         </div>
                     </button>
                     <div className="flex items-center gap-2">
                         <Link
                             to="/user/wishlist"
+                            aria-label={t('nav.wishlist')}
                             className={cn(
                                 "relative flex items-center justify-center p-2.5 rounded-2xl shadow-sm active:scale-95 transition-transform backdrop-blur-md",
                                 isPackagesPage
@@ -129,6 +136,7 @@ const Header = () => {
                         </Link>
                         <Link
                             to="/user/checkout"
+                            aria-label={t('nav.cart')}
                             className={cn(
                                 "relative flex items-center justify-center p-2.5 rounded-2xl shadow-sm active:scale-95 transition-transform backdrop-blur-md",
                                 isPackagesPage
@@ -161,7 +169,7 @@ const Header = () => {
                         </Link>
                         {isPackagesPage && (
                             <span className="md:hidden inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-900 border border-emerald-200">
-                                Combos & Packs
+                                {t('header.combosAndPacks')}
                             </span>
                         )}
 
@@ -178,10 +186,10 @@ const Header = () => {
                         >
                             <div className="flex flex-col items-start leading-none group">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 group-hover:text-[var(--primary)] transition-colors">
-                                    Delivery in {currentLocation.time}
+                                    {t('header.deliveryIn', { time: translateEta(t, currentLocation.time) })}
                                 </span>
                                 <div className="flex items-center gap-1 font-bold text-slate-700 text-sm group-hover:text-[var(--primary)] transition-colors">
-                                    <span className="max-w-[150px] truncate">{currentLocation.name}</span> <MapPin size={14} className="fill-current" />
+                                    <span className="max-w-[150px] truncate">{displayLocationName}</span> <MapPin size={14} className="fill-current" />
                                 </div>
                             </div>
                         </button>
@@ -189,10 +197,10 @@ const Header = () => {
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-6">
-                        <Link to="/user" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Home</Link>
+                        <Link to="/user" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">{t('nav.home')}</Link>
 
-                        <Link to="/user/categories" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Categories</Link>
-                        <Link to="/user/offers" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">Offers</Link>
+                        <Link to="/user/categories" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">{t('nav.categories')}</Link>
+                        <Link to="/user/offers" className="text-sm font-medium transition-colors hover:text-[var(--primary)]">{t('nav.offers')}</Link>
                     </nav>
 
                     {/* Search Bar - Hidden on checkout page and packages page */}

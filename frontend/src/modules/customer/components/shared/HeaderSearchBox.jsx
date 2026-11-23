@@ -12,6 +12,8 @@ import { useLocation as useAppLocation } from "../../context/LocationContext";
 import { getJSON, setJSON, STORAGE_KEYS } from "@core/utils/storage";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { getLocalizedItemLabel as itemName } from "../../i18n/format";
 
 const MAX_PRODUCT_SUGGESTIONS = 8;
 const MAX_RECENT = 4;
@@ -57,6 +59,7 @@ const Highlight = ({ text, query }) => {
  */
 const HeaderSearchBox = ({ variant = "desktop", placeholder, backgroundColor }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { currentLocation } = useAppLocation();
   const isMobile = variant === "mobile";
 
@@ -235,7 +238,7 @@ const HeaderSearchBox = ({ variant = "desktop", placeholder, backgroundColor }) 
             className="z-[300] overflow-y-auto rounded-2xl border border-slate-100 bg-white py-2 shadow-2xl">
             {matchingRecent.length > 0 && (
               <p className="px-4 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Recent searches
+                {t("search.recentSearches")}
               </p>
             )}
             {options.map((opt, index) => {
@@ -245,7 +248,7 @@ const HeaderSearchBox = ({ variant = "desktop", placeholder, backgroundColor }) 
                 <React.Fragment key={opt.key}>
                   {isFirstProduct && (
                     <p className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Suggestions
+                      {t("search.suggestions")}
                     </p>
                   )}
                   <button
@@ -274,7 +277,7 @@ const HeaderSearchBox = ({ variant = "desktop", placeholder, backgroundColor }) 
                       <SearchIcon sx={{ fontSize: 18, color: "#94a3b8" }} />
                     )}
                     <span className="flex-1 truncate font-medium">
-                      <Highlight text={opt.term} query={trimmed} />
+                      <Highlight text={opt.product ? itemName(opt.product) : opt.term} query={trimmed} />
                     </span>
                     <NorthWestIcon
                       sx={{ fontSize: 16, color: "#cbd5e1" }}
@@ -290,11 +293,11 @@ const HeaderSearchBox = ({ variant = "desktop", placeholder, backgroundColor }) 
               );
             })}
             {trimmed && isLoading && products.length === 0 && (
-              <p className="px-4 py-3 text-sm text-slate-400">Searching…</p>
+              <p className="px-4 py-3 text-sm text-slate-400">{t("search.searching")}</p>
             )}
             {trimmed && !isLoading && products.length === 0 && (
               <p className="px-4 py-3 text-sm text-slate-400">
-                No products found for “{trimmed}”
+                {t("search.noProductsFor", { query: trimmed })}
               </p>
             )}
           </div>,
@@ -316,7 +319,7 @@ const HeaderSearchBox = ({ variant = "desktop", placeholder, backgroundColor }) 
         )}>
         <button
           type="button"
-          aria-label="Search"
+          aria-label={t("common.search")}
           onClick={handleSearchIconClick}
           className="flex cursor-pointer items-center border-0 bg-transparent p-0">
           <SearchIcon sx={{ color: "#000000", fontSize: isMobile ? 18 : 20 }} />
@@ -339,7 +342,7 @@ const HeaderSearchBox = ({ variant = "desktop", placeholder, backgroundColor }) 
             setIsFocused(true);
           }}
           onBlur={() => setIsFocused(false)}
-          placeholder={placeholder || "Search Products..."}
+          placeholder={placeholder || t("search.placeholder")}
           className={cn(
             "flex-1 border-none bg-transparent pl-2 font-semibold text-slate-800 outline-none placeholder:text-black",
             isMobile ? "text-[16px]" : "text-[15px]",
@@ -347,7 +350,7 @@ const HeaderSearchBox = ({ variant = "desktop", placeholder, backgroundColor }) 
         />
         <button
           type="button"
-          aria-label="Voice search"
+          aria-label={t("search.voiceSearch")}
           onClick={handleMicClick}
           className={cn(
             "flex cursor-pointer items-center gap-2 border-0 border-l border-slate-100 bg-transparent",

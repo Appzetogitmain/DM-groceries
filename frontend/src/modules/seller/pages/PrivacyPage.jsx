@@ -3,8 +3,10 @@ import { ChevronLeft, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '@core/context/SettingsContext';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from "react-i18next";
 
 const PrivacyPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
@@ -19,7 +21,7 @@ const PrivacyPage = () => {
                 >
                     <ChevronLeft size={24} className="text-slate-600" />
                 </button>
-                <h1 className="text-lg font-black text-slate-800">Privacy Policy</h1>
+                <h1 className="text-lg font-black text-slate-800">{t("sAuth.privacyPolicy")}</h1>
             </div>
 
             <div className="p-5 max-w-3xl mx-auto space-y-6">
@@ -29,7 +31,7 @@ const PrivacyPage = () => {
                             <ShieldCheck size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800">Privacy Policy (Seller)</h2>
+                            <h2 className="text-xl font-bold text-slate-800">{t("sLegal.privacySeller")}</h2>
                         </div>
                     </div>
 
@@ -40,7 +42,7 @@ const PrivacyPage = () => {
                                     {settings.sellerPrivacyPolicy}
                                 </ReactMarkdown>
                             ) : (
-                                <p>Your privacy is important to us. This privacy policy explains how we collect and use your data for sellers.</p>
+                                <p>{t("sLegal.privacyFallback")}</p>
                             )}
                         </div>
                     </div>

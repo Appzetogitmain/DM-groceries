@@ -42,6 +42,8 @@ import LowestPriceSection from "../components/home/LowestPriceSection";
 import MakeYourOwnListSection from "../components/home/MakeYourOwnListSection";
 import OfferSections from "../components/home/OfferSections";
 import PullToRefresh from "../components/shared/PullToRefresh";
+import { useTranslation } from "react-i18next";
+import { translateCategoryName, pickNameFields } from "../i18n/format";
 
 const DEFAULT_CATEGORY_THEME = {
   gradient: "linear-gradient(to bottom, var(--primary), var(--brand-400))",
@@ -194,6 +196,7 @@ const extractProductList = (res) => {
 };
 
 const Home = () => {
+  const { t } = useTranslation();
   const { scrollY } = useScroll();
   const { isOpen: isProductDetailOpen } = useProductDetail();
   const { currentLocation } = useLocation();
@@ -346,7 +349,7 @@ const Home = () => {
         const mergedAllCategory = allHeaderFromAdmin ? { ...ALL_CATEGORY, headerColor: allHeaderFromAdmin.headerColor || ALL_CATEGORY.headerColor, headerFontColor: allHeaderFromAdmin.headerFontColor || ALL_CATEGORY.headerFontColor, headerIconColor: allHeaderFromAdmin.headerIconColor || ALL_CATEGORY.headerIconColor, icon: allHeaderFromAdmin.icon || ALL_CATEGORY.icon } : ALL_CATEGORY;
         nextHomeData.categories = [mergedAllCategory, ...formattedHeaders.filter((h) => !((h.slug?.toLowerCase() === "all") || (h.name?.toLowerCase() === "all")))];
         nextHomeData.activeCategory = mergedAllCategory;
-        nextHomeData.quickCategories = dbCats.filter((cat) => cat.type === "category").map((cat) => ({ id: cat._id, name: cat.name, image: cat.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png" }));
+        nextHomeData.quickCategories = dbCats.filter((cat) => cat.type === "category").map((cat) => ({ ...pickNameFields(cat), id: cat._id, image: cat.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png" }));
       }
       if (prodRes.data.success) {
         const rawResult = prodRes.data.result;
@@ -483,7 +486,7 @@ const Home = () => {
   const productsById = useMemo(() => { const map = {}; products.forEach((p) => { map[p._id || p.id] = p; }); return map; }, [products]);
   const effectiveQuickCategories = useMemo(() => {
     const ids = heroConfig.categoryIds || [];
-    if (ids.length > 0) { const resolved = ids.map((id) => categoryMap[id]).filter(Boolean).map((c) => ({ id: c._id, name: c.name, image: c.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png" })); if (resolved.length > 0) return resolved; }
+    if (ids.length > 0) { const resolved = ids.map((id) => categoryMap[id]).filter(Boolean).map((c) => ({ ...pickNameFields(c), id: c._id, image: c.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png" })); if (resolved.length > 0) return resolved; }
     return quickCategories;
   }, [heroConfig.categoryIds, categoryMap, quickCategories]);
 
@@ -566,9 +569,9 @@ const Home = () => {
       {products.length === 0 && !isLoading ? (
         <div className="flex flex-col items-center justify-center pt-24 pb-48">
           <div className="w-64 h-64 md:w-96 md:h-96 mb-8">{noServiceData && <Lottie animationData={noServiceData} loop={true} />}</div>
-          <h3 className="text-3xl md:text-5xl font-black text-slate-800 text-center uppercase">Service <span className="text-primary">Unavailable</span></h3>
-          <p className="text-slate-500 font-bold max-w-md text-center px-10 text-sm md:text-lg opacity-80">Ah! We haven't reached your neighborhood yet.</p>
-          <button onClick={() => window.location.reload()} className="mt-12 px-10 py-4 bg-primary text-white font-black rounded-[24px] uppercase text-[13px] tracking-widest transition-all active:scale-95">Check Again</button>
+          <h3 className="text-3xl md:text-5xl font-black text-slate-800 text-center uppercase">{t('home.service')} <span className="text-primary">{t('home.unavailable')}</span></h3>
+          <p className="text-slate-500 font-bold max-w-md text-center px-10 text-sm md:text-lg opacity-80">{t('home.notInArea')}</p>
+          <button onClick={() => window.location.reload()} className="mt-12 px-10 py-4 bg-primary text-white font-black rounded-[24px] uppercase text-[13px] tracking-widest transition-all active:scale-95">{t('home.checkAgain')}</button>
         </div>
       ) : (
         <div className="flex flex-col">
@@ -584,14 +587,14 @@ const Home = () => {
                 <div className="w-full h-[155px] bg-gradient-to-r from-[#1A4516] to-[#256121] rounded-lg p-5 relative overflow-hidden flex items-center shadow-xl">
                   <div className="relative z-10 w-3/5 flex flex-col items-start gap-1">
                     <h4 className="text-[19px] sm:text-[21px] leading-[1.1] font-bold text-white">
-                      Fresh Vegetables<br/>Big Savings
+                      {t('home.bannerLine1')}<br/>{t('home.bannerLine2')}
                     </h4>
                     <button className="bg-white text-[#1A4516] px-5 py-2 rounded-xl font-bold text-[12px] mt-2 shadow-sm active:scale-95 transition-transform">
-                      Shop Now
+                      {t('common.shopNow')}
                     </button>
                   </div>
                   <div className="absolute bottom-[-10px] right-[-20px] w-1/2 h-[120%] flex items-end justify-end pointer-events-none">
-                    <img src="/vegetable-basket-banner.png" alt="Fresh Vegetables" className="object-contain h-full w-auto drop-shadow-2xl" />
+                    <img src="/vegetable-basket-banner.png" alt={t('home.bannerAlt')} className="object-contain h-full w-auto drop-shadow-2xl" />
                   </div>
                 </div>
               </div>
@@ -607,11 +610,11 @@ const Home = () => {
             <div className="w-full px-4 md:px-8 lg:px-[50px] mt-2 mb-6">
               <div className="flex items-end justify-between mb-3 px-1">
                 <h3 className="text-[18px] sm:text-[20px] font-bold text-[#132018] tracking-tight uppercase leading-none">
-                  {activeCategory.name}
+                  {translateCategoryName(t, activeCategory)}
                 </h3>
                 {headerProducts.length > 0 && (
                   <span className="text-[11px] font-medium text-slate-500">
-                    {headerProducts.length} products
+                    {t('home.productsCount', { count: headerProducts.length })}
                   </span>
                 )}
               </div>
@@ -621,8 +624,8 @@ const Home = () => {
                 </div>
               ) : headerProducts.length === 0 ? (
                 <div className="py-12 text-center bg-white rounded-2xl border border-slate-200">
-                  <p className="text-sm font-bold text-slate-700">No products in {activeCategory.name} yet</p>
-                  <p className="text-xs text-slate-400 mt-1">Check back soon or explore other categories.</p>
+                  <p className="text-sm font-bold text-slate-700">{t('home.noProductsIn', { category: translateCategoryName(t, activeCategory) })}</p>
+                  <p className="text-xs text-slate-400 mt-1">{t('home.checkBackSoon')}</p>
                 </div>
               ) : (
                 <>
@@ -638,7 +641,7 @@ const Home = () => {
                         disabled={isHeaderProductsLoading}
                         className="px-6 py-2.5 rounded-xl bg-[#1A4516] text-white text-xs font-bold shadow-sm active:scale-95 transition disabled:opacity-60"
                       >
-                        {isHeaderProductsLoading ? "Loading..." : "Load more"}
+                        {isHeaderProductsLoading ? t('common.loading') : t('home.loadMore')}
                       </button>
                     </div>
                   )}

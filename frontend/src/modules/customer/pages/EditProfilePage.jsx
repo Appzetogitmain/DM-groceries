@@ -6,10 +6,12 @@ import { toast } from 'sonner';
 import { useAuth } from '@core/context/AuthContext';
 import { compressImage } from '@core/utils/imageUtils';
 import { customerApi } from '../services/customerApi';
+import { useTranslation } from 'react-i18next';
 
 const EditProfilePage = () => {
     const navigate = useNavigate();
     const { user, updateUser, refreshUser } = useAuth();
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: user?.name || '',
@@ -49,10 +51,10 @@ const EditProfilePage = () => {
                 maxSizeBytes: 5 * 1024 * 1024, // 5MB limit
             });
             setFormData(prev => ({ ...prev, avatar: compressed }));
-            toast.success('Photo captured and compressed successfully!');
+            toast.success(t('profile.photoProcessed'));
         } catch (err) {
             console.error("Image processing error:", err);
-            toast.error(err.message || 'Failed to process image');
+            toast.error(t('profile.photoProcessFailed'));
         } finally {
             setIsProcessingImage(false);
         }
@@ -73,7 +75,7 @@ const EditProfilePage = () => {
                 }
             } catch (error) {
                 console.error("Camera handler error:", error);
-                toast.error('Camera not available');
+                toast.error(t('profile.cameraUnavailable'));
             }
         } else {
             // Fallback for normal web browser
@@ -84,7 +86,7 @@ const EditProfilePage = () => {
                 const file = e.target.files?.[0];
                 if (file) {
                     if (file.size > 5 * 1024 * 1024) {
-                        toast.error('Image size must be up to 5 MB');
+                        toast.error(t('profile.imageTooLarge'));
                         return;
                     }
                     await processAndSetImage(file);
@@ -105,10 +107,10 @@ const EditProfilePage = () => {
             updateUser(updatedUser);
             await refreshUser();
 
-            toast.success('Profile updated successfully!');
+            toast.success(t('profile.updated'));
             navigate('/user/profile');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to update profile');
+            toast.error(error.response?.data?.message || t('profile.updateFailed'));
         } finally {
             setIsLoading(false);
         }
@@ -121,7 +123,7 @@ const EditProfilePage = () => {
                 <Link to="/user/profile" className="flex items-center justify-center p-1 -ml-1">
                     <ArrowLeft size={24} className="text-[#1A4516]" />
                 </Link>
-                <h1 className="text-[19px] font-bold text-[#1A4516] tracking-tight">Edit Profile</h1>
+                <h1 className="text-[19px] font-bold text-[#1A4516] tracking-tight">{t('profile.editProfile')}</h1>
             </div>
 
             <div className="max-w-xl mx-auto p-5">
@@ -133,10 +135,10 @@ const EditProfilePage = () => {
                             {isProcessingImage ? (
                                 <div className="flex flex-col items-center justify-center gap-1">
                                     <Loader2 size={28} className="animate-spin text-[#1A4516]" />
-                                    <span className="text-[10px] text-slate-500 font-medium">Optimizing...</span>
+                                    <span className="text-[10px] text-slate-500 font-medium">{t('profile.optimizing')}</span>
                                 </div>
                             ) : formData.avatar ? (
-                                <img src={formData.avatar} alt="Profile" className="h-full w-full object-cover" />
+                                <img src={formData.avatar} alt={t('nav.profile')} className="h-full w-full object-cover" />
                             ) : (
                                 <User size={48} className="text-[#1A4516]/50" />
                             )}
@@ -151,7 +153,7 @@ const EditProfilePage = () => {
                         </button>
                     </div>
                     <p className="mt-3 text-sm font-bold text-[#1A4516]">
-                        {isProcessingImage ? 'Optimizing photo...' : 'Change Photo'}
+                        {isProcessingImage ? t('profile.optimizingPhoto') : t('profile.changePhoto')}
                     </p>
                 </div>
 
@@ -159,7 +161,7 @@ const EditProfilePage = () => {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-5">
                         <div>
-                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">Full Name</label>
+                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">{t('auth.fullName')}</label>
                             <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-slate-200 focus-within:border-[#1A4516] focus-within:ring-4 focus-within:ring-[#1A4516]/10 transition-all">
                                 <User size={20} className="text-[#1A4516]" />
                                 <input
@@ -173,13 +175,13 @@ const EditProfilePage = () => {
                                         handleChange(e);
                                     }}
                                     className="bg-transparent w-full text-slate-800 font-bold outline-none placeholder:font-medium"
-                                    placeholder="Enter your name"
+                                    placeholder={t('profile.enterName')}
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">Phone Number</label>
+                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">{t('profile.phoneNumber')}</label>
                             <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-slate-200 focus-within:border-[#1A4516] focus-within:ring-4 focus-within:ring-[#1A4516]/10 transition-all">
                                 <Phone size={20} className="text-[#1A4516]" />
                                 <input
@@ -188,13 +190,13 @@ const EditProfilePage = () => {
                                     value={formData.phone}
                                     onChange={handleChange}
                                     className="bg-transparent w-full text-slate-800 font-bold outline-none placeholder:font-medium"
-                                    placeholder="Enter phone number"
+                                    placeholder={t('profile.enterPhone')}
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">Email Address</label>
+                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">{t('profile.emailAddress')}</label>
                             <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-slate-200 focus-within:border-[#1A4516] focus-within:ring-4 focus-within:ring-[#1A4516]/10 transition-all">
                                 <Mail size={20} className="text-[#1A4516]" />
                                 <input
@@ -203,13 +205,13 @@ const EditProfilePage = () => {
                                     value={formData.email}
                                     onChange={handleChange}
                                     className="bg-transparent w-full text-slate-800 font-bold outline-none placeholder:font-medium"
-                                    placeholder="Enter email address"
+                                    placeholder={t('profile.enterEmail')}
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">Date of Birth</label>
+                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">{t('profile.dob')}</label>
                             <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-slate-200 focus-within:border-[#1A4516] focus-within:ring-4 focus-within:ring-[#1A4516]/10 transition-all">
                                 <Calendar size={20} className="text-[#1A4516]" />
                                 <input
@@ -224,14 +226,14 @@ const EditProfilePage = () => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">Bio</label>
+                            <label className="block text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-2">{t('profile.bio')}</label>
                             <textarea
                                 name="bio"
                                 value={formData.bio}
                                 onChange={handleChange}
                                 rows="3"
                                 className="w-full bg-white px-4 py-3 rounded-xl border border-slate-200 focus:border-[#1A4516] focus:ring-4 focus:ring-[#1A4516]/10 transition-all outline-none text-[#1A4516] font-medium resize-none"
-                                placeholder="Tell us about yourself..."
+                                placeholder={t('profile.bioPlaceholder')}
                             ></textarea>
                         </div>
                     </div>
@@ -246,7 +248,7 @@ const EditProfilePage = () => {
                         ) : (
                             <Save size={20} />
                         )}
-                        {isLoading ? 'Saving...' : 'Save Changes'}
+                        {isLoading ? t('common.saving') : t('profile.saveChanges')}
                     </button>
                 </form>
 

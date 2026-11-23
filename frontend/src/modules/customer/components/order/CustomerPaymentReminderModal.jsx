@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, Clock, AlertTriangle, ArrowRight, X, Volume2, Banknote, Loader2 } from 'lucide-react';
 import orderAlertSound from '@/assets/sounds/order_alert.mp3';
+import { useTranslation } from "react-i18next";
 
 export default function CustomerPaymentReminderModal({
   isOpen,
@@ -15,6 +16,7 @@ export default function CustomerPaymentReminderModal({
   onPayCod,
   onClose
 }) {
+  const { t } = useTranslation();
   const [timeLeft, setTimeLeft] = useState('02:00');
   const [percent, setPercent] = useState(100);
   const [localProcessing, setLocalProcessing] = useState(null);
@@ -154,7 +156,7 @@ export default function CustomerPaymentReminderModal({
             <button
               onClick={handleDismiss}
               className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/20 hover:bg-black/30 backdrop-blur-sm flex items-center justify-center text-white transition-all active:scale-90"
-              aria-label="Dismiss"
+              aria-label={t("reminder.dismiss")}
             >
               <X size={18} />
             </button>
@@ -169,13 +171,13 @@ export default function CustomerPaymentReminderModal({
 
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/25 text-[11px] font-black uppercase tracking-widest text-amber-100 mb-1 border border-white/10">
               <Volume2 size={12} className="animate-pulse" />
-              Payment Reminder
+              {t("reminder.title")}
             </span>
             <h2 className="text-2xl font-black tracking-tight leading-tight uppercase drop-shadow-sm">
-              2 Minutes Remaining!
+              {t("reminder.twoMinutes")}
             </h2>
             <p className="text-xs text-amber-100 font-semibold mt-1">
-              Order #{orderId} is awaiting your payment
+              {t("reminder.awaiting", { id: orderId })}
             </p>
           </div>
 
@@ -186,7 +188,7 @@ export default function CustomerPaymentReminderModal({
               <div className="flex items-center justify-between text-xs font-bold text-amber-900">
                 <span className="flex items-center gap-1.5">
                   <Clock size={16} className="text-amber-600 animate-spin-slow" />
-                  Time Left to Pay:
+                  {t("reminder.timeLeft")}
                 </span>
                 <span className="font-mono text-xl font-black text-red-600 bg-white px-3 py-1 rounded-xl shadow-inner border border-red-200">
                   {timeLeft}
@@ -203,7 +205,7 @@ export default function CustomerPaymentReminderModal({
 
               {amount && (
                 <div className="pt-1 flex items-center justify-between text-xs font-medium text-slate-700 border-t border-amber-200/40">
-                  <span>Payable Amount:</span>
+                  <span>{t("reminder.payableAmount")}</span>
                   <span className="text-base font-black text-slate-900">₹{amount}</span>
                 </div>
               )}
@@ -211,8 +213,8 @@ export default function CustomerPaymentReminderModal({
 
             {/* Warning Note */}
             <p className="text-xs text-slate-600 font-medium leading-relaxed px-2">
-              The seller has <span className="font-bold text-emerald-700">accepted</span> your order. Please complete your payment now. If payment is not completed in time, your order will be{' '}
-              <span className="font-bold text-red-600">automatically cancelled</span>.
+              {t("reminder.warningPrefix")}{' '}
+              <span className="font-bold text-red-600">{t("reminder.warningAutoCancelled")}</span>.
             </p>
 
             {/* Action Buttons */}
@@ -226,12 +228,12 @@ export default function CustomerPaymentReminderModal({
                   {localProcessing === 'ONLINE' ? (
                     <>
                       <Loader2 size={18} className="animate-spin" />
-                      <span>Processing Payment...</span>
+                      <span>{t("reminder.processingPayment")}</span>
                     </>
                   ) : (
                     <>
                       <CreditCard size={18} />
-                      <span>Pay Online {amount ? `(₹${amount})` : ''}</span>
+                      <span>{t("orderDetail.payOnline")} {amount ? `(₹${amount})` : ''}</span>
                       <ArrowRight size={16} />
                     </>
                   )}
@@ -247,12 +249,12 @@ export default function CustomerPaymentReminderModal({
                   {localProcessing === 'COD' || (isLoading && localProcessing !== 'ONLINE') ? (
                     <>
                       <Loader2 size={18} className="animate-spin text-amber-400" />
-                      <span>Confirming Cash on Delivery...</span>
+                      <span>{t("reminder.confirmingCod")}</span>
                     </>
                   ) : (
                     <>
                       <Banknote size={18} className="text-amber-400" />
-                      <span>Cash on Delivery (COD)</span>
+                      <span>{t("reminder.codFull")}</span>
                       <ArrowRight size={16} />
                     </>
                   )}
@@ -264,7 +266,7 @@ export default function CustomerPaymentReminderModal({
                 disabled={isBusy}
                 className="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800 disabled:opacity-50 transition-colors"
               >
-                Dismiss & Review Order
+                {t("reminder.dismissReview")}
               </button>
             </div>
           </div>

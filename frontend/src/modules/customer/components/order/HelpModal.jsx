@@ -6,8 +6,10 @@ import { customerApi } from '../../services/customerApi';
 import { useToast } from '@shared/components/ui/Toast';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTranslation } from "react-i18next";
 
 const HelpModal = ({ isOpen, onClose, orderId }) => {
+    const { t } = useTranslation();
     const { showToast } = useToast();
     const [isTicketMode, setIsTicketMode] = useState(false);
     const [ticketLoading, setTicketLoading] = useState(false);
@@ -29,15 +31,15 @@ const HelpModal = ({ isOpen, onClose, orderId }) => {
     }, [isOpen]);
 
     const issues = [
-        { icon: PackageX, label: 'Items missing or incorrect', sub: 'Get a refund or replacement' },
-        { icon: AlertCircle, label: 'Item quality issue', sub: 'Report damaged or expired items' },
-        { icon: Truck, label: 'Delivery delay', sub: 'Track your order status' },
+        { icon: PackageX, label: t('help.missingItems'), sub: t('help.missingItemsSub') },
+        { icon: AlertCircle, label: t('help.quality'), sub: t('help.qualitySub') },
+        { icon: Truck, label: t('help.delay'), sub: t('help.delaySub') },
     ];
 
     const handleIssueClick = (item) => {
         setTicketData(prev => ({
             ...prev,
-            subject: `${item.label} - Order ${orderId || ''}`.trim()
+            subject: `${item.label} - ${t('orderDetail.order')} ${orderId || ''}`.trim()
         }));
         setIsTicketMode(true);
     };
@@ -51,13 +53,13 @@ const HelpModal = ({ isOpen, onClose, orderId }) => {
                 userType: 'Customer'
             });
             if (res.data.success) {
-                showToast("Ticket raised successfully", "success");
+                showToast(t('support.ticketRaised'), "success");
                 setTicketData({ subject: '', description: '', priority: 'medium' });
                 setIsTicketMode(false);
                 onClose();
             }
         } catch (error) {
-            showToast(error.response?.data?.message || "Failed to create ticket", "error");
+            showToast(error.response?.data?.message || t('support.ticketFailed'), "error");
         } finally {
             setTicketLoading(false);
         }
@@ -92,8 +94,8 @@ const HelpModal = ({ isOpen, onClose, orderId }) => {
                                 <div className="p-6 overflow-y-auto">
                                     <div className="flex items-center justify-between mb-6">
                                         <div>
-                                            <h2 className="text-xl font-black text-slate-800">Need Help?</h2>
-                                            <p className="text-sm text-slate-500 font-medium">Select an issue with your order</p>
+                                            <h2 className="text-xl font-black text-slate-800">{t('help.needHelp')}</h2>
+                                            <p className="text-sm text-slate-500 font-medium">{t('help.selectIssue')}</p>
                                         </div>
                                         <button onClick={handleClose} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
                                             <X size={20} className="text-slate-500" />
@@ -123,13 +125,13 @@ const HelpModal = ({ isOpen, onClose, orderId }) => {
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <button onClick={() => setIsTicketMode(true)} className="col-span-2 py-3.5 rounded-xl border-2 border-primary text-primary font-bold flex items-center justify-center gap-2 hover:bg-brand-50 transition-colors shadow-lg shadow-brand-50">
-                                            <PlusCircle size={18} /> Raise a Ticket
+                                            <PlusCircle size={18} /> {t('support.raiseATicket')}
                                         </button>
                                         <Link to="/user/chat" className="py-3.5 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors">
-                                            <MessageCircle size={18} /> Chat Us
+                                            <MessageCircle size={18} /> {t('support.chatUs')}
                                         </Link>
                                         <button className="py-3.5 rounded-xl border border-slate-200 text-slate-700 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-                                            <Phone size={18} /> Call Us
+                                            <Phone size={18} /> {t('support.callUs')}
                                         </button>
                                     </div>
                                 </div>
@@ -142,8 +144,8 @@ const HelpModal = ({ isOpen, onClose, orderId }) => {
                                                 <ArrowLeft size={20} className="text-slate-500" />
                                             </button>
                                             <div>
-                                                <h2 className="text-xl font-black text-slate-800">Raise a Ticket</h2>
-                                                <p className="text-sm text-slate-500 font-medium">Describe your issue in detail</p>
+                                                <h2 className="text-xl font-black text-slate-800">{t('support.raiseATicket')}</h2>
+                                                <p className="text-sm text-slate-500 font-medium">{t('support.describeIssue')}</p>
                                             </div>
                                         </div>
                                         <button onClick={handleClose} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
@@ -153,13 +155,13 @@ const HelpModal = ({ isOpen, onClose, orderId }) => {
 
                                     <form onSubmit={handleTicketSubmit} className="space-y-6">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Subject</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('support.subject')}</label>
                                             <input
                                                 type="text"
                                                 required
                                                 value={ticketData.subject}
                                                 onChange={(e) => setTicketData({ ...ticketData, subject: e.target.value })}
-                                                placeholder="What's the issue about?"
+                                                placeholder={t('support.subjectPlaceholder')}
                                                 className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold outline-none ring-1 ring-transparent focus:ring-primary/20 transition-all"
                                             />
                                         </div>
@@ -177,18 +179,18 @@ const HelpModal = ({ isOpen, onClose, orderId }) => {
                                                             : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
                                                     )}
                                                 >
-                                                    {p}
+                                                    {t(`support.priority.${p}`)}
                                                 </button>
                                             ))}
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Description</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('support.description')}</label>
                                             <textarea
                                                 required
                                                 value={ticketData.description}
                                                 onChange={(e) => setTicketData({ ...ticketData, description: e.target.value })}
-                                                placeholder="Please explain the issue clearly..."
+                                                placeholder={t('support.descriptionPlaceholder')}
                                                 className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold min-h-[150px] outline-none ring-1 ring-transparent focus:ring-primary/20 transition-all"
                                             />
                                         </div>
@@ -201,11 +203,11 @@ const HelpModal = ({ isOpen, onClose, orderId }) => {
                                             {ticketLoading ? (
                                                 <div className="flex items-center gap-2 text-center w-full justify-center">
                                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                    SUBMITTING...
+                                                    {t('support.submitting')}
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-2 text-center w-full justify-center">
-                                                    <Send size={20} /> SUBMIT TICKET
+                                                    <Send size={20} /> {t('support.submitTicket')}
                                                 </div>
                                             )}
                                         </Button>

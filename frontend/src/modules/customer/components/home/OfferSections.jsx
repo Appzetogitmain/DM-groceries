@@ -8,8 +8,11 @@ import {
   getBackgroundGradientByValue,
 } from "@/shared/constants/offerSectionOptions";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
+import { useTranslation } from "react-i18next";
+import { getLocalizedName } from "../../i18n/format";
 
 const OfferSections = ({ sections, noServiceData }) => {
+  const { t } = useTranslation();
   if (!sections || sections.length === 0) return null;
 
   return (
@@ -24,6 +27,8 @@ const OfferSections = ({ sections, noServiceData }) => {
               id: p._id,
               _id: p._id,
               name: p.name,
+              nameHi: p.nameHi,
+              nameGu: p.nameGu,
               image: p.mainImage || p.image || "",
               price: p.salePrice ?? p.price,
               originalPrice: p.price ?? p.salePrice,
@@ -59,20 +64,20 @@ const OfferSections = ({ sections, noServiceData }) => {
                 </div>
                 <div className="flex-1 pr-4">
                   <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-black/60 mb-1">
-                    Trending right now
+                    {t("home.trendingNow")}
                   </p>
                   <h3 className="text-xl md:text-2xl font-bold tracking-tight leading-tight drop-shadow-sm">
                     {section.title}
                   </h3>
                   {((section.categoryIds || [])
-                    .map((c) => (typeof c === "object" && c?.name ? c.name : null))
+                    .map((c) => (typeof c === "object" && c?.name ? getLocalizedName(c) : null))
                     .filter(Boolean)
-                    .join(", ") || section.categoryId?.name) && (
+                    .join(", ") || getLocalizedName(section.categoryId)) && (
                     <p className="text-[11px] md:text-xs font-semibold text-black/75 mt-1">
                       {(section.categoryIds || [])
-                        .map((c) => (typeof c === "object" && c?.name ? c.name : null))
+                        .map((c) => (typeof c === "object" && c?.name ? getLocalizedName(c) : null))
                         .filter(Boolean)
-                        .join(", ") || section.categoryId?.name}
+                        .join(", ") || getLocalizedName(section.categoryId)}
                     </p>
                   )}
                 </div>
@@ -113,7 +118,7 @@ const OfferSections = ({ sections, noServiceData }) => {
                         )}
                       </div>
                       <p className="text-sm md:text-base text-slate-400 font-bold">
-                        Looking for the best items in this category...
+                        {t("home.lookingForItems")}
                       </p>
                     </div>
                   ) : (
@@ -128,7 +133,7 @@ const OfferSections = ({ sections, noServiceData }) => {
                             )}
                           </div>
                           <h4 className="text-xs font-bold text-slate-800 line-clamp-2 leading-tight px-1">{seller.name}</h4>
-                          <p className="text-[9px] text-brand-600 mt-1 font-extrabold uppercase tracking-widest bg-brand-50 px-2 py-0.5 rounded-full">Store</p>
+                          <p className="text-[9px] text-brand-600 mt-1 font-extrabold uppercase tracking-widest bg-brand-50 px-2 py-0.5 rounded-full">{t("auth.categoryStore")}</p>
                         </div>
                       ))}
                       {sectionProducts.map((product) => (

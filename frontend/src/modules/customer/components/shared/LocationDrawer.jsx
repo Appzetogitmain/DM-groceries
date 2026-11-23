@@ -6,9 +6,13 @@ import { useLocation } from "../../context/LocationContext";
 import { loadGoogleMaps } from "../../../../core/services/googleMapsLoader";
 import { customerApi } from "../../services/customerApi";
 import { getCachedGeocode, setCachedGeocode } from "@/core/utils/geocodeCache";
+import { useTranslation } from "react-i18next";
+import { translateAddressLabel, localizeAddressText } from "../../i18n/format";
+import useLocalizedLocationName from "../../i18n/useLocalizedLocation";
 
 const LocationDrawer = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const {
     currentLocation,
     savedAddresses,
@@ -17,6 +21,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
     isFetchingLocation,
     locationError,
   } = useLocation();
+  const displayLocationName = useLocalizedLocationName(currentLocation);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [placePredictions, setPlacePredictions] = useState([]);
@@ -60,14 +65,14 @@ const LocationDrawer = ({ isOpen, onClose }) => {
 
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      setPlacesError("Google Maps API key is missing");
+      setPlacesError(t("location.mapsKeyMissing"));
       return false;
     }
 
     try {
       await loadGoogleMaps(apiKey);
       if (!window.google?.maps?.places) {
-        setPlacesError("Google Places library is unavailable");
+        setPlacesError(t("location.placesUnavailable"));
         return false;
       }
       autocompleteServiceRef.current =
@@ -75,11 +80,11 @@ const LocationDrawer = ({ isOpen, onClose }) => {
       geocoderRef.current = new window.google.maps.Geocoder();
       mapsReadyRef.current = true;
       return true;
-    } catch (err) {
-      setPlacesError(err?.message || "Unable to load Google search");
+    } catch {
+      setPlacesError(t("location.searchLoadFailed"));
       return false;
     }
-  }, []);
+  }, [t]);
 
   // Close drawer when location is successfully fetched
   const prevFetching = React.useRef(isFetchingLocation);
@@ -183,7 +188,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
 
       geocoder.geocode({ placeId: prediction.place_id }, (results, status) => {
         if (status !== "OK" || !Array.isArray(results) || !results[0]) {
-          setPlacesError("Could not resolve selected location");
+          setPlacesError(t("location.resolveFailed"));
           return;
         }
 
@@ -192,7 +197,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
         const components = result.address_components || [];
 
         if (!geometry) {
-          setPlacesError("Location coordinates not available");
+          setPlacesError(t("location.noCoordinates"));
           return;
         }
 
@@ -229,6 +234,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
       onClose,
       resetAutocompleteSession,
       updateLocation,
+      t,
     ],
   );
 
@@ -308,7 +314,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
             return;
           }
           setPlacePredictions([]);
-          setPlacesError("Google search is temporarily unavailable");
+          setPlacesError(t("location.searchTempUnavailable"));
         },
       );
     }, SEARCH_DEBOUNCE_MS);
@@ -353,7 +359,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
             <div className="sticky top-0 bg-[#F3F4F6] px-6 pt-6 pb-4 flex flex-col gap-4 z-20">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-extrabold text-[#1A1A1A]">
-                  Select delivery location
+                  {t("location.selectDeliveryLocation")}
                 </h2>
                 <button
                   onClick={onClose}
@@ -372,7 +378,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                 </div>
                 <input
                   type="text"
-                  placeholder="Search for area, street name.."
+                  placeholder={t("location.searchPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={async () => {
@@ -386,7 +392,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                 />
               </div>
               <p className="text-[11px] font-semibold text-slate-400 px-1">
-                Type at least 4 characters
+                {t("location.minChars", { count: 4 })}
               </p>
             </div>
 
@@ -396,7 +402,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                   {isSearchingPlaces && placePredictions.length === 0 && (
                     <div className="px-4 py-3 text-sm font-semibold text-slate-500">
-                      Searching with Google...
+                      {t("location.searchingGoogle")}
                     </div>
                   )}
 
@@ -430,7 +436,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                     placePredictions.length === 0 &&
                     !placesError && (
                       <div className="px-4 py-3 text-sm font-semibold text-slate-500">
-                        No locations found
+                        {t("location.noneFound")}
                       </div>
                     )}
 
@@ -458,11 +464,11 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                 <div className="flex-1 flex items-center gap-2 min-w-0">
                   <h3 className="font-bold text-primary text-[14px] whitespace-nowrap">
                     {isFetchingLocation
-                      ? "Detecting..."
-                      : "Use current location"}
+                      ? t("location.detectingShort")
+                      : t("location.useCurrent")}
                   </h3>
                   <p className="text-[12px] text-slate-400 font-medium truncate opacity-60">
-                    ({currentLocation.name})
+                    ({displayLocationName})
                   </p>
                 </div>
                 <ChevronRight size={16} className="text-slate-300 flex-shrink-0" />
@@ -480,7 +486,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-primary text-[15px]">
-                    Add new address
+                    {t("address.addNew")}
                   </h3>
                 </div>
                 <ChevronRight size={20} className="text-slate-300" />
@@ -489,7 +495,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
               {/* Saved Addresses Section */}
               <div className="mt-4 px-2">
                 <h4 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider mb-4">
-                  Your saved addresses
+                  {t("location.savedAddresses")}
                 </h4>
 
                 <div className="flex flex-col gap-4">
@@ -500,7 +506,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                       className="bg-white p-3 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden group cursor-pointer hover:bg-slate-50 transition-colors">
                       <div className="flex items-start gap-4">
                         <div className="h-12 w-12 bg-slate-50 rounded-xl flex items-center justify-center text-yellow-500 flex-shrink-0">
-                          {addr.label === "Home" ? (
+                          {String(addr.label || "").toLowerCase() === "home" ? (
                             <Home
                               size={26}
                               fill="currentColor"
@@ -517,17 +523,17 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-bold text-[#1A1A1A] text-lg">
-                              {addr.label}
+                              {translateAddressLabel(t, addr.label)}
                             </h3>
                             {(addr.address === currentLocation.name ||
                               addr.isCurrent) && (
                               <span className="text-[10px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight border border-teal-100">
-                                You are here
+                                {t("location.youAreHere")}
                               </span>
                             )}
                           </div>
                           <p className="text-[13px] text-slate-500 font-medium leading-relaxed mb-3">
-                            {addr.address}
+                            {localizeAddressText(addr.address)}
                           </p>
                           <p className="text-[12px] text-slate-400 font-bold">
                             Phone number: {addr.phone}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { HiOutlineCash, HiOutlineDeviceMobile } from 'react-icons/hi';
+import { useTranslation } from "react-i18next";
 
 const PosPaymentPanel = ({ 
     total, 
@@ -10,6 +11,7 @@ const PosPaymentPanel = ({
     onlineAmountPaid,
     setOnlineAmountPaid
 }) => {
+    const { t } = useTranslation();
     
     // Auto-calculate remaining amount if MIXED
     const remainingForOnline = Math.max(0, total - (cashReceived || 0));
@@ -29,7 +31,7 @@ const PosPaymentPanel = ({
 
     return (
         <div className="bg-white p-4 rounded-xl border border-gray-200 mt-4 space-y-4 shadow-sm">
-            <h3 className="font-semibold text-gray-900">Payment Details</h3>
+            <h3 className="font-semibold text-gray-900">{t("sPos.paymentDetails")}</h3>
             
             <div className="grid grid-cols-3 gap-2">
                 <button
@@ -41,7 +43,7 @@ const PosPaymentPanel = ({
                     }`}
                 >
                     <HiOutlineCash size={24} className="mb-1" />
-                    <span className="text-sm font-medium">Cash</span>
+                    <span className="text-sm font-medium">{t("paymentMethod.cash")}</span>
                 </button>
                 <button
                     onClick={() => setPaymentMode('ONLINE')}
@@ -52,7 +54,7 @@ const PosPaymentPanel = ({
                     }`}
                 >
                     <HiOutlineDeviceMobile size={24} className="mb-1" />
-                    <span className="text-sm font-medium">Online/UPI</span>
+                    <span className="text-sm font-medium">{t("sPos.onlineUpi")}</span>
                 </button>
                 <button
                     onClick={() => setPaymentMode('MIXED')}
@@ -66,7 +68,7 @@ const PosPaymentPanel = ({
                         <HiOutlineCash size={20} className="-mr-1" />
                         <HiOutlineDeviceMobile size={20} />
                     </div>
-                    <span className="text-sm font-medium">Mixed</span>
+                    <span className="text-sm font-medium">{t("sPos.mixed")}</span>
                 </button>
             </div>
 
@@ -75,7 +77,7 @@ const PosPaymentPanel = ({
                 <div className="space-y-3 pt-2">
                     <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
-                            Cash Received (₹)
+                            {t('sPos.cashReceivedRs')}
                         </label>
                         <input
                             type="number"
@@ -106,7 +108,7 @@ const PosPaymentPanel = ({
             {paymentMode === 'MIXED' && (
                 <div className="pt-2">
                     <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
-                        Online Payment (₹)
+                        {t('sPos.onlinePaymentRs')}
                     </label>
                     <input
                         type="number"
@@ -124,7 +126,7 @@ const PosPaymentPanel = ({
                 <div className={`mt-4 p-3 rounded-lg flex items-center justify-between ${
                     change > 0 ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'
                 }`}>
-                    <span className="font-medium text-gray-700">Change to return:</span>
+                    <span className="font-medium text-gray-700">{t("sPos.changeToReturn")}</span>
                     <span className={`text-xl font-bold ${change > 0 ? 'text-green-600' : 'text-gray-900'}`}>
                         ₹{change.toFixed(2)}
                     </span>

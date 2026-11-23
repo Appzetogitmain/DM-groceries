@@ -12,6 +12,15 @@ const categorySchema = new mongoose.Schema(
       required: [true, "Category name is required"],
       trim: true,
     },
+    // Optional customer-facing translations of `name` (fall back to `name`).
+    nameHi: {
+      type: String,
+      trim: true,
+    },
+    nameGu: {
+      type: String,
+      trim: true,
+    },
     slug: {
       type: String,
       required: [true, "URL slug is required"],

@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Circle, Clock, Truck, Home } from "lucide-react";
 import { getLegacyStatusFromOrder } from "@/shared/utils/orderStatus";
+import { useTranslation } from "react-i18next";
 
 const STATUS_TO_STAGE = {
   pending: "confirmed",
@@ -17,25 +18,26 @@ const OrderProgressTracker = ({
   arrivingInText = "8 mins",
   totalDistanceText = "—",
 }) => {
+  const { t } = useTranslation();
   const status = getLegacyStatusFromOrder(order);
   const currentStage = STATUS_TO_STAGE[status] || "confirmed";
 
   const steps = [
     {
       id: "confirmed",
-      label: "Order Confirmed",
+      label: t("orderSteps.confirmed"),
       icon: CheckCircle,
       statuses: ["confirmed"],
     },
     {
       id: "out_for_delivery",
-      label: "Out for delivery",
+      label: t("orderStatus.out_for_delivery"),
       icon: Truck,
       statuses: ["out_for_delivery", "delivered"],
     },
     {
       id: "delivered",
-      label: "Delivered",
+      label: t("orderStatus.delivered"),
       icon: Home,
       statuses: ["delivered"],
     },
@@ -70,7 +72,7 @@ const OrderProgressTracker = ({
   if (status === "cancelled") {
     return (
       <div className="bg-rose-50 border border-rose-200 rounded-3xl p-5">
-        <p className="text-center text-rose-700 font-semibold">Order Cancelled</p>
+        <p className="text-center text-rose-700 font-semibold">{t("orderSteps.cancelled")}</p>
       </div>
     );
   }
@@ -129,7 +131,7 @@ const OrderProgressTracker = ({
                   </p>
                   {isActive && (
                     <p className="text-xs text-[#1A4516]/80 font-medium mt-0.5">
-                      In progress...
+                      {t("orderSteps.inProgress")}
                     </p>
                   )}
                 </div>
@@ -167,18 +169,18 @@ const OrderProgressTracker = ({
               </div>
               <div>
                 <p className="text-[11px] font-bold text-[#1A4516]/80 uppercase tracking-wider">
-                  Estimated Time
+                  {t("orderSteps.estimatedTime")}
                 </p>
                 <p className="text-base font-black text-[#1A4516]">{estimatedArrivalText}</p>
               </div>
             </div>
             <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-0 border-[#1A4516]/10">
               <div className="flex flex-col sm:items-end">
-                <p className="text-[11px] text-[#1A4516]/80 font-semibold">Arriving in</p>
+                <p className="text-[11px] text-[#1A4516]/80 font-semibold">{t("orderSteps.arrivingIn")}</p>
                 <p className="text-xl font-black text-[#1A4516] leading-none mt-0.5">{arrivingInText}</p>
               </div>
               <div className="inline-flex items-center rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-bold text-[#1A4516] ring-1 ring-[#1A4516]/20 whitespace-nowrap">
-                Total distance: {totalDistanceText}
+                {t("orderSteps.totalDistance", { distance: totalDistanceText })}
               </div>
             </div>
           </div>

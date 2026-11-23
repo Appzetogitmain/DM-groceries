@@ -9,6 +9,7 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const RETURN_STEPS = [
   { id: "return_requested", label: "Return Requested", icon: ClipboardCheck },
@@ -25,6 +26,7 @@ const STATUS_INDEX = RETURN_STEPS.reduce((acc, step, idx) => {
 }, {});
 
 const ReturnProgressTracker = ({ returnStatus }) => {
+  const { t } = useTranslation();
   const status = String(returnStatus || "").trim();
   if (!status || status === "none") return null;
 
@@ -36,12 +38,13 @@ const ReturnProgressTracker = ({ returnStatus }) => {
     { id: "return_requested", label: "Return Requested", icon: ClipboardCheck },
     { id: "return_rejected", label: "Return Rejected", icon: XCircle },
   ];
+  // Step labels above stay as English fallbacks; the UI shows returnSteps.<id>.
 
   const steps = isRejected ? rejectedSteps : RETURN_STEPS;
 
   return (
     <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
-      <h4 className="text-sm font-bold text-slate-800 mb-4">Return Status</h4>
+      <h4 className="text-sm font-bold text-slate-800 mb-4">{t("returnSteps.title")}</h4>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -94,7 +97,7 @@ const ReturnProgressTracker = ({ returnStatus }) => {
                             : "text-slate-400"
                     }`}
                   >
-                    {step.label}
+                    {t(`returnSteps.${step.id}`, { defaultValue: step.label })}
                   </p>
                 </div>
               </div>

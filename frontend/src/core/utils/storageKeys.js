@@ -34,6 +34,11 @@ export const STORAGE_KEYS = Object.freeze({
     RECENT_SEARCHES: 'appzeto_recent_searches',
     FAQ_CACHE: 'customer_faqs_cache_v1',
     EXPERIENCE_RETURN: 'experienceReturn',
+    // Customer-panel UI language (survives logout on purpose — it is a device
+    // preference, not account PII).
+    CUSTOMER_LANGUAGE: 'customer_language_v1',
+    // Seller-panel UI language (device preference, survives logout).
+    SELLER_LANGUAGE: 'seller_language_v1',
 
     // ── Delivery operational state ───────────────────────────────────────────
     DELIVERY_LAST_LOCATION: 'delivery_partner_last_location',

@@ -115,7 +115,7 @@ export const getStockHistory = async (req, res) => {
 
         const history = await StockHistory.find({ seller: sellerId })
             .sort({ createdAt: -1 })
-            .populate("product", "name sku mainImage");
+            .populate("product", "name nameHi nameGu sku mainImage");
 
         return handleResponse(res, 200, "Stock history fetched", history.map(item => ({
             id: item._id,

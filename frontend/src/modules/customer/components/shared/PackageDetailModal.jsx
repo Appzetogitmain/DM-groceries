@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { X, ArrowLeft, Package as PackageIcon, Clock, ShoppingBag, Store, Layers, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
+import { useTranslation } from "react-i18next";
+import { getLocalizedItemLabel as itemName } from "../../i18n/format";
+import { translateEta } from "../../i18n/format";
 
 const unitComboPrice = (it) => Number(it?.packagePricePerUnit || it?.priceAtAddition || 0);
 const formatMoney = (n) => {
@@ -15,6 +18,7 @@ const formatMoney = (n) => {
  * mobile  = bottom sheet with sticky Add-to-cart bar.
  */
 const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => {
+  const { t } = useTranslation();
   const images = useMemo(() => {
     if (!pkg) return [];
     const list = [pkg.coverImage, ...(pkg.galleryImages || [])];
@@ -67,11 +71,11 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
       )}
     >
       {isOutOfStock ? (
-        "Out of Stock"
+        t("product.outOfStock")
       ) : (
         <>
           <ShoppingBag size={16} strokeWidth={2.5} />
-          {isAdding ? "Adding..." : "Add to Cart"}
+          {isAdding ? t("product.adding") : t("product.addToCart")}
         </>
       )}
     </button>
@@ -89,7 +93,7 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
         data-lenis-prevent
         role="dialog"
         aria-modal="true"
-        aria-label={pkg.name}
+        aria-label={itemName(pkg)}
         onClick={(e) => e.stopPropagation()}
         className="relative bg-white w-full md:max-w-5xl rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[92vh] md:h-[min(560px,88vh)]"
       >
@@ -117,7 +121,7 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
             {activeImage ? (
               <img
                 src={applyCloudinaryTransform(activeImage, "f_auto,q_auto,w_800")}
-                alt={pkg.name}
+                alt={itemName(pkg)}
                 className="max-h-full max-w-full object-contain rounded-xl"
               />
             ) : (
@@ -127,7 +131,7 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
             {/* Back (desktop) / close (mobile) */}
             <button
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("common.close")}
               className="absolute top-4 left-4 h-9 w-9 rounded-full bg-white shadow-md flex items-center justify-center text-slate-700 hover:bg-slate-50"
             >
               <ArrowLeft size={18} className="hidden md:block" />
@@ -136,7 +140,7 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
 
             {discount > 0 && (
               <span className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#1A4516] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
-                {discount}% OFF
+                {t("product.percentOff", { percent: discount })}
               </span>
             )}
 
@@ -147,7 +151,7 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
                   <button
                     key={img}
                     onClick={() => setActiveIndex(idx)}
-                    aria-label={`Image ${idx + 1}`}
+                    aria-label={t("product.imageN", { n: idx + 1 })}
                     className={cn(
                       "h-1.5 rounded-full transition-all",
                       idx === activeIndex ? "w-6 bg-[#1A4516]" : "w-1.5 bg-slate-300",
@@ -165,19 +169,19 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
             {/* Chips */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-emerald-200 bg-emerald-50 text-[10px] font-black uppercase tracking-wide text-emerald-800">
-                <Clock size={11} /> 8-15 mins
+                <Clock size={11} /> {translateEta(t, "8-15 mins")}
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-amber-200 bg-amber-50 text-[10px] font-black uppercase tracking-wide text-amber-800">
-                <Layers size={11} /> Combo · {items.length} items
+                <Layers size={11} /> {t("combos.comboItems", { count: items.length })}
               </span>
               {savings > 0 && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-orange-200 bg-orange-50 text-[10px] font-black uppercase tracking-wide text-orange-700">
-                  Save ₹{formatMoney(savings)}
+                  {t("product.saveAmount", { amount: formatMoney(savings) })}
                 </span>
               )}
             </div>
 
-            <h2 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">{pkg.name}</h2>
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">{itemName(pkg)}</h2>
             {pkg.sellerId?.shopName && (
               <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-slate-400 uppercase tracking-wide">
                 <Store size={12} /> {pkg.sellerId.shopName}
@@ -196,10 +200,10 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
                 <div className="flex items-center gap-2 mt-1">
                   {discount > 0 && (
                     <span className="text-[10px] font-black uppercase bg-red-50 text-red-500 px-1.5 py-0.5 rounded">
-                      {discount}% OFF
+                      {t("product.percentOff", { percent: discount })}
                     </span>
                   )}
-                  <span className="text-[10px] font-medium text-slate-400">Inclusive of all taxes</span>
+                  <span className="text-[10px] font-medium text-slate-400">{t("product.inclusiveTaxes")}</span>
                 </div>
               </div>
               <AddButton className="hidden md:flex px-6 py-3 text-xs" />
@@ -208,7 +212,7 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
             {/* Items in this pack */}
             <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">
-                Items in this pack ({items.length})
+                {t("combos.itemsInPack", { count: items.length })}
               </h4>
               <div className="space-y-2">
                 {items.map((it, idx) => {
@@ -221,16 +225,16 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
                     <div key={prod._id || idx} className="flex items-center gap-3 bg-white rounded-xl border border-slate-100 p-2.5">
                       <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center">
                         {prod.mainImage ? (
-                          <img src={applyCloudinaryTransform(prod.mainImage, "f_auto,q_auto,w_120")} alt={prod.name} className="w-full h-full object-cover" />
+                          <img src={applyCloudinaryTransform(prod.mainImage, "f_auto,q_auto,w_120")} alt={itemName(prod)} className="w-full h-full object-cover" />
                         ) : (
                           <PackageIcon size={18} className="text-slate-300" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-800 line-clamp-1">{prod.name || "Product"}</p>
+                        <p className="text-sm font-bold text-slate-800 line-clamp-1">{itemName(prod) || t("product.product")}</p>
                         <p className="text-[11px] text-slate-400 mt-0.5">
                           {prod.weight || prod.unit ? <>{prod.weight || prod.unit} · </> : null}
-                          Qty <strong className="text-slate-700">{qty}</strong>
+                          {t("product.qty")} <strong className="text-slate-700">{qty}</strong>
                           {regular > unit && (
                             <> · <span className="line-through">₹{formatMoney(regular)}</span></>
                           )}
@@ -242,7 +246,7 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
                       <div className="text-right shrink-0">
                         <p className="text-sm font-black text-slate-800">₹{formatMoney(unit * qty)}</p>
                         {lineSave > 0 && (
-                          <p className="text-[10px] font-bold text-emerald-600">Save ₹{formatMoney(lineSave)}</p>
+                          <p className="text-[10px] font-bold text-emerald-600">{t("product.saveAmount", { amount: formatMoney(lineSave) })}</p>
                         )}
                       </div>
                     </div>
@@ -262,7 +266,7 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
                     <span className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500">
                       <Clock size={15} />
                     </span>
-                    Combo Description
+                    {t("combos.description")}
                   </span>
                   <ChevronDown size={16} className={cn("text-slate-400 transition-transform", showDescription && "rotate-180")} />
                 </button>
@@ -285,7 +289,7 @@ const PackageDetailModal = ({ pkg, onClose, onAddToCart, isAdding = false }) => 
                   <span className="text-xs text-slate-400 line-through">₹{formatMoney(original)}</span>
                 )}
               </div>
-              {savings > 0 && <span className="text-[10px] font-bold text-emerald-600">You save ₹{formatMoney(savings)}</span>}
+              {savings > 0 && <span className="text-[10px] font-bold text-emerald-600">{t("product.youSave", { amount: formatMoney(savings) })}</span>}
             </div>
             <AddButton className="px-6 py-3 text-xs" />
           </div>

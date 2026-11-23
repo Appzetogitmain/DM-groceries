@@ -3,19 +3,21 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import MicIcon from "@mui/icons-material/Mic";
 import CloseIcon from "@mui/icons-material/Close";
+import { useTranslation } from "react-i18next";
 
 const getRecognitionClass = () =>
   typeof window !== "undefined"
     ? window.SpeechRecognition || window.webkitSpeechRecognition
     : null;
 
-const STATUS_TEXT = {
-  listening: "Listening… say a product name",
-  done: "Got it! Searching…",
-  nomatch: "Didn't catch that. Tap the mic to try again",
-  denied: "Microphone access is blocked. Allow it in your browser settings",
-  unsupported: "Voice search isn't supported in this browser. Try Chrome",
-  error: "Something went wrong. Tap the mic to try again",
+// Status → translation key (search.voice.*)
+const STATUS_KEYS = {
+  listening: "search.voice.listening",
+  done: "search.voice.done",
+  nomatch: "search.voice.nomatch",
+  denied: "search.voice.denied",
+  unsupported: "search.voice.unsupported",
+  error: "search.voice.error",
 };
 
 /**
@@ -24,6 +26,7 @@ const STATUS_TEXT = {
  * calls onResult(transcript).
  */
 const VoiceSearchOverlay = ({ onClose, onResult }) => {
+  const { t } = useTranslation();
   const recognitionRef = useRef(null);
   const transcriptRef = useRef("");
   const [status, setStatus] = useState(() =>
@@ -125,7 +128,7 @@ const VoiceSearchOverlay = ({ onClose, onResult }) => {
       key="voice-search"
       role="dialog"
       aria-modal="true"
-      aria-label="Voice search"
+      aria-label={t("search.voiceSearch")}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -134,7 +137,7 @@ const VoiceSearchOverlay = ({ onClose, onResult }) => {
     >
       <button
         type="button"
-        aria-label="Close voice search"
+        aria-label={t("search.closeVoiceSearch")}
         onClick={onClose}
         className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 active:scale-90"
       >
@@ -142,7 +145,7 @@ const VoiceSearchOverlay = ({ onClose, onResult }) => {
       </button>
 
       <p className="mb-10 min-h-[2.5rem] max-w-md text-center text-2xl font-bold text-slate-800">
-        {transcript || (isListening ? "Speak now" : "")}
+        {transcript || (isListening ? t("search.voice.speakNow") : "")}
       </p>
 
       <div className="relative flex h-40 w-40 items-center justify-center">
@@ -163,7 +166,7 @@ const VoiceSearchOverlay = ({ onClose, onResult }) => {
           ))}
         <motion.button
           type="button"
-          aria-label={canRetry ? "Try again" : "Listening"}
+          aria-label={canRetry ? t("common.tryAgain") : t("search.voice.listeningShort")}
           onClick={canRetry ? retry : undefined}
           whileTap={{ scale: 0.92 }}
           animate={isListening ? { scale: [1, 1.08, 1] } : { scale: 1 }}
@@ -179,7 +182,7 @@ const VoiceSearchOverlay = ({ onClose, onResult }) => {
       </div>
 
       <p className="mt-10 max-w-xs text-center text-sm font-medium text-slate-500">
-        {STATUS_TEXT[status]}
+        {STATUS_KEYS[status] ? t(STATUS_KEYS[status]) : null}
       </p>
     </motion.div>,
     document.body,

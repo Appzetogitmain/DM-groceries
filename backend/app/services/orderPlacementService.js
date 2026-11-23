@@ -75,12 +75,16 @@ function mapOrderItemsForPersistence(hydratedItems = []) {
   return hydratedItems.map((item) => ({
     product: item.productId,
     name: item.productName,
+    nameHi: item.productNameHi || undefined,
+    nameGu: item.productNameGu || undefined,
     quantity: item.quantity,
     price: item.price,
     variantSlot: String(item.variantSku || item.variantSlot || "").trim() || undefined,
     image: item.image || "",
     packageId: item.packageId || undefined,
     packageName: item.packageName || undefined,
+    packageNameHi: item.packageNameHi || undefined,
+    packageNameGu: item.packageNameGu || undefined,
     packagePricePerUnit: item.packagePricePerUnit || undefined,
     originalPrice: item.originalPrice || undefined,
   }));

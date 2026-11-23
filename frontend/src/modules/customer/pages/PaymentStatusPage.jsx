@@ -7,8 +7,10 @@ import { useToast } from "@shared/components/ui/Toast";
 import Button from "@shared/components/ui/Button";
 import { useCart } from "../context/CartContext";
 import CheckoutOrderSuccess from "./checkout/components/CheckoutOrderSuccess";
+import { useTranslation } from "react-i18next";
 
 const PaymentStatusPage = () => {
+    const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -24,7 +26,7 @@ const PaymentStatusPage = () => {
     const verifyPayment = async () => {
         if (!merchantOrderId) {
             setStatus("failure");
-            setError("Missing Order ID");
+            setError(t("paymentStatus.missingOrderId"));
             return;
         }
 
@@ -59,14 +61,14 @@ const PaymentStatusPage = () => {
 
             if (isNetworkError) {
                 setStatus("timeout");
-                setError("Cannot reach the backend. If the payment gateway opened this on another device/app, localhost URLs will not work.");
+                setError(t("paymentStatus.backendUnreachable"));
                 if (pollInterval.current) clearInterval(pollInterval.current);
                 return;
             }
 
             if (statusCode === 401) {
                 setStatus("failure");
-                setError("Your session is missing or expired. Please log in again and check the order from My Orders.");
+                setError(t("paymentStatus.sessionExpired"));
                 if (pollInterval.current) clearInterval(pollInterval.current);
                 return;
             }
@@ -92,7 +94,7 @@ const PaymentStatusPage = () => {
             }, 3000);
         } else {
             setStatus("failure");
-            setError("Invalid payment reference");
+            setError(t("paymentStatus.invalidReference"));
         }
 
         return () => {
@@ -188,8 +190,8 @@ const PaymentStatusPage = () => {
                     <AnimatePresence mode="wait">
                         {status === "verifying" && (
                             <motion.div key="text-verifying" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                <h1 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">Verifying Payment</h1>
-                                <p className="text-slate-500 text-sm font-medium">Please wait while we confirm your transaction with the payment gateway. Do not refresh or go back.</p>
+                                <h1 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">{t("paymentStatus.verifying")}</h1>
+                                <p className="text-slate-500 text-sm font-medium">{t("paymentStatus.verifyingBody")}</p>
                                 <div className="mt-6 flex justify-center gap-1">
                                     {[0, 1, 2].map((i) => (
                                         <motion.div
@@ -205,43 +207,43 @@ const PaymentStatusPage = () => {
 
                         {status === "success" && (
                             <motion.div key="text-success" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                <h1 className="text-2xl font-[1000] text-slate-800 mb-2 uppercase tracking-tight">Order Confirmed!</h1>
-                                <p className="text-emerald-600 text-sm font-black mb-6 uppercase tracking-wider">Payment Successful</p>
+                                <h1 className="text-2xl font-[1000] text-slate-800 mb-2 uppercase tracking-tight">{t("paymentStatus.orderConfirmed")}</h1>
+                                <p className="text-emerald-600 text-sm font-black mb-6 uppercase tracking-wider">{t("paymentStatus.paymentSuccessful")}</p>
                                 <div className="bg-slate-50 rounded-2xl p-4 mb-8 border border-slate-100">
                                     <div className="flex justify-between items-center mb-2">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order ID</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("paymentStatus.orderId")}</span>
                                         <span className="text-xs font-black text-slate-700">#{merchantOrderId?.slice(-8).toUpperCase()}</span>
                                     </div>
                                     <div className="h-px bg-slate-200 my-2" />
-                                    <p className="text-[11px] text-slate-500 font-medium">Redirecting to your order details in 4 seconds...</p>
+                                    <p className="text-[11px] text-slate-500 font-medium">{t("paymentStatus.redirectingIn", { seconds: 4 })}</p>
                                 </div>
                                 <Button 
                                     onClick={() => navigate('/user/orders')}
                                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-xl flex items-center justify-center gap-2"
                                 >
-                                    Go to My Orders <ArrowRight size={18} />
+                                    {t("paymentStatus.goToOrders")} <ArrowRight size={18} />
                                 </Button>
                             </motion.div>
                         )}
 
                         {status === "failure" && (
                             <motion.div key="text-failure" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                <h1 className="text-2xl font-[1000] text-slate-800 mb-2 uppercase tracking-tight">Payment Failed</h1>
-                                <p className="text-rose-600 text-sm font-black mb-6 uppercase tracking-wider">{error || "Transaction Rejected"}</p>
-                                <p className="text-slate-500 text-sm font-medium mb-8">Oops! Something went wrong with the transaction. Your money (if debited) will be refunded automatically by the payment provider.</p>
+                                <h1 className="text-2xl font-[1000] text-slate-800 mb-2 uppercase tracking-tight">{t("paymentStatus.failed")}</h1>
+                                <p className="text-rose-600 text-sm font-black mb-6 uppercase tracking-wider">{error || t("paymentStatus.rejected")}</p>
+                                <p className="text-slate-500 text-sm font-medium mb-8">{t("paymentStatus.failedBody")}</p>
                                 <div className="flex flex-col gap-3">
                                     <Button 
                                         onClick={() => navigate('/user/checkout')}
                                         className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 rounded-xl"
                                     >
-                                        Try Again
+                                        {t("common.tryAgain")}
                                     </Button>
                                     <Button 
                                         variant="outline"
                                         onClick={() => navigate('/user')}
                                         className="w-full border-slate-200 text-slate-600 font-bold h-12 rounded-xl"
                                     >
-                                        Back to Home
+                                        {t("paymentStatus.backToHome")}
                                     </Button>
                                 </div>
                             </motion.div>
@@ -249,12 +251,12 @@ const PaymentStatusPage = () => {
 
                         {status === "timeout" && (
                             <motion.div key="text-timeout" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                <h1 className="text-2xl font-[1000] text-slate-800 mb-2 uppercase tracking-tight">Payment Pending</h1>
-                                <p className="text-amber-600 text-sm font-black mb-6 uppercase tracking-wider">Awaiting Confirmation</p>
+                                <h1 className="text-2xl font-[1000] text-slate-800 mb-2 uppercase tracking-tight">{t("paymentStatus.pending")}</h1>
+                                <p className="text-amber-600 text-sm font-black mb-6 uppercase tracking-wider">{t("paymentStatus.awaiting")}</p>
                                 <div className="bg-amber-50 rounded-2xl p-4 mb-8 border border-amber-100 flex items-start gap-3 text-left">
                                     <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={18} />
                                     <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                                        We haven't received confirmation from the payment gateway yet. This sometimes happens due to bank delays. Please check your order history in a few minutes.
+                                        {t("paymentStatus.pendingBody")}
                                     </p>
                                 </div>
                                 <div className="flex flex-col gap-3">
@@ -262,14 +264,14 @@ const PaymentStatusPage = () => {
                                         onClick={handleManualRetry}
                                         className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold h-12 rounded-xl flex items-center justify-center gap-2"
                                     >
-                                        <RefreshCcw size={18} /> Check Again
+                                        <RefreshCcw size={18} /> {t("home.checkAgain")}
                                     </Button>
                                     <Button 
                                         variant="outline"
                                         onClick={() => navigate('/user/orders')}
                                         className="w-full border-slate-200 text-slate-600 font-bold h-12 rounded-xl"
                                     >
-                                        View Order History
+                                        {t("paymentStatus.viewHistory")}
                                     </Button>
                                 </div>
                             </motion.div>

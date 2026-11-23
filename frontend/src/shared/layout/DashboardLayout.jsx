@@ -26,6 +26,7 @@ import {
 } from '@/core/utils/deviceUtils';
 import orderAlertSound from '@/assets/sounds/order_alert.mp3';
 
+import { useLayoutText } from './LayoutTextContext';
 const SELLER_REMINDER_TEXT = "New order is waiting for your response. Please Accept or Reject the order.";
 const SELLER_TIMEOUT_TEXT = "Order cancelled because no response was received within 5 minutes.";
 
@@ -73,6 +74,7 @@ const isEarningsRoute = (path) =>
     path.includes('earnings') || path.includes('withdrawals') || path.includes('transactions');
 
 const DashboardLayout = ({ children, navItems, title }) => {
+    const lt = useLayoutText();
     const [newOrderAlert, setNewOrderAlert] = useState(null);
     const [newReturnAlert, setNewReturnAlert] = useState(null);
     const [shownOrderIds, setShownOrderIds] = useState(() => new Set());
@@ -188,8 +190,8 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
         if (hasOrderNotificationsRef.current) {
             showSystemNotification({
-                title: "New Order Received!",
-                body: `You have a new order #${order.orderId} for ₹${order.pricing?.total || order.total || ""}`,
+                title: lt('alerts.newOrderTitle', 'New Order Received!'),
+                body: lt('alerts.newOrderBody', 'You have a new order #{{id}} for ₹{{amount}}', { id: order.orderId, amount: order.pricing?.total || order.total || '' }),
                 data: { orderId: order.orderId, eventType: "new_order" },
             });
         }
@@ -401,7 +403,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
             const incoming = orderFromIncomingPayload(payload);
             if (incoming) presentNewOrderAlert(incoming, { force: true });
             if (hasOrderNotificationsRef.current) startOrderRingtone(true);
-            toast.warning(payload?.message || SELLER_REMINDER_TEXT);
+            toast.warning(lt('alerts.reminderText', SELLER_REMINDER_TEXT));
         });
 
         // Server auto-cancelled (or cancelled) the order: close the alert and say why.
@@ -411,7 +413,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 stopOrderRingtone();
                 setNewOrderAlert(null);
             }
-            toast.error(payload?.message || SELLER_TIMEOUT_TEXT);
+            toast.error(lt('alerts.timeoutText', SELLER_TIMEOUT_TEXT));
             if (targetOrderId) {
                 setSellerOrders((prev) =>
                     prev.map((o) =>
@@ -448,8 +450,8 @@ const DashboardLayout = ({ children, navItems, title }) => {
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(() => { });
             showSystemNotification({
-                title: "Rider at Store!",
-                body: `A rider is at your store for Return #${payload.orderId}. OTP: ${payload.otp}`
+                title: lt('alerts.riderAtStore', 'Rider at Store!'),
+                body: lt('alerts.riderReturnBody', 'A rider is at your store for Return #{{id}}. OTP: {{otp}}', { id: payload.orderId, otp: payload.otp })
             });
         });
 
@@ -459,8 +461,8 @@ const DashboardLayout = ({ children, navItems, title }) => {
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(() => { });
             showSystemNotification({
-                title: "Rider at Store!",
-                body: `A rider is at your store for Pickup #${payload.orderId}. OTP: ${payload.otp}`
+                title: lt('alerts.riderAtStore', 'Rider at Store!'),
+                body: lt('alerts.riderPickupBody', 'A rider is at your store for Pickup #{{id}}. OTP: {{otp}}', { id: payload.orderId, otp: payload.otp })
             });
         });
 
@@ -470,8 +472,8 @@ const DashboardLayout = ({ children, navItems, title }) => {
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(() => { });
             showSystemNotification({
-                title: "Delivery Partner Arrived",
-                body: `Delivery partner for order #${payload.orderId} has arrived at your store.`
+                title: lt('alerts.partnerArrived', 'Delivery Partner Arrived'),
+                body: lt('alerts.partnerArrivedBody', 'Delivery partner for order #{{id}} has arrived at your store.', { id: payload.orderId })
             });
         });
 
@@ -481,8 +483,8 @@ const DashboardLayout = ({ children, navItems, title }) => {
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.play().catch(() => { });
             showSystemNotification({
-                title: "New Return Request",
-                body: `Customer has requested a return for Order #${payload.orderId}.`
+                title: lt('alerts.newReturnTitle', 'New Return Request'),
+                body: lt('alerts.newReturnBody', 'Customer has requested a return for Order #{{id}}.', { id: payload.orderId })
             });
         });
 
@@ -598,7 +600,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
         if (left <= 0) {
             stopOrderRingtone();
             setNewOrderAlert(null);
-            toast.error("This order has already expired — you can no longer accept it.");
+            toast.error(lt('alerts.orderExpired', 'This order has already expired — you can no longer accept it.'));
             const expiredId = newOrderAlert.orderId;
             if (expiredId) {
                 setSellerOrders((prev) =>
@@ -628,7 +630,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 stopOrderRingtone();
                 const expiredId = newOrderAlertRef.current?.orderId;
                 setNewOrderAlert(null);
-                toast.error(SELLER_TIMEOUT_TEXT);
+                toast.error(lt('alerts.timeoutText', SELLER_TIMEOUT_TEXT));
                 if (expiredId) {
                     setSellerOrders((prev) =>
                         prev.map((o) =>
@@ -648,13 +650,13 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const handleAcceptOrder = async (orderId) => {
         try {
             await sellerApi.updateOrderStatus(orderId, { status: 'confirmed' });
-            toast.success(`Order #${orderId} Accepted!`);
+            toast.success(lt('alerts.orderAccepted', 'Order #{{id}} Accepted!', { id: orderId }));
             stopOrderRingtone();
             setNewOrderAlert(null);
         } catch (error) {
             const msg =
                 error?.response?.data?.message ||
-                "Failed to accept order";
+                lt('alerts.acceptFailed', 'Failed to accept order');
             const normalizedMsg = String(msg).toLowerCase();
             if (
                 normalizedMsg.includes('not available') ||
@@ -671,13 +673,13 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const handleDeclineOrder = async (orderId) => {
         try {
             await sellerApi.updateOrderStatus(orderId, { status: 'cancelled' });
-            toast.error(`Order #${orderId} Declined`);
+            toast.error(lt('alerts.orderDeclined', 'Order #{{id}} Declined', { id: orderId }));
             stopOrderRingtone();
             setNewOrderAlert(null);
         } catch (error) {
             const msg =
                 error?.response?.data?.message ||
-                "Failed to update order";
+                lt('alerts.updateFailed', 'Failed to update order');
             toast.error(msg);
         }
     };
@@ -721,14 +723,14 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     </div>
 
                                     <h2 className="text-3xl font-black text-white tracking-widest uppercase mb-2 drop-shadow-md">
-                                        Order Arrived
+                                        {lt('alerts.orderArrived', 'Order Arrived')}
                                     </h2>
                                     <h3 className="text-sm font-bold text-green-100/80 uppercase tracking-widest mb-6">
-                                        Please Accept or Reject
+                                        {lt('alerts.pleaseAcceptReject', 'Please Accept or Reject')}
                                     </h3>
 
                                     <p className="text-green-50 font-medium mb-8 text-lg">
-                                        Order <span className="font-bold text-white">#{newOrderAlert.orderId}</span> is still waiting for your response. It will be cancelled automatically if you don't Accept or Reject it in time.
+                                        {lt('alerts.orderWord', 'Order')} <span className="font-bold text-white">#{newOrderAlert.orderId}</span> {lt('alerts.stillWaiting', "is still waiting for your response. It will be cancelled automatically if you don't Accept or Reject it in time.")}
                                     </p>
 
                                     {/* Timer Bar */}
@@ -754,14 +756,14 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                             className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-white/10 text-white font-bold hover:bg-white/20 transition-colors border border-white/20"
                                         >
                                             <X className="h-5 w-5" />
-                                            Reject
+                                            {lt('alerts.reject', 'Reject')}
                                         </button>
                                         <button
                                             onClick={() => handleAcceptOrder(newOrderAlert.orderId)}
                                             className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-white text-[#1A4516] font-black hover:bg-[#F5FBF5] shadow-xl shadow-black/20 transition-all active:scale-95 text-lg"
                                         >
                                             <Check className="h-6 w-6" />
-                                            ACCEPT
+                                            {lt('alerts.acceptCaps', 'ACCEPT')}
                                         </button>
                                     </div>
                                 </div>
@@ -771,11 +773,11 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                         <BellRing className="h-10 w-10 text-primary" />
                                     </div>
 
-                                    <h2 className="text-2xl font-black text-slate-900 mb-2">New Order Received!</h2>
+                                    <h2 className="text-2xl font-black text-slate-900 mb-2">{lt('alerts.newOrderTitle', 'New Order Received!')}</h2>
                                     <p className="text-slate-600 font-medium mb-6">
-                                        You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span>
+                                        {lt('alerts.youHaveNewOrder', 'You have a new order')} <span className="text-primary font-bold">#{newOrderAlert.orderId}</span>
                                         {(newOrderAlert.pricing?.total || newOrderAlert.total) ? (
-                                            <> for <span className="text-slate-900 font-bold">₹{newOrderAlert.pricing?.total || newOrderAlert.total}</span></>
+                                            <> {lt('alerts.for', 'for')} <span className="text-slate-900 font-bold">₹{newOrderAlert.pricing?.total || newOrderAlert.total}</span></>
                                         ) : null}
                                     </p>
 
@@ -795,7 +797,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     <div className="flex items-center gap-4 text-sm font-bold mb-8">
                                         <Clock className={cn("h-4 w-4", timeLeft < 15 ? "text-rose-500 animate-pulse" : "text-slate-600")} />
                                         <span className={timeLeft < 15 ? "text-rose-500" : "text-slate-600"}>
-                                            Accept within {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                                            {lt('alerts.acceptWithin', 'Accept within')} {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                                         </span>
                                     </div>
 
@@ -805,14 +807,14 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                             className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
                                         >
                                             <X className="h-5 w-5" />
-                                            Decline
+                                            {lt('alerts.decline', 'Decline')}
                                         </button>
                                         <button
                                             onClick={() => handleAcceptOrder(newOrderAlert.orderId)}
                                             className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95"
                                         >
                                             <Check className="h-5 w-5" />
-                                            Accept
+                                            {lt('alerts.accept', 'Accept')}
                                         </button>
                                     </div>
                                 </div>
@@ -833,9 +835,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     <BellRing className="h-10 w-10 text-amber-500" />
                                 </div>
 
-                                <h2 className="text-2xl font-black text-slate-900 mb-2">New Return Request</h2>
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">{lt('alerts.newReturnTitle', 'New Return Request')}</h2>
                                 <p className="text-slate-600 font-medium mb-6">
-                                    Customer has requested a return for <span className="text-amber-500 font-bold">Order #{formatOrderId(newReturnAlert.orderId)}</span>.
+                                    {lt('alerts.customerRequestedReturn', 'Customer has requested a return for')} <span className="text-amber-500 font-bold">{lt('alerts.orderWord', 'Order')} #{formatOrderId(newReturnAlert.orderId)}</span>.
                                 </p>
 
                                 <div className="flex gap-4 w-full">
@@ -843,7 +845,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                         onClick={() => setNewReturnAlert(null)}
                                         className="w-full py-4 rounded-2xl bg-slate-100 text-slate-600 font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-xs"
                                     >
-                                        Dismiss
+                                        {lt('alerts.dismiss', 'Dismiss')}
                                     </button>
                                     <button
                                         onClick={() => {
@@ -852,7 +854,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                         }}
                                         className="w-full py-4 rounded-2xl bg-amber-500 text-white font-black hover:bg-amber-600 shadow-xl shadow-amber-500/20 transition-all active:scale-95 uppercase tracking-widest text-xs"
                                     >
-                                        View Request
+                                        {lt('alerts.viewRequest', 'View Request')}
                                     </button>
                                 </div>
                             </div>
@@ -872,10 +874,10 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     <Truck className="h-10 w-10 text-brand-600" />
                                 </div>
 
-                                <h2 className="text-2xl font-black text-slate-900 mb-2">Rider at Store!</h2>
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">{lt('alerts.riderAtStore', 'Rider at Store!')}</h2>
                                 <p className="text-slate-600 font-medium mb-6">
                                     A rider is at your store for Return <span className="text-brand-600 font-bold">#{returnDropOtpAlert.orderId}</span>.
-                                    Please share the OTP below:
+                                    {lt('alerts.shareOtpBelow', 'Please share the OTP below:')}
                                 </p>
 
                                 <div className="flex items-center justify-center gap-3 mb-8">
@@ -887,14 +889,14 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                 </div>
 
                                 <p className="text-xs font-bold text-slate-500 italic mb-8">
-                                    Confirm receipt of the product by sharing this code.
+                                    {lt('alerts.confirmReceipt', 'Confirm receipt of the product by sharing this code.')}
                                 </p>
 
                                 <button
                                     onClick={() => setReturnDropOtpAlert(null)}
                                     className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-black hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs"
                                 >
-                                    Dismiss Alert
+                                    {lt('alerts.dismissAlert', 'Dismiss Alert')}
                                 </button>
                             </div>
                         </motion.div>
@@ -913,10 +915,10 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     <Truck className="h-10 w-10 text-brand-600" />
                                 </div>
 
-                                <h2 className="text-2xl font-black text-slate-900 mb-2">Rider at Store!</h2>
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">{lt('alerts.riderAtStore', 'Rider at Store!')}</h2>
                                 <p className="text-slate-600 font-medium mb-6">
                                     A rider is at your store for Pickup <span className="text-brand-600 font-bold">#{sellerPickupOtpAlert.orderId}</span>.
-                                    Please share the OTP below:
+                                    {lt('alerts.shareOtpBelow', 'Please share the OTP below:')}
                                 </p>
 
                                 <div className="flex items-center justify-center gap-3 mb-8">
@@ -928,14 +930,14 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                 </div>
 
                                 <p className="text-xs font-bold text-slate-500 italic mb-8">
-                                    Confirm dispatch of the product by sharing this code.
+                                    {lt('alerts.confirmDispatch', 'Confirm dispatch of the product by sharing this code.')}
                                 </p>
 
                                 <button
                                     onClick={() => setSellerPickupOtpAlert(null)}
                                     className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-black hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs"
                                 >
-                                    Dismiss Alert
+                                    {lt('alerts.dismissAlert', 'Dismiss Alert')}
                                 </button>
                             </div>
                         </motion.div>
@@ -954,20 +956,20 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     <Truck className="h-10 w-10 text-brand-600" />
                                 </div>
 
-                                <h2 className="text-2xl font-black text-slate-900 mb-2">Rider at Store!</h2>
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">{lt('alerts.riderAtStore', 'Rider at Store!')}</h2>
                                 <p className="text-slate-600 font-medium mb-6">
-                                    A delivery partner has arrived at your store to pick up <span className="text-brand-600 font-bold">Order #{deliveryArrivedAlert.orderId}</span>.
+                                    {lt('alerts.partnerArrivedToPick', 'A delivery partner has arrived at your store to pick up')} <span className="text-brand-600 font-bold">{lt('alerts.orderWord', 'Order')} #{deliveryArrivedAlert.orderId}</span>.
                                 </p>
 
                                 <p className="text-xs font-bold text-slate-500 italic mb-8">
-                                    Please ensure the order is packed and ready for dispatch.
+                                    {lt('alerts.ensurePacked', 'Please ensure the order is packed and ready for dispatch.')}
                                 </p>
 
                                 <button
                                     onClick={() => setDeliveryArrivedAlert(null)}
                                     className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-black hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs"
                                 >
-                                    Dismiss Alert
+                                    {lt('alerts.dismissAlert', 'Dismiss Alert')}
                                 </button>
                             </div>
                         </motion.div>
@@ -989,10 +991,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     <AlertTriangle className="h-10 w-10 text-red-500" />
                                 </div>
 
-                                <h2 className="text-2xl font-black text-slate-900 mb-2">Order Limit Reached</h2>
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">{lt('alerts.limitReached', 'Order Limit Reached')}</h2>
                                 <p className="text-slate-600 font-medium mb-4">
-                                    Your <span className="text-[#1A4516] font-bold">{orderLimitAlert.planName} Plan</span> order limit has been reached.
-                                    Upgrade to Gold or Platinum to continue accepting orders.
+                                    {lt('alerts.your', 'Your')} <span className="text-[#1A4516] font-bold">{lt('alerts.planName', '{{plan}} Plan', { plan: orderLimitAlert.planName })}</span> {lt('alerts.limitReachedBody', 'order limit has been reached. Upgrade to Gold or Platinum to continue accepting orders.')}
                                 </p>
 
                                 {/* Usage Bar */}
@@ -1008,14 +1009,14 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                         onClick={() => setOrderLimitAlert(null)}
                                         className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
                                     >
-                                        Upgrade
+                                        {lt('alerts.upgrade', 'Upgrade')}
                                     </button>
                                     <button
                                         onClick={() => { setOrderLimitAlert(null); navigate('/seller/subscription'); }}
                                         className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#1A4516] to-[#2C6E26] text-white font-bold hover:opacity-90 shadow-xl shadow-[#1A4516]/20 transition-all active:scale-95"
                                     >
                                         <ArrowUpCircle className="h-5 w-5" />
-                                        View Plans
+                                        {lt('alerts.viewPlans', 'View Plans')}
                                     </button>
                                 </div>
                             </div>
@@ -1037,10 +1038,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     <AlertTriangle className="h-10 w-10 text-amber-500" />
                                 </div>
 
-                                <h2 className="text-2xl font-black text-slate-900 mb-2">90% Order Limit</h2>
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">{lt('alerts.limit90', '90% Order Limit')}</h2>
                                 <p className="text-slate-600 font-medium mb-4">
-                                    You've reached <span className="text-amber-600 font-bold">90%</span> of your monthly order limit.
-                                    Upgrade to Gold to accept more orders and get additional visibility.
+                                    {lt('alerts.youveReached', "You've reached")} <span className="text-amber-600 font-bold">90%</span> {lt('alerts.limit90Body', 'of your monthly order limit. Upgrade to Gold to accept more orders and get additional visibility.')}
                                 </p>
 
                                 {/* Usage Bar */}
@@ -1059,14 +1059,14 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                         onClick={() => setOrderLimitAlert(null)}
                                         className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
                                     >
-                                        Later
+                                        {lt('alerts.later', 'Later')}
                                     </button>
                                     <button
                                         onClick={() => { setOrderLimitAlert(null); navigate('/seller/subscription'); }}
                                         className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#1A4516] to-[#2C6E26] text-white font-bold hover:opacity-90 shadow-xl shadow-[#1A4516]/20 transition-all active:scale-95"
                                     >
                                         <ArrowUpCircle className="h-5 w-5" />
-                                        Upgrade to Gold
+                                        {lt('alerts.upgradeToGold', 'Upgrade to Gold')}
                                     </button>
                                 </div>
                             </div>

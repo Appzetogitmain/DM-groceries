@@ -9,6 +9,7 @@ import { X, LogOut } from "lucide-react";
 import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
 import { useConfirmDialog } from "@/shared/hooks/useConfirmDialog";
 
+import { useLayoutText } from './LayoutTextContext';
 const colorMap = {
   indigo:
     "text-brand-600 bg-brand-50 border-brand-100 group-hover:bg-brand-100/50",
@@ -225,6 +226,7 @@ const SidebarItem = ({
 };
 
 const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hoveredIdx, setHoveredIdx }) => {
+  const lt = useLayoutText();
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
   const { logout } = useAuth();
@@ -232,10 +234,10 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
 
   const handleLogoutClick = () => {
     confirm.open({
-      title: "Log out",
-      message: "Are you sure you want to log out?",
-      confirmLabel: "Log out",
-      cancelLabel: "Cancel",
+      title: lt('layout.logoutTitle', 'Log out'),
+      message: lt('layout.logoutConfirm', 'Are you sure you want to log out?'),
+      confirmLabel: lt('layout.logoutTitle', 'Log out'),
+      cancelLabel: lt('layout.cancel', 'Cancel'),
       onConfirm: () => {
         logout();
       }
@@ -276,7 +278,7 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         <p className="px-3 text-[9px] font-black uppercase tracking-[0.3em] mb-3 text-emerald-200/40">
-          Core Management
+          {lt('layout.coreManagement', 'Core Management')}
         </p>
         <AnimatePresence>
           {items.map((item, idx) => (

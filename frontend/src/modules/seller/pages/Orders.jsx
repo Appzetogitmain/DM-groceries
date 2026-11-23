@@ -46,9 +46,12 @@ import {
     onOrderStatusUpdate,
     onNotificationNew
 } from '@/core/services/orderSocket';
+import { useTranslation } from "react-i18next";
+import { translateStatus, sellerLocale } from "../i18n/format";
 
 
 const Orders = () => {
+    const { t } = useTranslation();
     const { getToken } = useAuth();
     const [orders, setOrders] = useState([]);
     const [summary, setSummary] = useState({
@@ -172,7 +175,7 @@ const Orders = () => {
                 id: order.orderId,
                 _id: order._id,
                 customer: {
-                    name: order.customer?.name || 'Unknown',
+                    name: order.customer?.name || t('sOrders.unknown'),
                     phone: order.customer?.phone || '',
                     avatar: (order.customer?.name || 'U').charAt(0)
                 },
@@ -187,18 +190,18 @@ const Orders = () => {
                 workflowStatus: order.workflowStatus,
                 workflowVersion: order.workflowVersion,
                 date: order.createdAt
-                    ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                    ? new Date(order.createdAt).toLocaleDateString(sellerLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
                     : '',
                 time: order.createdAt
-                    ? new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                    ? new Date(order.createdAt).toLocaleTimeString(sellerLocale(), { hour: '2-digit', minute: '2-digit' })
                     : '',
                 address: order.address
                     ? `${order.address.address || ''}, ${order.address.city || ''}`.trim()
                     : '',
                 location: order.address?.location || null,
                 payment: order.payment?.method === 'cash' || order.payment?.method === 'cod'
-                    ? 'Cash on Delivery'
-                    : 'Online Paid',
+                    ? t('paymentMethod.cod')
+                    : t('sDash.onlinePaid'),
                 activeSellerOtp: order.activeSellerOtp,
                 returnStatus: order.returnStatus || null,
                 returnDetails: order.returnDetails || null,
@@ -238,7 +241,7 @@ const Orders = () => {
             }
         } catch (error) {
             console.error("Failed to fetch orders:", error);
-            showToast("Failed to fetch orders", "error");
+            showToast(t("sOrders.fetchFailed"), "error");
         } finally {
             if (showPageLoader) {
                 setLoading(false);
@@ -286,7 +289,7 @@ const Orders = () => {
 
     const stats = useMemo(() => [
         {
-            label: 'Total Orders',
+            label: t('sDash.totalOrders'),
             value: summary.totalOrders,
             icon: HiOutlineArchiveBoxXMark,
             color: 'text-emerald-700',
@@ -294,7 +297,7 @@ const Orders = () => {
             tab: 'All'
         },
         {
-            label: 'Pending',
+            label: t('status.pending'),
             value: summary.pending,
             icon: HiOutlineClock,
             color: 'text-amber-700',
@@ -302,7 +305,7 @@ const Orders = () => {
             tab: 'Pending'
         },
         {
-            label: 'Confirmed',
+            label: t('status.confirmed'),
             value: summary.confirmed,
             icon: HiOutlineCheck,
             color: 'text-emerald-700',
@@ -310,7 +313,7 @@ const Orders = () => {
             tab: 'Confirmed'
         },
         {
-            label: 'Delivered',
+            label: t('status.delivered'),
             value: summary.delivered,
             icon: HiOutlineCheck,
             color: 'text-emerald-700',
@@ -318,7 +321,7 @@ const Orders = () => {
             tab: 'Delivered'
         },
         {
-            label: 'Returned',
+            label: t('status.returned'),
             value: summary.returned,
             icon: HiOutlineArrowUturnLeft,
             color: 'text-rose-700',
@@ -337,28 +340,28 @@ const Orders = () => {
     const handleStatusUpdate = async (orderId, newStatus) => {
         try {
             await sellerApi.updateOrderStatus(orderId, { status: newStatus.toLowerCase() });
-            showToast(`Order status updated to ${newStatus}`, "success");
+            showToast(t("sDash.statusUpdated", { status: translateStatus(t, newStatus) }), "success");
             fetchOrders(page, false); // Refresh orders & KPIs dynamically
             if (selectedOrder && selectedOrder.id === orderId) {
                 setSelectedOrder({ ...selectedOrder, status: newStatus });
             }
         } catch (error) {
             console.error("Failed to update status:", error);
-            showToast("Failed to update status", "error");
+            showToast(t("sDash.statusUpdateFailed"), "error");
         }
     };
 
     const exportOrders = () => {
         const data = filteredOrders;
         if (!data.length) {
-            showToast("No orders to export", "warning");
+            showToast(t("sOrders.noneToExport"), "warning");
             return;
         }
         const escapeCsv = (v) => {
             const s = String(v ?? "").replace(/"/g, '""');
             return /[",\n\r]/.test(s) ? `"${s}"` : s;
         };
-        const headers = ["Order ID", "Customer", "Phone", "Date", "Time", "Total (₹)", "Status", "Address", "Payment"];
+        const headers = [t("sDash.orderId"), t("sDash.customer"), t("sOrders.phone"), t("common.date"), t("sOrders.time"), t("sOrders.totalRs"), t("common.status"), t("sOrders.address"), t("sOrders.payment")];
         const rows = data.map((o) => [
             o.id,
             o.customer?.name ?? "",
@@ -381,7 +384,7 @@ const Orders = () => {
         a.download = `orders-export-${new Date().toISOString().slice(0, 10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        showToast(`Exported ${data.length} order(s) as CSV`, "success");
+        showToast(t("sOrders.exported", { count: data.length }), "success");
     };
 
     return (
@@ -391,10 +394,10 @@ const Orders = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
                     <div className="min-w-0">
                         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 flex flex-wrap items-center gap-2">
-                            Order Management
-                            <Badge variant="primary" className="text-[10px] px-1.5 py-0 font-bold tracking-wider uppercase bg-brand-100 text-brand-700">Real-time</Badge>
+                            {t("sOrders.title")}
+                            <Badge variant="primary" className="text-[10px] px-1.5 py-0 font-bold tracking-wider uppercase bg-brand-100 text-brand-700">{t("sOrders.realtime")}</Badge>
                         </h1>
-                        <p className="text-slate-600 text-sm sm:text-base mt-0.5 font-medium">Process and track your customer orders with ease.</p>
+                        <p className="text-slate-600 text-sm sm:text-base mt-0.5 font-medium">{t("sOrders.subtitle")}</p>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
                         <Button
@@ -403,14 +406,14 @@ const Orders = () => {
                             className="flex items-center space-x-1.5 sm:space-x-2 px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold text-slate-600 bg-white hover:bg-slate-50 border-slate-200"
                         >
                             <HiOutlinePrinter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">EXPORT ALL</span>
+                            <span className="hidden sm:inline">{t("sOrders.exportAll")}</span>
                         </Button>
                         <ShimmerButton
                             onClick={() => setIsQuickViewModalOpen(true)}
                             className="px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold text-white shadow-xl flex items-center space-x-1.5 sm:space-x-2"
                         >
                             <HiOutlineEye className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-0" />
-                            <span className="hidden sm:inline">QUICK VIEW</span>
+                            <span className="hidden sm:inline">{t("sOrders.quickView")}</span>
                         </ShimmerButton>
                     </div>
                 </div>
@@ -420,7 +423,7 @@ const Orders = () => {
             {loading ? (
                 <div className="min-h-[400px] flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-100 shadow-sm">
                     <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                    <p className="text-slate-600 font-bold mt-4 uppercase tracking-widest text-xs">Fetching Active Orders...</p>
+                    <p className="text-slate-600 font-bold mt-4 uppercase tracking-widest text-xs">{t("sOrders.fetching")}</p>
                 </div>
             ) : (
                 <>
@@ -430,7 +433,7 @@ const Orders = () => {
                                 <div
                                     onClick={() => setActiveTab(stat.tab)}
                                     className="cursor-pointer"
-                                    title={`Click to view ${stat.label} orders`}
+                                    title={t("sOrders.clickToView", { label: stat.label })}
                                 >
                                     <MagicCard
                                         className={cn(
@@ -471,7 +474,7 @@ const Orders = () => {
                                                     : "text-slate-600 hover:text-slate-700"
                                             )}
                                         >
-                                            {tab}
+                                            {tab === 'All' ? t('common.all') : translateStatus(t, tab)}
                                             {activeTab === tab && (
                                                 <motion.div
                                                     layoutId="tab-underline"
@@ -491,7 +494,7 @@ const Orders = () => {
                                         type="text"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value.trimStart())}
-                                        placeholder="Search by Order ID or Customer Name..."
+                                        placeholder={t("sOrders.searchPh")}
                                         className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border-none rounded-lg text-sm font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-[#1A4516]/5 transition-all outline-none"
                                     />
                                 </div>
@@ -510,17 +513,17 @@ const Orders = () => {
                                                     }
                                                     const today = new Date().toISOString().split("T")[0];
                                                     if (value > today) {
-                                                        showToast("Start date cannot be in the future", "error");
+                                                        showToast(t("sOrders.startFuture"), "error");
                                                         return;
                                                     }
                                                     if (endDate && value > endDate) {
-                                                        showToast("Start date cannot be after end date", "error");
+                                                        showToast(t("sOrders.startAfterEnd"), "error");
                                                         return;
                                                     }
                                                     setPage(1);
                                                     setStartDate(value);
                                                 }}
-                                                placeholder="From date"
+                                                placeholder={t("sOrders.fromDate")}
                                             />
                                         </div>
                                         <span className="text-xs font-semibold text-slate-600 hidden sm:inline">
@@ -542,17 +545,17 @@ const Orders = () => {
                                                     }
                                                     const today = new Date().toISOString().split("T")[0];
                                                     if (value > today) {
-                                                        showToast("End date cannot be in the future", "error");
+                                                        showToast(t("sOrders.endFuture"), "error");
                                                         return;
                                                     }
                                                     if (startDate && value < startDate) {
-                                                        showToast("End date cannot be before start date", "error");
+                                                        showToast(t("sOrders.endBeforeStart"), "error");
                                                         return;
                                                     }
                                                     setPage(1);
                                                     setEndDate(value);
                                                 }}
-                                                placeholder="To date"
+                                                placeholder={t("sOrders.toDate")}
                                             />
                                         </div>
                                     </div>
@@ -561,7 +564,7 @@ const Orders = () => {
                                         onClick={() => { setStartDate(''); setEndDate(''); setPage(1); }}
                                         className="text-xs font-semibold text-slate-600 hover:text-slate-700"
                                     >
-                                        Clear dates
+                                        {t("sOrders.clearDates")}
                                     </button>
                                 </div>
                             </div>
@@ -573,8 +576,8 @@ const Orders = () => {
                                         <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-3">
                                             <HiOutlineInboxStack className="h-7 w-7" />
                                         </div>
-                                        <h3 className="text-sm font-bold text-slate-900">No orders found</h3>
-                                        <p className="text-xs text-slate-600 font-medium text-center mt-1">Adjust filters or search.</p>
+                                        <h3 className="text-sm font-bold text-slate-900">{t("sOrders.noneFound")}</h3>
+                                        <p className="text-xs text-slate-600 font-medium text-center mt-1">{t("sOrders.adjustFilters")}</p>
                                         <Button variant="outline" className="mt-4 rounded-xl text-xs" onClick={() => { setActiveTab('All'); setSearchTerm(''); }}>CLEAR FILTERS</Button>
                                     </div>
                                 ) : (
@@ -600,7 +603,7 @@ const Orders = () => {
                                                         <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-800 px-2 py-1.5 rounded-lg flex items-center justify-between shadow-sm max-w-fit">
                                                             <div className="flex items-center gap-1.5">
                                                                 <HiOutlineShieldCheck className="h-4 w-4 text-amber-600" />
-                                                                <span className="text-[10px] font-bold uppercase tracking-wider">Pickup OTP:</span>
+                                                                <span className="text-[10px] font-bold uppercase tracking-wider">{t("sOrders.pickupOtp")}</span>
                                                             </div>
                                                             <span className="text-sm font-black tracking-widest ml-3 bg-white px-2 py-0.5 rounded shadow-sm">
                                                                 {order.activeSellerOtp}
@@ -617,7 +620,7 @@ const Orders = () => {
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2 shrink-0">
                                                     <Badge variant={getStatusColor(order.status)} className="text-[10px] font-black uppercase px-2 py-0">
-                                                        {order.status}
+                                                        {translateStatus(t, order.status)}
                                                     </Badge>
                                                     <div
                                                         className={cn(
@@ -632,8 +635,8 @@ const Orders = () => {
                                                         )}
                                                     >
                                                         {(order.returnStatus && order.returnStatus !== 'none')
-                                                            ? (order.returnStatus === 'returned' || order.returnStatus === 'refund_completed' ? 'RETURNED' : order.returnStatus.replace(/_/g, ' '))
-                                                            : order.status.replace(/_/g, ' ')}
+                                                            ? (order.returnStatus === 'returned' || order.returnStatus === 'refund_completed' ? translateStatus(t, 'returned') : translateStatus(t, order.returnStatus))
+                                                            : translateStatus(t, order.status)}
                                                     </div>
                                                     <button
                                                         onClick={() => handleViewDetails(order)}
@@ -654,11 +657,11 @@ const Orders = () => {
                                 <table className="w-full text-left border-collapse min-w-[640px]">
                                     <thead>
                                         <tr className="bg-slate-50/50 border-b border-slate-100">
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Order Details</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Total</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t("sDash.orderDetails")}</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t("sDash.customer")}</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t("common.total")}</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">{t("common.actions")}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
@@ -687,7 +690,7 @@ const Orders = () => {
                                                                 <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1.5 rounded-xl flex items-center justify-between shadow-sm inline-flex">
                                                                     <div className="flex items-center gap-1.5 mr-3">
                                                                         <HiOutlineShieldCheck className="h-4 w-4 text-amber-600" />
-                                                                        <span className="text-[10px] font-bold uppercase tracking-wider">Pickup OTP:</span>
+                                                                        <span className="text-[10px] font-bold uppercase tracking-wider">{t("sOrders.pickupOtp")}</span>
                                                                     </div>
                                                                     <span className="text-sm font-black tracking-widest bg-white px-2 py-0.5 rounded-md shadow-sm">
                                                                         {order.activeSellerOtp}
@@ -732,8 +735,8 @@ const Orders = () => {
                                                                 )}
                                                             >
                                                                 {(order.returnStatus && order.returnStatus !== 'none')
-                                                                    ? (order.returnStatus === 'returned' || order.returnStatus === 'refund_completed' ? 'RETURNED' : order.returnStatus.replace(/_/g, ' '))
-                                                                    : order.status.replace(/_/g, ' ')}
+                                                                    ? (order.returnStatus === 'returned' || order.returnStatus === 'refund_completed' ? translateStatus(t, 'returned') : translateStatus(t, order.returnStatus))
+                                                                    : translateStatus(t, order.status)}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -779,8 +782,8 @@ const Orders = () => {
                                         <div className="h-16 w-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4">
                                             <HiOutlineInboxStack className="h-8 w-8" />
                                         </div>
-                                        <h3 className="text-sm font-bold text-slate-900">No orders found</h3>
-                                        <p className="text-xs text-slate-600 font-medium max-w-xs text-center mt-1">We couldn't find any orders matching your current filters. Try adjusting your search.</p>
+                                        <h3 className="text-sm font-bold text-slate-900">{t("sOrders.noneFound")}</h3>
+                                        <p className="text-xs text-slate-600 font-medium max-w-xs text-center mt-1">{t("sOrders.noneMatch")}</p>
                                         <Button variant="outline" className="mt-6 rounded-xl text-xs" onClick={() => { setActiveTab('All'); setSearchTerm(''); }}>CLEAR ALL FILTERS</Button>
                                     </div>
                                 )}
@@ -840,8 +843,8 @@ const Orders = () => {
                                                 <HiOutlineChartBar className="h-4.5 w-4.5" />
                                             </div>
                                             <div className="min-w-0">
-                                                <h3 className="text-sm sm:text-base font-bold text-slate-800 truncate">Quick Snapshot</h3>
-                                                <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Today's Performance</p>
+                                                <h3 className="text-sm sm:text-base font-bold text-slate-800 truncate">{t("sOrders.quickSnapshot")}</h3>
+                                                <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("sOrders.todaysPerformance")}</p>
                                             </div>
                                         </div>
                                         <button onClick={() => setIsQuickViewModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500 shrink-0">
@@ -853,11 +856,11 @@ const Orders = () => {
                                         {/* Summary Grid */}
                                         <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                             <div className="p-3 sm:p-4 rounded-2xl bg-emerald-50/40 border border-emerald-100/50">
-                                                <p className="text-[10px] sm:text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">Total Revenue</p>
+                                                <p className="text-[10px] sm:text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">{t("sDash.totalRevenue")}</p>
                                                 <p className="text-base sm:text-lg font-bold text-slate-800 truncate">₹{summary.totalAmount.toLocaleString('en-IN')}</p>
                                             </div>
                                             <div className="p-3 sm:p-4 rounded-2xl bg-emerald-50/40 border border-emerald-100/50">
-                                                <p className="text-[10px] sm:text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">Avg. Order Value</p>
+                                                <p className="text-[10px] sm:text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">{t("sDash.avgOrderValue")}</p>
                                                 <p className="text-base sm:text-lg font-bold text-slate-800">₹{summary.totalOrders ? (summary.totalAmount / summary.totalOrders).toFixed(0) : '0'}</p>
                                             </div>
                                         </div>
@@ -871,7 +874,7 @@ const Orders = () => {
                                             }}
                                             className="w-full py-2.5 sm:py-3 text-[10px] sm:text-xs font-bold bg-[#1A4516] hover:bg-[#133A10] text-white rounded-xl shadow-lg shadow-[#1A4516]/10 transition-all uppercase tracking-wider"
                                         >
-                                            VIEW ALL PENDING ORDERS
+                                            {t("sOrders.viewAllPending")}
                                         </button>
                                     </div>
                                 </motion.div>
@@ -901,7 +904,7 @@ const Orders = () => {
                                                 <HiOutlineTruck className="h-5 w-5" />
                                             </div>
                                             <div>
-                                                <h3 className="text-base font-black text-slate-900">Order Details</h3>
+                                                <h3 className="text-base font-black text-slate-900">{t("sDash.orderDetails")}</h3>
                                                 <div className="flex items-center space-x-2 mt-0.5 min-w-0">
                                                     <Badge variant={getStatusColor(selectedOrder.status)} className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0 shrink-0">{selectedOrder.status}</Badge>
                                                     <span className="text-xs font-bold text-slate-600 uppercase tracking-widest truncate block max-w-[120px] sm:max-w-xs">#{selectedOrder.id}</span>
@@ -932,7 +935,7 @@ const Orders = () => {
                                                 <div>
                                                     <div className="flex items-center justify-between gap-2 mb-2">
                                                         <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
-                                                            <HiOutlineMapPin className="h-3 w-3 text-primary" /> Delivery Address
+                                                            <HiOutlineMapPin className="h-3 w-3 text-primary" /> {t("sDash.deliveryAddress")}
                                                         </h4>
                                                         {selectedOrder.location &&
                                                             typeof selectedOrder.location.lat === "number" &&
@@ -948,7 +951,7 @@ const Orders = () => {
                                                                     }}
                                                                     className="text-[10px] font-bold text-primary hover:underline"
                                                                 >
-                                                                    View on map
+                                                                    {t("sOrders.viewOnMap")}
                                                                 </button>
                                                             )}
                                                     </div>
@@ -958,7 +961,7 @@ const Orders = () => {
                                                 </div>
                                                 <div>
                                                     <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                                        <HiOutlinePhone className="h-3 w-3 text-brand-500" /> Contact Info
+                                                        <HiOutlinePhone className="h-3 w-3 text-brand-500" /> {t("sDash.contactInfo")}
                                                     </h4>
                                                     <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
                                                         <p className="text-xs font-bold text-slate-800">{selectedOrder.customer.name}</p>
@@ -968,37 +971,37 @@ const Orders = () => {
                                             </div>
                                             <div className="space-y-3 sm:space-y-4">
                                                 <div className="bg-primary/5 p-3 sm:p-4 rounded-3xl border border-primary/10">
-                                                    <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-3">Order Summary</h4>
+                                                    <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-3">{t("sDash.orderSummary")}</h4>
                                                     <div className="space-y-2">
                                                         <div className="flex justify-between text-xs">
-                                                            <span className="font-bold text-slate-600">Subtotal</span>
+                                                            <span className="font-bold text-slate-600">{t("sOrders.subtotal")}</span>
                                                             <span className="font-black text-slate-900">₹{((selectedOrder.paymentBreakdown?.productSubtotal) ?? (selectedOrder.pricing?.subtotal) ?? 0).toFixed(2)}</span>
                                                         </div>
                                                         <div className="flex justify-between text-xs">
-                                                            <span className="font-bold text-slate-600">Delivery Fee</span>
+                                                            <span className="font-bold text-slate-600">{t("sOrders.deliveryFee")}</span>
                                                             <span className="font-black text-brand-600">₹{((selectedOrder.paymentBreakdown?.deliveryFeeCharged) ?? (selectedOrder.pricing?.deliveryFee) ?? 0).toFixed(2)}</span>
                                                         </div>
                                                         {(((selectedOrder.paymentBreakdown?.handlingFeeCharged) ?? 0) > 0) && (
                                                             <div className="flex justify-between text-xs">
-                                                                <span className="font-bold text-slate-600">Handling Fee</span>
+                                                                <span className="font-bold text-slate-600">{t("sOrders.handlingFee")}</span>
                                                                 <span className="font-black text-slate-900">₹{selectedOrder.paymentBreakdown.handlingFeeCharged.toFixed(2)}</span>
                                                             </div>
                                                         )}
                                                         {(((selectedOrder.paymentBreakdown?.discountTotal) ?? (selectedOrder.pricing?.discount) ?? 0) > 0) && (
                                                             <div className="flex justify-between text-xs">
-                                                                <span className="font-bold text-green-600">Discount</span>
+                                                                <span className="font-bold text-green-600">{t("sOrders.discount")}</span>
                                                                 <span className="font-black text-green-600">-₹{((selectedOrder.paymentBreakdown?.discountTotal) ?? (selectedOrder.pricing?.discount) ?? 0).toFixed(2)}</span>
                                                             </div>
                                                         )}
                                                         <div className="h-px bg-primary/10 my-2" />
                                                         <div className="flex justify-between text-sm">
-                                                            <span className="font-black text-slate-900">Total</span>
+                                                            <span className="font-black text-slate-900">{t("common.total")}</span>
                                                             <span className="font-black text-primary">₹{selectedOrder.total.toFixed(2)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="bg-slate-900 p-3 sm:p-4 rounded-3xl text-white shadow-xl shadow-slate-900/10">
-                                                    <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2">Payment Status</h4>
+                                                    <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2">{t("sDash.paymentStatus")}</h4>
                                                     <div className="flex items-center gap-2">
                                                         <HiOutlineBanknotes className="h-5 w-5 text-brand-400" />
                                                         <span className="text-xs font-bold tracking-tight">{selectedOrder.payment}</span>
@@ -1023,12 +1026,12 @@ const Orders = () => {
                                                                 {item.name}
                                                                 {isReturned && (
                                                                     <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                                                        Returned
+                                                                        {t("status.returned")}
                                                                     </span>
                                                                 )}
                                                             </p>
                                                             <p className="text-xs font-semibold text-slate-600 mt-0.5">
-                                                                ₹{item.price.toFixed(2)} × {item.qty} {isReturned && returnedItem.quantity !== item.qty ? <span className="text-amber-600 font-bold ml-1">(Returned: {returnedItem.quantity})</span> : ''}
+                                                                ₹{item.price.toFixed(2)} × {item.qty} {isReturned && returnedItem.quantity !== item.qty ? <span className="text-amber-600 font-bold ml-1">({t("sOrders.returnedQty", { qty: returnedItem.quantity })})</span> : ''}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -1044,7 +1047,7 @@ const Orders = () => {
                                     {/* Modal Footer */}
                                     <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row gap-3 sm:gap-0 sm:items-center justify-end">
                                         <div className="flex gap-2 items-center">
-                                            <button onClick={() => setIsDetailsModalOpen(false)} className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all">CLOSE</button>
+                                            <button onClick={() => setIsDetailsModalOpen(false)} className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all">{t("sDash.closeCaps")}</button>
                                             <div className="relative inline-block w-40">
                                                 <div
                                                     className={cn(
@@ -1058,7 +1061,7 @@ const Orders = () => {
                                                                                 "bg-slate-100 text-slate-700"
                                                     )}
                                                 >
-                                                    {selectedOrder.status.replace(/_/g, ' ')}
+                                                    {translateStatus(t, selectedOrder.status)}
                                                 </div>
                                             </div>
                                         </div>

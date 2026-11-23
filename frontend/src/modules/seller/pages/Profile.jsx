@@ -50,8 +50,14 @@ import {
 } from "recharts";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { useSellerLanguage } from "../i18n/SellerLanguageProvider";
+import { getLanguageMeta } from "@/shared/i18n/languages";
+import { sellerLocale, translateStatus } from "../i18n/format";
 
 const SellerProfile = () => {
+  const { t } = useTranslation();
+  const { language, openLanguagePicker } = useSellerLanguage();
   const { logout } = useAuth();
   const confirm = useConfirmDialog();
   const { refreshEarnings } = useSellerEarnings();
@@ -65,17 +71,17 @@ const SellerProfile = () => {
 
   const promptDeleteAccount = () => {
     confirm.open({
-      title: "Delete Account",
-      message: "Are you sure you want to delete your account? This action cannot be undone.",
-      confirmLabel: "Delete Account",
-      cancelLabel: "Cancel",
+      title: t("sProfile.deleteAccount"),
+      message: t("sProfile.deleteConfirm"),
+      confirmLabel: t("sProfile.deleteAccount"),
+      cancelLabel: t("common.cancel"),
       onConfirm: async () => {
         try {
           await sellerApi.deleteAccount();
-          toast.success("Account deleted successfully.");
+          toast.success(t("sProfile.accountDeleted"));
           logout();
         } catch (error) {
-          toast.error("Failed to delete account.");
+          toast.error(t("sProfile.accountDeleteFailed"));
           console.error("Delete account error:", error);
           throw error;
         }
@@ -85,10 +91,10 @@ const SellerProfile = () => {
 
   const promptLogout = () => {
     confirm.open({
-      title: "Log out",
-      message: "Are you sure you want to log out?",
-      confirmLabel: "Log out",
-      cancelLabel: "Cancel",
+      title: t("layout.logoutTitle"),
+      message: t("layout.logoutConfirm"),
+      confirmLabel: t("layout.logoutTitle"),
+      cancelLabel: t("common.cancel"),
       onConfirm: () => {
         logout();
       }
@@ -204,7 +210,7 @@ const SellerProfile = () => {
       });
     } catch (error) {
       console.error("Profile Fetch Error:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch data");
+      toast.error(error.response?.data?.message || t("sProfile.fetchFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -253,11 +259,11 @@ const SellerProfile = () => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!/^[0-9]{10}$/.test(formData.phone)) {
-      toast.error("Please enter a valid 10-digit phone number.");
+      toast.error(t("sProfile.validPhone"));
       return;
     }
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      toast.error("Please enter a valid email address.");
+      toast.error(t("forgot.validEmail"));
       return;
     }
     setIsSaving(true);
@@ -269,12 +275,12 @@ const SellerProfile = () => {
         radius: formData.radius,
       };
       await sellerApi.updateProfile(payload);
-      toast.success("Profile updated successfully");
+      toast.success(t("sProfile.updated"));
       setIsEditing(false);
       fetchData();
       refreshEarnings();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update profile");
+      toast.error(error.response?.data?.message || t("sProfile.updateFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -285,16 +291,16 @@ const SellerProfile = () => {
       const newStatus = !profile.isActive;
       await sellerApi.updateProfile({ isActive: newStatus });
       setProfile((prev) => ({ ...prev, isActive: newStatus }));
-      toast.success(`Shop is now ${newStatus ? "Active" : "Inactive"}`);
+      toast.success(newStatus ? t("sProfile.shopNowActive") : t("sProfile.shopNowInactive"));
     } catch (error) {
-      toast.error("Failed to update shop status");
+      toast.error(t("sDash.toggleFailed"));
     }
   };
 
   const handleShareProfile = () => {
     const shareUrl = window.location.href;
     navigator.clipboard.writeText(shareUrl);
-    toast.success("Profile link copied to clipboard!");
+    toast.success(t("sProfile.linkCopied"));
   };
 
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -324,7 +330,7 @@ const SellerProfile = () => {
 
   // Derived / fallback fields
   const memberSince = profile?.createdAt
-    ? new Date(profile.createdAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+    ? new Date(profile.createdAt).toLocaleDateString(sellerLocale(), { month: "long", year: "numeric" })
     : "July 2024";
   const sellerId = profile?._id ? `SEL-${profile._id.substring(18).toUpperCase()}` : "SEL-5F98A";
   const gstin = profile?.gstin || "22AAAAA0000A1Z5";
@@ -391,7 +397,7 @@ const SellerProfile = () => {
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${profile?.isActive ? "bg-emerald-300 animate-pulse" : "bg-rose-200"}`} />
-                  {profile?.isActive ? "Active" : "Inactive"}
+                  {profile?.isActive ? t("common.active") : t("common.inactive")}
                 </button>
               </div>
 
@@ -421,7 +427,7 @@ const SellerProfile = () => {
                 onClick={() => setIsEditing(true)}
                 className="w-full sm:w-auto bg-white text-[#154D1A] hover:bg-slate-50 transition-all rounded-xl px-6 py-3 font-bold text-xs flex items-center justify-center gap-2 hover:scale-[1.03] active:scale-[0.97]"
               >
-                <Edit2 size={14} /> Edit Profile
+                <Edit2 size={14} /> {t("sProfile.editProfile")}
               </Button>
             ) : (
               <div className="flex gap-2 w-full sm:w-auto">
@@ -429,14 +435,14 @@ const SellerProfile = () => {
                   onClick={() => setIsEditing(false)}
                   className="flex-1 sm:flex-none bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all rounded-xl px-4 py-3 text-xs font-bold flex items-center justify-center"
                 >
-                  Cancel
+{t("common.cancel")}
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={isSaving}
                   className="flex-1 sm:flex-none bg-white text-[#154D1A] hover:bg-slate-50 transition-all rounded-xl px-6 py-3 font-bold text-xs flex items-center justify-center gap-2"
                 >
-                  {isSaving ? "Saving..." : <><Save size={14} /> Save</>}
+                  {isSaving ? t("common.saving") : <><Save size={14} /> {t("common.save")}</>}
                 </Button>
               </div>
             )}
@@ -444,7 +450,7 @@ const SellerProfile = () => {
               onClick={handleShareProfile}
               className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-all rounded-xl px-6 py-3 font-bold text-xs flex items-center justify-center gap-2 hover:scale-[1.03] active:scale-[0.97]"
             >
-              <Share2 size={14} /> Share Profile
+              <Share2 size={14} /> {t("sProfile.shareProfile")}
             </Button>
           </div>
         </div>
@@ -456,14 +462,14 @@ const SellerProfile = () => {
         <Card className="p-6 md:p-8 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[20px] bg-white transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
           <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2 pb-3 border-b border-slate-50">
             <User size={18} className="text-[#154D1A]" />
-            Business Profile
+{t("sProfile.businessProfile")}
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Seller Name */}
             <div className="space-y-1.5 group">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                Seller Identity
+{t("sProfile.sellerIdentity")}
               </label>
               <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
                 <User size={16} className="text-slate-400 mr-3 group-focus-within:text-[#154D1A]" />
@@ -481,7 +487,7 @@ const SellerProfile = () => {
             {/* Store Name */}
             <div className="space-y-1.5 group">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                Store Name
+{t("sProfile.storeName")}
               </label>
               <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
                 <Store size={16} className="text-slate-400 mr-3" />
@@ -499,7 +505,7 @@ const SellerProfile = () => {
             {/* Phone Number */}
             <div className="space-y-1.5 group">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                Phone Number
+{t("sProfile.phoneNumber")}
               </label>
               <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
                 <Phone size={16} className="text-slate-400 mr-3" />
@@ -517,7 +523,7 @@ const SellerProfile = () => {
             {/* Email Address */}
             <div className="space-y-1.5 group">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                Email Address
+{t("sProfile.emailAddress")}
               </label>
               <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
                 <Mail size={16} className="text-slate-400 mr-3" />
@@ -535,7 +541,7 @@ const SellerProfile = () => {
             {/* Date of Birth */}
             <div className="space-y-1.5 group">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                Date of Birth
+{t("sAuth.dob")}
               </label>
               <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
                 <Calendar size={16} className="text-slate-400 mr-3" />
@@ -554,7 +560,7 @@ const SellerProfile = () => {
             {/* GST Number */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                GST Number
+{t("sProfile.gstNumber")}
               </label>
               <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3">
                 <FileText size={16} className="text-slate-400 mr-3" />
@@ -565,7 +571,7 @@ const SellerProfile = () => {
             {/* Business Type */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                Business Type
+{t("sProfile.businessType")}
               </label>
               <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3">
                 <Layers size={16} className="text-slate-400 mr-3" />
@@ -576,7 +582,7 @@ const SellerProfile = () => {
             {/* PAN Number */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                PAN Number
+{t("sProfile.panNumber")}
               </label>
               <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3">
                 <Shield size={16} className="text-slate-400 mr-3" />
@@ -587,7 +593,7 @@ const SellerProfile = () => {
             {/* Store Category */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                Store Category
+{t("sProfile.storeCategory")}
               </label>
               <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3">
                 <Sparkles size={16} className="text-slate-400 mr-3" />
@@ -602,7 +608,7 @@ const SellerProfile = () => {
           <div>
             <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2 pb-3 border-b border-slate-50">
               <Shield size={18} className="text-[#154D1A]" />
-              Security & Trust
+{t("sProfile.securityTrust")}
             </h3>
 
             <div className="space-y-5">
@@ -613,8 +619,8 @@ const SellerProfile = () => {
                     <CheckCircle size={16} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-700">Verification</p>
-                    <p className="text-[10px] text-slate-500">Verified Merchant</p>
+                    <p className="text-xs font-bold text-slate-700">{t("sProfile.verification")}</p>
+                    <p className="text-[10px] text-slate-500">{t("sProfile.verifiedMerchant")}</p>
                   </div>
                 </div>
                 <span className="bg-emerald-500 text-white rounded-full p-0.5 text-[8px]">✔️</span>
@@ -627,8 +633,8 @@ const SellerProfile = () => {
                     <Shield size={16} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-700">Identity Check</p>
-                    <p className="text-[10px] text-slate-500">KYC Compliant</p>
+                    <p className="text-xs font-bold text-slate-700">{t("sProfile.identityCheck")}</p>
+                    <p className="text-[10px] text-slate-500">{t("sProfile.kycCompliant")}</p>
                   </div>
                 </div>
                 <span className="bg-emerald-500 text-white rounded-full p-0.5 text-[8px]">✔️</span>
@@ -641,8 +647,8 @@ const SellerProfile = () => {
                     <Rocket size={16} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-700">Growth Tier</p>
-                    <p className="text-[10px] text-slate-500">Premium Seller Level</p>
+                    <p className="text-xs font-bold text-slate-700">{t("sProfile.growthTier")}</p>
+                    <p className="text-[10px] text-slate-500">{t("sProfile.premiumLevel")}</p>
                   </div>
                 </div>
                 <span className="bg-emerald-500 text-white rounded-full p-0.5 text-[8px]">✔️</span>
@@ -655,8 +661,8 @@ const SellerProfile = () => {
                     <Globe size={16} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-700">Service Region</p>
-                    <p className="text-[10px] text-slate-500">Pan India Delivery</p>
+                    <p className="text-xs font-bold text-slate-700">{t("sProfile.serviceRegion")}</p>
+                    <p className="text-[10px] text-slate-500">{t("sProfile.panIndia")}</p>
                   </div>
                 </div>
                 <span className="bg-emerald-500 text-white rounded-full p-0.5 text-[8px]">✔️</span>
@@ -669,8 +675,8 @@ const SellerProfile = () => {
                     <Star size={16} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-700">Seller Rating</p>
-                    <p className="text-[10px] text-slate-500">4.8 / 5.0 Rating</p>
+                    <p className="text-xs font-bold text-slate-700">{t("sProfile.sellerRating")}</p>
+                    <p className="text-[10px] text-slate-500">{t("sProfile.ratingValue", { value: "4.8 / 5.0" })}</p>
                   </div>
                 </div>
                 <span className="bg-emerald-500 text-white rounded-full p-0.5 text-[8px]">✔️</span>
@@ -694,11 +700,11 @@ const SellerProfile = () => {
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
               <Wallet size={18} className="text-[#154D1A]" />
-              Bank Details
+{t("sProfile.bankDetails")}
             </h3>
             {highlightBank && (
               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full animate-pulse">
-                Fill details for withdrawals
+{t("sProfile.fillForWithdrawals")}
               </span>
             )}
           </div>
@@ -709,14 +715,14 @@ const SellerProfile = () => {
               disabled={isSaving}
               className="bg-[#154D1A] hover:bg-[#103b14] text-white rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 shadow-sm"
             >
-              {isSaving ? "Saving..." : <><Save size={13} /> Save Bank Details</>}
+              {isSaving ? t("common.saving") : <><Save size={13} /> {t("sProfile.saveBank")}</>}
             </Button>
           )}
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5 group">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Bank Name</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">{t("sProfile.bankName")}</label>
             <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
               <input
                 type="text"
@@ -724,14 +730,14 @@ const SellerProfile = () => {
                 value={formData.bankDetails.bankName}
                 onChange={handleBankDetailsChange}
                 disabled={!isEditing}
-                placeholder="e.g. HDFC Bank"
+                placeholder={t("sProfile.bankNamePh")}
                 className="w-full bg-transparent border-none outline-none text-xs font-semibold text-slate-700 disabled:opacity-85"
               />
             </div>
           </div>
           
           <div className="space-y-1.5 group">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Account Number</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">{t("sProfile.accountNumber")}</label>
             <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
               <input
                 type="text"
@@ -739,14 +745,14 @@ const SellerProfile = () => {
                 value={formData.bankDetails.accountNumber}
                 onChange={handleBankDetailsChange}
                 disabled={!isEditing}
-                placeholder="Account Number"
+                placeholder={t("sProfile.accountNumber")}
                 className="w-full bg-transparent border-none outline-none text-xs font-semibold text-slate-700 disabled:opacity-85"
               />
             </div>
           </div>
           
           <div className="space-y-1.5 group">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">IFSC Code</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">{t("sProfile.ifsc")}</label>
             <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
               <input
                 type="text"
@@ -754,14 +760,14 @@ const SellerProfile = () => {
                 value={formData.bankDetails.ifscCode}
                 onChange={handleBankDetailsChange}
                 disabled={!isEditing}
-                placeholder="IFSC Code"
+                placeholder={t("sProfile.ifsc")}
                 className="w-full bg-transparent border-none outline-none text-xs font-semibold text-slate-700 disabled:opacity-85 uppercase"
               />
             </div>
           </div>
           
           <div className="space-y-1.5 group">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Account Holder Name</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">{t("sProfile.holderName")}</label>
             <div className="relative flex items-center bg-slate-50/50 border border-slate-100/80 rounded-xl px-4 py-3 transition-all hover:border-[#154D1A]/20 focus-within:border-[#154D1A] focus-within:bg-white">
               <input
                 type="text"
@@ -769,7 +775,7 @@ const SellerProfile = () => {
                 value={formData.bankDetails.accountHolderName}
                 onChange={handleBankDetailsChange}
                 disabled={!isEditing}
-                placeholder="Full Name as per Bank"
+                placeholder={t("sProfile.holderNamePh")}
                 className="w-full bg-transparent border-none outline-none text-xs font-semibold text-slate-700 disabled:opacity-85"
               />
             </div>
@@ -782,7 +788,7 @@ const SellerProfile = () => {
         <div className="flex justify-between items-center mb-6 border-b border-slate-50 pb-3">
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <MapPin size={18} className="text-[#154D1A]" />
-            Location & Service Area
+{t("sProfile.locationService")}
           </h3>
           {isEditing && (
             <Button
@@ -790,7 +796,7 @@ const SellerProfile = () => {
               onClick={() => setIsMapOpen(true)}
               className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg px-4 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-all"
             >
-              Manage Location
+{t("sProfile.manageLocation")}
             </Button>
           )}
         </div>
@@ -803,7 +809,7 @@ const SellerProfile = () => {
                   <MapPin size={16} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-700">Store Address</h4>
+                  <h4 className="text-xs font-bold text-slate-700">{t("sProfile.storeAddress")}</h4>
                   <p className="text-xs text-slate-500 font-medium leading-relaxed mt-1">
                     {formData.address || "Please set your location on the map to define the address."}
                   </p>
@@ -813,11 +819,11 @@ const SellerProfile = () => {
               {formData.lat && (
                 <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-200/50">
                   <div>
-                    <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Latitude</span>
+                    <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">{t("sProfile.latitude")}</span>
                     <span className="text-xs font-semibold text-slate-600 tabular-nums">{formData.lat.toFixed(6)}</span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Longitude</span>
+                    <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">{t("sProfile.longitude")}</span>
                     <span className="text-xs font-semibold text-slate-600 tabular-nums">{formData.lng.toFixed(6)}</span>
                   </div>
                 </div>
@@ -826,15 +832,15 @@ const SellerProfile = () => {
 
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100 text-center">
-                <span className="text-[9px] font-semibold text-slate-400 uppercase block">Pin Code</span>
+                <span className="text-[9px] font-semibold text-slate-400 uppercase block">{t("sAuth.pincode")}</span>
                 <span className="text-xs font-bold text-slate-700 mt-1 block">{formData.pincode || "—"}</span>
               </div>
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100 text-center">
-                <span className="text-[9px] font-semibold text-slate-400 uppercase block">State</span>
+                <span className="text-[9px] font-semibold text-slate-400 uppercase block">{t("sAuth.state")}</span>
                 <span className="text-xs font-bold text-slate-700 mt-1 block">{formData.state || "—"}</span>
               </div>
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100 text-center">
-                <span className="text-[9px] font-semibold text-slate-400 uppercase block">City</span>
+                <span className="text-[9px] font-semibold text-slate-400 uppercase block">{t("sAuth.city")}</span>
                 <span className="text-xs font-bold text-slate-700 mt-1 block">{formData.city || "—"}</span>
               </div>
             </div>
@@ -854,13 +860,13 @@ const SellerProfile = () => {
                 <div className="h-10 w-10 bg-[#154D1A] rounded-full flex items-center justify-center text-white mb-2 shadow-md">
                   <MapPin size={20} />
                 </div>
-                <span className="text-xs font-bold text-slate-700">Map Pin Set</span>
-                <span className="text-[10px] text-slate-500 font-semibold mt-0.5">{formData.city ? `${formData.city} coordinates active` : "Location pin set"}</span>
+                <span className="text-xs font-bold text-slate-700">{t("sProfile.mapPinSet")}</span>
+                <span className="text-[10px] text-slate-500 font-semibold mt-0.5">{formData.city ? t("sProfile.coordsActive", { city: formData.city }) : t("sProfile.locationPinSet")}</span>
               </div>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-slate-400">
                 <MapPin size={32} className="stroke-[1.5] mb-2" />
-                <span className="text-xs font-bold">No Location Pin Defined</span>
+                <span className="text-xs font-bold">{t("sProfile.noPin")}</span>
               </div>
             )}
           </div>
@@ -870,10 +876,10 @@ const SellerProfile = () => {
       {/* ==================== FOURTH ROW (Statistics Cards) ==================== */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Orders", value: statsData?.overview?.totalOrders || "0", icon: ShoppingBag, gradient: "from-emerald-500 to-teal-600" },
-          { label: "Revenue", value: `₹${statsData?.overview?.totalSales || "0"}`, icon: TrendingUp, gradient: "from-[#154D1A] to-[#2E7D32]" },
-          { label: "Customers", value: statsData?.overview?.totalCustomers || "0", icon: Users, gradient: "from-indigo-500 to-blue-600" },
-          { label: "Products", value: statsData?.overview?.totalProducts || "0", icon: Award, gradient: "from-amber-500 to-orange-600" },
+          { label: t("nav.orders"), value: statsData?.overview?.totalOrders || "0", icon: ShoppingBag, gradient: "from-emerald-500 to-teal-600" },
+          { label: t("sDash.revenue"), value: `₹${statsData?.overview?.totalSales || "0"}`, icon: TrendingUp, gradient: "from-[#154D1A] to-[#2E7D32]" },
+          { label: t("sProfile.customers"), value: statsData?.overview?.totalCustomers || "0", icon: Users, gradient: "from-indigo-500 to-blue-600" },
+          { label: t("nav.products"), value: statsData?.overview?.totalProducts || "0", icon: Award, gradient: "from-amber-500 to-orange-600" },
         ].map((stat, i) => (
           <motion.div
             key={i}
@@ -897,7 +903,7 @@ const SellerProfile = () => {
       <Card className="p-6 md:p-8 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[20px] bg-white transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
         <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2 pb-3 border-b border-slate-50">
           <BarChart3 size={18} className="text-[#154D1A]" />
-          Performance Analytics
+{t("sProfile.performance")}
         </h3>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
@@ -924,7 +930,7 @@ const SellerProfile = () => {
           <div className="space-y-4 flex flex-col justify-center">
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Monthly Orders</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{t("sProfile.monthlyOrders")}</span>
                 <p className="text-base font-bold text-slate-800 mt-0.5">{statsData?.overview?.totalOrders || 0} Orders</p>
               </div>
               <span className="text-emerald-700 bg-emerald-50 text-[10px] font-bold px-2 py-0.5 rounded-full">{statsData?.overview?.ordersTrend || "+0%"} MoM</span>
@@ -932,7 +938,7 @@ const SellerProfile = () => {
 
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Revenue Growth</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{t("sProfile.revenueGrowth")}</span>
                 <p className="text-base font-bold text-slate-800 mt-0.5">₹{statsData?.overview?.totalSales || 0}</p>
               </div>
               <span className="text-emerald-700 bg-emerald-50 text-[10px] font-bold px-2 py-0.5 rounded-full">{statsData?.overview?.salesTrend || "+0%"} Growth</span>
@@ -940,10 +946,10 @@ const SellerProfile = () => {
 
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">CSAT Score</span>
-                <p className="text-base font-bold text-slate-800 mt-0.5">4.8 / 5.0 Rating</p>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{t("sProfile.csat")}</span>
+                <p className="text-base font-bold text-slate-800 mt-0.5">{t("sProfile.ratingValue", { value: "4.8 / 5.0" })}</p>
               </div>
-              <span className="text-emerald-700 bg-emerald-50 text-[10px] font-bold px-2 py-0.5 rounded-full">98% Happy</span>
+              <span className="text-emerald-700 bg-emerald-50 text-[10px] font-bold px-2 py-0.5 rounded-full">{t("sProfile.happy", { percent: 98 })}</span>
             </div>
           </div>
         </div>
@@ -958,11 +964,11 @@ const SellerProfile = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
             <div className="space-y-2 text-center md:text-left">
               <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
-                Seller Program
+{t("sProfile.sellerProgram")}
               </span>
               <h3 className="text-xl font-bold tracking-tight">Active Plan: {subscription.plan.name}</h3>
               <p className="text-white/80 text-xs font-medium">
-                Plan Expires on: {subscription.endDate ? new Date(subscription.endDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "Never"}
+                {t("sProfile.planExpires", { date: subscription.endDate ? new Date(subscription.endDate).toLocaleDateString(sellerLocale(), { year: "numeric", month: "long", day: "numeric" }) : t("sProfile.never") })}
               </p>
 
               <div className="flex flex-wrap gap-2 justify-center md:justify-start pt-2">
@@ -979,7 +985,7 @@ const SellerProfile = () => {
               onClick={() => window.location.href = "/seller/subscription"}
               className="w-full md:w-auto bg-white text-yellow-800 hover:bg-slate-50 transition-all rounded-xl px-8 py-3.5 font-bold text-xs shadow-md whitespace-nowrap hover:scale-105 active:scale-95"
             >
-              {subscription.status === "ACTIVE" ? "Manage Plan" : "Renew Plan"}
+              {subscription.status === "ACTIVE" ? t("sProfile.managePlan") : t("sProfile.renewPlan")}
             </Button>
           </div>
         </Card>
@@ -991,10 +997,10 @@ const SellerProfile = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
             <div className="space-y-2 text-center md:text-left">
               <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
-                Basic Tier
+{t("sProfile.basicTier")}
               </span>
-              <h3 className="text-xl font-bold tracking-tight">Active Plan: Free / Basic</h3>
-              <p className="text-white/80 text-xs font-medium">Upgrade to access premium features like 0% commission limit.</p>
+              <h3 className="text-xl font-bold tracking-tight">{t("sProfile.activePlanBasic")}</h3>
+              <p className="text-white/80 text-xs font-medium">{t("sProfile.upgradeBody")}</p>
             </div>
 
             <Button
@@ -1002,7 +1008,7 @@ const SellerProfile = () => {
               onClick={() => window.location.href = "/seller/subscription"}
               className="w-full md:w-auto bg-white text-slate-900 hover:bg-slate-50 transition-all rounded-xl px-8 py-3.5 font-bold text-xs shadow-md whitespace-nowrap hover:scale-105 active:scale-95"
             >
-              Upgrade Now
+{t("sDash.upgradeNow")}
             </Button>
           </div>
         </Card>
@@ -1010,14 +1016,14 @@ const SellerProfile = () => {
 
       {/* ==================== SEVENTH ROW (Quick Actions) ==================== */}
       <div className="space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Quick Actions Dashboard</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">{t("sProfile.quickActions")}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
           {[
-            { label: "Manage Products", icon: Award, path: "/seller/products" },
-            { label: "Manage Orders", icon: ShoppingBag, path: "/seller/orders" },
-            { label: "Wallet", icon: Wallet, path: "/seller/withdrawals" },
-            { label: "Membership", icon: Zap, path: "/seller/subscription" },
-            { label: "Reports", icon: BarChart3, path: "/seller/analytics" }
+            { label: t("sProfile.manageProducts"), icon: Award, path: "/seller/products" },
+            { label: t("sProfile.manageOrders"), icon: ShoppingBag, path: "/seller/orders" },
+            { label: t("nav.wallet"), icon: Wallet, path: "/seller/withdrawals" },
+            { label: t("sProfile.membership"), icon: Zap, path: "/seller/subscription" },
+            { label: t("sProfile.reports"), icon: BarChart3, path: "/seller/analytics" }
           ].map((act, idx) => (
             <motion.a
               href={act.path}
@@ -1037,6 +1043,26 @@ const SellerProfile = () => {
         </div>
       </div>
 
+      {/* ==================== LANGUAGE ==================== */}
+      <div className="max-w-xl mx-auto md:max-w-none bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-emerald-50 text-[#154D1A] flex items-center justify-center">
+            <Globe size={18} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-800">{t("common.language")}</p>
+            <p className="text-xs text-slate-500">{getLanguageMeta(language).nativeName}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={openLanguagePicker}
+          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-[#154D1A] hover:bg-emerald-50 transition-colors"
+        >
+          {t("sProfile.changeLanguage")}
+        </button>
+      </div>
+
       {/* ==================== ACCOUNT ACTIONS (Delete Account & Logout) ==================== */}
       <div className="pt-6 space-y-3 max-w-xl mx-auto md:max-w-none">
         <Button
@@ -1045,7 +1071,7 @@ const SellerProfile = () => {
           variant="outline"
           className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
         >
-          <LogOut size={20} className="mr-2" /> Delete Account
+          <LogOut size={20} className="mr-2" /> {t("sProfile.deleteAccount")}
         </Button>
         <Button
           type="button"
@@ -1053,7 +1079,7 @@ const SellerProfile = () => {
           variant="outline"
           className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
         >
-          <LogOut size={20} className="mr-2" /> Logout
+          <LogOut size={20} className="mr-2" /> {t("sProfile.logout")}
         </Button>
       </div>
 
@@ -1066,7 +1092,7 @@ const SellerProfile = () => {
         onConfirm={confirm.handleConfirm}
         onCancel={confirm.close}
         loading={confirm.loading}
-        variant={confirm.title === 'Delete Account' || confirm.title === 'Log out' ? 'danger' : 'primary'}
+        variant="danger"
       />
 
       {isMapOpen && (

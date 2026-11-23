@@ -45,9 +45,12 @@ import ShimmerButton from "@/components/ui/shimmer-button";
 import Modal from "@shared/components/ui/Modal";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { sellerLocale } from "../i18n/format";
 
 
 const Analytics = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [statsData, setStatsData] = useState(null);
@@ -83,9 +86,9 @@ const Analytics = () => {
       } catch (error) {
         console.error("Analytics Fetch Error:", error);
         if (error?.response?.status === 403) {
-           toast.error(error.response.data?.message || "This feature is not available in your current plan");
+           toast.error(error.response.data?.message || t("sAnalytics.notInPlan"));
         } else {
-           toast.error("Failed to load analytics data");
+           toast.error(t("sAnalytics.loadFailed"));
         }
         setStatsData((prev) => prev ?? {
           overview: {},
@@ -107,7 +110,7 @@ const Analytics = () => {
 
   const stats = [
     {
-      label: "Total Sales",
+      label: t("sAnalytics.totalSales"),
       value: statsData?.overview?.totalSales || "₹0",
       trend: statsData?.overview?.salesTrend || "0%",
       icon: HiOutlineArrowTrendingUp,
@@ -115,7 +118,7 @@ const Analytics = () => {
       bg: "bg-emerald-50",
     },
     {
-      label: "Total Orders",
+      label: t("sDash.totalOrders"),
       value: statsData?.overview?.totalOrders || "0",
       trend: statsData?.overview?.ordersTrend || "0%",
       icon: HiOutlineShoppingBag,
@@ -123,7 +126,7 @@ const Analytics = () => {
       bg: "bg-emerald-50",
     },
     {
-      label: "Avg Order Value",
+      label: t("sDash.avgOrderValue"),
       value: statsData?.overview?.avgOrderValue || "₹0",
       trend: "0%",
       icon: HiOutlineUsers,
@@ -131,7 +134,7 @@ const Analytics = () => {
       bg: "bg-amber-50",
     },
     {
-      label: "Conversion Rate",
+      label: t("sAnalytics.conversion"),
       value: statsData?.overview?.conversionRate || "0%",
       trend: "0%",
       icon: HiOutlineChartBar,
@@ -152,30 +155,30 @@ const Analytics = () => {
         return /[",\n\r]/.test(s) ? `"${s}"` : s;
       };
       const lines = [];
-      lines.push(["Overview Stats"]);
-      lines.push(["Stat", "Value"]);
-      lines.push(["Total Sales", statsData?.overview?.totalSales || "₹0"]);
-      lines.push(["Total Orders", statsData?.overview?.totalOrders || "0"]);
-      lines.push(["Avg Order Value", statsData?.overview?.avgOrderValue || "₹0"]);
-      lines.push(["Conversion Rate", statsData?.overview?.conversionRate || "0%"]);
+      lines.push([t("sAnalytics.csv.overview")]);
+      lines.push([t("sAnalytics.csv.stat"), t("sAnalytics.csv.value")]);
+      lines.push([t("sAnalytics.totalSales"), statsData?.overview?.totalSales || "₹0"]);
+      lines.push([t("sDash.totalOrders"), statsData?.overview?.totalOrders || "0"]);
+      lines.push([t("sDash.avgOrderValue"), statsData?.overview?.avgOrderValue || "₹0"]);
+      lines.push([t("sAnalytics.conversion"), statsData?.overview?.conversionRate || "0%"]);
       lines.push([]);
 
-      lines.push(["Sales Trend"]);
-      lines.push(["Date", "Sales (₹)", "Orders"]);
+      lines.push([t("sAnalytics.csv.salesTrend")]);
+      lines.push([t("common.date"), t("sAnalytics.csv.salesRs"), t("nav.orders")]);
       salesTrendArr.forEach((d) => {
         lines.push([d.name, d.sales, d.orders]);
       });
       lines.push([]);
 
-      lines.push(["Category Mix"]);
-      lines.push(["Category", "Value"]);
+      lines.push([t("sAnalytics.categoryMix")]);
+      lines.push([t("sProducts.colCategory"), t("sAnalytics.csv.value")]);
       (statsData?.categoryMix ?? []).forEach((c) => {
         lines.push([c.subject, c.A]);
       });
       lines.push([]);
 
-      lines.push(["Top Products"]);
-      lines.push(["Product Name", "Sales (₹)", "Orders", "Stock"]);
+      lines.push([t("sAnalytics.csv.topProducts")]);
+      lines.push([t("sAnalytics.csv.productName"), t("sAnalytics.csv.salesRs"), t("nav.orders"), t("nav.stock")]);
       (statsData?.topProducts ?? []).forEach((p) => {
         lines.push([p.name, p.sales, p.orders, p.stock]);
       });
@@ -188,17 +191,17 @@ const Analytics = () => {
       a.download = `analytics-report-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Report downloaded successfully!");
+      toast.success(t("sAnalytics.downloaded"));
     } catch (e) {
       console.error(e);
-      toast.error("Failed to download report");
+      toast.error(t("sAnalytics.downloadFailed"));
     } finally {
       setIsExporting(false);
     }
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen font-semibold text-slate-500">LOADING ANALYTICS...</div>;
+    return <div className="flex items-center justify-center h-screen font-semibold text-slate-500">{t("sAnalytics.loading")}</div>;
   }
 
   return (
@@ -208,16 +211,15 @@ const Analytics = () => {
         <div className="flex flex-col gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 flex flex-wrap items-center gap-2">
-              Advanced Analytics
+{t("sAnalytics.title")}
               <Badge
                 variant="success"
                 className="text-[9px] px-1.5 py-0 font-semibold tracking-wider uppercase bg-emerald-50 text-emerald-800">
-                Real-time Insights
+{t("sAnalytics.realtime")}
               </Badge>
             </h1>
             <p className="text-slate-500 text-sm sm:text-base mt-0.5 font-medium">
-              Detailed breakdown of your business performance and customer
-              behavior.
+              {t("sAnalytics.subtitle")}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -232,7 +234,7 @@ const Analytics = () => {
                       ? "bg-white text-[#1A4516] shadow-sm border border-slate-200 font-bold"
                       : "text-slate-600 hover:text-slate-700",
                   )}>
-                  {tab}
+                  {t(`sAnalytics.tabs.${tab}`)}
                 </button>
               ))}
             </div>
@@ -242,7 +244,7 @@ const Analytics = () => {
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 rounded-lg text-xs sm:text-sm font-bold text-white shadow-lg disabled:opacity-50 shrink-0"
               disabled={isExporting}>
               <HiOutlineArrowDownTray className="h-4 w-4 shrink-0" />
-              <span>{isExporting ? "DOWNLOADING..." : "DOWNLOAD REPORT"}</span>
+              <span>{isExporting ? t("sTxn.downloading") : t("sAnalytics.downloadReport")}</span>
             </ShimmerButton>
           </div>
         </div>
@@ -291,7 +293,7 @@ const Analytics = () => {
                     >
                       {stat.trend.startsWith("+") ? "▲" : "▼"} {stat.trend}
                     </span>
-                    <span className="text-[9px] text-slate-400 font-medium">vs prev 7d</span>
+                    <span className="text-[9px] text-slate-400 font-medium">{t("sAnalytics.vsPrev")}</span>
                   </div>
                 </div>
               </div>
@@ -304,7 +306,7 @@ const Analytics = () => {
         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 flex items-center gap-3">
           <HiOutlineChartBar className="h-6 w-6 text-slate-600 shrink-0" />
           <p className="text-sm font-semibold text-slate-600">
-            Sales report is connected. Data will appear here once you have orders.
+            {t("sAnalytics.connected")}
           </p>
         </div>
       )}
@@ -317,10 +319,10 @@ const Analytics = () => {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-lg font-black text-slate-900">
-                  Revenue & Trends
+{t("sAnalytics.revenueTrends")}
                 </h3>
                 <p className="text-xs text-slate-600 font-bold uppercase tracking-widest">
-                  Performance Insights
+{t("sAnalytics.perfInsights")}
                 </p>
               </div>
               <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
@@ -334,7 +336,7 @@ const Analytics = () => {
                         ? "bg-white text-primary shadow-sm"
                         : "text-slate-600 hover:text-slate-600",
                     )}>
-                    {range}
+                    {t(`sAnalytics.ranges.${range}`)}
                   </button>
                 ))}
               </div>
@@ -421,10 +423,10 @@ const Analytics = () => {
           <Card className="border-none shadow-xl shadow-slate-200/50 rounded-lg p-6 bg-white flex flex-col items-center justify-center group h-full">
             <div className="w-full text-center mb-6">
               <h3 className="text-lg font-black text-slate-900">
-                Category Mix
+{t("sAnalytics.categoryMix")}
               </h3>
               <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
-                Inventory Distribution
+{t("sAnalytics.inventoryDist")}
               </p>
             </div>
             <div className="h-[350px] w-full flex items-center justify-center">
@@ -482,10 +484,10 @@ const Analytics = () => {
           <Card className="border-none shadow-xl shadow-slate-200/50 rounded-lg p-0 overflow-hidden bg-white">
             <div className="p-6 border-b border-slate-50">
               <h3 className="text-lg font-black text-slate-900">
-                Top Performing Products
+{t("sAnalytics.topProducts")}
               </h3>
               <p className="text-xs text-slate-600 font-medium">
-                Bestsellers by sales volume and revenue generation.
+{t("sAnalytics.bestsellers")}
               </p>
             </div>
             <div className="divide-y divide-slate-50">
@@ -536,7 +538,7 @@ const Analytics = () => {
               <button
                 onClick={() => navigate("/seller/products")}
                 className="text-xs font-black text-primary uppercase tracking-widest hover:underline">
-                View All Products Analytics
+{t("sAnalytics.viewAll")}
               </button>
             </div>
           </Card>
@@ -549,10 +551,10 @@ const Analytics = () => {
           <Card className="border-none shadow-xl shadow-slate-200/50 rounded-3xl p-6 bg-white overflow-hidden group h-full">
             <div className="mb-8">
               <h3 className="text-lg font-black text-slate-900">
-                New Customers
+{t("sAnalytics.newCustomers")}
               </h3>
               <p className="text-xs text-slate-600 font-bold uppercase tracking-widest">
-                Traffic Origin Analysis
+{t("sAnalytics.traffic")}
               </p>
             </div>
 
@@ -616,7 +618,7 @@ const Analytics = () => {
                   {statsData?.insights?.topCity || "N/A"}
                 </p>
                 <p className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">
-                  Top City
+{t("sAnalytics.topCity")}
                 </p>
               </div>
               <div className="text-center">
@@ -624,10 +626,10 @@ const Analytics = () => {
                   <HiOutlineClock className="h-5 w-5" />
                 </div>
                 <p className="text-[10px] font-black text-slate-900 tracking-tight">
-                  {statsData?.insights?.peakTime || "N/A"}
+                  {statsData?.insights?.peakTime || t("sReturns.na")}
                 </p>
                 <p className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">
-                  Peak Time
+{t("sAnalytics.peakTime")}
                 </p>
               </div>
               <div className="text-center">
@@ -635,10 +637,10 @@ const Analytics = () => {
                   <HiOutlineDevicePhoneMobile className="h-5 w-5" />
                 </div>
                 <p className="text-[10px] font-black text-slate-900 tracking-tight">
-                  {statsData?.insights?.topDevice || "N/A"}
+                  {statsData?.insights?.topDevice || t("sReturns.na")}
                 </p>
                 <p className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">
-                  Top Device
+{t("sAnalytics.topDevice")}
                 </p>
               </div>
             </div>
@@ -650,7 +652,7 @@ const Analytics = () => {
       <Modal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
-        title="Product Insights">
+        title={t("sAnalytics.productInsights")}>
         {selectedProduct && (
           <div className="space-y-6">
             <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
@@ -662,7 +664,7 @@ const Analytics = () => {
                   {selectedProduct.name}
                 </h3>
                 <p className="text-xs text-slate-600 font-bold uppercase tracking-widest mt-1">
-                  Product ID: {selectedProduct._id || "N/A"}
+                  {t("sAnalytics.productId")}: {selectedProduct._id || t("sReturns.na")}
                 </p>
               </div>
             </div>
@@ -670,7 +672,7 @@ const Analytics = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-brand-50 rounded-2xl">
                 <p className="text-[10px] font-black text-brand-700 uppercase tracking-widest">
-                  Revenue
+{t("sDash.revenue")}
                 </p>
                 <p className="text-xl font-black text-brand-900">
                   {selectedProduct.revenue}
@@ -678,7 +680,7 @@ const Analytics = () => {
               </div>
               <div className="p-4 bg-brand-50 rounded-2xl">
                 <p className="text-[10px] font-black text-brand-700 uppercase tracking-widest">
-                  Units Sold
+{t("sAnalytics.unitsSold")}
                 </p>
                 <p className="text-xl font-black text-brand-900">
                   {selectedProduct.sales}
@@ -688,7 +690,7 @@ const Analytics = () => {
 
             <div className="space-y-2">
               <p className="text-xs font-black text-slate-900 uppercase tracking-widest pl-1">
-                Sales velocity
+{t("sAnalytics.velocity")}
               </p>
               <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                 <div className="h-full bg-primary w-[75%]" />
@@ -701,7 +703,7 @@ const Analytics = () => {
             <Button
               onClick={() => setIsProductModalOpen(false)}
               className="w-full py-4 rounded-2xl font-black shadow-xl shadow-primary/20">
-              CLOSE DETAILS
+{t("sAnalytics.closeDetails")}
             </Button>
           </div>
         )}

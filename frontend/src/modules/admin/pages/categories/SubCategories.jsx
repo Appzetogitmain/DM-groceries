@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { adminApi } from "../../services/adminApi";
 import { toast } from "sonner";
 
+import CategoryTranslationFields from "../../components/CategoryTranslationFields";
 const makeSlug = (value) =>
   String(value || "")
     .toLowerCase()
@@ -45,6 +46,8 @@ const SubCategories = () => {
 
   const [formData, setFormData] = useState({
     name: "",
+    nameHi: "",
+    nameGu: "",
     slug: "",
     description: "",
     status: "active",
@@ -233,6 +236,8 @@ const SubCategories = () => {
     setEditingItem(null);
     setFormData({
       name: "",
+      nameHi: "",
+      nameGu: "",
       slug: "",
       description: "",
       status: "active",
@@ -248,6 +253,8 @@ const SubCategories = () => {
     setEditingItem(item);
     setFormData({
       name: item.name,
+      nameHi: item.nameHi || "",
+      nameGu: item.nameGu || "",
       slug: item.slug,
       description: item.description || "",
       status: item.status,
@@ -583,6 +590,8 @@ const SubCategories = () => {
                     maxLength={50}
                   />
                 </div>
+
+                <CategoryTranslationFields formData={formData} setFormData={setFormData} />
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">

@@ -84,6 +84,8 @@ export async function createPosOrder({
         product: product._id,
         productId: product._id, // Needed for stock reservation
         name: product.name,
+        nameHi: product.nameHi || undefined,
+        nameGu: product.nameGu || undefined,
         quantity: qty,
         price: price,
         variantSlot: item.variantSku || item.variantSlot,

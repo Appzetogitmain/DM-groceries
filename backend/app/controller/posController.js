@@ -105,7 +105,7 @@ export const searchPosProducts = async (req, res) => {
     const products = await Product.find(query)
       .skip((page - 1) * limit)
       .limit(limit)
-      .select("name price salePrice stock mainImage sku variants")
+      .select("name nameHi nameGu price salePrice stock mainImage sku variants")
       .lean();
 
     return handleResponse(res, 200, "Products fetched for POS", products);

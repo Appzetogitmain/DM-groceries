@@ -17,8 +17,12 @@ import {
     Heart,
     Star,
     ChevronLeft,
-    Droplets
+    Droplets,
+    Globe
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useCustomerLanguage } from '../i18n/CustomerLanguageProvider';
+import { getLanguageMeta } from '../i18n/languages';
 import { toast } from 'sonner';
 import { customerApi } from '../services/customerApi';
 import BgImage from '@/assets/image.png';
@@ -27,6 +31,7 @@ import DobPicker from '../components/auth/DobPicker';
 const CATEGORIES = [
     {
         title: "Grocery",
+        titleKey: "auth.categoryGrocery",
         icon: <ShoppingBasket size={28} />,
         color: "#ecfeff",
         ring: "var(--primary)",
@@ -37,6 +42,7 @@ const CATEGORIES = [
     },
     {
         title: "Store",
+        titleKey: "auth.categoryStore",
         icon: <Smartphone size={28} />,
         color: "#f0f9ff",
         ring: "var(--brand-400)",
@@ -47,6 +53,7 @@ const CATEGORIES = [
     },
     {
         title: "Food",
+        titleKey: "auth.categoryFood",
         icon: <Utensils size={28} />,
         color: "#f0fdfa",
         ring: "#22d3ee",
@@ -57,6 +64,7 @@ const CATEGORIES = [
     },
     {
         title: "Health",
+        titleKey: "auth.categoryHealth",
         icon: <ShieldCheck size={28} />,
         color: "#eff6ff",
         ring: "#60a5fa",
@@ -81,6 +89,8 @@ const CustomerAuth = () => {
     const [timer, setTimer] = useState(0);
     const [carouselIndex, setCarouselIndex] = useState(0);
     const { login } = useAuth();
+    const { t } = useTranslation();
+    const { language, openLanguagePicker } = useCustomerLanguage();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
     const logoUrl = "/Logo.png";
@@ -135,7 +145,7 @@ const CustomerAuth = () => {
     const handleSendOtp = async (e) => {
         e?.preventDefault();
         if (formData.phone.length !== 10) {
-            toast.error('Enter valid 10-digit number');
+            toast.error(t('auth.invalidPhone'));
             return;
         }
         setIsLoading(true);
@@ -152,14 +162,14 @@ const CustomerAuth = () => {
             }
             setShowOtp(true);
             setTimer(60);
-            toast.success('OTP sent!');
+            toast.success(t('auth.otpSent'));
         } catch (error) {
             const apiMessage = error?.response?.data?.message || '';
             const match = apiMessage.match(/wait (\d+)s/);
             if (match && match[1]) {
                 setTimer(parseInt(match[1], 10));
             }
-            toast.error(apiMessage || 'Failed to send OTP');
+            toast.error(apiMessage || t('auth.otpSendFailed'));
         } finally {
             setIsLoading(false);
         }
@@ -168,7 +178,7 @@ const CustomerAuth = () => {
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
         if (formData.otp.length !== 4) {
-            toast.error('Enter 4-digit code');
+            toast.error(t('auth.enterOtp'));
             return;
         }
         setIsLoading(true);
@@ -176,14 +186,14 @@ const CustomerAuth = () => {
             const response = await customerApi.verifyOtp({ phone: formData.phone, otp: formData.otp });
             const { token, customer } = response.data.result;
             login({ ...customer, token, role: 'customer' });
-            toast.success('Successfully Logged In!');
+            toast.success(t('auth.loginSuccess'));
             // Return to the page the user was trying to open (e.g. /user/profile), else home.
             const from = routeLocation.state?.from;
             const target = from?.pathname?.startsWith('/user') ? `${from.pathname}${from.search || ''}` : '/user';
             navigate(target, { replace: true });
         } catch (error) {
             const apiMessage = error?.response?.data?.message;
-            toast.error(apiMessage || 'Invalid OTP');
+            toast.error(apiMessage || t('auth.invalidOtp'));
         } finally {
             setIsLoading(false);
         }
@@ -277,6 +287,15 @@ const CustomerAuth = () => {
                                 </div>
                                 <span className="text-white font-black tracking-tighter text-lg sm:text-xl">{appName.toUpperCase()}</span>
                             </div>
+                            <button
+                                type="button"
+                                onClick={openLanguagePicker}
+                                aria-label={t('settings.language')}
+                                className="flex items-center gap-1.5 h-9 px-3 bg-white/20 backdrop-blur-xl rounded-xl border border-white/30 text-white text-xs font-bold active:scale-95 transition-transform"
+                            >
+                                <Globe size={14} />
+                                {getLanguageMeta(language).nativeName}
+                            </button>
                         </div>
 
                         {/* Centered App Message */}
@@ -287,9 +306,9 @@ const CustomerAuth = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 className="text-xl sm:text-2xl font-black tracking-tight leading-none mb-2"
                             >
-                                {activeCategory.title.toUpperCase()} INSIDE
+                                {t('auth.categoryInside', { category: t(activeCategory.titleKey).toUpperCase() })}
                             </motion.h2>
-                            <p className="text-[10px] font-bold uppercase tracking-[4px] opacity-70">Everything delivered fast</p>
+                            <p className="text-[10px] font-bold uppercase tracking-[4px] opacity-70">{t('auth.everythingDeliveredFast')}</p>
                         </div>
 
                         {/* S-Curve Divider */}
@@ -351,23 +370,23 @@ const CustomerAuth = () => {
                                             className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${isLogin ? 'bg-white shadow-sm' : 'text-gray-400'}`}
                                             style={{ color: isLogin ? activeCategory.theme : undefined }}
                                         >
-                                            Login
+                                            {t('auth.login')}
                                         </button>
                                         <button
                                             onClick={() => setIsLogin(false)}
                                             className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${!isLogin ? 'bg-white shadow-sm' : 'text-gray-400'}`}
                                             style={{ color: !isLogin ? activeCategory.theme : undefined }}
                                         >
-                                            Sign Up
+                                            {t('auth.signUp')}
                                         </button>
                                     </div>
 
                                     <div className="space-y-2 text-center">
                                         <h3 className="text-xl font-black text-gray-900 tracking-tight">
-                                            {isLogin ? 'Welcome Back!' : 'Create Account'}
+                                            {isLogin ? t('auth.welcomeBack') : t('auth.createAccount')}
                                         </h3>
                                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none">
-                                            OTP will be sent for verification
+                                            {t('auth.otpWillBeSent')}
                                         </p>
                                     </div>
 
@@ -384,7 +403,7 @@ const CustomerAuth = () => {
                                                         value={formData.name || ''}
                                                         maxLength={50}
                                                         pattern="[a-zA-Z\s]*"
-                                                        placeholder="Full Name"
+                                                        placeholder={t('auth.fullName')}
                                                         className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-800 outline-none focus:bg-white transition-all"
                                                         style={{ '--theme-color': activeCategory.theme }}
                                                         onChange={(e) => setFormData({ ...formData, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
@@ -420,7 +439,7 @@ const CustomerAuth = () => {
                                                         }}
                                                         onBlur={(e) => e.target.style.borderColor = '#F3F4F6'}
                                                     >
-                                                        <option value="" disabled>Select Blood Group (Optional)</option>
+                                                        <option value="" disabled>{t('auth.selectBloodGroup')}</option>
                                                         <option value="A+" className="text-gray-800">A+</option>
                                                         <option value="A-" className="text-gray-800">A-</option>
                                                         <option value="B+" className="text-gray-800">B+</option>
@@ -449,7 +468,7 @@ const CustomerAuth = () => {
                                                 name="phone"
                                                 value={formData.phone || ''}
                                                 maxLength={10}
-                                                placeholder="Mobile Number"
+                                                placeholder={t('auth.mobileNumber')}
                                                 className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-20 pr-4 py-4 text-sm font-bold text-gray-800 outline-none focus:bg-white transition-all"
                                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
                                                 onFocus={(e) => {
@@ -467,7 +486,7 @@ const CustomerAuth = () => {
                                             className={`w-full text-white py-5 rounded-[24px] text-xs font-black tracking-[4px] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase ${timer > 0 || !agreed ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             style={{ backgroundColor: activeCategory.theme, boxShadow: `0 20px 40px ${activeCategory.shadow}` }}
                                         >
-                                            {isLoading ? 'Verifying...' : timer > 0 ? `Wait ${timer}s` : 'Continue'}
+                                            {isLoading ? t('auth.verifying') : timer > 0 ? t('auth.waitSeconds', { seconds: timer }) : t('common.continue')}
                                             {timer === 0 && !isLoading && <ChevronRight size={18} />}
                                         </button>
                                     </form>
@@ -483,14 +502,14 @@ const CustomerAuth = () => {
                                             style={{ accentColor: activeCategory.theme }}
                                         />
                                         <label htmlFor="agreeTerms" className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex flex-wrap items-center justify-center gap-x-1 cursor-pointer select-none">
-                                            <span>I agree to the</span>
+                                            <span>{t('auth.iAgreeTo')}</span>
                                             <div className="flex items-center gap-1 underline decoration-gray-200 underline-offset-4">
                                                 <span
                                                     onClick={(e) => { e.preventDefault(); navigate('/user/support'); }}
                                                     className="hover:text-gray-900 transition-colors"
                                                     style={{ color: activeCategory.theme }}
                                                 >
-                                                    Support
+                                                    {t('auth.support')}
                                                 </span>
                                                 <span className="text-[8px] text-gray-300 no-underline">&amp;</span>
                                                 <span
@@ -498,7 +517,7 @@ const CustomerAuth = () => {
                                                     className="hover:text-gray-900 transition-colors"
                                                     style={{ color: activeCategory.theme }}
                                                 >
-                                                    Privacy Policy
+                                                    {t('footer.privacyPolicy')}
                                                 </span>
                                             </div>
                                         </label>
@@ -519,7 +538,7 @@ const CustomerAuth = () => {
                                             <ChevronLeft size={20} />
                                         </button>
                                         <div>
-                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Verify Device</h3>
+                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">{t('auth.verifyDevice')}</h3>
                                             <p className="text-[10px] font-black tracking-widest text-gray-400 uppercase">+91 {formData.phone}</p>
                                         </div>
                                     </div>
@@ -561,7 +580,7 @@ const CustomerAuth = () => {
                                                 disabled={isLoading}
                                                 className="w-full bg-gray-900 text-white py-5 rounded-[24px] text-xs font-black tracking-[4px] shadow-2xl flex items-center justify-center gap-3 uppercase active:scale-95 transition-all"
                                             >
-                                                {isLoading ? 'Authenticating...' : `Enter ${appName}`}
+                                                {isLoading ? t('auth.authenticating') : t('auth.enterApp', { appName })}
                                             </button>
                                             <div className="flex justify-center">
                                                 <button
@@ -571,7 +590,7 @@ const CustomerAuth = () => {
                                                     className={`text-[10px] font-black uppercase tracking-widest ${timer > 0 ? 'text-gray-300' : 'underline'}`}
                                                     style={{ color: timer > 0 ? undefined : activeCategory.theme }}
                                                 >
-                                                    {timer > 0 ? `Resend Code in ${timer}s` : 'Resend Now'}
+                                                    {timer > 0 ? t('auth.resendIn', { seconds: timer }) : t('auth.resendNow')}
                                                 </button>
                                             </div>
                                         </div>
@@ -586,7 +605,7 @@ const CustomerAuth = () => {
 
             {/* Desktop Message */}
             <div className="hidden md:block absolute bottom-10 right-10 text-white/20 text-xs font-bold uppercase tracking-[4px]">
-                Adaptive Theme Simulator
+                {t('auth.adaptiveThemeSimulator')}
             </div>
         </div>
     );

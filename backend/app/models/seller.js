@@ -178,6 +178,12 @@ const sellerSchema = new mongoose.Schema(
       default: 5, // Default 5km
     },
     lastLogin: Date,
+    // Seller-panel UI language ("en" | "hi" | "gu"). Unset = not chosen yet.
+    preferredLanguage: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

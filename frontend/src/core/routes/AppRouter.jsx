@@ -14,6 +14,8 @@ import { CartAnimationProvider } from '../../modules/customer/context/CartAnimat
 import { ProductDetailProvider } from '../../modules/customer/context/ProductDetailContext';
 import { LocationProvider } from '../../modules/customer/context/LocationContext';
 import ScrollToTop from '../../modules/customer/components/shared/ScrollToTop';
+import CustomerLanguageProvider from '../../modules/customer/i18n/CustomerLanguageProvider';
+import SellerLanguageProvider from '../../modules/seller/i18n/SellerLanguageProvider';
 
 // Public Pages
 import Auth from '../../modules/seller/pages/Auth';
@@ -68,6 +70,7 @@ const CustomerLayoutWrapper = () => {
     }, []);
 
     return (
+        <CustomerLanguageProvider>
         <LocationProvider>
             <WishlistProvider>
                 <CartProvider>
@@ -84,6 +87,7 @@ const CustomerLayoutWrapper = () => {
                 </CartProvider>
             </WishlistProvider>
         </LocationProvider>
+        </CustomerLanguageProvider>
     );
 };
 
@@ -134,19 +138,19 @@ const AppRouter = () => {
             children: [
                 {
                     path: 'login',
-                    element: <CustomerAuth />,
+                    element: <CustomerLanguageProvider><CustomerAuth /></CustomerLanguageProvider>,
                 },
                 {
                     path: 'signup',
-                    element: <CustomerAuth />,
+                    element: <CustomerLanguageProvider><CustomerAuth /></CustomerLanguageProvider>,
                 },
                 {
                     path: 'seller/auth',
-                    element: <Auth />,
+                    element: <SellerLanguageProvider><Auth /></SellerLanguageProvider>,
                 },
                 {
                     path: 'seller/pending-approval',
-                    element: <ApplicationPending />,
+                    element: <SellerLanguageProvider><ApplicationPending /></SellerLanguageProvider>,
                 },
                 {
                     path: 'admin/auth',

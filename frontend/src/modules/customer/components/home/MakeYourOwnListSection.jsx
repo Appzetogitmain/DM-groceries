@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { customerApi } from "../../services/customerApi";
+import { useTranslation } from "react-i18next";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "@core/context/AuthContext";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ import ListBuilderModal from "../list/ListBuilderModal";
 
 const MakeYourOwnListSection = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { addCustomListToCart } = useCart();
 
@@ -50,7 +52,7 @@ const MakeYourOwnListSection = () => {
           "DM_ACTIVE_LIST_ORDER",
           JSON.stringify({
             listId: list._id,
-            listName: list.name || "Custom Grocery Basket",
+            listName: list.name || t("lists.defaultBasketName"),
             items: (list.items || [])
               .map((it) => String(it.productId?._id || it.productId || ""))
               .filter(Boolean),
@@ -60,11 +62,11 @@ const MakeYourOwnListSection = () => {
 
       const added = await addCustomListToCart(list);
       if (added) {
-        toast.success(`Loaded "${list.name}" (${list.items?.length || 0} items) to your cart!`);
+        toast.success(t("lists.loadedIntoCartWithCount", { name: list.name, count: list.items?.length || 0 }));
         navigate("/user/checkout");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to load list into cart");
+      toast.error(err.response?.data?.message || t("lists.loadIntoCartFailed"));
     } finally {
       setTimeout(() => setReorderingId(null), 600);
     }
@@ -82,13 +84,13 @@ const MakeYourOwnListSection = () => {
           <div className="max-w-xl">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 shadow-xs mb-3">
               <Sparkles size={12} />
-              Personalized Grocery Baskets
+              {t("home.myList.badge")}
             </span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight">
-              Make Your Own Grocery List
+              {t("home.myList.title")}
             </h2>
             <p className="text-xs sm:text-sm text-emerald-100/80 mt-2 font-medium leading-relaxed">
-              Assemble monthly essentials from your favorite local store once. Re-order the entire basket anytime in 1-click!
+              {t("home.myList.body")}
             </p>
           </div>
 
@@ -100,14 +102,14 @@ const MakeYourOwnListSection = () => {
               className="px-5 py-3 rounded-2xl bg-white text-[#1A4516] font-black text-xs uppercase tracking-wider hover:bg-emerald-50 transition active:scale-95 shadow-md flex items-center gap-2"
             >
               <ListPlus size={16} />
-              + Create My List
+              + {t("home.myList.create")}
             </button>
             {isAuthenticated && (
               <Link
                 to="/user/lists"
                 className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition active:scale-95 flex items-center gap-1.5"
               >
-                My Lists <ChevronRight size={14} />
+                {t("home.myList.myLists")} <ChevronRight size={14} />
               </Link>
             )}
           </div>

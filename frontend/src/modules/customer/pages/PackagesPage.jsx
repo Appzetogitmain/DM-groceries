@@ -16,8 +16,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import PackageDetailModal from "../components/shared/PackageDetailModal";
 
+import { useTranslation } from "react-i18next";
+import { getLocalizedItemLabel as itemName } from "../i18n/format";
 const PackagesPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { addPackageToCart } = useCart();
   const [packages, setPackages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +53,7 @@ const PackagesPage = () => {
           setPackages(Array.isArray(list) ? list : []);
         }
       } catch (err) {
-        toast.error("Failed to load packages");
+        toast.error(t("combos.loadFailed"));
       } finally {
         setIsLoading(false);
       }
@@ -86,10 +89,10 @@ const PackagesPage = () => {
     try {
       const success = await addPackageToCart(pkg);
       if (success) {
-        toast.success(`Added "${pkg.name}" (${pkg.items?.length || 0} items) to your cart!`);
+        toast.success(t("combos.addedToCart", { name: itemName(pkg), count: pkg.items?.length || 0 }));
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to add combo to cart");
+      toast.error(err.response?.data?.message || t("combos.addFailed"));
     } finally {
       setTimeout(() => setAddingId(null), 600);
     }
@@ -123,7 +126,7 @@ const PackagesPage = () => {
             className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition"
           >
             <ChevronLeft size={16} />
-            Back to Shopping
+            {t("combos.backToShopping")}
           </button>
         </div>
 
@@ -133,13 +136,13 @@ const PackagesPage = () => {
           <div className="relative z-10 max-w-xl">
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 shadow-sm mb-3">
               <Sparkles size={12} />
-              Bachat Combos & Value Packs
+              {t("combos.pageTitle")}
             </span>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight">
-              Curated Grocery Combos, Extra Savings
+              {t("combos.pageBadge")}
             </h1>
             <p className="text-xs sm:text-sm text-emerald-100/80 mt-2 font-medium">
-              Save more when you buy essentials together. Each package is packed fresh by your local seller.
+              {t("combos.pageBody")}
             </p>
           </div>
         </div>
@@ -150,7 +153,7 @@ const PackagesPage = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Search combos by name..."
+              placeholder={t("combos.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
@@ -167,7 +170,7 @@ const PackagesPage = () => {
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               )}
             >
-              All Combos
+              {t("combos.filterAll")}
             </button>
             <button
               onClick={() => setPriceFilter("under200")}
@@ -178,7 +181,7 @@ const PackagesPage = () => {
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               )}
             >
-              Under ₹200
+              {t("combos.under", { amount: 200 })}
             </button>
             <button
               onClick={() => setPriceFilter("under500")}
@@ -189,7 +192,7 @@ const PackagesPage = () => {
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               )}
             >
-              Under ₹500
+              {t("combos.under", { amount: 500 })}
             </button>
             <button
               onClick={() => setPriceFilter("above500")}
@@ -200,7 +203,7 @@ const PackagesPage = () => {
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               )}
             >
-              Above ₹500
+              {t("combos.above", { amount: 500 })}
             </button>
           </div>
         </div>
@@ -209,16 +212,16 @@ const PackagesPage = () => {
         {isLoading ? (
           <div className="py-24 text-center text-slate-400">
             <div className="h-8 w-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-xs font-bold uppercase tracking-wider">Loading Bachat Combos...</p>
+            <p className="text-xs font-bold uppercase tracking-wider">{t("combos.loading")}</p>
           </div>
         ) : filteredPackages.length === 0 ? (
           <div className="py-24 text-center bg-white rounded-3xl border border-slate-200 p-8">
             <PackageIcon className="h-16 w-16 mx-auto text-slate-300 mb-3" />
-            <h3 className="text-base font-bold text-slate-800">No Combos Found</h3>
+            <h3 className="text-base font-bold text-slate-800">{t("combos.emptyTitle")}</h3>
             <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
               {searchTerm || priceFilter !== "all"
-                ? "No packages match your search or filter. Try clearing filters."
-                : "Check back soon! Sellers are assembling exciting new value combos."}
+                ? t("combos.emptyFiltered")
+                : t("combos.emptyBody")}
             </p>
           </div>
         ) : (
@@ -240,7 +243,7 @@ const PackagesPage = () => {
                       {pkg.coverImage ? (
                         <img
                           src={pkg.coverImage}
-                          alt={pkg.name}
+                          alt={itemName(pkg)}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
@@ -250,23 +253,23 @@ const PackagesPage = () => {
                       )}
 
                       <span className="absolute top-2 left-2 bg-black/75 backdrop-blur-xs text-white text-[9px] font-black px-2 py-0.5 rounded-md">
-                        {itemCount} Items
+                        {t("combos.itemsCount", { count: itemCount })}
                       </span>
 
                       {pkg.discountPercentage > 0 && (
                         <span className="absolute top-2 right-2 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs">
-                          {pkg.discountPercentage}% OFF
+                          {t("product.percentOff", { percent: pkg.discountPercentage })}
                         </span>
                       )}
                     </div>
 
                     <h4 className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1 group-hover:text-emerald-700 transition-colors">
-                      {pkg.name}
+                      {itemName(pkg)}
                     </h4>
 
                     {pkg.sellerId?.shopName && (
                       <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
-                        By {pkg.sellerId.shopName}
+                        {t("combos.bySeller", { seller: pkg.sellerId.shopName })}
                       </p>
                     )}
                   </div>
@@ -285,7 +288,7 @@ const PackagesPage = () => {
                         )}
                       </div>
                       <span className="text-[9px] font-bold text-emerald-600 block leading-none">
-                        Save ₹{savings}
+                        {t("product.saveAmount", { amount: savings })}
                       </span>
                     </div>
 
@@ -302,13 +305,13 @@ const PackagesPage = () => {
                       )}
                     >
                       {pkg.stock <= 0 ? (
-                        "OOS"
+                        t("product.oos")
                       ) : isAdding ? (
                         <Check size={14} strokeWidth={3} />
                       ) : (
                         <>
                           <Plus size={14} strokeWidth={3} />
-                          ADD
+                          {t("product.add")}
                         </>
                       )}
                     </button>

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import Button from '@/shared/components/ui/Button';
 import ConfirmDialog from '@/shared/components/ui/ConfirmDialog';
 import { useConfirmDialog } from '@/shared/hooks/useConfirmDialog';
+import { useTranslation } from 'react-i18next';
 
 const ProfilePage = () => {
     const navigate = useNavigate();
@@ -19,6 +20,7 @@ const ProfilePage = () => {
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
     const confirm = useConfirmDialog();
+    const { t } = useTranslation();
 
     useEffect(() => {
         refreshUser?.();
@@ -40,17 +42,17 @@ const ProfilePage = () => {
 
     const promptDeleteAccount = () => {
         confirm.open({
-            title: "Delete Account",
-            message: "Are you sure you want to delete your account? This action cannot be undone.",
-            confirmLabel: "Delete Account",
-            cancelLabel: "Cancel",
+            title: t('settings.deleteAccount'),
+            message: t('settings.deleteAccountConfirm'),
+            confirmLabel: t('settings.deleteAccount'),
+            cancelLabel: t('common.cancel'),
             onConfirm: async () => {
                 try {
                     await customerApi.deleteAccount();
-                    toast.success("Account deleted successfully.");
+                    toast.success(t('settings.accountDeleted'));
                     logout();
                 } catch (error) {
-                    toast.error("Failed to delete account.");
+                    toast.error(t('settings.accountDeleteFailed'));
                     console.error("Delete account error:", error);
                     throw error;
                 }
@@ -60,10 +62,10 @@ const ProfilePage = () => {
 
     const promptLogout = () => {
         confirm.open({
-            title: "Log out",
-            message: "Are you sure you want to log out?",
-            confirmLabel: "Log out",
-            cancelLabel: "Cancel",
+            title: t('settings.logoutTitle'),
+            message: t('settings.logoutConfirm'),
+            confirmLabel: t('settings.logoutTitle'),
+            cancelLabel: t('common.cancel'),
             onConfirm: () => {
                 logout();
             }
@@ -79,13 +81,13 @@ const ProfilePage = () => {
                         <Link 
                             to="/user/profile/edit" 
                             className="h-16 w-16 rounded-full bg-white/20 p-1 shrink-0 block hover:opacity-90 active:scale-95 transition-all"
-                            title="Edit Profile"
+                            title={t('profile.editProfile')}
                         >
                             <div className="h-full w-full rounded-full bg-white flex items-center justify-center overflow-hidden text-[#1A4516]">
                                 {user?.avatar && !avatarError ? (
                                     <img 
                                         src={user.avatar} 
-                                        alt={user?.name || "Customer Profile"} 
+                                        alt={user?.name || t('profile.customerProfile')} 
                                         className="h-full w-full object-cover" 
                                         onError={() => setAvatarError(true)}
                                     />
@@ -96,7 +98,7 @@ const ProfilePage = () => {
                         </Link>
                         <div className="flex-1 min-w-0">
                             <h2 className="text-[17px] leading-tight font-bold tracking-tight flex items-center flex-wrap gap-1">
-                                Hi, {user?.name || 'Customer'} <span>👋</span>
+                                {t('profile.greeting', { name: user?.name || t('profile.customer') })} <span>👋</span>
                             </h2>
                             <p className="text-white/80 text-sm mt-0.5 font-medium truncate">{formatIndiaPhone(user?.phone) || '98765 43210'}</p>
                             {user?.email ? (
@@ -117,18 +119,18 @@ const ProfilePage = () => {
             <div className="bg-white rounded-t-[2.5rem] px-5 pt-8 pb-12 -mt-10 relative z-20 min-h-screen shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
                 <div className="max-w-2xl mx-auto">
                     <div className="px-2 mb-4">
-                        <h3 className="font-extrabold text-[#1A4516] text-lg">My Account</h3>
+                        <h3 className="font-extrabold text-[#1A4516] text-lg">{t('profile.myAccount')}</h3>
                     </div>
                     <div className="space-y-1">
-                        <MenuItem icon={Package} label="My Orders" path="/user/orders" />
-                        <MenuItem icon={ListOrdered} label="My Custom Lists & Baskets" path="/user/lists" />
-                        <MenuItem icon={MapPin} label="My Addresses" path="/user/addresses" />
-                        <MenuItem icon={Wallet} label="My Wallet" rightText={`₹${user?.walletBalance || 0}`} path="/user/wallet" />
-                        <MenuItem icon={Gift} label="My Rewards" path="/user/rewards" />
-                        <MenuItem icon={Heart} label="My Wishlist" path="/user/wishlist" />
-                        <MenuItem icon={Bell} label="Notifications" path="/user/notifications" />
-                        <MenuItem icon={HelpCircle} label="Help & Support" path="/user/help" />
-                        <MenuItem icon={Settings} label="Settings" path="/user/settings" />
+                        <MenuItem icon={Package} label={t('profile.myOrders')} path="/user/orders" />
+                        <MenuItem icon={ListOrdered} label={t('profile.myLists')} path="/user/lists" />
+                        <MenuItem icon={MapPin} label={t('profile.myAddresses')} path="/user/addresses" />
+                        <MenuItem icon={Wallet} label={t('profile.myWallet')} rightText={`₹${user?.walletBalance || 0}`} path="/user/wallet" />
+                        <MenuItem icon={Gift} label={t('profile.myRewards')} path="/user/rewards" />
+                        <MenuItem icon={Heart} label={t('profile.myWishlist')} path="/user/wishlist" />
+                        <MenuItem icon={Bell} label={t('profile.notifications')} path="/user/notifications" />
+                        <MenuItem icon={HelpCircle} label={t('profile.helpSupport')} path="/user/help" />
+                        <MenuItem icon={Settings} label={t('settings.title')} path="/user/settings" />
                     </div>
 
                     <div className="pt-6 space-y-3">
@@ -137,14 +139,14 @@ const ProfilePage = () => {
                             variant="outline"
                             className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
                         >
-                            <LogOut size={20} className="mr-2" /> Delete Account
+                            <LogOut size={20} className="mr-2" /> {t('settings.deleteAccount')}
                         </Button>
                         <Button
                             onClick={promptLogout}
                             variant="outline"
                             className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
                         >
-                            <LogOut size={20} className="mr-2" /> Logout
+                            <LogOut size={20} className="mr-2" /> {t('common.logout')}
                         </Button>
                     </div>
 
@@ -157,11 +159,11 @@ const ProfilePage = () => {
                         onConfirm={confirm.handleConfirm}
                         onCancel={confirm.close}
                         loading={confirm.loading}
-                        variant={confirm.title === 'Delete Account' || confirm.title === 'Log out' ? 'danger' : 'primary'}
+                        variant="danger"
                     />
                 
                     <div className="text-center pt-8 pb-4">
-                        <p className="text-xs text-slate-400 font-medium">Version 2.4.0 - {appName}</p>
+                        <p className="text-xs text-slate-400 font-medium">{t('profile.version', { version: '2.4.0' })} - {appName}</p>
                     </div>
                 </div>
             </div>

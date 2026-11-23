@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Youtube, Mail, MapPin, Phone } from 'lucide-react';
 import Logo from '@/assets/Logo.png';
 import { useSettings } from '@core/context/SettingsContext';
+import { useTranslation } from 'react-i18next';
 
 const Footer = () => {
     const { settings } = useSettings();
+    const { t } = useTranslation();
     const logoUrl = "/Logo.png";
     const primaryColor = settings?.primaryColor || 'var(--primary)';
     const contactAddress = (!settings?.address || settings?.address === 'Indore, Madhya Pradesh') ? 'Surat, Gujarat' : settings.address;
@@ -34,7 +36,7 @@ const Footer = () => {
                             <img src={logoUrl} alt={`${settings?.appName || 'App'} Logo`} loading="lazy" className="h-12 md:h-16 w-auto object-contain" />
                         </div>
                         <p className="text-sm leading-relaxed md:text-base md:leading-loose text-white/90 md:max-w-xs transition-opacity hover:opacity-100 font-medium">
-                            Your daily dose of fresh, organic, and healthy products delivered straight to your door. Freshness guaranteed.
+                            {t('footer.tagline')}
                         </p>
                         <div className="flex gap-4">
                             {settings?.facebook && <a href={settings.facebook} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 text-white rounded-full transition-all group active:scale-95 hover:opacity-90"><Facebook size={18} /></a>}
@@ -47,13 +49,13 @@ const Footer = () => {
                     {/* Quick Links */}
                     <div className="md:pt-4">
                         <h3 className="text-white font-bold text-lg mb-4 md:text-xl md:font-black md:uppercase md:tracking-widest md:mb-8 flex items-center gap-2">
-                            <span className="h-1 w-4 hidden md:block" style={{ backgroundColor: primaryColor }}></span> Quick Links
+                            <span className="h-1 w-4 hidden md:block" style={{ backgroundColor: primaryColor }}></span> {t('footer.quickLinks')}
                         </h3>
                         <ul className="space-y-2 md:space-y-4">
-                            <li><Link to="/user" className="hover:text-brand-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"><span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all"></span>Home</Link></li>
-                            <li><Link to="/user/wishlist" className="hover:text-brand-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"><span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all"></span>Like</Link></li>
-                            <li><Link to="/user/checkout" className="hover:text-brand-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"><span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all"></span>Add to cart</Link></li>
-                            <li><Link to="/user/profile" className="hover:text-brand-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"><span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all"></span>Profile</Link></li>
+                            <li><Link to="/user" className="hover:text-brand-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"><span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all"></span>{t('nav.home')}</Link></li>
+                            <li><Link to="/user/wishlist" className="hover:text-brand-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"><span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all"></span>{t('nav.wishlist')}</Link></li>
+                            <li><Link to="/user/checkout" className="hover:text-brand-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"><span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all"></span>{t('nav.cart')}</Link></li>
+                            <li><Link to="/user/profile" className="hover:text-brand-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"><span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all"></span>{t('nav.profile')}</Link></li>
                         </ul>
                     </div>
 
@@ -62,7 +64,7 @@ const Footer = () => {
                     {/* Contact Info */}
                     <div className="md:pt-4">
                         <h3 className="text-white font-bold text-lg mb-4 md:text-xl md:font-black md:uppercase md:tracking-widest md:mb-8 flex items-center gap-2">
-                            <span className="h-1 w-4 hidden md:block" style={{ backgroundColor: primaryColor }}></span> Contact Us
+                            <span className="h-1 w-4 hidden md:block" style={{ backgroundColor: primaryColor }}></span> {t('footer.contactUs')}
                         </h3>
                         <ul className="space-y-4 md:space-y-6">
                             <li className="flex items-start gap-3 md:gap-5 group">
@@ -85,10 +87,10 @@ const Footer = () => {
                 </div>
 
                 <div className="border-t border-white/10 mt-12 pt-8 text-center text-sm md:flex md:justify-between md:text-left md:mt-24 md:pt-12">
-                    <p className="md:text-base text-white/60">&copy; {new Date().getFullYear()} {settings?.appName || 'App'}. All rights reserved.</p>
+                    <p className="md:text-base text-white/60">&copy; {new Date().getFullYear()} {settings?.appName || 'App'}. {t('footer.allRightsReserved')}</p>
                     <div className="flex gap-6 justify-center md:justify-end mt-4 md:mt-0 md:gap-12">
-                        <a href="#" className="hover:text-brand-300 md:text-base text-white/60 transition-all">Privacy Policy</a>
-                        <a href="#" className="hover:text-brand-300 md:text-base text-white/60 transition-all">Terms of Service</a>
+                        <a href="#" className="hover:text-brand-300 md:text-base text-white/60 transition-all">{t('footer.privacyPolicy')}</a>
+                        <a href="#" className="hover:text-brand-300 md:text-base text-white/60 transition-all">{t('footer.termsOfService')}</a>
                     </div>
                 </div>
             </div>

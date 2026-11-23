@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { HiOutlineUser, HiOutlineClock } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
 import { posApi } from '../../services/posApi';
+import { useTranslation } from "react-i18next";
+import { sellerLocale } from "../../i18n/format";
 
 const PosStatsBar = ({ shopName }) => {
+    const { t } = useTranslation();
     const [stats, setStats] = useState({ today: { revenue: 0, count: 0 } });
     const [time, setTime] = useState(new Date());
 
@@ -39,11 +42,11 @@ const PosStatsBar = ({ shopName }) => {
                 <div className="h-6 w-px bg-gray-700 hidden sm:block"></div>
                 <div className="flex items-center gap-2 md:gap-4 text-sm">
                     <div className="flex items-center gap-1.5 text-blue-300">
-                        <span className="font-medium text-gray-400 uppercase tracking-wider text-xs hidden md:inline">Today's Sales:</span>
+                        <span className="font-medium text-gray-400 uppercase tracking-wider text-xs hidden md:inline">{t('sPos.todaysSales')}</span>
                         <span className="font-bold text-sm md:text-base">₹{(stats.today?.revenue || 0).toFixed(2)}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-300 bg-gray-800 px-2 py-1 rounded-md hidden sm:flex">
-                        <span>{stats.today?.count || 0} Bills</span>
+                        <span>{t('sPos.billsCount', { count: stats.today?.count || 0 })}</span>
                     </div>
                 </div>
             </div>
@@ -51,11 +54,11 @@ const PosStatsBar = ({ shopName }) => {
             <div className="flex items-center gap-3 md:gap-6">
                 <div className="items-center gap-2 text-gray-300 bg-gray-800 px-3 py-1.5 rounded-lg text-sm hidden md:flex">
                     <HiOutlineClock size={16} className="text-gray-400" />
-                    <span className="font-medium font-mono">{time.toLocaleTimeString()}</span>
+                    <span className="font-medium font-mono">{time.toLocaleTimeString(sellerLocale())}</span>
                 </div>
                 
                 <Link to="/seller/pos-history" className="text-xs md:text-sm font-medium hover:text-blue-400 transition-colors px-2 md:px-3 py-1.5 rounded-lg border border-gray-700 hover:bg-gray-800">
-                    <span className="hidden md:inline">POS </span>History
+                    <span className="hidden md:inline">{t('sPos.posWord')} </span>{t('sPos.historyWord')}
                 </Link>
                 
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center border-2 border-gray-700 cursor-pointer hover:border-blue-500 transition-all">

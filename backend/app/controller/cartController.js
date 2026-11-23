@@ -6,7 +6,7 @@ import { getApprovedOrLegacyFilter } from "../services/productModerationService.
 import { getIO } from "../socket/socketManager.js";
 
 const CART_POPULATE_FIELDS =
-  "name slug price salePrice mainImage stock status headerId categoryId subcategoryId sellerId variants";
+  "name nameHi nameGu slug price salePrice mainImage stock status headerId categoryId subcategoryId sellerId variants";
 
 const CUSTOMER_VISIBLE_PRODUCT_MATCH = {
   status: "active",
@@ -38,7 +38,7 @@ async function fetchPopulatedCart(cartId) {
     })
     .populate({
       path: "items.packageId",
-      select: "name slug packagePrice coverImage originalTotalPrice discountPercentage",
+      select: "name nameHi nameGu slug packagePrice coverImage originalTotalPrice discountPercentage",
     })
     .lean();
 
@@ -59,7 +59,7 @@ export const getCart = async (req, res) => {
       })
       .populate({
         path: "items.packageId",
-        select: "name slug packagePrice coverImage originalTotalPrice discountPercentage",
+        select: "name nameHi nameGu slug packagePrice coverImage originalTotalPrice discountPercentage",
       })
       .lean();
 

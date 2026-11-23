@@ -3,8 +3,10 @@ import { ChevronLeft, ScrollText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '@core/context/SettingsContext';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from "react-i18next";
 
 const TermsPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
@@ -19,7 +21,7 @@ const TermsPage = () => {
                 >
                     <ChevronLeft size={24} className="text-slate-600" />
                 </button>
-                <h1 className="text-lg font-black text-slate-800">Support</h1>
+                <h1 className="text-lg font-black text-slate-800">{t("sAuth.support")}</h1>
             </div>
 
             <div className="p-5 max-w-3xl mx-auto space-y-6">
@@ -29,7 +31,7 @@ const TermsPage = () => {
                             <ScrollText size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800">Support (Seller)</h2>
+                            <h2 className="text-xl font-bold text-slate-800">{t("sLegal.supportSeller")}</h2>
                         </div>
                     </div>
 
@@ -40,7 +42,7 @@ const TermsPage = () => {
                                     {settings.sellerTermsConditions}
                                 </ReactMarkdown>
                             ) : (
-                                <p>By creating a seller account or using our platform, you agree to comply with our support policies.</p>
+                                <p>{t("sLegal.supportFallback")}</p>
                             )}
                         </div>
                     </div>

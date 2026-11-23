@@ -154,7 +154,7 @@ export const getAdminPackages = async (req, res) => {
     const [items, total, stats] = await Promise.all([
       Package.find(filter)
         .populate("sellerId", "shopName name email phone")
-        .populate("items.productId", "name sku price salePrice stock mainImage status approvalStatus")
+        .populate("items.productId", "name nameHi nameGu sku price salePrice stock mainImage status approvalStatus")
         .populate("approvalReviewedBy", "name email")
         .sort(sort)
         .skip(skip)
@@ -208,7 +208,7 @@ export const getAdminPackageById = async (req, res) => {
   try {
     const pkg = await Package.findById(req.params.id)
       .populate("sellerId", "shopName name email phone address city")
-      .populate("items.productId", "name sku price salePrice stock mainImage status approvalStatus unit weight")
+      .populate("items.productId", "name nameHi nameGu sku price salePrice stock mainImage status approvalStatus unit weight")
       .populate("approvalReviewedBy", "name email")
       .lean();
 
@@ -358,7 +358,7 @@ export const getSellerPackages = async (req, res) => {
 
     const [items, total, allSellerPkgsCount, stats] = await Promise.all([
       Package.find(filter)
-        .populate("items.productId", "name sku price salePrice stock mainImage status approvalStatus")
+        .populate("items.productId", "name nameHi nameGu sku price salePrice stock mainImage status approvalStatus")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -457,7 +457,7 @@ export const getEligibleProductsForPackage = async (req, res) => {
     }
 
     const products = await Product.find(filter)
-      .select("name sku price salePrice stock mainImage unit weight brand status approvalStatus")
+      .select("name nameHi nameGu sku price salePrice stock mainImage unit weight brand status approvalStatus")
       .sort({ name: 1 })
       .limit(300)
       .lean();
@@ -480,7 +480,7 @@ export const getSellerPackageById = async (req, res) => {
   try {
     const sellerId = req.user._id || req.user.id;
     const pkg = await Package.findOne({ _id: req.params.id, sellerId })
-      .populate("items.productId", "name sku price salePrice stock mainImage status approvalStatus unit weight")
+      .populate("items.productId", "name nameHi nameGu sku price salePrice stock mainImage status approvalStatus unit weight")
       .lean();
 
     if (!pkg) {
@@ -592,6 +592,8 @@ export const createPackage = async (req, res) => {
     const newPackage = new Package({
       sellerId,
       name,
+      nameHi: typeof req.body.nameHi === "string" ? req.body.nameHi.trim() : "",
+      nameGu: typeof req.body.nameGu === "string" ? req.body.nameGu.trim() : "",
       slug,
       description,
       coverImage,
@@ -711,6 +713,8 @@ export const updatePackage = async (req, res) => {
       settings.requireApprovalOnEdit || existingPackage.approvalStatus === "rejected";
 
     existingPackage.name = name;
+    if (req.body.nameHi !== undefined) existingPackage.nameHi = String(req.body.nameHi || "").trim();
+    if (req.body.nameGu !== undefined) existingPackage.nameGu = String(req.body.nameGu || "").trim();
     existingPackage.description = description;
     existingPackage.coverImage = coverImage;
     existingPackage.galleryImages = galleryImages;
@@ -855,7 +859,7 @@ export const getPublicPackages = async (req, res) => {
     const [items, total] = await Promise.all([
       Package.find(filter)
         .populate("sellerId", "shopName address city rating")
-        .populate("items.productId", "name sku price salePrice stock mainImage unit weight")
+        .populate("items.productId", "name nameHi nameGu sku price salePrice stock mainImage unit weight")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -893,7 +897,7 @@ export const getPublicPackageById = async (req, res) => {
         approvalStatus: "approved",
       })
         .populate("sellerId", "shopName address city rating")
-        .populate("items.productId", "name sku price salePrice stock mainImage unit weight brand")
+        .populate("items.productId", "name nameHi nameGu sku price salePrice stock mainImage unit weight brand")
         .lean();
     } else {
       pkg = await Package.findOne({
@@ -902,7 +906,7 @@ export const getPublicPackageById = async (req, res) => {
         approvalStatus: "approved",
       })
         .populate("sellerId", "shopName address city rating")
-        .populate("items.productId", "name sku price salePrice stock mainImage unit weight brand")
+        .populate("items.productId", "name nameHi nameGu sku price salePrice stock mainImage unit weight brand")
         .lean();
     }
 

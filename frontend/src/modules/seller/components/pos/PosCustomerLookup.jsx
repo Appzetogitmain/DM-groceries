@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { HiOutlineUser, HiOutlinePhone, HiCheck, HiX } from 'react-icons/hi';
 import { posApi } from '../../services/posApi';
 import { toast } from 'sonner';
+import { useTranslation } from "react-i18next";
 
 const PosCustomerLookup = ({ customer, setCustomer }) => {
+    const { t } = useTranslation();
     const [phone, setPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(true);
@@ -14,7 +16,7 @@ const PosCustomerLookup = ({ customer, setCustomer }) => {
         // Basic Indian phone validation
         const cleanedPhone = phone.replace(/\D/g, '');
         if (cleanedPhone.length < 10) {
-            toast.error('Please enter a valid phone number');
+            toast.error(t('sPos.validPhone'));
             return;
         }
 
@@ -24,11 +26,11 @@ const PosCustomerLookup = ({ customer, setCustomer }) => {
             if (res.data?.success) {
                 setCustomer(res.data.result);
                 setIsEditing(false);
-                toast.success('Customer found');
+                toast.success(t('sPos.customerFound'));
             }
         } catch (error) {
             // Not found, so we treat as new customer (which the backend actually creates)
-            toast.info('New customer will be created');
+            toast.info(t('sPos.newCustomer'));
             setCustomer({ phone: cleanedPhone, name: 'Walk-in Customer' });
             setIsEditing(false);
         } finally {
@@ -50,7 +52,7 @@ const PosCustomerLookup = ({ customer, setCustomer }) => {
                         <HiOutlineUser size={20} />
                     </div>
                     <div>
-                        <div className="font-medium text-blue-900">{customer.name || 'Walk-in Customer'}</div>
+                        <div className="font-medium text-blue-900">{customer.name || t('sPos.walkInCustomer')}</div>
                         <div className="text-sm text-blue-700">{customer.phone}</div>
                     </div>
                 </div>
@@ -70,7 +72,7 @@ const PosCustomerLookup = ({ customer, setCustomer }) => {
                 <HiOutlinePhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
                     type="tel"
-                    placeholder="Customer phone..."
+                    placeholder={t("sPos.customerPhonePh")}
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -88,7 +90,7 @@ const PosCustomerLookup = ({ customer, setCustomer }) => {
                 ) : (
                     <HiCheck size={18} />
                 )}
-                <span>Select</span>
+                <span>{t('sPos.select')}</span>
             </button>
         </form>
     );

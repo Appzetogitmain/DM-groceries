@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Search } from 'lucide-react';
 import { useLocation } from '../../context/LocationContext';
 import LocationDrawer from './LocationDrawer';
+import { useTranslation } from 'react-i18next';
 
 const LocationRequiredModal = () => {
     const { hasSetLocation, refreshLocation } = useLocation();
+    const { t } = useTranslation();
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -35,9 +37,9 @@ const LocationRequiredModal = () => {
                         <div className="w-16 h-16 bg-[#F5FBF5] text-[#1A4516] rounded-full flex items-center justify-center mb-4 shadow-sm border border-[#1A4516]/10">
                             <MapPin size={32} />
                         </div>
-                        <h2 className="text-xl font-black text-slate-800 mb-2 tracking-tight">Location Required</h2>
+                        <h2 className="text-xl font-black text-slate-800 mb-2 tracking-tight">{t('location.requiredTitle')}</h2>
                         <p className="text-slate-500 text-sm mb-6 font-medium leading-relaxed">
-                            Please provide your delivery location to see products and offers available in your area.
+                            {t('location.requiredBody')}
                         </p>
                         
                         <div className="w-full space-y-3">
@@ -50,7 +52,7 @@ const LocationRequiredModal = () => {
                                     <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <MapPin size={18} /> Enable Current Location
+                                        <MapPin size={18} /> {t('location.enableCurrent')}
                                     </>
                                 )}
                             </button>
@@ -59,7 +61,7 @@ const LocationRequiredModal = () => {
                                 disabled={isLoading}
                                 className="w-full bg-slate-50 text-slate-700 font-bold py-3.5 rounded-xl border border-slate-200 hover:bg-slate-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                             >
-                                <Search size={18} /> Search Manually
+                                <Search size={18} /> {t('location.searchManually')}
                             </button>
                         </div>
                     </motion.div>

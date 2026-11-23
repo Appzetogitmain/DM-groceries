@@ -3,9 +3,11 @@ import { ChevronLeft, ScrollText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '@core/context/SettingsContext';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 
 const TermsPage = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
     const companyName = settings?.companyName || appName;
@@ -25,7 +27,7 @@ const TermsPage = () => {
                 >
                     <ChevronLeft size={24} className="text-slate-600" />
                 </button>
-                <h1 className="text-lg font-black text-slate-800">Support</h1>
+                <h1 className="text-lg font-black text-slate-800">{t('auth.support')}</h1>
             </div>
 
             <div className="p-5 max-w-3xl mx-auto space-y-6">
@@ -35,8 +37,8 @@ const TermsPage = () => {
                             <ScrollText size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800">Support</h2>
-                            <p className="text-xs text-slate-500 font-medium">Last updated: Oct 2025</p>
+                            <h2 className="text-xl font-bold text-slate-800">{t('auth.support')}</h2>
+                            <p className="text-xs text-slate-500 font-medium">{t('legal.lastUpdated', { date: 'Oct 2025' })}</p>
                         </div>
                     </div>
 
@@ -47,7 +49,7 @@ const TermsPage = () => {
                                     {settings.termsConditions}
                                 </ReactMarkdown>
                             ) : (
-                                <p>By creating an account or using our services, you agree to comply with our support policies.</p>
+                                <p>{t('legal.supportFallback')}</p>
                             )}
                         </div>
                     </div>

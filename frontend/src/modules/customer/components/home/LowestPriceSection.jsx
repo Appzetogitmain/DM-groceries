@@ -1,8 +1,10 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
 import ProductCard from "../shared/ProductCard";
+import { useTranslation } from "react-i18next";
 
 const LowestPriceSection = ({ products, onSeeAll }) => {
+  const { t } = useTranslation();
   if (!products || products.length === 0) return null;
 
   return (
@@ -16,19 +18,19 @@ const LowestPriceSection = ({ products, onSeeAll }) => {
           <div className="flex justify-between items-end mb-4 px-1">
             <div className="flex flex-col">
               <h3 className="text-[18px] sm:text-[20px] font-bold text-[#132018] tracking-tight uppercase leading-none pt-2">
-                Lowest Price <span className="text-[#1A4516]">ever</span>
+                {t('home.lowestPrice')} <span className="text-[#1A4516]">{t('home.ever')}</span>
               </h3>
               <div className="flex items-center gap-1.5 mt-1.5">
                 <div className="h-1.5 w-1.5 bg-[#1A4516] rounded-full animate-pulse shadow-[0_0_8px_rgba(26,69,22,0.5)]" />
                 <span className="text-[10px] font-medium text-[#1A4516] uppercase tracking-wide opacity-90">
-                  Unbeatable Savings • Updated hourly
+                  {t('home.unbeatableSavings')}
                 </span>
               </div>
             </div>
             <button
               onClick={onSeeAll}
               className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-full text-[#1A4516] font-bold text-[11px] cursor-pointer shadow-sm border border-[#1A4516]/10 transition-all whitespace-nowrap active:scale-95 mb-1">
-              See all
+              {t('common.seeAll')}
               <ChevronRight size={14} className="ml-0.5" strokeWidth={3} />
             </button>
           </div>

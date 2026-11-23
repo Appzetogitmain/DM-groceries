@@ -5,24 +5,28 @@ import { customerApi } from "../services/customerApi";
 import { useCart } from "../context/CartContext";
 import { toast } from "sonner";
 import { notificationImageUrl } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { useCustomerLanguage } from "../i18n/CustomerLanguageProvider";
 
 const LIST_REMINDER_TYPE = "CUSTOMER_LIST_REMINDER";
 
-const formatReminderTime = (date) => {
+const formatReminderTime = (date, t, locale = "en-IN") => {
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) return "";
-    const time = d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true }).toUpperCase();
+    const time = d.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit", hour12: true }).toUpperCase();
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
-    if (d.toDateString() === today.toDateString()) return `Today, ${time}`;
-    if (d.toDateString() === yesterday.toDateString()) return `Yesterday, ${time}`;
-    return `${d.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}, ${time}`;
+    if (d.toDateString() === today.toDateString()) return t("time.todayAt", { time });
+    if (d.toDateString() === yesterday.toDateString()) return t("time.yesterdayAt", { time });
+    return `${d.toLocaleDateString(locale, { day: "numeric", month: "short" })}, ${time}`;
 };
 
 const NotificationsPage = () => {
     const navigate = useNavigate();
     const { addCustomListToCart } = useCart();
+    const { t } = useTranslation();
+    const { intlLocale } = useCustomerLanguage();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [markingRead, setMarkingRead] = useState(false);
@@ -37,7 +41,7 @@ const NotificationsPage = () => {
             const res = await customerApi.getCustomerListById(listId);
             const list = res.data?.result;
             if (!list || !Array.isArray(list.items) || list.items.length === 0) {
-                toast.error("This list is no longer available");
+                toast.error(t("lists.listUnavailable"));
                 return;
             }
             try {
@@ -45,7 +49,7 @@ const NotificationsPage = () => {
                     "DM_ACTIVE_LIST_ORDER",
                     JSON.stringify({
                         listId: list._id,
-                        listName: list.name || "Custom Grocery Basket",
+                        listName: list.name || t("lists.defaultBasketName"),
                         items: list.items
                             .map((it) => String(it.productId?._id || it.productId || ""))
                             .filter(Boolean),
@@ -55,11 +59,11 @@ const NotificationsPage = () => {
 
             const added = await addCustomListToCart(list);
             if (added) {
-                toast.success(`Loaded "${list.name}" into your cart!`);
+                toast.success(t("lists.loadedIntoCart", { name: list.name }));
                 navigate("/user/checkout");
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to load list into cart");
+            toast.error(error.response?.data?.message || t("lists.loadIntoCartFailed"));
         } finally {
             setReminderActionId(null);
         }
@@ -71,9 +75,9 @@ const NotificationsPage = () => {
         try {
             await customerApi.snoozeCustomerListReminder(listId, { hours: 24 });
             setSnoozedListIds((prev) => new Set(prev).add(String(listId)));
-            toast.success("Okay, we'll remind you tomorrow");
+            toast.success(t("notifications.remindTomorrow"));
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to snooze reminder");
+            toast.error(error.response?.data?.message || t("notifications.snoozeFailed"));
         } finally {
             setReminderActionId(null);
         }
@@ -96,7 +100,7 @@ const NotificationsPage = () => {
             }
         } catch (error) {
             console.error("Error fetching notifications:", error);
-            toast.error("Failed to load notifications");
+            toast.error(t("notifications.loadFailed"));
         } finally {
             setLoading(false);
         }
@@ -117,16 +121,16 @@ const NotificationsPage = () => {
     const timeAgo = (date) => {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
         let interval = seconds / 31536000;
-        if (interval > 1) return Math.floor(interval) + " years ago";
+        if (interval > 1) return t("time.yearsAgo", { count: Math.floor(interval) });
         interval = seconds / 2592000;
-        if (interval > 1) return Math.floor(interval) + " months ago";
+        if (interval > 1) return t("time.monthsAgo", { count: Math.floor(interval) });
         interval = seconds / 86400;
-        if (interval > 1) return Math.floor(interval) + " days ago";
+        if (interval > 1) return t("time.daysAgo", { count: Math.floor(interval) });
         interval = seconds / 3600;
-        if (interval > 1) return Math.floor(interval) + " hours ago";
+        if (interval > 1) return t("time.hoursAgo", { count: Math.floor(interval) });
         interval = seconds / 60;
-        if (interval > 1) return Math.floor(interval) + " minutes ago";
-        return "Just now";
+        if (interval > 1) return t("time.minutesAgo", { count: Math.floor(interval) });
+        return t("time.justNow");
     };
 
     if (loading) {
@@ -148,10 +152,10 @@ const NotificationsPage = () => {
                     </button>
                     <div>
                         <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
-                            Notifications
+                            {t("notifications.title")}
                         </h1>
                         <p className="text-xs text-slate-500">
-                            {notifications.length} {notifications.length === 1 ? "notification" : "notifications"}
+                            {t("notifications.count", { count: notifications.length })}
                         </p>
                     </div>
                 </div>
@@ -171,10 +175,10 @@ const NotificationsPage = () => {
                                 >
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-black uppercase tracking-wider text-white bg-[#1A4516] px-2.5 py-1 rounded-full">
-                                            My List
+                                            {t("notifications.myList")}
                                         </span>
                                         <span className="text-xs text-slate-500 font-medium">
-                                            {formatReminderTime(notification.createdAt)}
+                                            {formatReminderTime(notification.createdAt, t, intlLocale)}
                                         </span>
                                     </div>
                                     <h3 className="mt-2.5 text-lg font-black text-slate-900 leading-snug">
@@ -190,7 +194,7 @@ const NotificationsPage = () => {
                                             disabled={isBusy}
                                             className="py-3 rounded-2xl bg-[#1A4516] text-white font-black text-sm hover:bg-[#1A4516]/90 transition active:scale-95 disabled:opacity-60"
                                         >
-                                            {isBusy ? "Please wait..." : "Reorder now"}
+                                            {isBusy ? t("common.pleaseWait") : t("notifications.reorderNow")}
                                         </button>
                                         <button
                                             type="button"
@@ -198,7 +202,7 @@ const NotificationsPage = () => {
                                             disabled={isBusy || isSnoozed}
                                             className="py-3 rounded-2xl border-2 border-[#1A4516] text-[#1A4516] font-black text-sm hover:bg-emerald-50 transition active:scale-95 disabled:opacity-60"
                                         >
-                                            {isSnoozed ? "Reminder set" : "Remind later"}
+                                            {isSnoozed ? t("notifications.reminderSet") : t("notifications.remindLater")}
                                         </button>
                                     </div>
                                 </div>
@@ -249,9 +253,9 @@ const NotificationsPage = () => {
                         <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                             <Bell className="text-slate-400" size={32} />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900 mb-2">No notifications yet</h3>
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">{t("notifications.emptyTitle")}</h3>
                         <p className="text-slate-500 text-sm max-w-[250px]">
-                            When you get notifications about orders or promotions, they'll show up here.
+                            {t("notifications.emptyBody")}
                         </p>
                     </div>
                 )}

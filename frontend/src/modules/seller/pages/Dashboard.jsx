@@ -41,6 +41,8 @@ import { cn } from "@/lib/utils";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
 import { useSellerOrders } from "../context/SellerOrdersContext";
+import { useTranslation } from "react-i18next";
+import { translateStatus, translatePaymentMethod, formatDate, weekdayShort } from "../i18n/format";
 
 const BAR_COLORS = [
   "#0B3B24", // Deep Forest Green
@@ -53,6 +55,7 @@ const BAR_COLORS = [
 ];
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { orders: ordersFromContext, ordersLoading, refreshOrders } =
     useSellerOrders();
@@ -85,7 +88,7 @@ const Dashboard = () => {
       } catch (error) {
         if (!cancelled) {
           console.error("Dashboard Fetch Error:", error);
-          toast.error("Failed to load dashboard data");
+          toast.error(t("sDash.loadFailed"));
         }
       } finally {
         if (!cancelled) {
@@ -101,7 +104,6 @@ const Dashboard = () => {
   const safeOrders = Array.isArray(ordersFromContext) ? ordersFromContext : [];
   const loadingOrStats = loading || ordersLoading;
 
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const revenueChartData = React.useMemo(() => {
     const raw = statsData?.salesTrend ?? statsData?.chartData ?? [];
     const arr = Array.isArray(raw) ? raw : [];
@@ -114,51 +116,51 @@ const Dashboard = () => {
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
-      return { name: dayNames[d.getDay()], sales: 0 };
+      return { name: weekdayShort(d), sales: 0 };
     });
   }, [statsData?.salesTrend, statsData?.chartData]);
   const revenueMax = Math.max(1, ...revenueChartData.map((d) => d.sales));
 
   const stats = [
     {
-      label: "Total Revenue",
+      label: t("sDash.totalRevenue"),
       value: statsData?.overview?.totalSales || "₹0",
       change: statsData?.overview?.salesTrend || "0%",
       changeType: (statsData?.overview?.salesTrend || "").startsWith("-") ? "decrease" : "increase",
       icon: DollarSign,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-700",
-      description: "vs last week",
+      description: t("sDash.vsLastWeek"),
     },
     {
-      label: "Total Orders",
+      label: t("sDash.totalOrders"),
       value: statsData?.overview?.totalOrders || "0",
       change: statsData?.overview?.ordersTrend || "0%",
       changeType: (statsData?.overview?.ordersTrend || "").startsWith("-") ? "decrease" : "increase",
       icon: ShoppingBag,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-700",
-      description: "vs last week",
+      description: t("sDash.vsLastWeek"),
     },
     {
-      label: "Avg Order Value",
+      label: t("sDash.avgOrderValue"),
       value: statsData?.overview?.avgOrderValue || "₹0",
       change: "",
       changeType: "increase",
       icon: Package,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-700",
-      description: "per order",
+      description: t("sDash.perOrder"),
     },
     {
-      label: "Cancelled Orders",
+      label: t("sDash.cancelledOrders"),
       value: safeOrders.filter(o => o.status === 'cancelled').length.toString(),
       change: "",
       changeType: "decrease",
       icon: XCircle,
       iconBg: "bg-rose-50",
       iconColor: "text-rose-600",
-      description: "total",
+      description: t("sDash.totalWord"),
     },
   ];
 
@@ -170,7 +172,7 @@ const Dashboard = () => {
       setIsShopOpen(res.data.result.isShopOpen);
       toast.success(res.data.message);
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to toggle shop status");
+      toast.error(err?.response?.data?.message || t("sDash.toggleFailed"));
     } finally {
       setShopToggling(false);
     }
@@ -178,22 +180,22 @@ const Dashboard = () => {
 
   const quickActions = [
     {
-      title: "Add New Product",
-      description: "List a new item in your store",
+      title: t("sDash.qaAddProduct"),
+      description: t("sDash.qaAddProductDesc"),
       icon: Plus,
       path: "/seller/products/add",
       variant: "primary", // dark bg, white text
     },
     {
-      title: "Process Orders",
-      description: "View and manage pending orders",
+      title: t("sDash.qaProcessOrders"),
+      description: t("sDash.qaProcessOrdersDesc"),
       icon: Truck,
       path: "/seller/orders",
       variant: "outline", // white bg, border, primary accent
     },
     {
-      title: "View Earnings",
-      description: "Check your revenue and payouts",
+      title: t("sDash.qaViewEarnings"),
+      description: t("sDash.qaViewEarningsDesc"),
       icon: DollarSign,
       path: "/seller/earnings",
       variant: "outline-emerald", // white bg, border, emerald accent
@@ -247,7 +249,7 @@ const Dashboard = () => {
     return {
       id: order.orderId,
       customer: {
-        name: order.customer?.name || "Customer",
+        name: order.customer?.name || t("sDash.customer"),
         phone: order.customer?.phone || "",
       },
       address: addressStr || "—",
@@ -261,8 +263,8 @@ const Dashboard = () => {
       status: order.status || "pending",
       payment:
         order.payment?.method === "cash" || order.payment?.method === "cod"
-          ? "Cash on Delivery"
-          : "Online Paid",
+          ? t("paymentMethod.cod")
+          : t("sDash.onlinePaid"),
     };
   };
 
@@ -271,19 +273,19 @@ const Dashboard = () => {
       await sellerApi.updateOrderStatus(orderId, {
         status: newStatus.toLowerCase(),
       });
-      toast.success(`Order status updated to ${newStatus}`);
+      toast.success(t("sDash.statusUpdated", { status: translateStatus(t, newStatus) }));
       setSelectedOrder((prev) =>
         prev && prev.id === orderId ? { ...prev, status: newStatus } : prev
       );
       if (typeof refreshOrders === "function") refreshOrders();
     } catch (error) {
       console.error("Failed to update status:", error);
-      toast.error("Failed to update status");
+      toast.error(t("sDash.statusUpdateFailed"));
     }
   };
 
   if (loadingOrStats) {
-    return <div className="flex items-center justify-center h-screen font-bold text-slate-600">Updating Dashboard...</div>;
+    return <div className="flex items-center justify-center h-screen font-bold text-slate-600">{t("sDash.updating")}</div>;
   }
 
   return (
@@ -296,12 +298,12 @@ const Dashboard = () => {
           </div>
           <div>
             <h3 className={`font-bold text-lg ${isShopOpen ? "text-emerald-900" : "text-slate-700"}`}>
-              Shop is {isShopOpen ? "Open" : "Closed"}
+              {isShopOpen ? t("sDash.shopOpen") : t("sDash.shopClosed")}
             </h3>
             <p className={`text-sm mt-0.5 ${isShopOpen ? "text-emerald-700" : "text-slate-500"}`}>
               {isShopOpen
-                ? "Your products are visible to customers and you can receive orders."
-                : "Your shop is hidden from customers. No new orders will come in."}
+                ? t("sDash.shopOpenBody")
+                : t("sDash.shopClosedBody")}
             </p>
           </div>
         </div>
@@ -309,7 +311,7 @@ const Dashboard = () => {
           onClick={handleToggleShop}
           disabled={shopToggling}
           className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${isShopOpen ? "bg-emerald-600" : "bg-slate-300"}`}
-          aria-label={isShopOpen ? "Close shop" : "Open shop"}
+          aria-label={isShopOpen ? t("sDash.closeShop") : t("sDash.openShop")}
         >
           <span
             className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${isShopOpen ? "translate-x-6" : "translate-x-0"}`}
@@ -324,15 +326,15 @@ const Dashboard = () => {
               <HiOutlineCreditCard className="w-6 h-6 text-red-600" />
             </div>
             <div>
-              <h3 className="font-bold text-red-900 text-lg">Subscription Required</h3>
-              <p className="text-red-700 text-sm mt-0.5">Your store operations are currently paused. Please select an active subscription plan to receive new orders.</p>
+              <h3 className="font-bold text-red-900 text-lg">{t("sDash.subRequired")}</h3>
+              <p className="text-red-700 text-sm mt-0.5">{t("sDash.subRequiredBody")}</p>
             </div>
           </div>
           <button 
             onClick={() => navigate('/seller/subscription')}
             className="whitespace-nowrap px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm transition-colors"
           >
-            Choose a Plan
+            {t("sDash.choosePlan")}
           </button>
         </div>
       )}
@@ -345,11 +347,11 @@ const Dashboard = () => {
               <ShoppingBag className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h3 className="font-bold text-blue-900 text-base">📊 50% Order Limit Reached</h3>
+              <h3 className="font-bold text-blue-900 text-base">📊 {t("sDash.limit50")}</h3>
               <p className="text-blue-800 text-sm mt-0.5">
-                You have used <span className="font-bold">{subscription.usagePercentage}%</span> of your {subscription.billingCycle?.toLowerCase()} order limit
+                {t("sDash.youHaveUsed")} <span className="font-bold">{subscription.usagePercentage}%</span> {t("sDash.ofYourLimit", { cycle: t(`sDash.cycle.${String(subscription.billingCycle || "").toLowerCase()}`, { defaultValue: subscription.billingCycle?.toLowerCase() || "" }) })}
                 ({subscription.ordersUsed}/{subscription.orderLimit}).
-                <span className="font-bold"> {subscription.remainingOrders}</span> orders remaining.
+                <span className="font-bold"> {subscription.remainingOrders}</span> {t("sDash.ordersRemaining")}
               </p>
             </div>
           </div>
@@ -357,7 +359,7 @@ const Dashboard = () => {
             onClick={() => navigate('/seller/subscription')}
             className="whitespace-nowrap px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm transition-colors"
           >
-            View Plan
+            {t("sDash.viewPlan")}
           </button>
         </div>
       )}
@@ -370,11 +372,11 @@ const Dashboard = () => {
               <ShoppingBag className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <h3 className="font-bold text-amber-900 text-base">⚠️ Order Limit Almost Reached</h3>
+              <h3 className="font-bold text-amber-900 text-base">⚠️ {t("sDash.limitAlmost")}</h3>
               <p className="text-amber-800 text-sm mt-0.5">
-                You have used <span className="font-bold">{subscription.usagePercentage}%</span> of your {subscription.billingCycle?.toLowerCase()} order limit
+                {t("sDash.youHaveUsed")} <span className="font-bold">{subscription.usagePercentage}%</span> {t("sDash.ofYourLimit", { cycle: t(`sDash.cycle.${String(subscription.billingCycle || "").toLowerCase()}`, { defaultValue: subscription.billingCycle?.toLowerCase() || "" }) })}
                 ({subscription.ordersUsed}/{subscription.orderLimit}).
-                Only <span className="font-bold">{subscription.remainingOrders}</span> orders remaining. Please consider upgrading your plan.
+                {t("sDash.only")} <span className="font-bold">{subscription.remainingOrders}</span> {t("sDash.ordersRemainingUpgrade")}
               </p>
             </div>
           </div>
@@ -382,7 +384,7 @@ const Dashboard = () => {
             onClick={() => navigate('/seller/subscription')}
             className="whitespace-nowrap px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm transition-colors"
           >
-            Upgrade Plan
+            {t("sDash.upgradePlan")}
           </button>
         </div>
       )}
@@ -395,10 +397,10 @@ const Dashboard = () => {
               <ShoppingBag className="w-6 h-6 text-red-600" />
             </div>
             <div>
-              <h3 className="font-bold text-red-900 text-base">🚫 Order Limit Reached</h3>
+              <h3 className="font-bold text-red-900 text-base">🚫 {t("alerts.limitReached")}</h3>
               <p className="text-red-800 text-sm mt-0.5">
-                You have used all <span className="font-bold">{subscription.orderLimit}</span> orders in your current plan.
-                New orders will be blocked until you upgrade. Please upgrade your plan immediately.
+                {t("sDash.usedAll")} <span className="font-bold">{subscription.orderLimit}</span> {t("sDash.ordersInPlan")}
+                {t("sDash.blockedUntilUpgrade")}
               </p>
             </div>
           </div>
@@ -406,14 +408,14 @@ const Dashboard = () => {
             onClick={() => navigate('/seller/subscription')}
             className="whitespace-nowrap px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm transition-colors"
           >
-            Upgrade Now
+            {t("sDash.upgradeNow")}
           </button>
         </div>
       )}
 
       <PageHeader
-        title="Dashboard"
-        description="Welcome back! Here's what's happening with your store today."
+        title={t("nav.dashboard")}
+        description={t("sDash.welcome")}
       />
 
       {/* Stats Grid */}
@@ -454,13 +456,13 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-slate-600" />
-                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Order Usage — {subscription.planSnapshot?.name || subscription.plan?.name}</h3>
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">{t("sDash.orderUsage")} — {subscription.planSnapshot?.name || subscription.plan?.name}</h3>
                 </div>
                 <button 
                   onClick={() => navigate('/seller/subscription')}
                   className="text-xs text-primary-600 font-semibold hover:underline"
                 >
-                  View Plan →
+                  {t("sDash.viewPlan")} →
                 </button>
               </div>
             </div>
@@ -468,21 +470,21 @@ const Dashboard = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
                 <div className="text-center p-3 bg-blue-50 rounded-xl">
                   <p className="text-2xl font-extrabold text-blue-700">{subscription.ordersUsed || 0}</p>
-                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-1">Used Orders</p>
+                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-1">{t("sDash.usedOrders")}</p>
                 </div>
                 <div className="text-center p-3 bg-slate-50 rounded-xl">
                   <p className="text-2xl font-extrabold text-slate-700">{subscription.orderLimit}</p>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">Total Limit</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">{t("sDash.totalLimit")}</p>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-xl">
                   <p className="text-2xl font-extrabold text-green-700">{subscription.remainingOrders ?? (subscription.orderLimit - (subscription.ordersUsed || 0))}</p>
-                  <p className="text-[10px] font-bold text-green-500 uppercase tracking-wider mt-1">Remaining</p>
+                  <p className="text-[10px] font-bold text-green-500 uppercase tracking-wider mt-1">{t("sDash.remaining")}</p>
                 </div>
                 <div className="text-center p-3 bg-amber-50 rounded-xl">
                   <p className={cn("text-2xl font-extrabold", (subscription.usagePercentage || 0) >= 90 ? "text-red-600" : "text-amber-700")}>
                     {subscription.usagePercentage ?? Math.round(((subscription.ordersUsed || 0) / subscription.orderLimit) * 100)}%
                   </p>
-                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mt-1">Usage</p>
+                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mt-1">{t("sDash.usage")}</p>
                 </div>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -553,7 +555,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue Chart */}
-        <Card title="Revenue Overview" subtitle="Last 7 days performance" className="lg:col-span-2">
+        <Card title={t("sDash.revenueOverview")} subtitle={t("sDash.last7Days")} className="lg:col-span-2">
           <div className="h-[300px] min-h-[280px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -586,8 +588,8 @@ const Dashboard = () => {
                     boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                     color: "#334155",
                   }}
-                  formatter={(value) => [`₹${Number(value).toLocaleString()}`, "Revenue"]}
-                  labelFormatter={(label) => `Day: ${label}`}
+                  formatter={(value) => [`₹${Number(value).toLocaleString()}`, t("sDash.revenue")]}
+                  labelFormatter={(label) => t("sDash.dayLabel", { day: label })}
                 />
                 <Area
                   type="monotone"
@@ -603,7 +605,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Product Performance */}
-        <Card title="Top Categories" subtitle="Sales by category">
+        <Card title={t("sDash.topCategories")} subtitle={t("sDash.salesByCategory")}>
           <div className="h-[300px] min-h-[280px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={statsData?.categoryMix || []} layout="vertical">
@@ -639,14 +641,14 @@ const Dashboard = () => {
 
       {/* Recent Orders */}
       <Card
-        title="Recent Orders"
-        subtitle="Latest transactions from your store"
+        title={t("sDash.recentOrders")}
+        subtitle={t("sDash.latestTransactions")}
         actions={
           <button
             onClick={() => navigate("/seller/orders")}
             className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1"
           >
-            View All
+            {t("sDash.viewAll")}
             <ArrowUpRight className="h-4 w-4" />
           </button>
         }
@@ -656,22 +658,22 @@ const Dashboard = () => {
             <thead>
               <tr className="border-b border-slate-100">
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                  Order ID
+                  {t("sDash.orderId")}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                  Customer
+                  {t("sDash.customer")}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                  Date
+                  {t("common.date")}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                  Amount
+                  {t("common.amount")}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                  Status
+                  {t("common.status")}
                 </th>
                 <th className="text-center py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                  Action
+                  {t("sDash.action")}
                 </th>
               </tr>
             </thead>
@@ -686,18 +688,18 @@ const Dashboard = () => {
                       <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-600">
                         {order.customer?.name?.split(" ").map(n => n[0]).join("") || "C"}
                       </div>
-                      <span className="text-sm font-medium text-slate-700">{order.customer?.name || "Customer"}</span>
+                      <span className="text-sm font-medium text-slate-700">{order.customer?.name || t("sDash.customer")}</span>
                     </div>
                   </td>
                   <td className="py-4 px-4 align-middle">
-                    <span className="text-sm text-slate-600">{new Date(order.createdAt).toLocaleDateString()}</span>
+                    <span className="text-sm text-slate-600">{formatDate(order.createdAt)}</span>
                   </td>
                   <td className="py-4 px-4 align-middle">
                     <span className="text-sm font-semibold text-slate-900">₹{order.pricing?.total || 0}</span>
                   </td>
                   <td className="py-4 px-4 align-middle">
                     <Badge variant={getStatusColor(order.status)} className="capitalize">
-                      {order.status}
+                      {translateStatus(t, order.status)}
                     </Badge>
                   </td>
                   <td className="py-4 px-4 text-center align-middle">
@@ -742,7 +744,7 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900">
-                      Order Details
+                      {t("sDash.orderDetails")}
                     </h3>
                     <div className="flex items-center space-x-2 mt-0.5">
                       <Badge
@@ -771,7 +773,7 @@ const Dashboard = () => {
                     <div>
                       <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-2">
                         <HiOutlineMapPin className="h-3 w-3 text-primary" />{" "}
-                        Delivery Address
+                        {t("sDash.deliveryAddress")}
                       </h4>
                       <p className="text-xs font-bold text-slate-800 leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
                         {selectedOrder.address}
@@ -780,7 +782,7 @@ const Dashboard = () => {
                     <div>
                       <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-2">
                         <HiOutlinePhone className="h-3 w-3 text-brand-500" />{" "}
-                        Contact Info
+                        {t("sDash.contactInfo")}
                       </h4>
                       <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
                         <p className="text-xs font-bold text-slate-800">
@@ -795,12 +797,12 @@ const Dashboard = () => {
                   <div className="space-y-3 sm:space-y-4">
                     <div className="bg-primary/5 p-3 sm:p-4 rounded-3xl border border-primary/10">
                       <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-3">
-                        Order Summary
+                        {t("sDash.orderSummary")}
                       </h4>
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs">
                           <span className="font-bold text-slate-600">
-                            Item Subtotal
+                            {t("sDash.itemSubtotal")}
                           </span>
                           <span className="font-black text-slate-900">
                             ₹{selectedOrder.subtotal.toFixed(2)}
@@ -809,7 +811,7 @@ const Dashboard = () => {
                         {selectedOrder.adminCommission > 0 && (
                           <div className="flex justify-between text-xs">
                             <span className="font-bold text-rose-600">
-                              Admin Commission
+                              {t("sDash.adminCommission")}
                             </span>
                             <span className="font-black text-rose-600">
                               -₹{selectedOrder.adminCommission.toFixed(2)}
@@ -819,7 +821,7 @@ const Dashboard = () => {
                         {selectedOrder.deliveryFee > 0 && (
                           <div className="flex justify-between text-xs opacity-60">
                             <span className="font-bold text-slate-600">
-                              Customer Delivery Fee
+                              {t("sDash.customerDeliveryFee")}
                             </span>
                             <span className="font-black text-slate-900">
                               ₹{selectedOrder.deliveryFee.toFixed(2)}
@@ -829,7 +831,7 @@ const Dashboard = () => {
                         {selectedOrder.handlingFee > 0 && (
                           <div className="flex justify-between text-xs opacity-60">
                             <span className="font-bold text-slate-600">
-                              Customer Platform Fee
+                              {t("sDash.customerPlatformFee")}
                             </span>
                             <span className="font-black text-slate-900">
                               ₹{selectedOrder.handlingFee.toFixed(2)}
@@ -839,7 +841,7 @@ const Dashboard = () => {
                         <div className="h-px bg-primary/10 my-2" />
                         <div className="flex justify-between text-sm">
                           <span className="font-black text-slate-900">
-                            Your Payout
+                            {t("sDash.yourPayout")}
                           </span>
                           <span className="font-black text-emerald-600">
                             ₹{selectedOrder.sellerPayout.toFixed(2)}
@@ -847,7 +849,7 @@ const Dashboard = () => {
                         </div>
                         <div className="flex justify-between text-[10px] opacity-50 mt-1">
                           <span className="font-bold text-slate-500">
-                            Order Grand Total
+                            {t("sDash.grandTotal")}
                           </span>
                           <span className="font-bold text-slate-500">
                             ₹{selectedOrder.total.toFixed(2)}
@@ -857,7 +859,7 @@ const Dashboard = () => {
                     </div>
                     <div className="bg-slate-900 p-3 sm:p-4 rounded-3xl text-white shadow-xl shadow-slate-900/10">
                       <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
-                        Payment Status
+                        {t("sDash.paymentStatus")}
                       </h4>
                       <div className="flex items-center gap-2">
                         <HiOutlineBanknotes className="h-5 w-5 text-brand-400" />
@@ -870,7 +872,7 @@ const Dashboard = () => {
                 </div>
 
                 <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-3 sm:mb-4">
-                  Items Ordered ({selectedOrder.items.length})
+                  {t("sDash.itemsOrdered", { count: selectedOrder.items.length })}
                 </h4>
                 <div className="space-y-3 max-h-52 sm:max-h-64 overflow-y-auto pr-1">
                   {selectedOrder.items.map((item, idx) => (
@@ -918,7 +920,7 @@ const Dashboard = () => {
                     onClick={() => setIsOrderModalOpen(false)}
                     className="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all"
                   >
-                    CLOSE
+                    {t("sDash.closeCaps")}
                   </button>
                   <div className="relative inline-block w-40">
                     <select
@@ -946,12 +948,12 @@ const Dashboard = () => {
                                     : "bg-slate-100 text-slate-700 focus:ring-slate-200"
                       )}
                     >
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="packed">Packed</option>
-                      <option value="out_for_delivery">Out for Delivery</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
+                      <option value="pending">{t("status.pending")}</option>
+                      <option value="confirmed">{t("status.confirmed")}</option>
+                      <option value="packed">{t("status.packed")}</option>
+                      <option value="out_for_delivery">{t("status.out_for_delivery")}</option>
+                      <option value="delivered">{t("status.delivered")}</option>
+                      <option value="cancelled">{t("status.cancelled")}</option>
                     </select>
                     <HiOutlineChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-60" />
                   </div>

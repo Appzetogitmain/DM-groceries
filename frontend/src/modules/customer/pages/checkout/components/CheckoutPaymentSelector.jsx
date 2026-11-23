@@ -1,6 +1,7 @@
 import React from "react";
 import { Wallet } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 /**
  * CheckoutPaymentSelector
@@ -23,6 +24,7 @@ const CheckoutPaymentSelector = React.memo(function CheckoutPaymentSelector({
   walletBalance,
   walletAmountToUse,
 }) {
+  const { t } = useTranslation();
   return (
     <>
       {/* Wallet Section */}
@@ -35,10 +37,10 @@ const CheckoutPaymentSelector = React.memo(function CheckoutPaymentSelector({
               </div>
               <div>
                 <h3 className="font-black text-slate-800 text-sm tracking-tight uppercase">
-                  Use Wallet Balance
+                  {t("checkout.useWallet")}
                 </h3>
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                  Available: ₹{walletBalance}
+                  {t("checkout.walletAvailable", { amount: walletBalance })}
                 </p>
               </div>
             </div>
@@ -60,7 +62,7 @@ const CheckoutPaymentSelector = React.memo(function CheckoutPaymentSelector({
               className="pt-2 border-t border-slate-50 mt-2">
               <div className="flex justify-between items-center bg-[#F5FBF5]/50 p-2 rounded-xl">
                 <span className="text-[11px] font-bold text-slate-600 uppercase">
-                  Amount to be used
+                  {t("checkout.amountToUse")}
                 </span>
                 <span className="text-[13px] font-black text-[#1A4516]">
                   ₹{walletAmountToUse}
@@ -74,7 +76,7 @@ const CheckoutPaymentSelector = React.memo(function CheckoutPaymentSelector({
       {/* Payment Method */}
       <motion.div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
         <h3 className="font-black text-slate-800 mb-4 uppercase text-sm tracking-widest">
-          Payment Method
+          {t("checkout.paymentMethod")}
         </h3>
         <div className="space-y-2">
           {paymentMethods.map((method) => {

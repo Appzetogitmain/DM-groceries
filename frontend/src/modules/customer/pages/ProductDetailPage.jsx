@@ -12,6 +12,9 @@ import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
 import { useSettings } from '@core/context/SettingsContext';
 import Lottie from 'lottie-react';
 import { pickDefaultVariant, getVariantKey, getVariantStock, getVariantPricing } from '../utils/variantUtils';
+import { useTranslation } from 'react-i18next';
+import { getLocalizedItemLabel as itemName } from "../i18n/format";
+import { translateEta, getLocalizedName } from '../i18n/format';
 
 const ProductDetailPage = () => {
     const { id } = useParams();
@@ -19,6 +22,7 @@ const ProductDetailPage = () => {
     const { cart, addToCart, updateQuantity } = useCart();
     const { toggleWishlist: toggleWishlistGlobal, isInWishlist } = useWishlist();
     const { showToast } = useToast();
+    const { t } = useTranslation();
     const { currentLocation } = useAppLocation();
     const { settings } = useSettings();
 
@@ -75,7 +79,7 @@ const ProductDetailPage = () => {
             }
         } catch (err) {
             console.error("Fetch product error:", err);
-            setError(err.response?.data?.message || "Failed to load product");
+            setError(err.response?.data?.message || t("product.loadFailed"));
         } finally {
             setIsLoading(false);
         }
@@ -124,7 +128,7 @@ const ProductDetailPage = () => {
                 comment: newReview.comment
             });
             if (res.data.success) {
-                showToast("Review submitted successfully", "success");
+                showToast(t('product.reviewSubmitted'), "success");
                 setNewReview({ rating: 5, comment: '' });
                 setLocalHasReviewed(true);
                 setReviews(prev => [{
@@ -137,7 +141,7 @@ const ProductDetailPage = () => {
                 }, ...prev]);
             }
         } catch (error) {
-            showToast(error.response?.data?.message || "Failed to submit review", "error");
+            showToast(error.response?.data?.message || t('product.reviewFailed'), "error");
         } finally {
             setIsSubmittingReview(false);
         }
@@ -148,7 +152,7 @@ const ProductDetailPage = () => {
         toggleWishlistGlobal(product);
         const isWishlisted = isInWishlist(product.id);
         showToast(
-            isWishlisted ? `${product.name} removed from wishlist` : `${product.name} added to wishlist`,
+            isWishlisted ? t('wishlist.removedItem', { name: itemName(product) }) : t('wishlist.addedItem', { name: itemName(product) }),
             isWishlisted ? 'info' : 'success'
         );
     };
@@ -172,25 +176,25 @@ const ProductDetailPage = () => {
                     )}
                 </div>
                 <h3 className="text-3xl font-[1000] text-slate-800 tracking-tighter mb-4 uppercase">
-                    Item <span className="text-primary">Unavailable</span>
+                    {t('product.item')} <span className="text-primary">{t('home.unavailable')}</span>
                 </h3>
                 <p className="text-slate-500 font-bold text-sm max-w-[280px] mb-8 leading-relaxed">
                     {error === "Product not available in your area" 
-                        ? "This item is not available at your current location yet." 
-                        : "We couldn't load this product details. Try again later!"}
+                        ? t('product.notAvailableHere') 
+                        : t('product.loadDetailsFailed')}
                 </p>
                 <div className="flex flex-col gap-3 w-full max-w-xs">
                     <button 
                         onClick={() => navigate('/user')}
                         className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all shadow-xl shadow-black/10"
                     >
-                        Go to Home
+                        {t('common.goHome')}
                     </button>
                     <button 
                         onClick={() => navigate(-1)}
                         className="px-10 py-4 bg-white text-slate-900 border border-slate-200 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-50 active:scale-95 transition-all"
                     >
-                        Go Back
+                        {t('product.goBack')}
                     </button>
                 </div>
             </div>
@@ -219,7 +223,7 @@ const ProductDetailPage = () => {
     return (
         <div className="relative z-10 py-8 w-full max-w-[1920px] mx-auto px-4 md:px-[50px] animate-in fade-in duration-700 mt-24">
             <Link to={-1} className="inline-flex items-center gap-2 text-slate-500 hover:text-primary font-bold mb-6 transition-colors group">
-                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Back
+                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> {t('common.back')}
             </Link>
 
             <div className="flex flex-col lg:flex-row gap-10 xl:gap-16">
@@ -227,7 +231,7 @@ const ProductDetailPage = () => {
                     <div className="relative aspect-square rounded-[2rem] overflow-hidden bg-white border border-slate-100 shadow-sm transition-all hover:shadow-xl group">
                         <img
                             src={applyCloudinaryTransform(activeImage, "f_auto,q_auto,w_800")}
-                            alt={product.name}
+                            alt={itemName(product)}
                             loading="lazy"
                             className="w-full h-full object-contain p-2 md:p-4 transition-transform duration-700 group-hover:scale-105"
                         />
@@ -252,7 +256,7 @@ const ProductDetailPage = () => {
                                     activeImage === img ? "border-primary shadow-lg scale-95" : "border-transparent opacity-70 hover:opacity-100"
                                 )}
                             >
-                                <img src={applyCloudinaryTransform(img, "f_auto,q_auto,w_150")} alt={`Angle ${idx}`} loading="lazy" className="w-full h-full object-contain p-1" />
+                                <img src={applyCloudinaryTransform(img, "f_auto,q_auto,w_150")} alt={t('product.imageN', { n: idx + 1 })} loading="lazy" className="w-full h-full object-contain p-1" />
                             </button>
                         ))}
                     </div>
@@ -262,7 +266,7 @@ const ProductDetailPage = () => {
                     <div>
                         <div className="flex items-center gap-3 mb-4">
                             <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-primary/20">
-                                {product.categoryId?.name || 'Essential'}
+                                {getLocalizedName(product.categoryId) || t('product.essential')}
                             </span>
                             <div className="flex items-center gap-1 text-orange-500 font-bold bg-orange-50 px-3 py-0.5 rounded-full text-xs">
                                 <Star size={12} fill="currentColor" /> 4.8 ({reviews.length > 0 ? reviews.length : '120+'})
@@ -270,7 +274,7 @@ const ProductDetailPage = () => {
                         </div>
 
                         <h1 className="text-3xl md:text-4xl font-black text-slate-800 leading-tight mb-3">
-                            {product.name}
+                            {itemName(product)}
                         </h1>
 
                         <div className="flex items-baseline gap-4 mb-5">
@@ -287,7 +291,7 @@ const ProductDetailPage = () => {
 
                         {hasVariants && (
                             <div className="mb-5">
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Select Variant</h4>
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">{t('product.selectVariant')}</h4>
                                 <div className="flex gap-2.5 flex-wrap">
                                     {product.variants.map((v, idx) => {
                                         const isSelected = getVariantKey(selectedVariant) === getVariantKey(v);
@@ -312,14 +316,14 @@ const ProductDetailPage = () => {
                         )}
 
                         <p className="text-slate-600 text-lg leading-relaxed mb-6 font-medium max-w-2xl">
-                            {product.description || "Fresh and premium quality product sourced directly from local vendors."}
+                            {product.description || t('product.defaultDescription')}
                         </p>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                         {currentStock <= 0 ? (
                             <div className="flex-1 bg-gray-100 text-gray-400 h-16 w-full sm:w-64 rounded-2xl font-black text-lg flex items-center justify-center gap-2 border border-gray-200 uppercase tracking-widest">
-                                OUT OF STOCK
+                                {t('product.outOfStockCaps')}
                             </div>
                         ) : quantity > 0 ? (
                             <div className="flex items-center bg-primary text-primary-foreground rounded-2xl h-16 w-full sm:w-auto px-2 shadow-xl shadow-brand-100">
@@ -334,7 +338,7 @@ const ProductDetailPage = () => {
                                     disabled={quantity >= currentStock}
                                     onClick={() => {
                                         if (quantity >= currentStock) {
-                                            showToast(`Only ${currentStock} units available in stock.`, "error");
+                                            showToast(t('product.onlyUnitsAvailable', { count: currentStock }), "error");
                                             return;
                                         }
                                         updateQuantity(product.id, 1, variantKey);
@@ -348,7 +352,7 @@ const ProductDetailPage = () => {
                             <Button
                                 onClick={async () => {
                                     if (currentStock <= 0) {
-                                        showToast("This item is currently out of stock", "error");
+                                        showToast(t('product.outOfStockToast'), "error");
                                         return;
                                     }
                                     const added = await addToCart({
@@ -357,38 +361,38 @@ const ProductDetailPage = () => {
                                         variantName: String(selectedVariant?.name || "").trim(),
                                     });
                                     if (added === false) return;
-                                    showToast(`${product.name} added to cart`, 'success');
+                                    showToast(t('cart.addedItem', { name: itemName(product) }), 'success');
                                 }}
                                 className="h-16 w-full sm:w-64 bg-primary hover:bg-[var(--brand-400)] text-white text-lg font-black rounded-2xl shadow-xl transition-all hover:-translate-y-1"
                             >
-                                <Plus className="mr-2" size={24} strokeWidth={3} /> ADD TO CART
+                                <Plus className="mr-2" size={24} strokeWidth={3} /> {t('product.addToCartCaps')}
                             </Button>
                         )}
 
                         <div className="flex flex-col gap-1 text-center sm:text-left">
                             <span className="text-xs font-black text-primary uppercase tracking-widest flex items-center justify-center sm:justify-start gap-1">
-                                <ShieldCheck size={14} /> Quality Guaranteed
+                                <ShieldCheck size={14} /> {t('product.qualityGuaranteed')}
                             </span>
                             <span className="text-sm font-bold text-slate-400 flex items-center justify-center sm:justify-start gap-1">
-                                <Clock size={14} /> Delivered in 10-15 mins
+                                <Clock size={14} /> {t('product.deliveredIn', { time: translateEta(t, '10-15 mins') })}
                             </span>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-sm">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Weight</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('product.weight')}</p>
                             <p className="text-sm font-black text-slate-800">{selectedVariant?.name || product.weight || '1 unit'}</p>
                         </div>
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-sm">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Stock</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('product.stock')}</p>
                             <p className={`text-sm font-black ${currentStock <= 0 ? "text-red-500" : currentStock <= lowStockAt ? "text-orange-500" : "text-slate-800"}`}>
-                                {currentStock <= 0 ? 'Out of Stock' : currentStock <= lowStockAt ? `Only ${currentStock} left!` : 'In Stock'}
+                                {currentStock <= 0 ? t('product.outOfStock') : currentStock <= lowStockAt ? t('product.onlyLeft', { count: currentStock }) : t('product.inStock')}
                             </p>
                         </div>
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-sm">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Brand</p>
-                            <p className="text-sm font-black text-slate-800">{product.brand || 'Premium'}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('product.brand')}</p>
+                            <p className="text-sm font-black text-slate-800">{product.brand || t('product.premium')}</p>
                         </div>
                     </div>
                 </div>
@@ -398,16 +402,16 @@ const ProductDetailPage = () => {
                 <div className="flex flex-col lg:flex-row gap-12">
                     <div className="lg:w-[40%]">
                         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm sticky top-24">
-                            <h3 className="text-2xl font-black text-slate-800 mb-2">Write a Review</h3>
-                            <p className="text-slate-500 font-medium mb-6 text-sm">Share your experience with this product</p>
+                            <h3 className="text-2xl font-black text-slate-800 mb-2">{t('product.writeReview')}</h3>
+                            <p className="text-slate-500 font-medium mb-6 text-sm">{t('product.shareExperienceWith')}</p>
                             {product?.hasReviewed || localHasReviewed ? (
                                 <div className="bg-brand-50 p-6 rounded-2xl border border-brand-100 text-center mt-6">
-                                    <p className="text-sm font-bold text-primary">You have already reviewed this product. Thank you!</p>
+                                    <p className="text-sm font-bold text-primary">{t('product.alreadyReviewed')}</p>
                                 </div>
                             ) : product?.hasPurchased ? (
                                 <form onSubmit={handleReviewSubmit} className="space-y-6">
                                     <div className="space-y-3">
-                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Your Rating</label>
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('product.yourRating')}</label>
                                         <div className="flex gap-2">
                                             {[1, 2, 3, 4, 5].map((star) => (
                                                 <button
@@ -426,11 +430,11 @@ const ProductDetailPage = () => {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Comment</label>
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('product.comment')}</label>
                                         <textarea
                                             value={newReview.comment}
                                             onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                                            placeholder="What did you like or dislike?"
+                                            placeholder={t('product.likeDislike')}
                                             className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold min-h-[120px] outline-none ring-1 ring-transparent focus:ring-primary/20 transition-all"
                                         />
                                     </div>
@@ -440,12 +444,12 @@ const ProductDetailPage = () => {
                                         disabled={isSubmittingReview}
                                         className="w-full h-12 bg-primary hover:opacity-90 text-white font-black rounded-xl text-xs uppercase tracking-[0.1em] transition-all shadow-lg shadow-brand-100"
                                     >
-                                        {isSubmittingReview ? 'Submitting...' : 'Post Review'}
+                                        {isSubmittingReview ? t('wallet.submitting') : t('product.postReview')}
                                     </Button>
                                 </form>
                             ) : (
                                 <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-center mt-6">
-                                    <p className="text-sm font-bold text-slate-500">You must purchase and receive this product before you can write a review.</p>
+                                    <p className="text-sm font-bold text-slate-500">{t('product.mustPurchaseReceive')}</p>
                                 </div>
                             )}
                         </div>
@@ -453,10 +457,10 @@ const ProductDetailPage = () => {
 
                     <div className="lg:w-[60%] space-y-8">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-3xl font-black text-slate-800">Customer Reviews</h3>
+                            <h3 className="text-3xl font-black text-slate-800">{t('product.customerReviews')}</h3>
                             <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-xl border border-primary/10">
                                 <MessageSquare size={18} className="text-primary" />
-                                <span className="font-black text-primary">{reviews.length} Verified</span>
+                                <span className="font-black text-primary">{t('product.verifiedCount', { count: reviews.length })}</span>
                             </div>
                         </div>
 
@@ -475,8 +479,8 @@ const ProductDetailPage = () => {
                                                 </div>
                                                 <div>
                                                     <h4 className="font-black text-slate-800">
-                                                        {review.userId?.name || "Anonymous"}
-                                                        {review.status === 'pending' && <span className="ml-2 text-[10px] font-bold text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded uppercase">Pending</span>}
+                                                        {review.userId?.name || t('product.anonymous')}
+                                                        {review.status === 'pending' && <span className="ml-2 text-[10px] font-bold text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded uppercase">{t('orderStatus.pending')}</span>}
                                                     </h4>
                                                     <div className="flex items-center gap-1 mt-1">
                                                         {[...Array(5)].map((_, i) => (
@@ -497,7 +501,7 @@ const ProductDetailPage = () => {
                             </div>
                         ) : (
                             <div className="p-20 text-center rounded-[3rem] bg-slate-50 border-2 border-dashed border-slate-200">
-                                <p className="text-slate-400 font-black uppercase text-sm">No reviews yet. Be the first!</p>
+                                <p className="text-slate-400 font-black uppercase text-sm">{t('product.noReviews')}</p>
                             </div>
                         )}
                     </div>

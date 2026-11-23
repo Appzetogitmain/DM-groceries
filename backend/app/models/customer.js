@@ -157,6 +157,16 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+
+        // Customer-panel UI language (ISO 639-1 code, e.g. "en", "hi", "gu").
+        // Intentionally no default: an unset value means "the customer has not
+        // chosen yet", which lets the frontend fall back to the device-local
+        // choice instead of overwriting it with English.
+        preferredLanguage: {
+            type: String,
+            trim: true,
+            lowercase: true,
+        },
     },
     {
         timestamps: true,

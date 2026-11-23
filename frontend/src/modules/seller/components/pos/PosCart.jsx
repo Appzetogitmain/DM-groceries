@@ -2,14 +2,15 @@ import React from 'react';
 import { HiOutlineTrash, HiPlus, HiMinus } from 'react-icons/hi';
 
 const PosCart = ({ cart, updateQuantity, removeItem }) => {
+    const { t } = useTranslation();
     if (cart.length === 0) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
                 <div className="w-24 h-24 mb-4 rounded-full bg-gray-50 flex items-center justify-center">
                     <HiOutlineShoppingBag size={40} className="text-gray-300" />
                 </div>
-                <p className="text-lg font-medium text-gray-500">Cart is empty</p>
-                <p className="text-sm">Scan barcode or click products to add</p>
+                <p className="text-lg font-medium text-gray-500">{t("sPos.cartEmpty")}</p>
+                <p className="text-sm">{t("sPos.scanToAdd")}</p>
             </div>
         );
     }
@@ -69,5 +70,6 @@ const PosCart = ({ cart, updateQuantity, removeItem }) => {
 
 // Need this import for empty state
 import { HiOutlineShoppingBag } from 'react-icons/hi';
+import { useTranslation } from "react-i18next";
 
 export default PosCart;

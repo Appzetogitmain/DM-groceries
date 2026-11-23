@@ -28,8 +28,11 @@ import { BlurFade } from '@/components/ui/blur-fade';
 import { MagicCard } from '@/components/ui/magic-card';
 import { sellerApi } from '../services/sellerApi';
 import { toast } from 'sonner';
+import { useTranslation } from "react-i18next";
+import { translateStatus, sellerLocale } from "../i18n/format";
 
 const StockManagement = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [activeView, setActiveView] = useState('inventory'); // 'inventory' or 'history'
     const [searchTerm, setSearchTerm] = useState('');
@@ -122,7 +125,7 @@ const StockManagement = () => {
                 })
             );
         } catch (error) {
-            toast.error("Failed to load inventory");
+            toast.error(t("sStock.loadFailed"));
         } finally {
             if (!silent) setIsLoading(false);
         }
@@ -136,7 +139,7 @@ const StockManagement = () => {
                 setHistory(res.data.result || []);
             }
         } catch (error) {
-            toast.error("Failed to load stock history");
+            toast.error(t("sStock.historyFailed"));
         } finally {
             if (!silent) setIsLoading(false);
         }
@@ -155,10 +158,10 @@ const StockManagement = () => {
     }, [activeView, filterStatus]);
 
     const stats = useMemo(() => [
-        { label: 'Total Inventory', value: inventory.reduce((acc, item) => acc + item.stock, 0), icon: HiOutlineCube, color: 'text-brand-600', bg: 'bg-brand-50', status: 'All' },
-        { label: 'Low Stock Items', value: inventory.filter(i => i.stock > 0 && i.stock <= i.threshold).length, icon: HiOutlineExclamationTriangle, color: 'text-amber-600', bg: 'bg-amber-50', status: 'Low Stock' },
-        { label: 'Out of Stock', value: inventory.filter(i => i.stock === 0).length, icon: HiOutlineArchiveBoxXMark, color: 'text-rose-600', bg: 'bg-rose-50', status: 'Out of Stock' },
-        { label: 'Stock Valuation', value: `₹${inventory.reduce((acc, item) => acc + (item.stock * item.price), 0).toLocaleString()}`, icon: HiOutlineArrowsUpDown, color: 'text-brand-600', bg: 'bg-brand-50', status: 'In Stock' }
+        { label: t('sStock.totalInventory'), value: inventory.reduce((acc, item) => acc + item.stock, 0), icon: HiOutlineCube, color: 'text-brand-600', bg: 'bg-brand-50', status: 'All' },
+        { label: t('sStock.lowItems'), value: inventory.filter(i => i.stock > 0 && i.stock <= i.threshold).length, icon: HiOutlineExclamationTriangle, color: 'text-amber-600', bg: 'bg-amber-50', status: 'Low Stock' },
+        { label: t('status.out_of_stock'), value: inventory.filter(i => i.stock === 0).length, icon: HiOutlineArchiveBoxXMark, color: 'text-rose-600', bg: 'bg-rose-50', status: 'Out of Stock' },
+        { label: t('sStock.valuation'), value: `₹${inventory.reduce((acc, item) => acc + (item.stock * item.price), 0).toLocaleString()}`, icon: HiOutlineArrowsUpDown, color: 'text-brand-600', bg: 'bg-brand-50', status: 'In Stock' }
     ], [inventory]);
 
     const filteredInventory = useMemo(() => {
@@ -182,7 +185,7 @@ const StockManagement = () => {
     const handleFullAdjustment = async () => {
         const value = parseInt(adjustValue);
         if (isNaN(value) || value <= 0) {
-            toast.error("Please enter a valid quantity");
+            toast.error(t("sStock.validQty"));
             return;
         }
 
@@ -202,12 +205,12 @@ const StockManagement = () => {
             const res = await sellerApi.adjustStock(payload);
 
             if (res.data.success) {
-                toast.success("Stock adjusted successfully");
+                toast.success(t("sStock.adjusted"));
                 setIsAdjustModalOpen(false);
                 fetchInventory(true);
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to adjust stock");
+            toast.error(error.response?.data?.message || t("sStock.adjustFailed"));
         }
     };
 
@@ -226,7 +229,7 @@ const StockManagement = () => {
     };
 
     if (isCheckingPlan || (isLoading && inventory.length === 0 && history.length === 0)) {
-        return <div className="flex items-center justify-center h-screen font-black text-slate-600">LOADING STOCK DATA...</div>;
+        return <div className="flex items-center justify-center h-screen font-black text-slate-600">{t("sStock.loading")}</div>;
     }
 
     if (isLocked) {
@@ -235,12 +238,12 @@ const StockManagement = () => {
                 <div className="h-24 w-24 bg-rose-50 rounded-full flex items-center justify-center mb-4">
                     <HiOutlineCube className="h-10 w-10 text-rose-500" />
                 </div>
-                <h2 className="text-2xl font-black text-slate-900">Feature Locked</h2>
+                <h2 className="text-2xl font-black text-slate-900">{t("sReturns.featureLocked")}</h2>
                 <p className="text-slate-600 max-w-md mx-auto text-sm">
-                    You need the <strong>INVENTORY MANAGEMENT</strong> feature to monitor stock levels and track inventory movements. Upgrade your plan to access this tool.
+                    {t("sStock.locked")}
                 </p>
                 <Button onClick={() => navigate('/seller/subscription')} className="px-8 py-3 bg-[#1A4516] hover:bg-[#133A10] text-white">
-                    Buy Subscription
+{t("sWithdraw.buySubscription")}
                 </Button>
             </div>
         );
@@ -253,13 +256,13 @@ const StockManagement = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-                            Stock Management
+{t("sStock.title")}
                             <Badge variant="warning" className="text-[9px] px-1.5 py-0 font-bold tracking-wider uppercase bg-amber-100 text-amber-700">
-                                Inventory Control
+{t("sStock.control")}
                             </Badge>
                         </h1>
                         <p className="text-slate-600 text-sm mt-0.5 font-medium">
-                            Monitor stock levels, manage restocks, and track movements.
+{t("sStock.subtitle")}
                         </p>
                     </div>
                 </div>
@@ -299,7 +302,7 @@ const StockManagement = () => {
                                     <div className="relative w-full md:w-72">
                                         <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
                                         <Input
-                                            placeholder="Search by product name or SKU..."
+                                            placeholder={t("sProducts.searchSkuPh")}
                                             className="pl-10 pr-4 py-2.5 rounded-2xl border-none ring-1 ring-slate-200 bg-white focus:ring-2 focus:ring-primary/20 transition-all text-xs font-semibold"
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -331,7 +334,7 @@ const StockManagement = () => {
                                         className="rounded-xl px-4 py-2 text-[10px] font-bold shadow-lg shadow-primary/20"
                                     >
                                         <HiOutlinePlus className="h-4 w-4 mr-2" />
-                                        ADD NEW PRODUCT
+{t("sStock.addNewCaps")}
                                     </Button>
                                 </div>
                             </div>
@@ -341,11 +344,11 @@ const StockManagement = () => {
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="bg-slate-50/50 border-b border-slate-100">
-                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">Product Information</th>
-                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">Inventory Capacity</th>
-                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">Stock Health</th>
-                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">Price</th>
-                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest text-right whitespace-nowrap">Actions</th>
+                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">{t("sStock.productInfo")}</th>
+                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">{t("sStock.capacity")}</th>
+                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">{t("sStock.health")}</th>
+                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest">{t("sProducts.price")}</th>
+                                            <th className="px-6 py-4 text-xs font-black text-slate-600 uppercase tracking-widest text-right whitespace-nowrap">{t("common.actions")}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
@@ -355,7 +358,7 @@ const StockManagement = () => {
                                                     colSpan={5}
                                                     className="px-6 py-10 text-center text-slate-600 text-xs font-black tracking-widest uppercase"
                                                 >
-                                                    No products found for this filter.
+{t("sStock.noProducts")}
                                                 </td>
                                             </tr>
                                         ) : (
@@ -421,7 +424,7 @@ const StockManagement = () => {
                                                                             </span>
                                                                             {item.stock <= item.threshold && (
                                                                                 <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded w-fit mt-0.5">
-                                                                                    Low Stock
+{t("status.low_stock")}
                                                                                 </span>
                                                                             )}
                                                                         </div>
@@ -443,7 +446,7 @@ const StockManagement = () => {
                                                                         onClick={() => openAdjustModal(item)}
                                                                         className="px-4 py-2 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors"
                                                                     >
-                                                                        Adjust Stock
+{t("sStock.adjustStock")}
                                                                     </button>
                                                                 </td>
                                                             </motion.tr>
@@ -476,7 +479,7 @@ const StockManagement = () => {
                                                                                                 </p>
                                                                                             </div>
                                                                                             <div className="text-left min-w-[90px]">
-                                                                                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Price</span>
+                                                                                                <span className="text-[10px] font-bold text-slate-500 uppercase block">{t("sProducts.price")}</span>
                                                                                                 <span className="font-bold text-slate-900">
                                                                                                     ₹{v.salePrice && v.salePrice > 0 ? v.salePrice : v.price}
                                                                                                 </span>
@@ -485,7 +488,7 @@ const StockManagement = () => {
                                                                                                 )}
                                                                                             </div>
                                                                                             <div className="text-left min-w-[120px]">
-                                                                                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Stock</span>
+                                                                                                <span className="text-[10px] font-bold text-slate-500 uppercase block">{t("nav.stock")}</span>
                                                                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                                                                     <span className={cn(
                                                                                                         "font-black text-sm",
@@ -495,15 +498,15 @@ const StockManagement = () => {
                                                                                                     </span>
                                                                                                     {isOut ? (
                                                                                                         <span className="text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">
-                                                                                                            Out of Stock
+{t("status.out_of_stock")}
                                                                                                         </span>
                                                                                                     ) : isLow ? (
                                                                                                         <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                                                                                                            Low Stock
+{t("status.low_stock")}
                                                                                                         </span>
                                                                                                     ) : (
                                                                                                         <span className="text-[9px] font-black uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                                                                                                            In Stock
+{t("status.in_stock")}
                                                                                                         </span>
                                                                                                     )}
                                                                                                 </div>
@@ -514,7 +517,7 @@ const StockManagement = () => {
                                                                                                     onClick={() => openAdjustModal(item, v)}
                                                                                                     className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all shadow-sm active:scale-95"
                                                                                                 >
-                                                                                                    Adjust Variant Stock
+{t("sStock.adjustVariant")}
                                                                                                 </button>
                                                                                             </div>
                                                                                         </div>
@@ -556,13 +559,13 @@ const StockManagement = () => {
                     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-3xl p-0 overflow-hidden">
                         <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/20">
                             <div>
-                                <h3 className="text-base font-black text-slate-900">Inventory Movement Log</h3>
-                                <p className="text-sm text-slate-600 font-medium">Audit trail for all stock adjustments and sales.</p>
+                                <h3 className="text-base font-black text-slate-900">{t("sStock.log")}</h3>
+                                <p className="text-sm text-slate-600 font-medium">{t("sStock.logBody")}</p>
                             </div>
                         </div>
                         <div className="divide-y divide-slate-50">
                             {history.length === 0 ? (
-                                <div className="p-10 text-center text-slate-600 font-black uppercase tracking-widest">No history found</div>
+                                <div className="p-10 text-center text-slate-600 font-black uppercase tracking-widest">{t("sStock.noHistory")}</div>
                             ) : history.map((log) => (
                                 <div key={log._id} className="p-6 hover:bg-slate-50/50 transition-colors flex items-center justify-between group">
                                     <div className="flex items-center gap-5">
@@ -582,10 +585,10 @@ const StockManagement = () => {
                                                     log.type === 'Restock' ? "bg-brand-100 text-brand-700" :
                                                         log.type === 'Sale' ? "bg-brand-100 text-brand-700" : "bg-rose-100 text-rose-700"
                                                 )}>
-                                                    {log.type.toUpperCase()}
+                                                    {t(`sStock.logType.${String(log.type).toLowerCase()}`, { defaultValue: log.type }).toUpperCase()}
                                                 </Badge>
                                             </div>
-                                            <p className="text-[11px] text-slate-600 font-semibold mt-1">Note: {log.note || 'N/A'}</p>
+                                            <p className="text-[11px] text-slate-600 font-semibold mt-1">{t('sStock.note')}: {log.note || t('sReturns.na')}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
@@ -597,7 +600,7 @@ const StockManagement = () => {
                                         </div>
                                         <div className="flex items-center justify-end gap-1.5 text-[10px] font-bold text-slate-600">
                                             <HiOutlineCalendarDays className="h-3.5 w-3.5" />
-                                            {new Date(log.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} • {new Date(log.createdAt).toLocaleTimeString()}
+                                            {new Date(log.createdAt).toLocaleDateString(sellerLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' })} • {new Date(log.createdAt).toLocaleTimeString(sellerLocale())}
                                         </div>
                                     </div>
                                 </div>
@@ -630,8 +633,8 @@ const StockManagement = () => {
                                         <HiOutlineArrowsUpDown className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-black text-slate-900">Adjust Inventory</h3>
-                                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest leading-none mt-1">Update product stock</p>
+                                        <h3 className="text-base font-black text-slate-900">{t("sStock.adjustInventory")}</h3>
+                                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest leading-none mt-1">{t("sStock.updateStock")}</p>
                                     </div>
                                 </div>
                                 <button onClick={() => setIsAdjustModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-600">
@@ -666,7 +669,7 @@ const StockManagement = () => {
                                 {Array.isArray(selectedItem.variants) && selectedItem.variants.length > 0 && (
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">
-                                            Select Variant to Adjust
+{t("sStock.selectVariant")}
                                         </label>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
                                             {selectedItem.variants.map((v) => {
@@ -711,13 +714,13 @@ const StockManagement = () => {
                                                         : "text-slate-600 hover:text-slate-600"
                                                 )}
                                             >
-                                                {type}
+                                                {t(`sStock.adjType.${type}`)}
                                             </button>
                                         ))}
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Quantity Change</label>
+                                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">{t("sStock.qtyChange")}</label>
                                         <div className="relative group">
                                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-black text-slate-600">#</div>
                                             <input
@@ -731,12 +734,12 @@ const StockManagement = () => {
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Internal Note (Optional)</label>
+                                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">{t("sStock.internalNote")}</label>
                                         <textarea
                                             value={adjustNote}
                                             onChange={(e) => setAdjustNote(e.target.value)}
                                             className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none h-20"
-                                            placeholder="Reason for adjustment..."
+                                            placeholder={t("sStock.reasonPh")}
                                         />
                                     </div>
                                 </div>
@@ -748,13 +751,13 @@ const StockManagement = () => {
                                     variant="outline"
                                     className="flex-1 py-4 text-xs font-bold rounded-2xl bg-white"
                                 >
-                                    CANCEL
+{t("sEarnings.cancelCaps")}
                                 </Button>
                                 <Button
                                     onClick={handleFullAdjustment}
                                     className="flex-1 py-4 text-xs font-bold rounded-2xl shadow-xl shadow-primary/20"
                                 >
-                                    SAVE CHANGES
+{t("sProducts.saveChanges")}
                                 </Button>
                             </div>
                         </motion.div>

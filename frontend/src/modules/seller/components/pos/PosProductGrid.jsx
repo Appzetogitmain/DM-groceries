@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { HiOutlineSearch, HiOutlineViewGrid, HiOutlineShoppingBag } from 'react-icons/hi';
 import { posApi } from '../../services/posApi';
 import { toast } from 'sonner';
+import { useTranslation } from "react-i18next";
 
 const PosProductGrid = ({ onAddToCart }) => {
+    const { t } = useTranslation();
     const [products, setProducts] = useState([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(false);
@@ -17,7 +19,7 @@ const PosProductGrid = ({ onAddToCart }) => {
                     setProducts(res.data.results);
                 }
             } catch (error) {
-                toast.error('Failed to fetch products');
+                toast.error(t('sProducts.fetchFailed'));
             } finally {
                 setLoading(false);
             }
@@ -35,7 +37,7 @@ const PosProductGrid = ({ onAddToCart }) => {
                     <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <input
                         type="text"
-                        placeholder="Search products by name or barcode (F2)..."
+                        placeholder={t("sPos.searchProductsPh")}
                         className="w-full pl-10 pr-4 py-3 bg-gray-100 border-transparent rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -53,8 +55,8 @@ const PosProductGrid = ({ onAddToCart }) => {
                 ) : products.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
                         <HiOutlineShoppingBag size={48} className="mb-4 opacity-50" />
-                        <p className="text-lg">No products found</p>
-                        <p className="text-sm">Try scanning a different barcode or typing a name</p>
+                        <p className="text-lg">{t("sPos.noProducts")}</p>
+                        <p className="text-sm">{t("sPos.tryDifferent")}</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -79,7 +81,7 @@ const PosProductGrid = ({ onAddToCart }) => {
                                     {product.stock <= 0 && (
                                         <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
                                             <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-medium">
-                                                Out of Stock
+                                                {t('status.out_of_stock')}
                                             </span>
                                         </div>
                                     )}

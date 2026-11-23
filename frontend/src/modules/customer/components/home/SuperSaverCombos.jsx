@@ -7,9 +7,12 @@ import { useLocation as useAppLocation } from "../../context/LocationContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import PackageDetailModal from "../shared/PackageDetailModal";
+import { useTranslation } from "react-i18next";
+import { getLocalizedItemLabel as itemName } from "../../i18n/format";
 
 const SuperSaverCombos = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { addPackageToCart } = useCart();
   const { currentLocation } = useAppLocation();
   const lat = currentLocation?.latitude;
@@ -81,10 +84,10 @@ const SuperSaverCombos = () => {
     try {
       const success = await addPackageToCart(pkg);
       if (success) {
-        toast.success(`Added "${pkg.name}" (${pkg.items?.length || 0} items) to your cart!`);
+        toast.success(t("combos.addedToCart", { name: itemName(pkg), count: pkg.items?.length || 0 }));
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to add combo to cart");
+      toast.error(err.response?.data?.message || t("combos.addFailed"));
     } finally {
       setTimeout(() => setAddingId(null), 600);
     }
@@ -108,14 +111,14 @@ const SuperSaverCombos = () => {
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500 text-white shadow-xs">
                   <Sparkles size={10} />
-                  Super Saver
+                  {t("combos.superSaver")}
                 </span>
                 <span className="text-[10px] font-semibold text-amber-800 opacity-80">
-                  Curated Packs
+                  {t("combos.curatedPacks")}
                 </span>
               </div>
               <h3 className="text-[19px] sm:text-[21px] font-black text-slate-900 tracking-tight uppercase leading-none">
-                Bachat <span className="text-[#1A4516]">Combos</span>
+                {t("combos.bachat")} <span className="text-[#1A4516]">{t("combos.combos")}</span>
               </h3>
             </div>
 
@@ -123,7 +126,7 @@ const SuperSaverCombos = () => {
               onClick={() => navigate("/user/packages")}
               className="flex items-center gap-1 bg-white px-3.5 py-1.5 rounded-full text-[#1A4516] font-bold text-[11px] cursor-pointer shadow-xs border border-amber-300/50 transition-all active:scale-95 hover:bg-amber-50 mb-0.5"
             >
-              See all
+              {t("common.seeAll")}
               <ChevronRight size={14} strokeWidth={3} />
             </button>
           </div>
@@ -134,7 +137,7 @@ const SuperSaverCombos = () => {
               const itemCount = pkg.items?.length || 0;
               const isAdding = addingId === pkg._id;
               const itemsListPreview = (pkg.items || [])
-                .map((it) => it.productId?.name)
+                .map((it) => itemName(it.productId))
                 .filter(Boolean)
                 .slice(0, 3)
                 .join(", ");
@@ -151,7 +154,7 @@ const SuperSaverCombos = () => {
                       {pkg.coverImage ? (
                         <img
                           src={pkg.coverImage}
-                          alt={pkg.name}
+                          alt={itemName(pkg)}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           loading="lazy"
                         />
@@ -169,14 +172,14 @@ const SuperSaverCombos = () => {
                       {/* Discount Pill */}
                       {pkg.discountPercentage > 0 && (
                         <span className="absolute top-1.5 right-1.5 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs">
-                          {pkg.discountPercentage}% OFF
+                          {t("product.percentOff", { percent: pkg.discountPercentage })}
                         </span>
                       )}
                     </div>
 
                     {/* Title & Items Preview */}
                     <h4 className="font-bold text-slate-900 text-[13px] leading-snug line-clamp-1 group-hover:text-emerald-700 transition-colors">
-                      {pkg.name}
+                      {itemName(pkg)}
                     </h4>
                     {itemsListPreview && (
                       <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
@@ -217,13 +220,13 @@ const SuperSaverCombos = () => {
                       )}
                     >
                       {pkg.stock <= 0 ? (
-                        "OOS"
+                        t("product.oos")
                       ) : isAdding ? (
                         <Check size={12} strokeWidth={3} />
                       ) : (
                         <>
                           <Plus size={12} strokeWidth={3} />
-                          ADD
+                          {t("product.add")}
                         </>
                       )}
                     </button>

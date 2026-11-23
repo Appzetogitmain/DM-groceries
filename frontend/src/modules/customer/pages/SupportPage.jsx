@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import axiosInstance from '@core/api/axios';
 import { getJSON, setJSON, STORAGE_KEYS } from '@core/utils/storage';
+import { useTranslation } from 'react-i18next';
 
 const FAQ_CACHE_KEY = STORAGE_KEYS.FAQ_CACHE;
 const FAQ_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -17,6 +18,7 @@ const SupportPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { showToast } = useToast();
+    const { t } = useTranslation();
     const { settings } = useSettings();
     const supportEmail = settings?.supportEmail || 'support@orangebasket.com';
     const supportEmailShort = supportEmail ? (supportEmail.length > 12 ? supportEmail.slice(0, 12) + '...' : supportEmail) : 'support@...';
@@ -83,12 +85,12 @@ const SupportPage = () => {
                 userType: 'Customer'
             });
             if (res.data.success) {
-                showToast("Ticket raised successfully", "success");
+                showToast(t('support.ticketRaised'), "success");
                 setIsTicketModalOpen(false);
                 setTicketData({ subject: '', description: '', priority: 'medium' });
             }
         } catch (error) {
-            showToast(error.response?.data?.message || "Failed to create ticket", "error");
+            showToast(error.response?.data?.message || t('support.ticketFailed'), "error");
         } finally {
             setTicketLoading(false);
         }
@@ -103,26 +105,26 @@ const SupportPage = () => {
                 >
                     <ChevronLeft size={22} className="text-slate-800" />
                 </button>
-                <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Help & Support</h1>
+                <h1 className="text-xl font-semibold text-slate-900 tracking-tight">{t('profile.helpSupport')}</h1>
             </div>
 
             <div className="max-w-2xl mx-auto px-4 pt-1 relative z-20 space-y-5">
                 {/* Contact Channels */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <ContactCard icon={MessageCircle} label="Chat Us" sub="Instant Support" to="/user/chat" />
+                    <ContactCard icon={MessageCircle} label={t('support.chatUs')} sub={t('support.instantSupport')} to="/user/chat" />
                     <ContactCard
                         icon={PlusCircle}
-                        label="Raise Ticket"
-                        sub="Formal Request"
+                        label={t('support.raiseTicket')}
+                        sub={t('support.formalRequest')}
                         onClick={() => setIsTicketModalOpen(true)}
                     />
-                    <ContactCard icon={Phone} label="Call Us" sub={supportPhoneShort} onClick={() => window.location.href = `tel:${supportPhone}`} />
-                    <ContactCard icon={Mail} label="Email Us" sub={supportEmailShort} onClick={() => window.location.href = `mailto:${supportEmail}`} />
+                    <ContactCard icon={Phone} label={t('support.callUs')} sub={supportPhoneShort} onClick={() => window.location.href = `tel:${supportPhone}`} />
+                    <ContactCard icon={Mail} label={t('support.emailUs')} sub={supportEmailShort} onClick={() => window.location.href = `mailto:${supportEmail}`} />
                 </div>
 
                 {/* FAQ Section */}
                 <div>
-                    <h2 className="text-base font-semibold text-[#1A4516] mb-3 px-1">Frequently Asked Questions</h2>
+                    <h2 className="text-base font-semibold text-[#1A4516] mb-3 px-1">{t('support.faqTitle')}</h2>
                     <div className="space-y-3">
                         {faqs.length > 0 ? (
                             faqs.map((faq) => (
@@ -134,7 +136,7 @@ const SupportPage = () => {
                             ))
                         ) : (
                             <div className="bg-white rounded-2xl shadow-[0_4px_10px_rgb(0,0,0,0.02)] border border-slate-100 px-5 py-4 text-sm text-slate-400 text-center">
-                                No FAQs available right now.
+                                {t('support.noFaqs')}
                             </div>
                         )}
                     </div>
@@ -142,13 +144,13 @@ const SupportPage = () => {
 
                 {/* Legal Links */}
                 <div className="bg-white rounded-xl p-4 border border-slate-200">
-                    <h3 className="text-[11px] font-semibold text-[#1A4516]/70 uppercase tracking-wide mb-3">Legal</h3>
+                    <h3 className="text-[11px] font-semibold text-[#1A4516]/70 uppercase tracking-wide mb-3">{t('support.legal')}</h3>
                     <div className="space-y-3">
                         <Link to="/user/support" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
-                            <FileText size={18} /> Support
+                            <FileText size={18} /> {t('auth.support')}
                         </Link>
                         <Link to="/user/privacy" className="flex items-center gap-2.5 text-[#1A4516] hover:text-[#0a3000] font-medium">
-                            <FileText size={18} /> Privacy Policy
+                            <FileText size={18} /> {t('footer.privacyPolicy')}
                         </Link>
                     </div>
                 </div>
@@ -175,8 +177,8 @@ const SupportPage = () => {
                             <div className="p-8">
                                 <div className="flex items-center justify-between mb-8">
                                     <div>
-                                        <h2 className="text-2xl font-black text-slate-800">Raise a Ticket</h2>
-                                        <p className="text-sm text-slate-500 font-medium">Describe your issue in detail</p>
+                                        <h2 className="text-2xl font-black text-slate-800">{t('support.raiseATicket')}</h2>
+                                        <p className="text-sm text-slate-500 font-medium">{t('support.describeIssue')}</p>
                                     </div>
                                     <button
                                         onClick={() => setIsTicketModalOpen(false)}
@@ -188,13 +190,13 @@ const SupportPage = () => {
 
                                 <form onSubmit={handleTicketSubmit} className="space-y-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Subject</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('support.subject')}</label>
                                         <input
                                             type="text"
                                             required
                                             value={ticketData.subject}
                                             onChange={(e) => setTicketData({ ...ticketData, subject: e.target.value })}
-                                            placeholder="What's the issue about?"
+                                            placeholder={t('support.subjectPlaceholder')}
                                             className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold outline-none ring-1 ring-transparent focus:ring-primary/20 transition-all"
                                         />
                                     </div>
@@ -212,18 +214,18 @@ const SupportPage = () => {
                                                         : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
                                                 )}
                                             >
-                                                {p}
+                                                {t(`support.priority.${p}`)}
                                             </button>
                                         ))}
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Description</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('support.description')}</label>
                                         <textarea
                                             required
                                             value={ticketData.description}
                                             onChange={(e) => setTicketData({ ...ticketData, description: e.target.value })}
-                                            placeholder="Please explain the issue clearly..."
+                                            placeholder={t('support.descriptionPlaceholder')}
                                             className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold min-h-[150px] outline-none ring-1 ring-transparent focus:ring-primary/20 transition-all"
                                         />
                                     </div>
@@ -236,11 +238,11 @@ const SupportPage = () => {
                                         {ticketLoading ? (
                                             <div className="flex items-center gap-2 text-center w-full justify-center">
                                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                SUBMITTING...
+                                                {t('support.submitting')}
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2 text-center w-full justify-center">
-                                                <Send size={20} /> SUBMIT TICKET
+                                                <Send size={20} /> {t('support.submitTicket')}
                                             </div>
                                         )}
                                     </Button>

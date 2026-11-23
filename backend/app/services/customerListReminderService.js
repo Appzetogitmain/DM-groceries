@@ -156,7 +156,7 @@ export async function sendDueListReminders({ batchSize = 200 } = {}) {
       },
       { new: true },
     )
-      .populate({ path: "items.productId", select: "name price salePrice mainImage" })
+      .populate({ path: "items.productId", select: "name nameHi nameGu price salePrice mainImage" })
       .lean();
 
     if (!claimed) continue; // another runner took it

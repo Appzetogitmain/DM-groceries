@@ -334,7 +334,7 @@ export async function hydrateOrderItems(
     .filter(Boolean);
 
   const productQuery = Product.find({ _id: { $in: productIds } })
-    .select("_id name salePrice price mainImage headerId sellerId status approvalStatus variants")
+    .select("_id name nameHi nameGu salePrice price mainImage headerId sellerId status approvalStatus variants")
     .lean();
   if (session) productQuery.session(session);
   const products = await productQuery;
@@ -344,7 +344,7 @@ export async function hydrateOrderItems(
   let packageMap = new Map();
   if (packageIds.length > 0) {
     const packageQuery = Package.find({ _id: { $in: packageIds } })
-      .select("_id name items approvalStatus status")
+      .select("_id name nameHi nameGu items approvalStatus status")
       .lean();
     if (session) packageQuery.session(session);
     const pkgs = await packageQuery;
@@ -412,6 +412,8 @@ export async function hydrateOrderItems(
     return {
       productId,
       productName: item.name || product.name,
+      productNameHi: product.nameHi || "",
+      productNameGu: product.nameGu || "",
       quantity,
       price: inferredUnitPrice,
       image: item.image || product.mainImage,
@@ -421,6 +423,8 @@ export async function hydrateOrderItems(
       variantName: resolvedVariant ? String(resolvedVariant?.name || "").trim() : "",
       packageId: packageItem ? pkgDoc._id : null,
       packageName: packageItem ? pkgDoc.name : "",
+      packageNameHi: packageItem ? pkgDoc.nameHi || "" : "",
+      packageNameGu: packageItem ? pkgDoc.nameGu || "" : "",
       packagePricePerUnit: packagePrice,
       originalPrice: packageItem ? normalizeLinePrice(packageItem.originalPrice || serverUnitPrice) : null,
     };

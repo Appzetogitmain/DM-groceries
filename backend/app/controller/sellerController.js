@@ -1,4 +1,5 @@
 import Seller from "../models/seller.js";
+import { normalizeUiLanguage } from "../constants/languages.js";
 import Transaction from "../models/transaction.js";
 import { handleResponse, calculateDistance } from "../utils/helper.js";
 import { roundCurrency } from "../utils/money.js";
@@ -251,7 +252,7 @@ export const getSellerProfile = async (req, res) => {
 ================================ */
 export const updateSellerProfile = async (req, res) => {
   try {
-    const { name, shopName, phone, address, locality, pincode, city, state, lat, lng, radius, dob, bankDetails } = req.body;
+    const { name, shopName, phone, address, locality, pincode, city, state, lat, lng, radius, dob, bankDetails, preferredLanguage } = req.body;
 
     // Find seller
     const seller = await Seller.findById(req.user.id);
@@ -304,6 +305,14 @@ export const updateSellerProfile = async (req, res) => {
         return handleResponse(res, 400, `Your current plan allows a maximum delivery radius of ${maxRadius} km.`);
       }
       seller.serviceRadius = Number(radius);
+    }
+
+    if (preferredLanguage !== undefined) {
+      const lang = normalizeUiLanguage(preferredLanguage);
+      if (!lang) {
+        return handleResponse(res, 400, "Unsupported language");
+      }
+      seller.preferredLanguage = lang;
     }
 
     const updatedSeller = await seller.save();

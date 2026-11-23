@@ -1,6 +1,7 @@
 import React from 'react';
 import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
+import sellerI18n from '../../i18n';
 
 export const generatePosReceiptPdf = (order) => {
     try {
@@ -110,11 +111,11 @@ export const generatePosReceiptPdf = (order) => {
         // Output
         const filename = `Receipt_${order.posMetadata?.receiptNumber || order.orderId}.pdf`;
         doc.save(filename);
-        toast.success('Receipt downloaded successfully');
+        toast.success(sellerI18n.t('sPos.receiptDownloaded'));
         
     } catch (error) {
         console.error('PDF Generation error:', error);
-        toast.error('Failed to generate receipt PDF');
+        toast.error(sellerI18n.t('sPos.receiptFailed'));
     }
 };
 

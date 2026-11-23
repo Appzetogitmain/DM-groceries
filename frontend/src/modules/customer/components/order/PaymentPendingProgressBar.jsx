@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, Clock, AlertTriangle, ShieldCheck, MapPin, ArrowRight } from 'lucide-react';
+import { useTranslation } from "react-i18next";
 
 const DEFAULT_TOTAL_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -11,6 +12,7 @@ export default function PaymentPendingProgressBar({
   isOnlinePaymentEnabled = true,
   onExpired
 }) {
+  const { t } = useTranslation();
   const [timeLeft, setTimeLeft] = useState(null);
   const [percent, setPercent] = useState(100);
 
@@ -82,10 +84,10 @@ export default function PaymentPendingProgressBar({
           <span className={`w-2.5 h-2.5 rounded-full ${pulseColor} animate-ping`} />
           <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider border ${badgeBg}`}>
             {isCritical
-              ? 'Urgent: Expiring Soon'
+              ? t("paymentBar.urgent")
               : isUrgent
-              ? 'Final 2 Minutes'
-              : 'Seller Accepted • Complete Payment'}
+              ? t("paymentBar.final2")
+              : t("paymentBar.sellerAccepted")}
           </span>
         </div>
 
@@ -101,7 +103,7 @@ export default function PaymentPendingProgressBar({
         >
           <Clock size={14} className="animate-spin-slow" />
           <span className="font-mono text-sm">{timeLeft}</span>
-          <span className="text-[10px] font-semibold opacity-80 uppercase">left</span>
+          <span className="text-[10px] font-semibold opacity-80 uppercase">{t("paymentBar.left")}</span>
         </div>
       </div>
 
@@ -114,13 +116,13 @@ export default function PaymentPendingProgressBar({
           />
         </div>
         <div className="flex justify-between items-center text-[10px] text-slate-700 font-bold px-0.5">
-          <span>5-Minute Window</span>
+          <span>{t("paymentBar.window")}</span>
           <span className={isCritical ? 'text-red-700 font-black animate-pulse' : isUrgent ? 'text-amber-800 font-black' : 'text-slate-700'}>
             {isCritical
-              ? 'Auto-cancellation imminent!'
+              ? t("paymentBar.imminent")
               : isUrgent
-              ? 'Only 2 minutes remaining'
-              : 'Time remaining to pay'}
+              ? t("paymentBar.only2")
+              : t("paymentBar.timeRemaining")}
           </span>
         </div>
       </div>
@@ -130,12 +132,12 @@ export default function PaymentPendingProgressBar({
         <div>
           <p className="text-xs text-slate-700 font-medium leading-relaxed">
             {isOnlinePaymentEnabled
-              ? `Amount payable: `
-              : `Online payment unavailable. Switch to COD: `}
+              ? `${t("paymentBar.amountPayable")} `
+              : `${t("paymentBar.onlineUnavailable")} `}
             <span className="text-base font-black text-slate-900 ml-1">₹{totalAmount}</span>
           </p>
           <p className="text-[11px] text-slate-600 mt-0.5">
-            If payment is not completed before the timer ends, this order will be automatically cancelled.
+            {t("paymentBar.autoCancelNote")}
           </p>
         </div>
 
@@ -153,7 +155,7 @@ export default function PaymentPendingProgressBar({
               } disabled:opacity-70`}
             >
               <CreditCard size={16} />
-              <span>{isProcessingPayment ? 'Processing...' : 'Pay Now'}</span>
+              <span>{isProcessingPayment ? t("paymentBar.processing") : t("orderDetail.payNow")}</span>
               <ArrowRight size={14} />
             </button>
           ) : (
@@ -163,7 +165,7 @@ export default function PaymentPendingProgressBar({
               className="w-full sm:w-auto px-5 py-3 rounded-2xl text-xs font-black text-white bg-slate-900 hover:bg-slate-800 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
             >
               <MapPin size={16} />
-              <span>Switch to COD</span>
+              <span>{t("orderDetail.switchToCod")}</span>
               <ArrowRight size={14} />
             </button>
           )}

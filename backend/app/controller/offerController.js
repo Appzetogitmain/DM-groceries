@@ -5,7 +5,7 @@ export const getPublicOffers = async (req, res) => {
   try {
     const offers = await Offer.find({ status: "active" })
       .sort({ order: 1, createdAt: 1 })
-      .populate("categoryIds", "name")
+      .populate("categoryIds", "name nameHi nameGu")
       .lean();
 
     return handleResponse(res, 200, "Offers fetched successfully", offers);

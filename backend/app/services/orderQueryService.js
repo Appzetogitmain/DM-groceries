@@ -184,7 +184,7 @@ export async function fetchSellerOrdersPage({
       .skip(skip)
       .limit(limit)
       .populate("customer", "name phone")
-      .populate("items.product", "name mainImage price salePrice")
+      .populate("items.product", "name nameHi nameGu mainImage price salePrice")
       .populate("deliveryBoy", "name phone profileImage averageRating")
       .populate("seller", "shopName name")
       .lean(),
@@ -627,7 +627,7 @@ export async function getCustomerOrders(customerId, pagination) {
           .sort({ createdAt: -1, _id: -1 })
           .skip(skip)
           .limit(limit)
-          .populate("items.product", "name mainImage price salePrice")
+          .populate("items.product", "name nameHi nameGu mainImage price salePrice")
           .populate("seller", "shopName name storeName")
           .lean(),
         Order.countDocuments({ customer: customerId }),
@@ -680,8 +680,8 @@ export async function getOrderWithAccess(orderId, userId, role) {
 
   let order = await Order.findOne(orderKey)
     .populate("customer", "name email phone")
-    .populate("items.product", "name mainImage price salePrice")
-    .populate("returnItems.product", "name mainImage price salePrice")
+    .populate("items.product", "name nameHi nameGu mainImage price salePrice")
+    .populate("returnItems.product", "name nameHi nameGu mainImage price salePrice")
     .populate("deliveryBoy", "name phone vehicle profileImage averageRating")
     .populate("returnDeliveryBoy", "name phone vehicle profileImage averageRating")
     .populate("seller", "shopName name address phone location")

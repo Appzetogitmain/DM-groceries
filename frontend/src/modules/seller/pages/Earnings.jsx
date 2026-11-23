@@ -32,8 +32,11 @@ import { exportToCSV } from "@/lib/exportUtils";
 import { useSellerEarnings } from "../context/SellerEarningsContext";
 import { onNotificationNew } from '@core/services/orderSocket';
 import { useAuth } from '@core/context/AuthContext';
+import { useTranslation } from "react-i18next";
+import { translateStatus, translateLedgerType, sellerLocale } from "../i18n/format";
 
 const Earnings = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { earningsData: data, earningsLoading: loading, refreshEarnings } = useSellerEarnings();
   const [withdrawAmount, setWithdrawAmount] = React.useState("");
@@ -67,10 +70,7 @@ const Earnings = () => {
     const totalBalance = Number(data?.balances?.availableBalance ?? 0);
     const amount = parseFloat(withdrawAmount);
     if (isNaN(amount) || amount <= 0 || amount > totalBalance) {
-      alert(
-        "Please enter a valid amount between ₹0.01 and ₹" +
-        totalBalance.toLocaleString(),
-      );
+      alert(t("sEarnings.validAmountBetween", { max: totalBalance.toLocaleString() }));
       return;
     }
 
@@ -79,31 +79,31 @@ const Earnings = () => {
       setIsWithdrawing(false);
       setIsWithdrawModalOpen(false);
       alert(
-        `Withdrawal request of ₹${amount.toLocaleString()} submitted successfully!`,
+        t("sEarnings.withdrawSubmitted", { amount: amount.toLocaleString() }),
       );
     }, 1500);
   };
 
   const exportReport = () => {
-    alert("Exporting monthly earnings report as PDF (Simulation)");
+    alert(t("sEarnings.exportSimulation"));
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen font-semibold text-slate-500">LOADING EARNINGS...</div>;
+    return <div className="flex items-center justify-center h-screen font-semibold text-slate-500">{t("sEarnings.loading")}</div>;
   }
   return (
     <div className="space-y-8 pb-16">
       <BlurFade delay={0.1}>
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-bold text-slate-800 hidden md:block">
-            Earnings Overview
+{t("sEarnings.title")}
           </h2>
           <div className="flex space-x-3">
             <Button
               onClick={() => {
                 const ledger = Array.isArray(data?.ledger) ? data.ledger : [];
                 if (ledger.length === 0) {
-                  toast.info("No transactions to export.");
+                  toast.info(t("sEarnings.noExport"));
                   return;
                 }
                 const exportData = ledger.map((txn) => ({
@@ -116,26 +116,26 @@ const Earnings = () => {
                   ref: txn.ref ?? "",
                 }));
                 exportToCSV(exportData, "Seller_Earnings_Report", {
-                  id: "Transaction ID",
-                  type: "Type",
-                  amount: "Amount",
-                  status: "Status",
-                  date: "Date",
-                  customer: "Customer",
-                  ref: "Reference",
+                  id: t("sEarnings.txnId"),
+                  type: t("sEarnings.type"),
+                  amount: t("common.amount"),
+                  status: t("common.status"),
+                  date: t("common.date"),
+                  customer: t("sDash.customer"),
+                  ref: t("sEarnings.reference"),
                 });
-                toast.success("Earnings report downloaded successfully!");
+                toast.success(t("sEarnings.downloaded"));
               }}
               variant="outline"
               className="border-gray-200 text-slate-600 text-xs font-semibold">
               <Download className="mr-2 h-4 w-4" />
-              Download Report
+{t("sEarnings.downloadReport")}
             </Button>
             <ShimmerButton
               onClick={() => navigate("/seller/withdrawals")}
               background="#1A4516"
               className="px-6 py-2 rounded-xl text-xs font-bold text-white shadow-lg">
-              <span className="text-white">Withdraw Funds</span>
+              <span className="text-white">{t("sEarnings.withdrawFunds")}</span>
             </ShimmerButton>
           </div>
         </div>
@@ -146,7 +146,7 @@ const Earnings = () => {
           <Card className="bg-gradient-to-br from-[#1A4516] to-[#0f2e0f] text-white border-none shadow-lg h-full p-4 relative overflow-hidden rounded-xl">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-emerald-100 text-[10px] font-semibold uppercase tracking-wider">Total Revenue</p>
+                <p className="text-emerald-100 text-[10px] font-semibold uppercase tracking-wider">{t("sDash.totalRevenue")}</p>
                 <h3 className="text-2xl font-bold mt-1">₹{Number(data?.balances?.totalRevenue ?? 0).toLocaleString()}</h3>
               </div>
               <div className="p-2 bg-white/10 rounded-full h-9 w-9 flex items-center justify-center shrink-0">
@@ -155,7 +155,7 @@ const Earnings = () => {
             </div>
             <div className="mt-4 flex items-center text-emerald-100 bg-white/10 w-fit px-2.5 py-0.5 rounded-full text-[10px] font-semibold">
               <TrendingUp className="mr-1.5 h-3.5 w-3.5" />
-              <span>Real-time earnings data</span>
+              <span>{t("sEarnings.realtime")}</span>
             </div>
           </Card>
         </BlurFade>
@@ -165,7 +165,7 @@ const Earnings = () => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">
-                  Total Withdrawn
+{t("sEarnings.totalWithdrawn")}
                 </p>
                 <h2 className="text-2xl font-bold text-slate-800 leading-tight">
                   ₹{Number(data?.balances?.totalWithdrawn ?? 0).toLocaleString()}
@@ -182,7 +182,7 @@ const Earnings = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-none">
-                    Available to Withdraw
+{t("sEarnings.available")}
                   </p>
                   <p className="text-xs font-bold text-slate-800 mt-1 leading-none">
                     ₹{Number(data?.balances?.availableBalance ?? 0).toLocaleString()}
@@ -199,12 +199,12 @@ const Earnings = () => {
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-[#1A4516]" />
-              Monthly Revenue Performance
+{t("sEarnings.monthlyPerf")}
             </h3>
           </div>
           <div className="h-[300px] w-full min-h-[200px] flex items-center justify-center">
             {(Array.isArray(data?.monthlyChart) ? data.monthlyChart : []).length === 0 ? (
-              <p className="text-slate-500 text-sm font-medium">No monthly revenue data yet.</p>
+              <p className="text-slate-500 text-sm font-medium">{t("sEarnings.noMonthly")}</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.monthlyChart}>
@@ -235,7 +235,7 @@ const Earnings = () => {
                       fontSize: "12px",
                       fontWeight: "600",
                     }}
-                    formatter={(value) => [`₹${value.toLocaleString()}`, "Revenue"]}
+                    formatter={(value) => [`₹${value.toLocaleString()}`, t("sDash.revenue")]}
                   />
                   <Bar
                     dataKey="revenue"
@@ -261,21 +261,21 @@ const Earnings = () => {
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
               <Banknote className="h-5 w-5 text-[#1A4516]" />
-              Transaction History
+{t("sEarnings.history")}
             </h3>
           </div>
           <div className="overflow-x-auto">
             {(!data?.ledger || data.ledger.length === 0) ? (
-              <p className="text-slate-500 text-sm font-medium text-center py-4">No transactions found.</p>
+              <p className="text-slate-500 text-sm font-medium text-center py-4">{t("sEarnings.noTxns")}</p>
             ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date & Time</th>
-                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Order / Ref</th>
-                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
-                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
-                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("sEarnings.dateTime")}</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("sEarnings.orderRef")}</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("sEarnings.type")}</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.amount")}</th>
+                    <th className="py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -292,7 +292,7 @@ const Earnings = () => {
                         {txn.ref || txn.id || "-"}
                       </td>
                       <td className="py-4 text-sm">
-                        <span className="capitalize text-slate-600">{txn.type?.toLowerCase().replace(/_/g, " ") || "-"}</span>
+                        <span className="capitalize text-slate-600">{translateLedgerType(t, txn.type) || "-"}</span>
                       </td>
                       <td className="py-4 text-sm font-bold text-slate-900">
                         ₹{Number(txn.amount || 0).toLocaleString()}
@@ -307,7 +307,7 @@ const Earnings = () => {
                             "bg-slate-50 text-slate-700 border-slate-200"
                           )}
                         >
-                          {txn.status || "Completed"}
+                          {translateStatus(t, txn.status || "Completed")}
                         </Badge>
                       </td>
                     </tr>
@@ -333,7 +333,7 @@ const Earnings = () => {
               </div>
 
               <h2 className="text-xl font-bold text-slate-800 mb-2">
-                Withdraw Funds
+{t("sEarnings.withdrawFunds")}
               </h2>
               <p className="text-sm text-slate-500 font-medium mb-8">
                 Available Balance:{" "}
@@ -345,7 +345,7 @@ const Earnings = () => {
               <div className="space-y-4 text-left">
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
-                    Amount
+{t("common.amount")}
                   </label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">
@@ -363,7 +363,7 @@ const Earnings = () => {
 
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
-                    Select Bank Account
+{t("sEarnings.selectBank")}
                   </label>
                   <div
                     onClick={() => {
@@ -377,7 +377,7 @@ const Earnings = () => {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-slate-800">
-                        {data?.bankDetails?.bankName || 'No Bank Added'}
+                        {data?.bankDetails?.bankName || t('sEarnings.noBank')}
                       </p>
                       <div className="flex flex-col gap-0.5 mt-1">
                         {data?.bankDetails?.accountNumber ? (
@@ -391,7 +391,7 @@ const Earnings = () => {
                           </>
                         ) : (
                           <p className="text-xs text-slate-500 font-medium">
-                            Add bank details in profile
+{t("sEarnings.addBank")}
                           </p>
                         )}
                         {data?.bankDetails?.accountHolderName && (
@@ -410,15 +410,15 @@ const Earnings = () => {
                 <button
                   onClick={() => setIsWithdrawModalOpen(false)}
                   className="py-3 rounded-lg font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
-                  CANCEL
+{t("sEarnings.cancelCaps")}
                 </button>
                 <button
                   onClick={() => {
                     setIsWithdrawModalOpen(false);
-                    alert("Withdrawal request submitted!");
+                    alert(t("sWithdraw.submitted"));
                   }}
                   className="py-3 rounded-lg bg-[#1A4516] hover:bg-[#133A10] text-white font-bold shadow-lg shadow-[#1A4516]/10 hover:shadow-[#1A4516]/20 transition-all">
-                  CONFIRM
+{t("sEarnings.confirmCaps")}
                 </button>
               </div>
             </motion.div>
@@ -439,7 +439,7 @@ const Earnings = () => {
               
               <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
                 <h2 className="text-xl font-bold text-slate-800">
-                  Transaction Details
+{t("sEarnings.txnDetails")}
                 </h2>
                 <button onClick={() => setSelectedTxn(null)} className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-slate-100 hover:bg-slate-200 rounded-full">
                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -449,17 +449,17 @@ const Earnings = () => {
               <div className="space-y-4">
                  <div className="flex flex-col gap-2 bg-slate-50 p-4 rounded-lg border border-slate-100">
                     <div className="flex justify-between items-center">
-                       <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Amount</span>
+                       <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{t("common.amount")}</span>
                        <span className="text-2xl font-bold text-[#1A4516]">₹{Number(selectedTxn.amount || 0).toLocaleString()}</span>
                     </div>
                     {selectedTxn.type === 'Order Payment' && selectedTxn.productSubtotal > 0 && (
                        <div className="mt-2 pt-2 border-t border-slate-200 space-y-1">
                           <div className="flex justify-between items-center">
-                             <span className="text-xs font-medium text-slate-500">Gross Product Sales</span>
+                             <span className="text-xs font-medium text-slate-500">{t("sEarnings.grossSales")}</span>
                              <span className="text-sm font-semibold text-slate-700">₹{Number(selectedTxn.productSubtotal || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                             <span className="text-xs font-medium text-rose-500">Platform Commission</span>
+                             <span className="text-xs font-medium text-rose-500">{t("sEarnings.commission")}</span>
                              <span className="text-sm font-semibold text-rose-600">- ₹{Number(selectedTxn.commission || 0).toLocaleString()}</span>
                           </div>
                        </div>
@@ -513,7 +513,7 @@ const Earnings = () => {
                  
                  <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Status</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t("common.status")}</p>
                         <Badge
                           variant="outline"
                           className={cn(
@@ -523,30 +523,30 @@ const Earnings = () => {
                             "bg-slate-50 text-slate-700 border-slate-200"
                           )}
                         >
-                          {selectedTxn.status || "Completed"}
+                          {translateStatus(t, selectedTxn.status || "Completed")}
                         </Badge>
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Date</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t("common.date")}</p>
                         <p className="text-sm font-medium text-slate-800">{selectedTxn.date || (selectedTxn.createdAt ? new Date(selectedTxn.createdAt).toLocaleDateString() : "-")}</p>
                     </div>
                     <div className="col-span-2">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Type</p>
-                        <p className="text-sm font-medium text-slate-800 capitalize">{selectedTxn.type?.toLowerCase().replace(/_/g, " ") || "-"}</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t("sEarnings.type")}</p>
+                        <p className="text-sm font-medium text-slate-800 capitalize">{translateLedgerType(t, selectedTxn.type) || "-"}</p>
                     </div>
                     <div className="col-span-2">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Order / Reference ID</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t("sEarnings.orderRefId")}</p>
                         <p className="text-sm font-mono bg-slate-100 p-2 rounded-md text-slate-800 break-all">{selectedTxn.ref || selectedTxn.id || "N/A"}</p>
                     </div>
                     {selectedTxn.customer && (
                         <div className="col-span-2">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Customer</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t("sDash.customer")}</p>
                             <p className="text-sm font-medium text-slate-700">{selectedTxn.customer}</p>
                         </div>
                     )}
                     {selectedTxn.description && (
                         <div className="col-span-2">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Description</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t("sEarnings.description")}</p>
                             <p className="text-sm font-medium text-slate-700">{selectedTxn.description}</p>
                         </div>
                     )}

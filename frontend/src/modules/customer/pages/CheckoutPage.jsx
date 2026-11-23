@@ -75,6 +75,8 @@ import CheckoutCouponSection from "./checkout/components/CheckoutCouponSection";
 import CheckoutRecommendedProducts from "./checkout/components/CheckoutRecommendedProducts";
 import CheckoutWishlistSection from "./checkout/components/CheckoutWishlistSection";
 import CheckoutOrderSuccess from "./checkout/components/CheckoutOrderSuccess";
+import { useTranslation } from "react-i18next";
+import { translateAddressLabel, localizeAddressText } from "../i18n/format";
 
 const placesLibrary = ["places"];
 
@@ -98,6 +100,7 @@ const CheckoutPage = () => {
   const { wishlist, addToWishlist, fetchFullWishlist, isFullDataFetched } =
     useWishlist();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
   const { settings } = useSettings();
 
@@ -225,14 +228,14 @@ const CheckoutPage = () => {
   const paymentMethods = [
     {
       id: "pending",
-      label: "Pay after seller accepts",
+      label: t("checkout.payAfterAccept"),
       icon: Clock,
-      sublabel: settings?.onlineEnabled !== false ? "Choose Online or Cash later" : "Cash on Delivery",
+      sublabel: settings?.onlineEnabled !== false ? t("checkout.chooseOnlineOrCash") : t("payment.methods.cod"),
     },
   ];
 
   const tipAmounts = [
-    { value: 0, label: "No Tip" },
+    { value: 0, label: t("checkout.noTip") },
     { value: 10, label: "Rs.10" },
     { value: 20, label: "Rs.20" },
     { value: 30, label: "Rs.30" },
@@ -310,19 +313,19 @@ const CheckoutPage = () => {
       !recipientData.name ||
       recipientData.phone.length !== 10
     ) {
-      showToast("Please fill all required fields", "error");
+      showToast(t("checkout.fillRequired"), "error");
       return;
     }
     setSavedRecipient(recipientData);
     setShowRecipientForm(false);
     setJSON(RECIPIENT_STORAGE_KEY, recipientData);
-    showToast("Recipient details saved!", "success");
+    showToast(t("checkout.recipientSaved"), "success");
   };
 
   const handleMoveToWishlist = (item) => {
     addToWishlist(item);
     removeFromCart(item.id || item._id, item.variantSku);
-    showToast(`${item.name} moved to wishlist`, "success");
+    showToast(t("checkout.movedToWishlist", { name: item.name }), "success");
   };
 
   const handleOpenEditAddress = () => {
@@ -399,15 +402,14 @@ const CheckoutPage = () => {
       } catch (e) {
         showToast(
           e?.__serverMsg ||
-          e?.message ||
-          "Could not fetch coordinates for this address. Delivery charges may not update.",
+          t("checkout.coordsFailedMayNotUpdate"),
           "error",
         );
       }
 
       if (!resolvedLoc) {
         showToast(
-          "Could not fetch coordinates for this address. Please edit the address or choose a different one.",
+          t("checkout.coordsFailedEdit"),
           "error",
         );
         return;
@@ -452,7 +454,7 @@ const CheckoutPage = () => {
       !editAddressForm.address?.trim() ||
       !editAddressForm.city?.trim()
     ) {
-      showToast("Please fill name, address and city", "error");
+      showToast(t("checkout.fillNameAddressCity"), "error");
       return;
     }
 
@@ -497,7 +499,7 @@ const CheckoutPage = () => {
       } catch (e) {
         showToast(
           e.response?.data?.message ||
-          "Could not fetch coordinates for this address. Delivery charges may be inaccurate.",
+          t("checkout.coordsFailedInaccurate"),
           "error",
         );
       }
@@ -525,7 +527,7 @@ const CheckoutPage = () => {
       ...(formattedAddress ? { formattedAddress } : {}),
     });
     setIsEditAddressOpen(false);
-    showToast("Delivery address updated", "success");
+    showToast(t("checkout.addressUpdated"), "success");
   };
 
   const handleUseCurrentLiveLocation = async () => {
@@ -545,7 +547,7 @@ const CheckoutPage = () => {
           ? { location: { lat: liveLocation.latitude, lng: liveLocation.longitude } }
           : {}),
       }));
-      showToast("Using your current live location", "success");
+      showToast(t("checkout.usingLiveLocation"), "success");
       return;
     }
 
@@ -562,19 +564,19 @@ const CheckoutPage = () => {
           ? { location: { lat: currentLocation.latitude, lng: currentLocation.longitude } }
           : {}),
       }));
-      showToast("Using your last detected location", "success");
+      showToast(t("checkout.usingLastLocation"), "success");
       return;
     }
 
-    showToast(result?.error || "Unable to detect current location", "error");
+    showToast(t("checkout.detectLocationFailed"), "error");
   };
 
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${appName} Checkout`,
-          text: `Hey! I am ordering some goodies from ${appName}.`,
+          title: t("checkout.shareTitle", { appName }),
+          text: t("checkout.shareText", { appName }),
           url: window.location.href,
         });
       } catch (err) {
@@ -582,7 +584,7 @@ const CheckoutPage = () => {
       }
     } else {
       navigator.clipboard.writeText(window.location.href);
-      showToast("Link copied to clipboard!", "success");
+      showToast(t("checkout.linkCopied"), "success");
     }
   };
 
@@ -602,13 +604,13 @@ const CheckoutPage = () => {
           ...data,
         });
         setIsCouponModalOpen(false);
-        showToast(`Coupon ${coupon.code} applied!`, "success");
+        showToast(t("coupon.applied", { code: coupon.code }), "success");
       } else {
-        showToast(res.data.message || "Unable to apply coupon", "error");
+        showToast(res.data.message || t("coupon.unableToApply"), "error");
       }
     } catch (error) {
       showToast(
-        error.response?.data?.message || "Unable to apply coupon",
+        error.response?.data?.message || t("coupon.unableToApply"),
         "error",
       );
     }
@@ -616,7 +618,7 @@ const CheckoutPage = () => {
 
   const handleApplyManualCode = async () => {
     if (!manualCode.trim()) {
-      showToast("Please enter a coupon code", "error");
+      showToast(t("coupon.enterCode"), "error");
       return;
     }
     try {
@@ -630,16 +632,16 @@ const CheckoutPage = () => {
         const data = res.data.result;
         setSelectedCoupon({
           code: manualCode.trim(),
-          description: "Applied manually",
+          description: t("coupon.appliedManually"),
           ...data,
         });
-        showToast(`Coupon ${manualCode.trim()} applied!`, "success");
+        showToast(t("coupon.applied", { code: manualCode.trim() }), "success");
       } else {
-        showToast(res.data.message || "Invalid coupon", "error");
+        showToast(res.data.message || t("coupon.invalid"), "error");
       }
     } catch (error) {
       showToast(
-        error.response?.data?.message || "Invalid coupon",
+        error.response?.data?.message || t("coupon.invalid"),
         "error",
       );
     }
@@ -648,7 +650,7 @@ const CheckoutPage = () => {
   const handleAddToCart = async (product) => {
     const added = await addToCart(product);
     if (added === false) return;
-    showToast(`${product.name} added to cart!`, "success");
+    showToast(t("cart.addedItem", { name: product.name }), "success");
   };
 
   const getCartItem = (productId) => cart.find((item) => item.id === productId);
@@ -722,11 +724,11 @@ const CheckoutPage = () => {
           setPricingPreview(res.data.result?.breakdown ?? null);
         } else {
           setPricingPreview(null);
-          setPreviewError(res.data?.message || "Could not preview checkout");
+          setPreviewError(res.data?.message || t("checkout.previewFailed"));
         }
       } catch (error) {
         setPricingPreview(null);
-        setPreviewError(error.response?.data?.message || "Could not preview checkout");
+        setPreviewError(error.response?.data?.message || t("checkout.previewFailed"));
         console.error("Checkout preview failed", error);
       } finally {
         setIsPreviewLoading(false);
@@ -858,7 +860,7 @@ const CheckoutPage = () => {
         if (!mainOrderId) {
           setIsPlacingOrder(false);
           showToast(
-            "Order placed but ID not received. Checking order history...",
+            t("checkout.orderIdMissing"),
             "warning"
           );
           navigate("/user/orders");
@@ -880,7 +882,7 @@ const CheckoutPage = () => {
           localStorage.removeItem("DM_ACTIVE_LIST_ORDER");
         }
         clearCart();
-        showToast("Order placed — waiting for seller to accept.", "success");
+        showToast(t("checkout.orderPlacedWaiting"), "success");
         setOrderId(mainOrderId);
         setShowSuccess(true);
 
@@ -894,13 +896,13 @@ const CheckoutPage = () => {
         }, 3000);
       } else {
         setIsPlacingOrder(false);
-        showToast(response.data.message || "Could not place order.", "error");
+        showToast(response.data.message || t("checkout.placeOrderFailed"), "error");
       }
     } catch (error) {
       setIsPlacingOrder(false);
       showToast(
         error.response?.data?.message ||
-        "Failed to place order. Please try again.",
+        t("checkout.placeOrderFailedRetry"),
         "error"
       );
     }
@@ -921,7 +923,7 @@ const CheckoutPage = () => {
           postOrderNavigateRef.current = null;
         }
         setShowSuccess(false);
-        showToast("Order cancelled — seller did not accept in time.", "error");
+        showToast(t("checkout.sellerTimeout"), "error");
         navigate(`/user/orders/${orderId}`, { replace: true });
         return true;
       }
@@ -951,8 +953,8 @@ const CheckoutPage = () => {
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-50/50 via-transparent to-transparent pointer-events-none" />
         <div className="relative z-10 flex flex-col items-center text-center max-w-sm mx-auto">
           <div className="w-16 h-16 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mb-6"></div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Redirecting...</h2>
-          <p className="text-slate-600">Please wait while we take you to the payment gateway.</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">{t("checkout.redirecting")}</h2>
+          <p className="text-slate-600">{t("checkout.redirectingBody")}</p>
         </div>
       </div>
     );
@@ -983,10 +985,10 @@ const CheckoutPage = () => {
               className="absolute inset-0 border-2 border-dashed border-slate-200 rounded-full"
             />
           </div>
-          <h2 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">Your Cart is Empty</h2>
+          <h2 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">{t("cart.emptyTitle")}</h2>
           <p className="text-slate-500 mb-8 leading-relaxed font-medium">
             It feels lighter than air! <br />
-            Explore our aisles and fill it with goodies.
+            {t("cart.emptyBody")}
           </p>
           <Link
             to="/user"
@@ -999,15 +1001,15 @@ const CheckoutPage = () => {
           <div className="mt-8 flex gap-6 text-slate-400">
             <div className="flex flex-col items-center gap-2">
               <div className="p-3 bg-slate-50 rounded-2xl"><Clock size={20} /></div>
-              <span className="text-[10px] font-bold uppercase tracking-wider">Fast Delivery</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">{t("cart.fastDelivery")}</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="p-3 bg-slate-50 rounded-2xl"><Tag size={20} /></div>
-              <span className="text-[10px] font-bold uppercase tracking-wider">Daily Deals</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">{t("cart.dailyDeals")}</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="p-3 bg-slate-50 rounded-2xl"><Sparkles size={20} /></div>
-              <span className="text-[10px] font-bold uppercase tracking-wider">Fresh Items</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">{t("cart.freshItems")}</span>
             </div>
           </div>
         </div>
@@ -1033,11 +1035,11 @@ const CheckoutPage = () => {
               <ChevronLeft size={28} className="text-white" />
             </button>
             <div className="flex flex-col items-center">
-              <h1 className="text-xl md:text-3xl font-[1000] text-white tracking-tight uppercase">Checkout</h1>
+              <h1 className="text-xl md:text-3xl font-[1000] text-white tracking-tight uppercase">{t("checkout.title")}</h1>
               <div className="flex items-center gap-2 mt-1">
                 <span className="h-1.5 w-1.5 bg-brand-400 rounded-full animate-pulse" />
                 <p className="text-brand-100/90 text-[10px] md:text-xs font-black tracking-[0.2em] uppercase">
-                  {cartCount} {cartCount === 1 ? "Item" : "Items"} in cart
+                  {t("checkout.itemsInCart", { count: cartCount })}
                 </p>
               </div>
             </div>
@@ -1045,7 +1047,7 @@ const CheckoutPage = () => {
               onClick={handleShare}
               className="h-12 px-4 flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl transition-all active:scale-95">
               <Share2 size={20} className="text-white" />
-              <span className="text-xs font-black text-white uppercase tracking-widest hidden sm:block">Share</span>
+              <span className="text-xs font-black text-white uppercase tracking-widest hidden sm:block">{t("common.share")}</span>
             </button>
           </div>
         </div>
@@ -1165,7 +1167,7 @@ const CheckoutPage = () => {
                 onSuccess={handlePlaceOrder}
                 isLoading={isPlacingOrder || isPreviewLoading}
                 disabled={isAuthenticated && (!pricingPreview || !!previewError)}
-                text={!isAuthenticated ? "Login to Place Order" : (finalAmountToPay === 0 && !previewError ? "Place Free Order" : "Order Now")}
+                text={!isAuthenticated ? t("checkout.loginToOrder") : (finalAmountToPay === 0 && !previewError ? t("checkout.placeFreeOrder") : t("checkout.orderNow"))}
               />
               <p className="text-center text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-[0.1em]">
                 🔒 SSL encrypted secure checkout
@@ -1183,7 +1185,7 @@ const CheckoutPage = () => {
             onSuccess={handlePlaceOrder}
             isLoading={isPlacingOrder || isPreviewLoading}
             disabled={isAuthenticated && (!pricingPreview || !!previewError)}
-            text={!isAuthenticated ? "Login to Place Order" : (finalAmountToPay === 0 && !previewError ? "Place Free Order" : "Slide to Pay")}
+            text={!isAuthenticated ? t("checkout.loginToOrder") : (finalAmountToPay === 0 && !previewError ? t("checkout.placeFreeOrder") : t("checkout.slideToPay"))}
           />
         </div>
       </div>
@@ -1192,8 +1194,8 @@ const CheckoutPage = () => {
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Select Delivery Address</DialogTitle>
-            <DialogDescription>Choose where you want your order delivered.</DialogDescription>
+            <DialogTitle>{t("checkout.selectAddress")}</DialogTitle>
+            <DialogDescription>{t("checkout.selectAddressDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {locationSavedAddresses.map((addr) => (
@@ -1209,12 +1211,12 @@ const CheckoutPage = () => {
                   <div className={`p-2 rounded-full ${currentAddress.id === addr.id ? "bg-primary text-primary-foreground" : "bg-slate-100 text-slate-500"}`}>
                     <MapPin size={16} />
                   </div>
-                  <span className="font-black text-slate-800 uppercase tracking-widest text-[10px]">{addr.label}</span>
+                  <span className="font-black text-slate-800 uppercase tracking-widest text-[10px]">{translateAddressLabel(t, addr.label)}</span>
                 </div>
                 <p className="text-sm font-bold text-slate-800">{user?.name || currentAddress.name}</p>
-                <p className="text-xs text-slate-500 leading-relaxed mb-1">{addr.address}</p>
+                <p className="text-xs text-slate-500 leading-relaxed mb-1">{localizeAddressText(addr.address)}</p>
                 {addr.phone && (
-                  <p className="text-[11px] text-slate-400 font-medium">Phone: {addr.phone}</p>
+                  <p className="text-[11px] text-slate-400 font-medium">{t("address.phoneLabel", { phone: addr.phone })}</p>
                 )}
               </button>
             ))}
@@ -1224,7 +1226,7 @@ const CheckoutPage = () => {
               variant="outline"
               className="w-full border-brand-600 text-brand-600 hover:bg-brand-50"
               onClick={() => navigate("/user/addresses")}>
-              <Plus size={16} className="mr-2" /> Add New Address
+              <Plus size={16} className="mr-2" /> {t("address.addNew")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1240,12 +1242,12 @@ const CheckoutPage = () => {
             transition={{ type: "spring", stiffness: 260, damping: 25 }}
             className="p-6">
             <DialogHeader>
-              <DialogTitle>Edit Delivery Address</DialogTitle>
-              <DialogDescription>Update the details of your current delivery address.</DialogDescription>
+              <DialogTitle>{t("checkout.editAddress")}</DialogTitle>
+              <DialogDescription>{t("checkout.editAddressDesc")}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-address" className="text-xs font-semibold text-slate-700">Address</Label>
+                <Label htmlFor="edit-address" className="text-xs font-semibold text-slate-700">{t("address.address")}</Label>
                 {isLoaded ? (
                   <Autocomplete
                     fields={["formatted_address", "geometry", "name", "address_components"]}
@@ -1301,7 +1303,7 @@ const CheckoutPage = () => {
                         placeId: null
                       }))}
                       className="h-10"
-                      placeholder="Search for your address..."
+                      placeholder={t("address.searchPlaceholder")}
                     />
                   </Autocomplete>
                 ) : (
@@ -1315,22 +1317,22 @@ const CheckoutPage = () => {
                       placeId: null
                     }))}
                     className="h-10"
-                    placeholder="House, street, area"
+                    placeholder={t("address.housePlaceholder")}
                   />
                 )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-landmark" className="text-xs font-semibold text-slate-700">Nearest Landmark (optional)</Label>
+                <Label htmlFor="edit-landmark" className="text-xs font-semibold text-slate-700">{t("address.landmarkOptional")}</Label>
                 <Input
                   id="edit-landmark"
                   value={editAddressForm.landmark || ""}
                   onChange={(e) => setEditAddressForm((prev) => ({ ...prev, landmark: e.target.value }))}
                   className="h-10"
-                  placeholder="e.g. Near City Mall, Opp. Temple"
+                  placeholder={t("address.landmarkPlaceholder")}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-city" className="text-xs font-semibold text-slate-700">City / Pincode</Label>
+                <Label htmlFor="edit-city" className="text-xs font-semibold text-slate-700">{t("address.cityPincode")}</Label>
                 <Input
                   id="edit-city"
                   value={editAddressForm.city}
@@ -1340,7 +1342,7 @@ const CheckoutPage = () => {
                     location: null
                   }))}
                   className="h-10"
-                  placeholder="City - Pincode"
+                  placeholder={t("address.cityPincodePlaceholder")}
                 />
               </div>
             </div>
@@ -1349,12 +1351,12 @@ const CheckoutPage = () => {
                 variant="outline"
                 onClick={() => setIsEditAddressOpen(false)}
                 className="border-slate-200 text-slate-600 hover:bg-slate-50">
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 onClick={handleSaveEditedAddress}
                 className="bg-primary hover:bg-[#0b721b] text-white font-bold">
-                Save changes
+                {t("profile.saveChanges")}
               </Button>
             </DialogFooter>
           </motion.div>

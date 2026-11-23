@@ -56,6 +56,9 @@ import {
 import { getLegacyStatusFromOrder } from "@/shared/utils/orderStatus";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
+import { useTranslation } from "react-i18next";
+import { getLocalizedItemLabel as itemName, localizeAddressText } from "../i18n/format";
+import { translatePaymentMethod } from "../utils/orderStatusI18n";
 
 const coordsToLatLng = (coords) => {
   if (!Array.isArray(coords) || coords.length < 2) return null;
@@ -98,10 +101,10 @@ const formatArrivalTime = (arrivalMs) =>
     minute: "2-digit",
   });
 
-const formatArrivingIn = (minutes) => {
-  if (!Number.isFinite(minutes) || minutes < 0) return "Soon";
+const formatArrivingIn = (minutes, t) => {
+  if (!Number.isFinite(minutes) || minutes < 0) return t("orderDetail.soon");
   const rounded = Math.max(1, Math.round(minutes));
-  return `${rounded} min${rounded === 1 ? "" : "s"}`;
+  return t("orderDetail.minutesShort", { count: rounded });
 };
 
 const formatDistance = (meters) => {
@@ -145,6 +148,7 @@ const matchesOrderIdentifier = (payloadOrderId, identifiers = []) => {
 };
 
 const OrderDetailPage = () => {
+  const { t } = useTranslation();
   const { orderId } = useParams();
   const { settings } = useSettings();
   const [showInvoice, setShowInvoice] = useState(false);
@@ -253,7 +257,7 @@ const OrderDetailPage = () => {
         }
       } catch (error) {
         console.error("Failed to fetch order details:", error);
-        toast.error("Failed to load order details");
+        toast.error(t("orderDetail.loadFailed"));
       } finally {
         refreshRef.current.inFlight = false;
         setLoading(false);
@@ -372,11 +376,11 @@ const OrderDetailPage = () => {
       if (matchesOrderIdentifier(payload?.orderId, identifiersRef.current) && (payload?.code || payload?.otp)) {
         const otpValue = payload.code || payload.otp;
         setHandoffOtp(otpValue);
-        toast.info("Delivery OTP received — share with rider if asked.");
+        toast.info(t("orderDetail.otpReceived"));
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           showSystemNotification({
-            title: "Delivery OTP",
-            body: `Your delivery OTP is ${otpValue}. Share this with the delivery partner.`
+            title: t("orderDetail.deliveryOtp"),
+            body: t("orderDetail.deliveryOtpBody", { otp: otpValue })
           });
         }
       }
@@ -384,11 +388,11 @@ const OrderDetailPage = () => {
 
     const offDeliveryOtpGen = onDeliveryOtpGenerated(getToken, (payload) => {
       if (matchesOrderIdentifier(payload?.orderId, identifiersRef.current) && payload?.otp) {
-        toast.info("Delivery OTP generated.");
+        toast.info(t("orderDetail.otpGenerated"));
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           showSystemNotification({
-            title: "Delivery OTP Generated",
-            body: `Your delivery OTP is ${payload.otp}. Share this with the rider when they arrive.`
+            title: t("orderDetail.otpGeneratedTitle"),
+            body: t("orderDetail.deliveryOtpBodyRider", { otp: payload.otp })
           });
         }
       }
@@ -397,11 +401,11 @@ const OrderDetailPage = () => {
     const offReturnOtp = onReturnPickupOtp(getToken, (payload) => {
       if (matchesOrderIdentifier(payload?.orderId, identifiersRef.current) && payload?.otp) {
         setHandoffOtp(payload.otp);
-        toast.info("Return pickup OTP received — share with rider.");
+        toast.info(t("orderDetail.returnOtpReceived"));
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           showSystemNotification({
-            title: "Return Pickup OTP",
-            body: `Your return pickup OTP is ${payload.otp}. Share this with the delivery partner.`
+            title: t("layout.returnPickupOtpTitle"),
+            body: t("orderDetail.returnOtpBody", { otp: payload.otp })
           });
         }
       }
@@ -633,8 +637,8 @@ const OrderDetailPage = () => {
 
     if (status === "delivered") {
       return {
-        arrivalTimeText: "Arrived",
-        arrivingInText: "Delivered",
+        arrivalTimeText: t("orderDetail.arrived"),
+        arrivingInText: t("orderStatus.delivered"),
       };
     }
 
@@ -662,7 +666,7 @@ const OrderDetailPage = () => {
     );
     return {
       arrivalTimeText: formatArrivalTime(arrivalMs),
-      arrivingInText: formatArrivingIn(minutes),
+      arrivingInText: formatArrivingIn(minutes, t),
       totalDistanceText: formatDistance(
         routeDistanceMeters ||
         distanceMeters(liveLocation, targetLocation) ||
@@ -678,6 +682,7 @@ const OrderDetailPage = () => {
     sellerLocation,
     status,
     clockTick,
+    t,
   ]);
 
   useEffect(() => {
@@ -818,19 +823,19 @@ const OrderDetailPage = () => {
   const handleReturnSubmit = async () => {
     if (!order) return;
     if (!Object.keys(selectedReturnItems).length) {
-      toast.error("Please select at least one item to return.");
+      toast.error(t("orderDetail.selectItemToReturn"));
       return;
     }
     if (!returnReason.trim()) {
-      toast.error("Please provide a reason for return.");
+      toast.error(t("orderDetail.provideReturnReason"));
       return;
     }
     if (!returnConditionAssurance) {
-      toast.error("Please confirm that the product is in good condition with accessories.");
+      toast.error(t("orderDetail.confirmCondition"));
       return;
     }
     if (returnImages.length === 0) {
-      toast.error("Please upload at least 1 image of the product.");
+      toast.error(t("orderDetail.uploadImage"));
       return;
     }
 
@@ -848,7 +853,7 @@ const OrderDetailPage = () => {
     try {
       setRequestingReturn(true);
       await customerApi.requestReturn(order.orderId, payload);
-      toast.success("Return request submitted");
+      toast.success(t("orderDetail.returnSubmitted"));
       setShowReturnModal(false);
       setSelectedReturnItems({});
       setReturnReason("");
@@ -865,7 +870,7 @@ const OrderDetailPage = () => {
     } catch (error) {
       console.error("Failed to submit return request", error);
       toast.error(
-        error.response?.data?.message || "Failed to submit return request",
+        error.response?.data?.message || t("orderDetail.returnFailed"),
       );
     } finally {
       setRequestingReturn(false);
@@ -875,14 +880,14 @@ const OrderDetailPage = () => {
   const handleCancelOrder = async () => {
     if (!order) return;
     if (!cancelReason.trim()) {
-      toast.error("Please provide a reason for cancellation.");
+      toast.error(t("orderDetail.provideCancelReason"));
       return;
     }
 
     try {
       setIsCancelling(true);
       await customerApi.cancelOrder(order.orderId, { reason: cancelReason });
-      toast.success("Order cancelled successfully");
+      toast.success(t("orderDetail.cancelled"));
       setShowCancelModal(false);
       setCancelReason("");
 
@@ -891,7 +896,7 @@ const OrderDetailPage = () => {
     } catch (error) {
       console.error("Failed to cancel order:", error);
       toast.error(
-        error.response?.data?.message || "Failed to cancel order"
+        error.response?.data?.message || t("orderDetail.cancelFailed")
       );
     } finally {
       setIsCancelling(false);
@@ -931,7 +936,7 @@ const OrderDetailPage = () => {
         }
         if (url) newImages.push(url);
       } catch (err) {
-        toast.error("Failed to process image.");
+        toast.error(t("profile.photoProcessFailed"));
       }
     }
 
@@ -977,14 +982,13 @@ const OrderDetailPage = () => {
       } else if (response.data.success && result?.redirectUrl) {
         window.location.href = result.redirectUrl;
       } else {
-        toast.error(response.data.message || "Failed to initiate payment");
+        toast.error(response.data.message || t("orderDetail.paymentInitFailed"));
       }
     } catch (err) {
       console.error("[OrderDetailPage] Retry payment error:", err);
       toast.error(
         err?.response?.data?.message ||
-        err?.message ||
-        "Unable to start payment. Please try again later.",
+        t("orderDetail.paymentStartFailed"),
       );
     }
   };
@@ -993,7 +997,7 @@ const OrderDetailPage = () => {
     try {
       if (!order) return;
       if (method === "ONLINE" && !isOnlinePaymentEnabled) {
-        toast.error("Online payment is currently disabled. Please select Cash on Delivery.");
+        toast.error(t("orderDetail.onlineDisabledSelectCod"));
         return;
       }
       setIsProcessingPayment(true);
@@ -1009,14 +1013,14 @@ const OrderDetailPage = () => {
         window.location.href = response.data.result.redirectUrl;
       } else if (method === "COD") {
         setShowPaymentReminder(false);
-        toast.success(response.data.message || "Order confirmed with Cash on Delivery");
+        toast.success(t("layout.codConfirmed"));
         const res = await customerApi.getOrderDetails(canonicalOrderId || orderId);
         if (res?.data?.result) {
           setOrder(res.data.result);
         }
       } else {
         setShowPaymentReminder(false);
-        toast.success(response.data.message || "Payment method updated");
+        toast.success(t("orderDetail.paymentMethodUpdated"));
         const res = await customerApi.getOrderDetails(canonicalOrderId || orderId);
         if (res?.data?.result) {
           setOrder(res.data.result);
@@ -1026,8 +1030,7 @@ const OrderDetailPage = () => {
       console.error("[OrderDetailPage] Select payment error:", err);
       toast.error(
         err?.response?.data?.message ||
-        err?.message ||
-        "Failed to update payment method. Please try again later.",
+        t("orderDetail.paymentMethodFailed"),
       );
     } finally {
       setIsProcessingPayment(false);
@@ -1038,9 +1041,9 @@ const OrderDetailPage = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-white">
         <Package size={64} className="text-slate-300 mb-4" />
-        <h3 className="text-lg font-bold text-slate-800">Order not found</h3>
+        <h3 className="text-lg font-bold text-slate-800">{t("orderDetail.notFound")}</h3>
         <Link to="/user/orders" className="text-[#1A4516] font-bold mt-4 hover:text-[#0a3000]">
-          Back to my orders
+          {t("orderDetail.backToOrders")}
         </Link>
       </div>
     );
@@ -1062,7 +1065,7 @@ const OrderDetailPage = () => {
           <ChevronLeft size={24} className="text-slate-800" />
         </button>
         <div className="flex-1 text-center">
-          <h1 className="text-base font-bold text-[#1A4516]">Order</h1>
+          <h1 className="text-base font-bold text-[#1A4516]">{t("orderDetail.order")}</h1>
           <p className="text-xs text-slate-500 font-medium">#{formatOrderId(order.orderId)}</p>
         </div>
         <div className="w-10" />
@@ -1097,14 +1100,14 @@ const OrderDetailPage = () => {
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 rounded-full bg-[#1A4516] animate-pulse" />
-                <h3 className="text-sm font-black text-[#1A4516] uppercase tracking-tight">Order Accepted</h3>
+                <h3 className="text-sm font-black text-[#1A4516] uppercase tracking-tight">{t("orderDetail.accepted")}</h3>
               </div>
               <p className="text-xs text-[#1A4516] font-medium leading-relaxed mb-4">
-                The seller has accepted your order! Please select how you would like to pay <span className="font-bold">₹{order.pricing.total}</span> to proceed.
+                {t("orderDetail.acceptedBodyPrefix")} <span className="font-bold">₹{order.pricing.total}</span> {t("orderDetail.acceptedBodySuffix")}
               </p>
               {!isOnlinePaymentEnabled && (
                 <div className="mb-3 px-3.5 py-2.5 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-xs font-semibold flex items-center gap-2">
-                  <span>⚠️ Online payment is currently offline. Please choose Cash on Delivery.</span>
+                  <span>⚠️ {t("orderDetail.onlineOffline")}</span>
                 </div>
               )}
               <div className={cn("grid gap-3", isOnlinePaymentEnabled && isCodEnabled ? "grid-cols-2" : "grid-cols-1")}>
@@ -1115,7 +1118,7 @@ const OrderDetailPage = () => {
                     className="bg-[#1A4516] text-white px-4 py-3 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md flex flex-col items-center justify-center gap-1 disabled:opacity-70"
                   >
                     <CreditCard size={18} />
-                    Pay Online
+                    {t("orderDetail.payOnline")}
                   </button>
                 )}
                 {isCodEnabled && (
@@ -1130,7 +1133,7 @@ const OrderDetailPage = () => {
                     )}
                   >
                     <MapPin size={18} />
-                    Cash on Delivery
+                    {t("payment.methods.cod")}
                   </button>
                 )}
               </div>
@@ -1152,12 +1155,12 @@ const OrderDetailPage = () => {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="w-2 h-2 rounded-full bg-[#1A4516] animate-pulse" />
-                  <h3 className="text-sm font-black text-[#1A4516] uppercase tracking-tight">Payment Required</h3>
+                  <h3 className="text-sm font-black text-[#1A4516] uppercase tracking-tight">{t("orderDetail.paymentRequired")}</h3>
                 </div>
                 <p className="text-xs text-[#1A4516] font-medium leading-relaxed">
                   {isOnlinePaymentEnabled
-                    ? `Complete your payment of ₹${order.pricing.total} to proceed with this order.`
-                    : `Online payment is temporarily disabled. Please switch to Cash on Delivery (₹${order.pricing.total}) to proceed.`}
+                    ? t("orderDetail.completePayment", { amount: order.pricing.total })
+                    : t("orderDetail.switchToCodBody", { amount: order.pricing.total })}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -1168,7 +1171,7 @@ const OrderDetailPage = () => {
                     className="bg-[#1A4516] text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md flex items-center gap-1.5 disabled:opacity-70"
                   >
                     <CreditCard size={14} />
-                    Pay Now
+                    {t("orderDetail.payNow")}
                   </button>
                 ) : (
                   <button
@@ -1177,7 +1180,7 @@ const OrderDetailPage = () => {
                     className="bg-[#1A4516] text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-[#0a3000] active:scale-95 transition-all shadow-md flex items-center gap-1.5 disabled:opacity-70"
                   >
                     <MapPin size={14} />
-                    Switch to COD
+                    {t("orderDetail.switchToCod")}
                   </button>
                 )}
               </div>
@@ -1198,7 +1201,7 @@ const OrderDetailPage = () => {
               riderName={
                 (status?.startsWith("return_")
                   ? order.returnDeliveryBoy?.name
-                  : order.deliveryBoy?.name) || "Delivery Partner"
+                  : order.deliveryBoy?.name) || t("orderDetail.deliveryPartner")
               }
               riderPlate={
                 status?.startsWith("return_")
@@ -1271,11 +1274,11 @@ const OrderDetailPage = () => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">Pickup Location</p>
+                <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">{t("orderDetail.pickupLocation")}</p>
               </div>
-              <h4 className="font-bold text-slate-900 text-base mb-1">{order.seller?.shopName || "Store Location"}</h4>
+              <h4 className="font-bold text-slate-900 text-base mb-1">{order.seller?.shopName || t("orderDetail.storeLocation")}</h4>
               <p className="text-sm text-slate-500 leading-relaxed">
-                {order.seller?.address || "Address not available"}
+                {order.seller?.address || t("orderDetail.addressUnavailable")}
               </p>
             </div>
             <button
@@ -1300,21 +1303,21 @@ const OrderDetailPage = () => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-xs font-bold text-[#1A4516] uppercase tracking-wider">Delivery Address</p>
+                <p className="text-xs font-bold text-[#1A4516] uppercase tracking-wider">{t("checkout.deliveryAddress")}</p>
                 <span className="bg-[#F5FBF5] text-[#1A4516] text-[10px] px-2 py-0.5 rounded-full font-bold">
                   {order.address.type}
                 </span>
               </div>
               <h4 className="font-bold text-[#1A4516] text-base mb-1">{order.address.name}</h4>
               <p className="text-sm text-slate-500 leading-relaxed">
-                {order.address.address}, {order.address.city}
+                {localizeAddressText(`${order.address.address}, ${order.address.city}`)}
               </p>
               {order.address?.location &&
                 typeof order.address.location.lat === "number" &&
                 typeof order.address.location.lng === "number" && (
                   <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[#1A4516] bg-[#F5FBF5] px-2 py-1 rounded-lg">
                     <CheckCircle size={14} className="text-[#1A4516]" />
-                    Precise location confirmed
+                    {t("orderDetail.preciseLocation")}
                   </p>
                 )}
               <p className="text-sm text-slate-800 font-semibold mt-3 flex items-center gap-2">
@@ -1334,7 +1337,7 @@ const OrderDetailPage = () => {
         >
           <h3 className="text-base font-bold text-[#1A4516] mb-3 flex items-center gap-2">
             <Package size={18} className="text-slate-400" />
-            Order Items
+            {t("orderDetail.orderItems")}
           </h3>
           <div className="space-y-3">
             {order.items.map((item, idx) => {
@@ -1347,22 +1350,22 @@ const OrderDetailPage = () => {
                 <div className="h-14 w-14 bg-slate-50 rounded-xl overflow-hidden flex-shrink-0 border border-slate-100">
                   <img
                     src={applyCloudinaryTransform(item.image)}
-                    alt={item.name}
+                    alt={itemName(item)}
                     loading="lazy"
                     className="h-full w-full object-cover"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-slate-800 text-sm mb-0.5 truncate flex items-center gap-2">
-                    {item.name}
+                    {itemName(item)}
                     {isReturned && (
                       <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                        Returned
+                        {t("orderDetail.returned")}
                       </span>
                     )}
                   </h4>
                   <p className="text-slate-500 text-xs font-medium">
-                    Qty: {item.quantity} {isReturned && returnedItem.quantity !== item.quantity ? <span className="text-amber-600 font-bold ml-1">(Returned: {returnedItem.quantity})</span> : ''}
+                    {t("orderDetail.qtyLabel", { qty: item.quantity })} {isReturned && returnedItem.quantity !== item.quantity ? <span className="text-amber-600 font-bold ml-1">({t("orderDetail.returnedQty", { qty: returnedItem.quantity })})</span> : ''}
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -1382,44 +1385,44 @@ const OrderDetailPage = () => {
           transition={{ delay: 0.3 }}
           className="bg-white rounded-3xl p-3.5 shadow-sm border border-slate-100"
         >
-          <h3 className="text-base font-bold text-[#1A4516] mb-3">Bill Summary</h3>
+          <h3 className="text-base font-bold text-[#1A4516] mb-3">{t("orderDetail.billSummary")}</h3>
           <div className="space-y-2.5 text-sm">
             <div className="flex justify-between text-slate-600">
-              <span>Item Total</span>
+              <span>{t("checkout.itemTotal")}</span>
               <span className="font-semibold">₹{order.pricing.subtotal}</span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>Delivery Fee</span>
+              <span>{t("checkout.deliveryFee")}</span>
               <span
                 className={
                   order.pricing.deliveryFee === 0 ? "text-[#1A4516] font-bold" : "font-semibold"
                 }>
                 {order.pricing.deliveryFee === 0
-                  ? "FREE"
+                  ? t("common.free")
                   : `₹${order.pricing.deliveryFee}`}
               </span>
             </div>
             {order.pricing.platformFee > 0 && (
               <div className="flex justify-between text-slate-600">
-                <span>Handling Fee</span>
+                <span>{t("checkout.handlingFee")}</span>
                 <span className="font-semibold">₹{order.pricing.platformFee}</span>
               </div>
             )}
             {order.pricing.taxAmount > 0 && (
               <div className="flex justify-between text-slate-600">
-                <span>Tax</span>
+                <span>{t("orderDetail.tax")}</span>
                 <span className="font-semibold">₹{order.pricing.taxAmount}</span>
               </div>
             )}
             {order.pricing.tip > 0 && (
               <div className="flex justify-between text-slate-600">
-                <span>Tip</span>
+                <span>{t("orderDetail.tip")}</span>
                 <span className="font-semibold">₹{order.pricing.tip}</span>
               </div>
             )}
             <div className="border-t border-slate-100 mt-3 pt-3 flex justify-between items-center">
               <span className="text-base font-bold text-slate-900">
-                Total Amount
+                {t("orderDetail.totalAmount")}
               </span>
               <span className="text-xl font-black text-[#1A4516]">
                 ₹{order.pricing.total}
@@ -1435,12 +1438,10 @@ const OrderDetailPage = () => {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Payment
+                  {t("orderDetail.payment")}
                 </p>
                 <p className="text-sm font-bold text-slate-900">
-                  {order.payment.method === "cash"
-                    ? "Cash on Delivery"
-                    : order.payment.method}
+                  {translatePaymentMethod(t, order.payment.method)}
                 </p>
               </div>
             </div>
@@ -1457,18 +1458,18 @@ const OrderDetailPage = () => {
           <button
             onClick={() => setShowInvoice(true)}
             className="py-3.5 rounded-2xl bg-white border-2 border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 text-sm shadow-sm hover:shadow-md active:scale-[0.98]">
-            <Download size={18} /> Invoice
+            <Download size={18} /> {t("orderDetail.invoice")}
           </button>
           <button
             onClick={() => setShowHelp(true)}
             className="py-3.5 rounded-2xl bg-white border-2 border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 text-sm shadow-sm hover:shadow-md active:scale-[0.98]">
-            <HelpCircle size={18} /> Help
+            <HelpCircle size={18} /> {t("orderDetail.help")}
           </button>
           {canCancel && (
             <button
               onClick={() => setShowCancelModal(true)}
               className="py-3.5 rounded-2xl bg-rose-50 border-2 border-rose-100 text-rose-600 font-bold hover:bg-rose-100 transition-all flex items-center justify-center gap-2 text-sm shadow-sm hover:shadow-md active:scale-[0.98] col-span-2">
-              <X size={18} /> Cancel Order
+              <X size={18} /> {t("orderDetail.cancelOrder")}
             </button>
           )}
         </motion.div>
@@ -1483,12 +1484,12 @@ const OrderDetailPage = () => {
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-bold text-[#1A4516]">
-                Return & Refund
+                {t("orderDetail.returnRefund")}
               </h3>
               {canRequestReturn() && returnCountdown !== 0 && returnCountdown !== null && (
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-bold ring-1 ring-amber-200">
                   <Clock size={12} />
-                  Ends in {returnCountdown}
+                  {t("orderDetail.endsIn", { time: returnCountdown })}
                 </div>
               )}
             </div>
@@ -1506,7 +1507,7 @@ const OrderDetailPage = () => {
                       <div className="h-8 w-8 rounded-full bg-[#1A4516]/10 flex items-center justify-center">
                         <Truck size={16} className="text-[#1A4516]" />
                       </div>
-                      <p className="text-sm font-bold text-[#1A4516]">Return Pickup Assigned</p>
+                      <p className="text-sm font-bold text-[#1A4516]">{t("orderDetail.returnPickupAssigned")}</p>
                     </div>
                     <p className="text-xs text-[#1A4516]/80 mb-3 ml-11">
                       A delivery partner is coming to collect your return. Please share this OTP when they arrive:
@@ -1521,7 +1522,7 @@ const OrderDetailPage = () => {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs font-bold text-slate-400 italic">Waiting for rider to request OTP...</p>
+                        <p className="text-xs font-bold text-slate-400 italic">{t("orderDetail.waitingForRiderOtp")}</p>
                       )}
                     </div>
                   </div>
@@ -1529,23 +1530,23 @@ const OrderDetailPage = () => {
 
                 {returnDetails.returnStatus === "return_rejected" && (
                   <p className="text-sm text-rose-600 font-medium bg-rose-50 p-3 rounded-xl border border-rose-100">
-                    Return request rejected:{" "}
-                    {returnDetails.returnRejectedReason || "No reason provided"}
+                    {t("orderDetail.returnRejected")}{" "}
+                    {returnDetails.returnRejectedReason || t("orderDetail.noReason")}
                   </p>
                 )}
                 {returnDetails.returnRefundAmount > 0 &&
                   returnDetails.returnStatus === "refund_completed" && (
                     <div className="bg-[#F5FBF5] p-4 rounded-2xl border border-[#1A4516]/20">
-                      <p className="text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-1">Refund Successful</p>
+                      <p className="text-xs font-bold text-[#1A4516] uppercase tracking-wider mb-1">{t("orderDetail.refundSuccessful")}</p>
                       <p className="text-sm text-[#1A4516] font-medium">
-                        ₹{returnDetails.returnRefundAmount} has been credited to your {order.paymentMethod === 'cod' ? 'hand (Cash)' : 'wallet'}.
+                        {order.paymentMethod === 'cod' ? t("orderDetail.refundCreditedCash", { amount: returnDetails.returnRefundAmount }) : t("orderDetail.refundCreditedWallet", { amount: returnDetails.returnRefundAmount })}
                       </p>
                     </div>
                   )}
               </div>
             ) : (
               <p className="text-sm text-slate-500 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                You can request a return within {returnWindowMinutes >= 1440 ? `${Math.round(returnWindowMinutes / 1440)} day(s)` : returnWindowMinutes >= 60 ? `${Math.round(returnWindowMinutes / 60)} hour(s)` : `${returnWindowMinutes} minute(s)`} after delivery.
+                {t("orderDetail.returnWindow", { window: returnWindowMinutes >= 1440 ? t("orderDetail.days", { count: Math.round(returnWindowMinutes / 1440) }) : returnWindowMinutes >= 60 ? t("orderDetail.hours", { count: Math.round(returnWindowMinutes / 60) }) : t("orderDetail.minutesLong", { count: returnWindowMinutes }) })}
               </p>
             )}
 
@@ -1553,7 +1554,7 @@ const OrderDetailPage = () => {
               <button
                 onClick={() => setShowReturnModal(true)}
                 className="w-full py-4 rounded-2xl bg-slate-900 text-white text-sm font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-[0.98]">
-                Request Return
+                {t("orderDetail.requestReturn")}
               </button>
             )}
           </motion.div>
@@ -1583,10 +1584,10 @@ const OrderDetailPage = () => {
             className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-4"
           >
             <h3 className="text-lg font-black text-slate-900">
-              Request Return
+              {t("orderDetail.requestReturn")}
             </h3>
             <p className="text-xs text-slate-500">
-              Select the items you want to return and tell us why.
+              {t("orderDetail.selectItemsBody")}
             </p>
             <div className="max-h-48 overflow-y-auto space-y-3">
               {order.items.map((item, idx) => {
@@ -1603,10 +1604,10 @@ const OrderDetailPage = () => {
                     />
                     <div className="flex-1">
                       <p className="text-sm font-bold text-slate-800">
-                        {item.name}
+                        {itemName(item)}
                       </p>
                       <p className="text-xs text-slate-500">
-                        Qty: {item.quantity} • ₹{item.price * item.quantity}
+                        {t("orderDetail.qtyLabel", { qty: item.quantity })} • ₹{item.price * item.quantity}
                       </p>
                     </div>
                   </label>
@@ -1617,38 +1618,38 @@ const OrderDetailPage = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-600">
-                  Reason for return
+                  {t("orderDetail.reasonForReturn")}
                 </label>
                 <select
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
                   className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10"
                 >
-                  <option value="" disabled>Select a reason...</option>
-                  <option value="Defective product">Defective product</option>
-                  <option value="Wrong item delivered">Wrong item delivered</option>
-                  <option value="Not as expected">Not as expected</option>
-                  <option value="Size issue">Size issue</option>
-                  <option value="Other">Other</option>
+                  <option value="" disabled>{t("orderDetail.selectReason")}</option>
+                  <option value="Defective product">{t("orderDetail.reasons.defective")}</option>
+                  <option value="Wrong item delivered">{t("orderDetail.reasons.wrongItem")}</option>
+                  <option value="Not as expected">{t("orderDetail.reasons.notAsExpected")}</option>
+                  <option value="Size issue">{t("orderDetail.reasons.size")}</option>
+                  <option value="Other">{t("orderDetail.reasons.other")}</option>
                 </select>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-600">
-                  Detailed Issue Mention
+                  {t("orderDetail.detailedIssue")}
                 </label>
                 <textarea
                   rows={2}
                   value={returnReasonDetail}
                   onChange={(e) => setReturnReasonDetail(e.target.value)}
                   className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10"
-                  placeholder="Describe the issue with the product..."
+                  placeholder={t("orderDetail.describeIssuePh")}
                 />
               </div>
 
               <div className="space-y-2">
                 <p className="text-xs font-bold text-slate-600 uppercase">
-                  Photos ({returnImages.length}/5) *
+                  {t("orderDetail.photos", { count: returnImages.length, max: 5 })} *
                 </p>
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {returnImages.map((img, index) => (
@@ -1696,7 +1697,7 @@ const OrderDetailPage = () => {
                   className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-600"
                 />
                 <span className="text-xs font-semibold text-amber-900 leading-tight">
-                  I confirm the product is returned with proper accessories and is in good condition.
+                  {t("orderDetail.conditionConfirm")}
                 </span>
               </label>
             </div>
@@ -1706,13 +1707,13 @@ const OrderDetailPage = () => {
                 onClick={() => !requestingReturn && setShowReturnModal(false)}
                 className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors"
                 disabled={requestingReturn}>
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleReturnSubmit}
                 className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-70 transition-all"
                 disabled={requestingReturn}>
-                {requestingReturn ? "Submitting..." : "Submit Request"}
+                {requestingReturn ? t("wallet.submitting") : t("wallet.submitRequest")}
               </button>
             </div>
           </motion.div>
@@ -1734,22 +1735,22 @@ const OrderDetailPage = () => {
             className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-4"
           >
             <h3 className="text-lg font-black text-rose-600 flex items-center gap-2">
-              <X size={24} /> Cancel Order
+              <X size={24} /> {t("orderDetail.cancelOrder")}
             </h3>
             <p className="text-sm text-slate-600 font-medium">
-              Are you sure you want to cancel this order?
+              {t("orderDetail.cancelConfirm")}
             </p>
 
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-600">
-                Reason for cancellation *
+                {t("orderDetail.reasonForCancel")} *
               </label>
               <textarea
                 rows={3}
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-500/20"
-                placeholder="Please tell us why you are cancelling..."
+                placeholder={t("orderDetail.cancelReasonPh")}
                 disabled={isCancelling}
               />
             </div>
@@ -1759,13 +1760,13 @@ const OrderDetailPage = () => {
                 onClick={() => !isCancelling && setShowCancelModal(false)}
                 className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors"
                 disabled={isCancelling}>
-                Close
+                {t("common.close")}
               </button>
               <button
                 onClick={handleCancelOrder}
                 className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-70 transition-all shadow-md shadow-rose-600/20"
                 disabled={isCancelling}>
-                {isCancelling ? "Cancelling..." : "Confirm Cancel"}
+                {isCancelling ? t("orderDetail.cancelling") : t("orderDetail.confirmCancel")}
               </button>
             </div>
           </motion.div>

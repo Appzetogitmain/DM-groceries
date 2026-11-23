@@ -4,8 +4,11 @@ import { posApi } from '../services/posApi';
 import { toast } from 'sonner';
 import PosReceipt from '../components/pos/PosReceipt';
 import { generatePosReceiptPdf } from '../components/pos/PosReceiptPdf';
+import { useTranslation } from "react-i18next";
+import { sellerLocale } from "../i18n/format";
 
 const PosSalesHistory = () => {
+    const { t } = useTranslation();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -29,7 +32,7 @@ const PosSalesHistory = () => {
                 setTotalPages(res.data.result.totalPages);
             }
         } catch (error) {
-            toast.error('Failed to load POS history');
+            toast.error(t('sPosHist.loadFailed'));
         } finally {
             setLoading(false);
         }
@@ -43,12 +46,12 @@ const PosSalesHistory = () => {
     const downloadCsv = () => {
         if (orders.length === 0) return;
         
-        const headers = ['Receipt #', 'Date', 'Customer', 'Phone', 'Payment Mode', 'Total Amount'];
+        const headers = [t('sPosHist.receiptNo'), t('common.date'), t('sDash.customer'), t('sOrders.phone'), t('sPosHist.paymentMode'), t('sPosHist.totalAmount')];
         const csvContent = [
             headers.join(','),
             ...orders.map(o => [
                 o.posMetadata?.receiptNumber || o.orderId,
-                new Date(o.createdAt).toLocaleString(),
+                new Date(o.createdAt).toLocaleString(sellerLocale()),
                 `"${o.posMetadata?.walkInCustomerName || 'Walk-in'}"`,
                 o.posMetadata?.walkInCustomerPhone || '',
                 o.paymentMode,
@@ -70,8 +73,8 @@ const PosSalesHistory = () => {
         <div className="p-6 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">POS Sales History</h1>
-                    <p className="text-gray-500">View and manage walk-in counter sales</p>
+                    <h1 className="text-2xl font-bold text-gray-900">{t("sPosHist.title")}</h1>
+                    <p className="text-gray-500">{t("sPosHist.subtitle")}</p>
                 </div>
                 <button
                     onClick={downloadCsv}
@@ -79,7 +82,7 @@ const PosSalesHistory = () => {
                     className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50 transition-colors"
                 >
                     <HiOutlineDocumentDownload size={20} />
-                    Export CSV
+                    {t('sPosHist.exportCsv')}
                 </button>
             </div>
 
@@ -90,7 +93,7 @@ const PosSalesHistory = () => {
                         <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                         <input
                             type="text"
-                            placeholder="Search by receipt # or phone..."
+                            placeholder={t("sPosHist.searchPh")}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -101,10 +104,10 @@ const PosSalesHistory = () => {
                         value={paymentMode}
                         onChange={(e) => setPaymentMode(e.target.value)}
                     >
-                        <option value="">All Payment Modes</option>
-                        <option value="CASH">Cash</option>
-                        <option value="ONLINE">Online/UPI</option>
-                        <option value="MIXED">Mixed</option>
+                        <option value="">{t("sPosHist.allModes")}</option>
+                        <option value="CASH">{t("paymentMethod.cash")}</option>
+                        <option value="ONLINE">{t("sPos.onlineUpi")}</option>
+                        <option value="MIXED">{t("sPos.mixed")}</option>
                     </select>
                 </div>
 
@@ -113,12 +116,12 @@ const PosSalesHistory = () => {
                     <table className="w-full whitespace-nowrap">
                         <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4">Receipt Info</th>
-                                <th className="px-6 py-4">Customer</th>
-                                <th className="px-6 py-4 text-center">Items</th>
-                                <th className="px-6 py-4">Payment</th>
-                                <th className="px-6 py-4 text-right">Amount</th>
-                                <th className="px-6 py-4 text-center">Actions</th>
+                                <th className="px-6 py-4">{t("sPosHist.receiptInfo")}</th>
+                                <th className="px-6 py-4">{t("sDash.customer")}</th>
+                                <th className="px-6 py-4 text-center">{t("sReturns.items")}</th>
+                                <th className="px-6 py-4">{t("sOrders.payment")}</th>
+                                <th className="px-6 py-4 text-right">{t("common.amount")}</th>
+                                <th className="px-6 py-4 text-center">{t("common.actions")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 text-sm">
@@ -127,14 +130,14 @@ const PosSalesHistory = () => {
                                     <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                                         <div className="flex items-center justify-center gap-2">
                                             <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-                                            Loading history...
+                                            {t('sPosHist.loading')}
                                         </div>
                                     </td>
                                 </tr>
                             ) : orders.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                                        No POS orders found matching your criteria.
+                                        {t('sPosHist.none')}
                                     </td>
                                 </tr>
                             ) : (
@@ -142,10 +145,10 @@ const PosSalesHistory = () => {
                                     <tr key={order._id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div className="font-medium text-gray-900">{order.posMetadata?.receiptNumber || order.orderId}</div>
-                                            <div className="text-gray-500 text-xs">{new Date(order.createdAt).toLocaleString()}</div>
+                                            <div className="text-gray-500 text-xs">{new Date(order.createdAt).toLocaleString(sellerLocale())}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-gray-900">{order.posMetadata?.walkInCustomerName || 'Walk-in'}</div>
+                                            <div className="text-gray-900">{order.posMetadata?.walkInCustomerName || t('sPos.walkIn')}</div>
                                             <div className="text-gray-500 text-xs">{order.posMetadata?.walkInCustomerPhone || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 text-center text-gray-700">
@@ -157,7 +160,7 @@ const PosSalesHistory = () => {
                                                 ${order.paymentMode === 'ONLINE' ? 'bg-blue-100 text-blue-800' : ''}
                                                 ${order.paymentMode === 'MIXED' ? 'bg-purple-100 text-purple-800' : ''}
                                             `}>
-                                                {order.paymentMode}
+                                                {t(`sPos.mode.${order.paymentMode}`, { defaultValue: order.paymentMode })}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right font-bold text-gray-900">
@@ -168,14 +171,14 @@ const PosSalesHistory = () => {
                                                 <button 
                                                     onClick={() => setSelectedOrder(order)}
                                                     className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                                    title="View Receipt"
+                                                    title={t("sPosHist.viewReceipt")}
                                                 >
                                                     <HiOutlineEye size={18} />
                                                 </button>
                                                 <button 
                                                     onClick={() => generatePosReceiptPdf(order)}
                                                     className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
-                                                    title="Download PDF"
+                                                    title={t("sPos.downloadPdf")}
                                                 >
                                                     <HiOutlineDocumentDownload size={18} />
                                                 </button>
@@ -196,17 +199,17 @@ const PosSalesHistory = () => {
                             disabled={page === 1}
                             className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
                         >
-                            Previous
+                            {t('common.previous')}
                         </button>
                         <span className="text-sm text-gray-500">
-                            Page {page} of {totalPages}
+                            {t('sPosHist.pageOf', { page, total: totalPages })}
                         </span>
                         <button
                             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                             disabled={page === totalPages}
                             className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
                         >
-                            Next
+                            {t('common.next')}
                         </button>
                     </div>
                 )}

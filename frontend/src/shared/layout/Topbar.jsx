@@ -25,7 +25,9 @@ import { canUseBrowserNotifications, isFlutterWebView, hasNativeFlutterBridge, s
 import ConfirmDialog from '@/shared/components/ui/ConfirmDialog';
 import { useConfirmDialog } from '@/shared/hooks/useConfirmDialog';
 
+import { useLayoutText } from './LayoutTextContext';
 const Topbar = ({ onMenuClick }) => {
+    const lt = useLayoutText();
     const { user, logout, role, token } = useAuth();
     const { settings } = useSettings();
     const navigate = useNavigate();
@@ -187,7 +189,7 @@ const Topbar = ({ onMenuClick }) => {
             if (isAdmin) await adminApi.markNotificationRead(id);
             fetchNotifications();
         } catch (error) {
-            toast.error("Failed to mark as read");
+            toast.error(lt('layout.markReadFailed', 'Failed to mark as read'));
         }
     };
 
@@ -196,9 +198,9 @@ const Topbar = ({ onMenuClick }) => {
             if (isSeller) await sellerApi.markAllNotificationsRead();
             if (isAdmin) await adminApi.markAllNotificationsRead();
             fetchNotifications();
-            toast.success("All caught up!");
+            toast.success(lt('layout.allCaughtUp', 'All caught up!'));
         } catch (error) {
-            toast.error("Failed to mark all as read");
+            toast.error(lt('layout.markAllReadFailed', 'Failed to mark all as read'));
         }
     };
 
@@ -206,10 +208,10 @@ const Topbar = ({ onMenuClick }) => {
 
     const handleLogout = () => {
         confirm.open({
-            title: "Log out",
-            message: "Are you sure you want to log out?",
-            confirmLabel: "Log out",
-            cancelLabel: "Cancel",
+            title: lt('layout.logoutTitle', 'Log out'),
+            message: lt('layout.logoutConfirm', 'Are you sure you want to log out?'),
+            confirmLabel: lt('layout.logoutTitle', 'Log out'),
+            cancelLabel: lt('layout.cancel', 'Cancel'),
             onConfirm: () => {
                 logout();
             }
@@ -246,7 +248,7 @@ const Topbar = ({ onMenuClick }) => {
                     <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-[#1A4516] transition-all duration-300" />
                     <input
                         type="text"
-                        placeholder={isSeller ? "Search products by name or SKU..." : "Search anything..."}
+                        placeholder={isSeller ? lt('layout.searchProductsPh', 'Search products by name or SKU...') : lt('layout.searchAnythingPh', 'Search anything...')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
@@ -309,8 +311,8 @@ const Topbar = ({ onMenuClick }) => {
                         {user?.name?.[0] || 'A'}
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-900 leading-tight">{user?.name || 'Demo User'}</p>
-                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{user?.role || 'Member'}</p>
+                        <p className="text-xs font-bold text-gray-900 leading-tight">{user?.name || lt('layout.demoUser', 'Demo User')}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{user?.role ? lt(`layout.roles.${user.role}`, user.role) : lt('layout.member', 'Member')}</p>
                     </div>
                 </button>
                 <button
@@ -318,7 +320,7 @@ const Topbar = ({ onMenuClick }) => {
                     className="flex items-center space-x-1.5 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-300 font-bold text-xs shadow-sm hover:shadow-rose-100/50"
                 >
                     <HiOutlineLogout className="h-4 w-4" />
-                    <span className="hidden lg:block">Sign Out</span>
+                    <span className="hidden lg:block">{lt('layout.signOut', 'Sign Out')}</span>
                 </button>
             </div>
 

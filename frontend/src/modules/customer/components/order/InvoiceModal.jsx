@@ -3,8 +3,10 @@ import { X, Printer, Download, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSettings } from '@core/context/SettingsContext';
 import { formatOrderId } from '@/lib/utils';
+import { useTranslation } from "react-i18next";
 
 const InvoiceModal = ({ isOpen, onClose, order }) => {
+    const { t } = useTranslation();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
     const primaryColor = settings?.primaryColor || 'var(--primary)';
@@ -30,7 +32,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
             <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Invoice - ${formatOrderId ? formatOrderId(order.orderId) : (order.orderId || order.id)}</title>
+                    <title>${t('invoice.title')} - ${formatOrderId ? formatOrderId(order.orderId) : (order.orderId || order.id)}</title>
                     ${headTags}
                     <style>
                         body { 
@@ -100,7 +102,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
                             {/* Header */}
                             <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
                                 <div>
-                                    <h2 className="text-lg font-black text-slate-800">Invoice</h2>
+                                    <h2 className="text-lg font-black text-slate-800">{t('invoice.title')}</h2>
                                     <p className="text-xs text-slate-500 font-medium">#{formatOrderId ? formatOrderId(order.orderId) : (order.orderId || order.id)}</p>
                                 </div>
                                 <button onClick={onClose} className="p-2 bg-white rounded-full hover:bg-slate-200 transition-colors shadow-sm border border-slate-100">
@@ -116,7 +118,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
                                         <p className="text-xs text-slate-500 print:text-black mt-1">{settings?.companyName || 'Quick Commerce'}<br />{settings?.address || '—'}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-bold text-slate-800 print:text-black">Bill To:</p>
+                                        <p className="text-sm font-bold text-slate-800 print:text-black">{t('invoice.billTo')}</p>
                                         <p className="text-xs text-slate-500 print:text-black mt-1">{order.address?.name}<br />{order.address?.phone}</p>
                                     </div>
                                 </div>
@@ -125,10 +127,10 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100 print:bg-transparent print:text-black print:border-black">
                                             <tr>
-                                                <th className="px-4 py-3">Item</th>
-                                                <th className="px-4 py-3 text-right">Qty</th>
-                                                <th className="px-4 py-3 text-right">Price</th>
-                                                <th className="px-4 py-3 text-right">Total</th>
+                                                <th className="px-4 py-3">{t('invoice.item')}</th>
+                                                <th className="px-4 py-3 text-right">{t('product.qty')}</th>
+                                                <th className="px-4 py-3 text-right">{t('invoice.price')}</th>
+                                                <th className="px-4 py-3 text-right">{t('orders.total')}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50 print:divide-black">
@@ -154,41 +156,41 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
 
                                 <div className="space-y-2 pt-2 border-t border-slate-100 print:border-black">
                                     <div className="flex justify-between text-sm text-slate-500 print:text-black">
-                                        <span>Subtotal</span>
+                                        <span>{t('invoice.subtotal')}</span>
                                         <span>₹{order.pricing?.subtotal || 0}</span>
                                     </div>
                                     <div className="flex justify-between text-sm text-slate-500 print:text-black">
-                                        <span>Delivery Fee</span>
+                                        <span>{t('checkout.deliveryFee')}</span>
                                         <span className={order.pricing?.deliveryFee === 0 ? "text-green-600 font-bold" : ""}>
-                                            {order.pricing?.deliveryFee === 0 ? "FREE" : `₹${order.pricing?.deliveryFee || 0}`}
+                                            {order.pricing?.deliveryFee === 0 ? t('common.free') : `₹${order.pricing?.deliveryFee || 0}`}
                                         </span>
                                     </div>
                                     {order.pricing?.platformFee > 0 && (
                                         <div className="flex justify-between text-sm text-slate-500 print:text-black">
-                                            <span>Handling Fee</span>
+                                            <span>{t('checkout.handlingFee')}</span>
                                             <span>₹{order.pricing.platformFee}</span>
                                         </div>
                                     )}
                                     {(order.pricing?.gst > 0 || order.pricing?.taxAmount > 0) && (
                                         <div className="flex justify-between text-sm text-slate-500 print:text-black">
-                                            <span>Tax</span>
+                                            <span>{t('orderDetail.tax')}</span>
                                             <span>₹{order.pricing?.gst || order.pricing?.taxAmount || 0}</span>
                                         </div>
                                     )}
                                     {order.pricing?.tip > 0 && (
                                         <div className="flex justify-between text-sm text-slate-500 print:text-black">
-                                            <span>Tip</span>
+                                            <span>{t('orderDetail.tip')}</span>
                                             <span>₹{order.pricing.tip}</span>
                                         </div>
                                     )}
                                     {order.pricing?.discount > 0 && (
                                         <div className="flex justify-between text-sm text-green-600 print:text-black">
-                                            <span>Discount</span>
+                                            <span>{t('invoice.discount')}</span>
                                             <span>-₹{order.pricing.discount}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-base font-black text-slate-800 print:text-black pt-2 border-t border-slate-100 print:border-black">
-                                        <span>Total Paid</span>
+                                        <span>{t('invoice.totalPaid')}</span>
                                         <span>₹{order.pricing?.total || 0}</span>
                                     </div>
                                 </div>
@@ -197,7 +199,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
                             {/* Footer Actions */}
                             <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3 print:hidden flex-shrink-0">
                                 <button onClick={handlePrint} className="flex-1 py-3 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg" style={{ backgroundColor: primaryColor }}>
-                                    <Printer size={18} /> Print
+                                    <Printer size={18} /> {t('invoice.print')}
                                 </button>
                             </div>
                         </motion.div>

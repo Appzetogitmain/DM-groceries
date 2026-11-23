@@ -2,6 +2,7 @@ import Customer from "../models/customer.js";
 import Transaction from "../models/transaction.js";
 import jwt from "jsonwebtoken";
 import handleResponse from "../utils/helper.js";
+import { normalizeUiLanguage } from "../constants/languages.js";
 import {
     issueCustomerOtp,
     sanitizeCustomer,
@@ -128,9 +129,10 @@ export const getCustomerProfile = async (req, res) => {
 /* ===============================
    UPDATE PROFILE
 ================================ */
+
 export const updateCustomerProfile = async (req, res) => {
     try {
-        const { name, email, addresses, dob, notificationsEnabled, avatar, bio } = req.body;
+        const { name, email, addresses, dob, notificationsEnabled, avatar, bio, preferredLanguage } = req.body;
 
         const customer = await Customer.findById(req.user.id);
         if (!customer) {
@@ -192,6 +194,13 @@ export const updateCustomerProfile = async (req, res) => {
             }
         }
         if (bio !== undefined) customer.bio = bio;
+        if (preferredLanguage !== undefined) {
+            const lang = normalizeUiLanguage(preferredLanguage);
+            if (!lang) {
+                return handleResponse(res, 400, "Unsupported language");
+            }
+            customer.preferredLanguage = lang;
+        }
 
         await customer.save();
 

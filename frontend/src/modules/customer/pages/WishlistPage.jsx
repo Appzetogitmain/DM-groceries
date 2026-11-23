@@ -4,9 +4,11 @@ import ProductCard from "../components/shared/ProductCard";
 import { useWishlist } from "../context/WishlistContext";
 import { ChevronLeft, Heart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const WishlistPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const {
     wishlist,
     clearWishlist,
@@ -21,9 +23,9 @@ const WishlistPage = () => {
     try {
       setClearing(true);
       await clearWishlist();
-      toast.success("Wishlist cleared");
+      toast.success(t("wishlist.cleared"));
     } catch {
-      toast.error("Failed to clear wishlist");
+      toast.error(t("wishlist.clearFailed"));
     } finally {
       setClearing(false);
     }
@@ -54,10 +56,10 @@ const WishlistPage = () => {
           </button>
           <div>
             <h1 className="text-[19px] font-bold text-[#1A4516] tracking-tight">
-              My Wishlist
+              {t("profile.myWishlist")}
             </h1>
             <p className="text-xs font-medium text-[#1A4516]/70">
-              {wishlist.length} {wishlist.length === 1 ? "item" : "items"} saved
+              {t("wishlist.itemsSaved", { count: wishlist.length })}
             </p>
           </div>
         </div>
@@ -66,7 +68,7 @@ const WishlistPage = () => {
             onClick={handleClear}
             disabled={clearing}
             className="flex items-center gap-1.5 text-[#1A4516] text-xs font-bold hover:bg-[#F5FBF5] px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
-            <Trash2 size={14} /> {clearing ? "Clearing..." : "Clear"}
+            <Trash2 size={14} /> {clearing ? t("wishlist.clearing") : t("common.clear")}
           </button>
         )}
       </div>
@@ -88,15 +90,15 @@ const WishlistPage = () => {
               <Heart size={26} className="text-[#1A4516]" strokeWidth={2} />
             </div>
             <h2 className="text-lg font-bold text-[#1A4516] mb-1">
-              No items in wishlist
+              {t("wishlist.emptyTitle")}
             </h2>
             <p className="text-[#1A4516]/80 text-sm mb-6 max-w-xs mx-auto">
-              Start saving your favorite items to see them here later.
+              {t("wishlist.emptyBody")}
             </p>
             <Link
               to="/user/categories"
               className="px-6 py-3 bg-[#1A4516] text-white text-[15px] font-bold rounded-xl shadow-lg hover:bg-[#0a3000] active:scale-[0.98] transition-all">
-              Explore Products
+              {t("wishlist.exploreProducts")}
             </Link>
           </div>
         )}

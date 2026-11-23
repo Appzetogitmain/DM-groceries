@@ -56,6 +56,17 @@ const packageSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
+        // Optional seller-entered display names (customer panel falls back to `name`).
+        nameHi: {
+            type: String,
+            trim: true,
+            default: "",
+        },
+        nameGu: {
+            type: String,
+            trim: true,
+            default: "",
+        },
         slug: {
             type: String,
             required: true,

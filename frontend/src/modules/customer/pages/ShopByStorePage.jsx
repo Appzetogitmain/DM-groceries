@@ -8,11 +8,15 @@ import {
   getBackgroundColorByValue,
 } from "@/shared/constants/offerSectionOptions";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
+import { useTranslation } from "react-i18next";
+import { getLocalizedName } from "../i18n/format";
 
 const mapProduct = (p) => ({
   id: p._id,
   _id: p._id,
   name: p.name,
+  nameHi: p.nameHi,
+  nameGu: p.nameGu,
   image:
     p.mainImage ||
     p.image ||
@@ -24,6 +28,7 @@ const mapProduct = (p) => ({
 });
 
 const ShopByStorePage = () => {
+  const { t } = useTranslation();
   const { currentLocation } = useAppLocation();
   const [sections, setSections] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -87,24 +92,21 @@ const ShopByStorePage = () => {
       <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <p className="text-xs md:text-sm font-black uppercase tracking-[0.25em] text-primary/80 mb-2">
-            Shop by store
+            {t("stores.shopByStore")}
           </p>
           <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-3">
-            Curated Aisles,{" "}
-            <span className="text-primary">Just for You</span>
+            {t("stores.titleLine1")}{" "}
+            <span className="text-primary">{t("stores.titleLine2")}</span>
           </h1>
           <p className="text-slate-500 text-sm md:text-lg font-medium max-w-2xl">
-            Jump straight into themed collections – from{" "}
-            <span className="font-semibold">Summer Coolers</span> to{" "}
-            <span className="font-semibold">Breakfast Essentials</span>. Every
-            store is hand–picked by your team in the admin panel.
+            {t("stores.intro")}
           </p>
         </div>
         {activeStore && (
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/15 text-xs md:text-sm font-bold text-primary">
             <Tag size={16} />
             <span className="truncate max-w-[180px] md:max-w-xs">
-              Currently exploring: {activeStore.title}
+              {t("stores.currentlyExploring", { title: activeStore.title })}
             </span>
           </div>
         )}
@@ -115,7 +117,7 @@ const ShopByStorePage = () => {
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2 md:mx-0 md:px-0">
           {isLoading && (
             <div className="text-slate-400 text-sm font-medium">
-              Loading stores...
+              {t("stores.loadingStores")}
             </div>
           )}
           {!isLoading &&
@@ -147,7 +149,7 @@ const ShopByStorePage = () => {
                   </div>
                   <div className="flex-1 text-left">
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-1 line-clamp-1">
-                      Curated store
+                      {t("stores.curatedStore")}
                     </p>
                     <p className="text-sm md:text-base font-black text-slate-800 line-clamp-2">
                       {store.title}
@@ -174,19 +176,18 @@ const ShopByStorePage = () => {
               <div className="p-6 md:p-8 flex-1 flex flex-col justify-between relative z-10">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.3em] text-brand-500 mb-2">
-                    {activeStore.categoryIds?.length || 0}+ categories
+                    {t("stores.categoriesCount", { count: activeStore.categoryIds?.length || 0 })}
                   </p>
                   <h2 className="text-2xl md:text-3xl font-[1000] text-slate-900 leading-tight mb-2">
-                    {activeStore.title || "Featured Store"}
+                    {activeStore.title || t("stores.featuredStore")}
                   </h2>
                   <p className="text-sm text-slate-600 font-medium max-w-md">
-                    Explore all hand–picked items under this theme. Perfect for
-                    quick shopping with zero search.
+                    {t("stores.exploreBody")}
                   </p>
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-700">
                   <Sparkles size={16} className="text-amber-500" />
-                  <span>Tap a block on the right to see products instantly</span>
+                  <span>{t("stores.tapBlock")}</span>
                 </div>
               </div>
               <div className="absolute -right-10 bottom-0 w-40 h-40 md:w-52 md:h-52 bg-brand-300/40 rounded-full blur-3xl" />
@@ -199,12 +200,12 @@ const ShopByStorePage = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
               {(activeStore.categoryIds || []).length === 0 && (
                 <div className="col-span-2 md:col-span-3 text-center text-slate-400 text-sm font-medium py-6">
-                  No categories linked to this store yet.
+                  {t("stores.noCategories")}
                 </div>
               )}
               {(activeStore.categoryIds || []).map((cat) => {
                 const name =
-                  typeof cat === "object" && cat?.name ? cat.name : "Category";
+                  typeof cat === "object" && cat?.name ? getLocalizedName(cat) : t("nav.category");
                 const key = cat?._id || String(name);
                 const sampleImage = getSideImageByKey(activeStore.sideImageKey);
                 return (
@@ -241,10 +242,10 @@ const ShopByStorePage = () => {
         <div className="flex items-center justify-between mb-4 md:mb-6 gap-3">
           <div>
             <h3 className="text-lg md:text-2xl font-[1000] text-slate-900 tracking-tight">
-              {activeStore ? "All products in this store" : "Stores coming soon"}
+              {activeStore ? t("stores.allProducts") : t("stores.comingSoon")}
             </h3>
             <p className="text-xs md:text-sm text-slate-500 font-medium">
-              Scroll sideways to explore everything under this curated aisle.
+              {t("stores.scrollSideways")}
             </p>
           </div>
         </div>
@@ -252,12 +253,12 @@ const ShopByStorePage = () => {
 	        <div className="flex overflow-x-auto gap-4 pb-2 no-scrollbar scroll-smooth snap-x snap-mandatory">
           {isLoading && (
             <div className="w-full py-8 text-center text-slate-400 text-sm font-bold">
-              Loading products...
+              {t("stores.loadingProducts")}
             </div>
           )}
           {!isLoading && activeStore && activeProducts.length === 0 && (
             <div className="w-full py-8 text-center text-slate-400 text-sm font-bold">
-              No products linked to this store yet.
+              {t("stores.noProducts")}
             </div>
           )}
           {!isLoading &&

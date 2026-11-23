@@ -15,6 +15,7 @@ import {
 import customerPin from "@/assets/customer-pin.png";
 import deliveryIcon from "@/assets/deliveryIcon.png";
 import storePin from "@/assets/store-pin.png";
+import { useTranslation } from "react-i18next";
 
 const libraries = ["places", "geometry"];
 
@@ -144,6 +145,7 @@ const LiveTrackingMap = memo(({
   routePolyline,
   onOpenInMaps,
 }) => {
+  const { t } = useTranslation();
   const mapRef = useRef(null);
   const initialFitDoneRef = useRef(false);
   const [mapInstance, setMapInstance] = useState(null);
@@ -500,11 +502,10 @@ const LiveTrackingMap = memo(({
           <Clock size={28} />
         </div>
         <h3 className="text-lg font-black text-slate-800 text-center">
-          Order cancelled
+          {t("tracking.cancelledTitle")}
         </h3>
         <p className="text-sm text-slate-500 text-center max-w-sm font-medium">
-          This order is closed. If payment was reserved, any applicable refund
-          follows your store policy.
+          {t("tracking.cancelledBody")}
         </p>
       </div>
     );
@@ -520,11 +521,10 @@ const LiveTrackingMap = memo(({
           <Clock size={30} className="text-white" />
         </motion.div>
         <h3 className="text-lg font-black text-gray-800 text-center">
-          Waiting for seller to accept
+          {t("tracking.waitingSeller")}
         </h3>
         <p className="text-sm text-gray-500 text-center max-w-sm font-medium">
-          The store has up to 5 minutes to confirm. If they don&apos;t, your
-          order will be cancelled automatically.
+          {t("tracking.waitingSellerBody")}
         </p>
       </div>
     );
@@ -541,10 +541,10 @@ const LiveTrackingMap = memo(({
           <Loader2 size={30} className="text-amber-600 animate-spin" />
         </motion.div>
         <h3 className="text-lg font-black text-gray-800 text-center">
-          Delivery partner unavailable
+          {t("tracking.partnerUnavailable")}
         </h3>
         <p className="text-sm text-gray-600 text-center max-w-sm font-medium leading-relaxed">
-          Delivery partner is currently unavailable. We are trying to assign a delivery partner. Please try again after some time.
+          {t("tracking.partnerUnavailableBody")}
         </p>
         <motion.div
           animate={{ y: [0, -4, 0] }}
@@ -552,7 +552,7 @@ const LiveTrackingMap = memo(({
           className="bg-white px-4 py-2 rounded-full shadow-md border border-amber-200 flex items-center gap-2">
           <div className="h-2 w-2 bg-amber-500 rounded-full animate-pulse" />
           <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-            Awaiting Assignment
+            {t("tracking.awaitingAssignment")}
           </span>
         </motion.div>
       </div>
@@ -590,10 +590,10 @@ const LiveTrackingMap = memo(({
         {/* Text */}
         <div className="relative z-10 text-center px-6">
           <h3 className="text-lg font-black text-gray-800">
-            Searching for delivery partner{dots}
+            {t("tracking.searching")}{dots}
           </h3>
           <p className="text-sm text-gray-500 mt-1 font-medium">
-            Hang tight! We're finding the best rider near you.
+            {t("tracking.hangTight")}
           </p>
         </div>
 
@@ -605,8 +605,8 @@ const LiveTrackingMap = memo(({
           <div className="h-2 w-2 bg-brand-500 rounded-full animate-pulse" />
           <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
             {status === "confirmed"
-              ? "Order Confirmed · Assigning Rider"
-              : "Order Placed · Finding Rider"}
+              ? t("tracking.confirmedAssigning")
+              : t("tracking.placedFinding")}
           </span>
         </motion.div>
       </div>
@@ -629,7 +629,7 @@ const LiveTrackingMap = memo(({
   if (loadError) {
     return (
       <div className="relative w-full h-[350px] bg-rose-50 rounded-b-[2rem] flex items-center justify-center text-xs text-rose-700 px-4">
-        Map failed to load. Check the API key and billing.
+        {t("tracking.mapFailed")}
       </div>
     );
   }
@@ -690,7 +690,7 @@ const LiveTrackingMap = memo(({
                   objectFit: "contain",
                   display: "block",
                 }}
-                alt="Delivery Partner"
+                alt={t("orderDetail.deliveryPartner")}
               />
             </div>
           </OverlayView>
@@ -700,7 +700,7 @@ const LiveTrackingMap = memo(({
         {shouldShowStoreMarker && (
           <Marker
             position={sellerLocation}
-            title="Store Location"
+            title={t("orderDetail.storeLocation")}
             icon={storeMarkerIcon}
           />
         )}
@@ -709,7 +709,7 @@ const LiveTrackingMap = memo(({
         {shouldShowCustomerMarker && (
           <Marker
             position={destinationLocation}
-            title="Your Location"
+            title={t("tracking.yourLocation")}
             icon={customerMarkerIcon}
           />
         )}
@@ -739,7 +739,7 @@ const LiveTrackingMap = memo(({
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-              Arriving in
+              {t("orderSteps.arrivingIn")}
             </p>
             <h2 className="text-xl font-black text-gray-900 leading-none">
               {eta}
@@ -756,7 +756,7 @@ const LiveTrackingMap = memo(({
           }}
         >
           <MapPin size={14} className="text-primary" />
-          Open in Maps
+          {t("tracking.openInMaps")}
         </button>
       </div>
 
@@ -772,19 +772,19 @@ const LiveTrackingMap = memo(({
                 <div className="h-10 w-10 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-sm">
                   <img
                     src={riderImage || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&auto=format&fit=crop&q=60"}
-                    alt="Rider"
+                    alt={t("tracking.rider")}
                     className="h-full w-full object-cover"
                   />
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 bg-primary text-primary-foreground text-[7px] font-bold px-1 py-0.5 rounded-full flex items-center gap-0.5">
-                  {riderRating > 0 ? riderRating : 'New'} <Star size={5} fill="white" />
+                  {riderRating > 0 ? riderRating : t('common.new')} <Star size={5} fill="white" />
                 </div>
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-gray-900 text-xs truncate">{riderName}</h3>
                 <p className="text-[10px] text-gray-500 flex items-center gap-1">
                   <Shield size={8} />
-                  Vaccinated {riderPlate ? `• ${riderPlate}` : ""}
+                  {t("tracking.vaccinated")} {riderPlate ? `• ${riderPlate}` : ""}
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
@@ -795,7 +795,7 @@ const LiveTrackingMap = memo(({
                       e.preventDefault();
                     }
                   }}
-                  title={cleanRiderPhone ? `Call ${riderName || 'rider'}` : "Phone number not available"}
+                  title={cleanRiderPhone ? t("tracking.callName", { name: riderName || t("tracking.rider") }) : t("tracking.noPhone")}
                   className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
                     cleanRiderPhone
                       ? "bg-brand-50 text-primary hover:bg-brand-100"
@@ -811,7 +811,7 @@ const LiveTrackingMap = memo(({
                       e.preventDefault();
                     }
                   }}
-                  title={cleanRiderPhone ? `Message ${riderName || 'rider'}` : "Phone number not available"}
+                  title={cleanRiderPhone ? t("tracking.messageName", { name: riderName || t("tracking.rider") }) : t("tracking.noPhone")}
                   className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
                     cleanRiderPhone
                       ? "bg-brand-50 text-brand-600 hover:bg-brand-100"
@@ -830,7 +830,7 @@ const LiveTrackingMap = memo(({
       {!riderLocation && riderName && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 bg-amber-50/95 text-amber-900 text-[11px] px-3 py-1.5 rounded-full border border-amber-200 shadow-sm font-bold flex items-center gap-2">
           <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-          Connecting to rider GPS...
+          {t("tracking.connectingGps")}
         </div>
       )}
 

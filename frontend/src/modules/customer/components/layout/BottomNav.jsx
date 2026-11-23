@@ -2,12 +2,13 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, LayoutGrid, ShoppingBag, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const navItems = [
-    { label: 'Home', icon: Home, path: '/user', exact: true },
-    { label: 'Category', icon: LayoutGrid, path: '/user/categories' },
-    { label: 'Orders', icon: ShoppingBag, path: '/user/orders' },
-    { label: 'Profile', icon: User, path: '/user/profile' },
+    { labelKey: 'nav.home', icon: Home, path: '/user', exact: true },
+    { labelKey: 'nav.category', icon: LayoutGrid, path: '/user/categories' },
+    { labelKey: 'nav.orders', icon: ShoppingBag, path: '/user/orders' },
+    { labelKey: 'nav.profile', icon: User, path: '/user/profile' },
 ];
 
 const isItemActive = (item, pathname) => {
@@ -19,10 +20,11 @@ const isItemActive = (item, pathname) => {
 
 const BottomNav = () => {
     const location = useLocation();
+    const { t } = useTranslation();
 
     return (
         <nav
-            aria-label="Main navigation"
+            aria-label={t('nav.mainNavigation')}
             className="fixed bottom-0 left-0 right-0 z-[500] md:hidden rounded-t-[24px] border-t border-gray-100 bg-white/95 backdrop-blur-md shadow-[0_-6px_24px_rgba(0,0,0,0.08)] px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
         >
             <ul className="mx-auto flex max-w-md items-stretch justify-between">
@@ -57,7 +59,7 @@ const BottomNav = () => {
                                         active ? 'font-extrabold text-[#1A4516]' : 'font-semibold text-gray-400'
                                     )}
                                 >
-                                    {item.label}
+                                    {t(item.labelKey)}
                                 </span>
                             </Link>
                         </li>

@@ -6,6 +6,7 @@ import { useAuth } from '@core/context/AuthContext';
 import { cn, notificationImageUrl } from '@/lib/utils';
 import { describePushSupport, ensureFcmTokenRegistered, hasRegisteredFcmToken } from '@core/firebase/pushClient';
 
+import { useLayoutText } from './LayoutTextContext';
 // Push alerts need the browser permission AND a registered device token. When either is missing
 // the user only ever sees notifications inside this panel, so say so and offer a one-click fix.
 const getPushState = (role) => {
@@ -18,6 +19,7 @@ const getPushState = (role) => {
 };
 
 const PushPrompt = ({ role }) => {
+    const lt = useLayoutText();
     const [state, setState] = useState(() => getPushState(role));
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
@@ -31,7 +33,7 @@ const PushPrompt = ({ role }) => {
             await ensureFcmTokenRegistered({ role, platform: 'web' });
             setState('ok');
         } catch (err) {
-            setError(err?.message || 'Could not turn on notifications');
+            setError(lt('layout.pushEnableFailed', 'Could not turn on notifications'));
             setState(getPushState(role) === 'blocked' ? 'blocked' : 'ask');
         } finally {
             setBusy(false);
@@ -42,13 +44,12 @@ const PushPrompt = ({ role }) => {
         <div className="mx-3 mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex-shrink-0">
             {state === 'blocked' ? (
                 <p className="text-[11px] font-semibold leading-snug text-amber-900">
-                    Notifications are blocked for this site. Click the lock icon next to the address bar, set
-                    <strong> Notifications</strong> to <strong>Allow</strong>, then refresh the page.
+                    {lt('layout.pushBlocked', 'Notifications are blocked for this site. Click the lock icon next to the address bar, set Notifications to Allow, then refresh the page.')}
                 </p>
             ) : (
                 <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-semibold leading-snug text-amber-900">
-                        Pop-up alerts are off on this device. Turn on to get notified instantly.
+                        {lt('layout.pushOff', 'Pop-up alerts are off on this device. Turn on to get notified instantly.')}
                     </p>
                     <button
                         type="button"
@@ -56,7 +57,7 @@ const PushPrompt = ({ role }) => {
                         disabled={busy}
                         className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white hover:bg-amber-700 disabled:opacity-60"
                     >
-                        {busy ? 'Please wait...' : 'Turn on'}
+                        {busy ? lt('layout.pleaseWait', 'Please wait...') : lt('layout.turnOn', 'Turn on')}
                     </button>
                 </div>
             )}
@@ -66,6 +67,7 @@ const PushPrompt = ({ role }) => {
 };
 
 const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClose, disableAnimation = false, portaled = false }) => {
+    const lt = useLayoutText();
     const navigate = useNavigate();
     const { role } = useAuth();
 
@@ -134,14 +136,14 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                         <HiOutlineBell className="h-4 w-4" />
                     </div>
-                    <h3 className="text-sm font-black text-slate-900 tracking-tight">Notifications</h3>
+                    <h3 className="text-sm font-black text-slate-900 tracking-tight">{lt('layout.notifications', 'Notifications')}</h3>
                 </div>
                 {notifications.length > 0 && (
                     <button
                         onClick={onMarkAllAsRead}
                         className="text-[10px] font-black text-primary hover:text-primary/80 uppercase tracking-widest transition-colors"
                     >
-                        Mark all as read
+                        {lt('layout.markAllRead', 'Mark all as read')}
                     </button>
                 )}
             </div>
@@ -213,8 +215,8 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
                         <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                             <HiOutlineBell className="h-8 w-8 text-slate-300" />
                         </div>
-                        <p className="text-sm font-black text-slate-900 mb-1">No New Notifications</p>
-                        <p className="text-xs text-slate-400 font-medium">We'll alert you when something happens.</p>
+                        <p className="text-sm font-black text-slate-900 mb-1">{lt('layout.noNotifications', 'No New Notifications')}</p>
+                        <p className="text-xs text-slate-400 font-medium">{lt('layout.noNotificationsBody', "We'll alert you when something happens.")}</p>
                     </div>
                 )}
             </div>
@@ -224,7 +226,7 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
                     onClick={onClose}
                     className="text-[10px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest transition-colors"
                 >
-                    Close Panel
+                    {lt('layout.closePanel', 'Close Panel')}
                 </button>
             </div>
         </motion.div>

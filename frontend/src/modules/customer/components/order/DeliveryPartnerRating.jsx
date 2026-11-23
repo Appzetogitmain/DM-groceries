@@ -3,8 +3,10 @@ import { Star } from "lucide-react";
 import { customerApi } from "../../services/customerApi";
 import { toast } from "sonner";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
+import { useTranslation } from "react-i18next";
 
 export default function DeliveryPartnerRating({ orderId, deliveryBoy }) {
+  const { t } = useTranslation();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -16,7 +18,7 @@ export default function DeliveryPartnerRating({ orderId, deliveryBoy }) {
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      toast.error("Please select a rating");
+      toast.error(t("rating.selectRating"));
       return;
     }
     
@@ -28,10 +30,10 @@ export default function DeliveryPartnerRating({ orderId, deliveryBoy }) {
         rating,
         comment
       });
-      toast.success("Thank you for your feedback!");
+      toast.success(t("rating.thanks"));
       setSubmitted(true);
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to submit review");
+      toast.error(error?.response?.data?.message || t("product.reviewFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -39,7 +41,7 @@ export default function DeliveryPartnerRating({ orderId, deliveryBoy }) {
 
   return (
     <div className="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-slate-100 flex flex-col items-center">
-      <h3 className="font-bold text-slate-800 mb-2">How was your delivery?</h3>
+      <h3 className="font-bold text-slate-800 mb-2">{t("rating.howWasDelivery")}</h3>
       <div className="flex items-center gap-3 mb-4 bg-slate-50 px-4 py-2 rounded-xl">
         <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden shrink-0">
            {deliveryBoy.profileImage ? (
@@ -51,7 +53,7 @@ export default function DeliveryPartnerRating({ orderId, deliveryBoy }) {
            )}
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-800">Rate {deliveryBoy.name}</p>
+          <p className="text-sm font-semibold text-slate-800">{t("rating.rateName", { name: deliveryBoy.name })}</p>
         </div>
       </div>
 
@@ -78,7 +80,7 @@ export default function DeliveryPartnerRating({ orderId, deliveryBoy }) {
         <div className="w-full mt-2 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
           <textarea
             className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-shadow"
-            placeholder="Any comments? (Optional)"
+            placeholder={t("rating.commentsPh")}
             rows="2"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
@@ -89,7 +91,7 @@ export default function DeliveryPartnerRating({ orderId, deliveryBoy }) {
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Submitting..." : "Submit Review"}
+            {isSubmitting ? t("wallet.submitting") : t("rating.submit")}
           </button>
         </div>
       )}

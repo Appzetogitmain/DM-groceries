@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { useAuth } from '@core/context/AuthContext';
 import { useSettings } from '@core/context/SettingsContext';
 import { cn } from '@/lib/utils';
+import { useTranslation } from "react-i18next";
+import { sellerLocale } from "../i18n/format";
 
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -22,6 +24,7 @@ const loadRazorpayScript = () => {
 };
 
 const Subscription = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const { settings } = useSettings();
     const isSubscriptionOnlineEnabled = settings?.sellerSubscriptionOnlineEnabled !== false;
@@ -53,7 +56,7 @@ const Subscription = () => {
             // Always fetch all plans so the seller can see/upgrade
             await fetchPlans();
         } catch (error) {
-            toast.error(error.message || "Failed to load subscription details");
+            toast.error(t("sSub.loadFailed"));
         } finally {
             setLoading(false);
         }
@@ -64,7 +67,7 @@ const Subscription = () => {
             const res = await sellerApi.getAvailablePlans();
             setPlans(res.data?.results || res.data?.result || []);
         } catch (error) {
-            toast.error("Failed to load plans");
+            toast.error(t("sSub.plansFailed"));
         }
     };
 
@@ -90,7 +93,7 @@ const Subscription = () => {
             setProcessing(true);
             const isLoaded = await loadRazorpayScript();
             if (!isLoaded) {
-                toast.error("Razorpay SDK failed to load. Please check your connection.");
+                toast.error(t("sSub.sdkFailed"));
                 setProcessing(false);
                 return;
             }
@@ -106,14 +109,14 @@ const Subscription = () => {
 
             // If it's a free plan or 100% discount, it activates immediately
             if (!orderData.paymentRequired) {
-                toast.success("Subscription activated successfully!");
+                toast.success(t("sSub.activated"));
                 setCheckoutModalOpen(false);
                 init(); // Reload state
                 return;
             }
 
             if (!isSubscriptionOnlineEnabled) {
-                toast.error("Online payment for subscriptions is currently turned off by admin.");
+                toast.error(t("sSub.onlineOff"));
                 setProcessing(false);
                 return;
             }
@@ -134,11 +137,11 @@ const Subscription = () => {
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
                         });
-                        toast.success("Payment successful! Subscription activated.");
+                        toast.success(t("sSub.paymentSuccess"));
                         setCheckoutModalOpen(false);
                         init();
                     } catch (err) {
-                        toast.error(err.message || "Payment verification failed");
+                        toast.error(t("sSub.verifyFailed"));
                     } finally {
                         setProcessing(false);
                     }
@@ -155,7 +158,7 @@ const Subscription = () => {
 
             const rzp = new window.Razorpay(options);
             rzp.on('payment.failed', function (response) {
-                toast.error("Payment failed: " + response.error.description);
+                toast.error(t("sSub.paymentFailed", { reason: response.error.description }));
                 setProcessing(false);
             });
             
@@ -164,7 +167,7 @@ const Subscription = () => {
             rzp.open();
 
         } catch (error) {
-            toast.error(error.message || "Failed to initiate checkout");
+            toast.error(t("sSub.checkoutFailed"));
             setProcessing(false);
         }
     };
@@ -180,8 +183,8 @@ const Subscription = () => {
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-10">
             <PageHeader
-                title="Subscription & Billing"
-                description="Manage your seller plan and feature access"
+                title={t("sSub.title")}
+                description={t("sSub.subtitle")}
             />
 
             {currentSub && (
@@ -194,10 +197,10 @@ const Subscription = () => {
                                     <AlertCircle className="w-6 h-6 text-blue-600" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-blue-900 text-base">📊 50% Order Limit Reached</h3>
+                                    <h3 className="font-bold text-blue-900 text-base">📊 {t("sDash.limit50")}</h3>
                                     <p className="text-blue-800 text-sm mt-0.5">
-                                        You have used <span className="font-bold">{currentSub.usagePercentage}%</span> of your {currentSub.billingCycle?.toLowerCase()} order limit.
-                                        <span className="font-bold"> {currentSub.remainingOrders}</span> of your order limit is remaining.
+                                        {t("sDash.youHaveUsed")} <span className="font-bold">{currentSub.usagePercentage}%</span> {t("sDash.ofYourLimit", { cycle: t(`sDash.cycle.${String(currentSub.billingCycle || "").toLowerCase()}`, { defaultValue: currentSub.billingCycle?.toLowerCase() || "" }) })}.
+                                        <span className="font-bold"> {currentSub.remainingOrders}</span> {t("sSub.limitRemaining")}
                                     </p>
                                 </div>
                             </div>
@@ -212,16 +215,16 @@ const Subscription = () => {
                                     <AlertCircle className="w-6 h-6 text-amber-600" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-amber-900 text-base">⚠️ Order Limit Almost Reached</h3>
+                                    <h3 className="font-bold text-amber-900 text-base">⚠️ {t("sDash.limitAlmost")}</h3>
                                     <p className="text-amber-800 text-sm mt-0.5">
-                                        You have used <span className="font-bold">{currentSub.usagePercentage}%</span> of your {currentSub.billingCycle?.toLowerCase()} order limit.
-                                        Only <span className="font-bold">{currentSub.remainingOrders}</span> of your order limit is remaining.
-                                        Please consider upgrading your plan.
+                                        {t("sDash.youHaveUsed")} <span className="font-bold">{currentSub.usagePercentage}%</span> {t("sDash.ofYourLimit", { cycle: t(`sDash.cycle.${String(currentSub.billingCycle || "").toLowerCase()}`, { defaultValue: currentSub.billingCycle?.toLowerCase() || "" }) })}.
+                                        {t("sDash.only")} <span className="font-bold">{currentSub.remainingOrders}</span> {t("sSub.limitRemaining")}
+                                        {t("sSub.considerUpgrading")}
                                     </p>
                                 </div>
                             </div>
                             <Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-2 whitespace-nowrap bg-amber-600 hover:bg-amber-700">
-                                <Crown className="w-4 h-4" /> Upgrade Plan
+                                <Crown className="w-4 h-4" /> {t("sDash.upgradePlan")}
                             </Button>
                         </div>
                     )}
@@ -234,15 +237,15 @@ const Subscription = () => {
                                     <AlertCircle className="w-6 h-6 text-red-600" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-red-900 text-base">🚫 Order Limit Reached</h3>
+                                    <h3 className="font-bold text-red-900 text-base">🚫 {t("alerts.limitReached")}</h3>
                                     <p className="text-red-800 text-sm mt-0.5">
-                                        You have used all <span className="font-bold">{currentSub.orderLimit}</span> orders in your current plan.
-                                        New orders will be blocked. Please upgrade your plan immediately.
+                                        {t("sDash.usedAll")} <span className="font-bold">{currentSub.orderLimit}</span> {t("sDash.ordersInPlan")}
+                                        {t("sSub.blocked")}
                                     </p>
                                 </div>
                             </div>
                             <Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-2 whitespace-nowrap bg-red-600 hover:bg-red-700">
-                                <Crown className="w-4 h-4" /> Upgrade Now
+                                <Crown className="w-4 h-4" /> {t("sDash.upgradeNow")}
                             </Button>
                         </div>
                     )}
@@ -254,27 +257,27 @@ const Subscription = () => {
                                     <h2 className="text-2xl font-bold text-gray-900">{currentSub.planSnapshot?.name || currentSub.plan?.name}</h2>
                                     <StatusBadge status={currentSub.status} />
                                 </div>
-                                <p className="text-gray-600 mt-1">Billing Cycle: <span className="font-medium text-gray-900">{currentSub.billingCycle}</span></p>
+                                <p className="text-gray-600 mt-1">{t("sSub.billingCycle")}: <span className="font-medium text-gray-900">{t(`sSub.cycles.${String(currentSub.billingCycle || "").toUpperCase()}`, { defaultValue: currentSub.billingCycle })}</span></p>
                             </div>
                             <Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-2">
-                                <Crown className="w-4 h-4" /> Change / Upgrade Plan
+                                <Crown className="w-4 h-4" /> {t("sSub.changeUpgrade")}
                             </Button>
                         </div>
                         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="space-y-1">
-                                <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Valid From</p>
-                                <p className="text-lg font-semibold text-gray-900">{new Date(currentSub.startDate).toLocaleDateString()}</p>
+                                <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">{t("sSub.validFrom")}</p>
+                                <p className="text-lg font-semibold text-gray-900">{new Date(currentSub.startDate).toLocaleDateString(sellerLocale())}</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Valid Until</p>
-                                <p className="text-lg font-semibold text-gray-900">{new Date(currentSub.endDate).toLocaleDateString()}</p>
+                                <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">{t("sSub.validUntil")}</p>
+                                <p className="text-lg font-semibold text-gray-900">{new Date(currentSub.endDate).toLocaleDateString(sellerLocale())}</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Order Limit Usage</p>
+                                <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">{t("sSub.limitUsage")}</p>
                                 <div className="flex items-center gap-2">
                                     <ShoppingBag className="w-5 h-5 text-gray-400" />
                                     {currentSub.orderLimit === null || currentSub.orderLimit === undefined ? (
-                                        <span className="text-lg font-semibold text-gray-900">Unlimited</span>
+                                        <span className="text-lg font-semibold text-gray-900">{t("sSub.unlimited")}</span>
                                     ) : (
                                         <div className="w-full">
                                             <p className="text-lg font-semibold text-gray-900">
@@ -304,15 +307,15 @@ const Subscription = () => {
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         <div className="text-center p-3 bg-blue-50 rounded-xl">
                                             <p className="text-xl font-extrabold text-blue-700">{currentSub.ordersUsed || 0}</p>
-                                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-1">Used Orders</p>
+                                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-1">{t("sDash.usedOrders")}</p>
                                         </div>
                                         <div className="text-center p-3 bg-slate-50 rounded-xl">
                                             <p className="text-xl font-extrabold text-slate-700">{currentSub.orderLimit}</p>
-                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">Total Limit</p>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">{t("sDash.totalLimit")}</p>
                                         </div>
                                         <div className="text-center p-3 bg-green-50 rounded-xl">
                                             <p className="text-xl font-extrabold text-green-700">{currentSub.remainingOrders ?? Math.max(0, currentSub.orderLimit - (currentSub.ordersUsed || 0))}</p>
-                                            <p className="text-[10px] font-bold text-green-500 uppercase tracking-wider mt-1">Remaining</p>
+                                            <p className="text-[10px] font-bold text-green-500 uppercase tracking-wider mt-1">{t("sDash.remaining")}</p>
                                         </div>
                                         <div className="text-center p-3 bg-amber-50 rounded-xl">
                                             <p className={cn(
@@ -321,7 +324,7 @@ const Subscription = () => {
                                             )}>
                                                 {currentSub.usagePercentage ?? Math.round(((currentSub.ordersUsed || 0) / currentSub.orderLimit) * 100)}%
                                             </p>
-                                            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mt-1">Usage</p>
+                                            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mt-1">{t("sDash.usage")}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -330,7 +333,7 @@ const Subscription = () => {
                     </Card>
 
                     <div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Included Features</h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">{t("sSub.included")}</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {currentSub.plan?.features?.map((feature, idx) => (
                                 <div key={idx} className="flex items-start gap-3 p-4 bg-white rounded-xl border shadow-sm">
@@ -352,7 +355,7 @@ const Subscription = () => {
                         <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-4 flex items-center gap-3 text-amber-900 mb-6">
                             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
                             <div className="text-xs font-medium leading-relaxed">
-                                <span className="font-bold">Online Payment Notice:</span> Online payment for subscription plans is temporarily turned off by the administrator. Free plans can be activated immediately. For paid plans, please contact admin support.
+                                <span className="font-bold">{t("sSub.onlineNotice")}</span> {t("sSub.onlineNoticeBody")}
                             </div>
                         </div>
                     )}
@@ -363,9 +366,9 @@ const Subscription = () => {
                     
                     <div className="text-center max-w-2xl mx-auto mb-10">
                         <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                            {currentSub ? 'Upgrade or Change Your Plan' : 'Choose the right plan for your business'}
+                            {currentSub ? t('sSub.upgradeOrChange') : t('sSub.chooseRight')}
                         </h2>
-                        <p className="text-gray-600">Select a subscription plan to unlock features and scale your sales.</p>
+                        <p className="text-gray-600">{t("sSub.selectPlanBody")}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -373,33 +376,33 @@ const Subscription = () => {
                             <div key={plan._id} className={`relative flex flex-col bg-white rounded-2xl border-2 shadow-sm hover:shadow-lg transition-shadow overflow-hidden ${currentSub?.plan?._id === plan._id ? 'border-primary-500 ring-2 ring-primary-200' : 'border-gray-200'}`}>
                                 {currentSub?.plan?._id === plan._id && (
                                     <div className="absolute top-0 left-0 right-0 bg-primary-500 text-white text-xs font-bold text-center py-1">
-                                        CURRENT PLAN
+                                        {t("sSub.currentPlanCaps")}
                                     </div>
                                 )}
                                 {plan.orderLimit === null && !(currentSub?.plan?._id === plan._id) && (
                                     <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
-                                        <Zap className="w-3 h-3" /> BEST VALUE
+                                        <Zap className="w-3 h-3" /> {t("sSub.bestValue")}
                                     </div>
                                 )}
                                 <div className={`p-6 md:p-8 border-b border-gray-100 flex-1 ${currentSub?.plan?._id === plan._id ? 'pt-10' : ''}`}>
                                     <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                                     <div className="flex items-baseline gap-2 mb-6">
                                         <span className="text-4xl font-extrabold text-gray-900">₹{plan.monthlyPrice}</span>
-                                        <span className="text-gray-500 font-medium">/mo</span>
+                                        <span className="text-gray-500 font-medium">{t("sSub.perMonth")}</span>
                                     </div>
                                     <Button 
                                         className="w-full justify-center" 
                                         onClick={() => handleSelectPlan(plan)}
                                         variant={currentSub?.plan?._id === plan._id ? "outline" : "primary"}
                                     >
-                                        {currentSub?.plan?._id === plan._id ? "Renew Plan" : "Select Plan"}
+                                        {currentSub?.plan?._id === plan._id ? t("sProfile.renewPlan") : t("sSub.selectPlan")}
                                     </Button>
 
                                     <div className="mt-8 space-y-4">
                                         <div className="flex items-center gap-3">
                                             <ShoppingBag className="w-5 h-5 text-gray-400" />
                                             <span className="text-gray-700 font-medium">
-                                                {plan.orderLimit === null ? 'Unlimited Orders' : `Up to ${plan.orderLimit} orders/cycle`}
+                                                {plan.orderLimit === null ? t('sSub.unlimitedOrders') : t('sSub.upToOrders', { count: plan.orderLimit })}
                                             </span>
                                         </div>
                                         {plan.features?.map(f => (
@@ -419,7 +422,7 @@ const Subscription = () => {
             <Modal
                 isOpen={checkoutModalOpen}
                 onClose={() => !processing && setCheckoutModalOpen(false)}
-                title="Complete Subscription Setup"
+                title={t("sSub.completeSetup")}
                 size="md"
             >
                 {selectedPlan && (
@@ -430,7 +433,7 @@ const Subscription = () => {
                         </div>
 
                         <div className="space-y-3">
-                            <label className="text-sm font-semibold text-gray-700 block">Select Billing Cycle</label>
+                            <label className="text-sm font-semibold text-gray-700 block">{t("sSub.selectCycle")}</label>
                             <div className="grid grid-cols-2 gap-3">
                                 {selectedPlan.billingTypes.map(type => (
                                     <div 
@@ -438,7 +441,7 @@ const Subscription = () => {
                                         onClick={() => !processing && setSelectedCycle(type)}
                                         className={`p-3 rounded-lg border-2 cursor-pointer text-center transition-colors ${selectedCycle === type ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-200 bg-white'}`}
                                     >
-                                        <p className={`font-bold ${selectedCycle === type ? 'text-primary-700' : 'text-gray-700'}`}>{type === 'MONTHLY' ? 'Monthly' : 'Yearly'}</p>
+                                        <p className={`font-bold ${selectedCycle === type ? 'text-primary-700' : 'text-gray-700'}`}>{type === 'MONTHLY' ? t('sSub.cycles.MONTHLY') : t('sSub.cycles.YEARLY')}</p>
                                         <p className="text-sm text-gray-500">₹{type === 'MONTHLY' ? selectedPlan.monthlyPrice : selectedPlan.yearlyPrice}</p>
                                     </div>
                                 ))}
@@ -448,7 +451,7 @@ const Subscription = () => {
                         {offers.length > 0 && (
                             <div className="space-y-3 pt-4 border-t">
                                 <label className="text-sm font-semibold text-gray-700 block flex items-center justify-between">
-                                    <span>Available Offers</span>
+                                    <span>{t("sSub.offers")}</span>
                                     {selectedOffer && (
                                         <button onClick={() => setSelectedOffer('')} className="text-xs text-red-500 hover:underline">Remove</button>
                                     )}
@@ -463,7 +466,7 @@ const Subscription = () => {
                                             <div>
                                                 <p className="font-bold text-sm text-gray-900">{offer.name}</p>
                                                 <p className="text-xs text-green-600 font-medium">
-                                                    Save {offer.discountType === 'PERCENTAGE' ? `${offer.discountValue}%` : `₹${selectedCycle === 'YEARLY' ? offer.discountValue * 12 : offer.discountValue}`}
+                                                    {t('sSub.save', { amount: offer.discountType === 'PERCENTAGE' ? `${offer.discountValue}%` : `₹${selectedCycle === 'YEARLY' ? offer.discountValue * 12 : offer.discountValue}` })}
                                                 </p>
                                             </div>
                                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedOffer === offer._id ? 'border-green-500 bg-green-500' : 'border-gray-300'}`}>
@@ -477,7 +480,7 @@ const Subscription = () => {
 
                         <div className="bg-gray-900 text-white p-4 rounded-xl space-y-3">
                             <div className="flex justify-between text-gray-300 text-sm">
-                                <span>Base Price</span>
+                                <span>{t("sSub.basePrice")}</span>
                                 <span>₹{selectedCycle === 'MONTHLY' ? selectedPlan.monthlyPrice : selectedPlan.yearlyPrice}</span>
                             </div>
                             
@@ -503,7 +506,7 @@ const Subscription = () => {
                             })()}
 
                             <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-700">
-                                <span>Total to Pay</span>
+                                <span>{t("sSub.totalToPay")}</span>
                                 <span>
                                     ₹{(() => {
                                         const basePrice = selectedCycle === 'MONTHLY' ? selectedPlan.monthlyPrice : selectedPlan.yearlyPrice;
@@ -554,11 +557,11 @@ const Subscription = () => {
                                         loading={processing}
                                         disabled={isBlocked || processing}
                                     >
-                                        {isBlocked ? "Online Payment Disabled" : (isPaid ? "Proceed to Payment" : "Activate Free Plan")}
+                                        {isBlocked ? t("sSub.onlineDisabled") : (isPaid ? t("sSub.proceed") : t("sSub.activateFree"))}
                                     </Button>
                                     {isBlocked && (
                                         <p className="text-xs text-rose-600 font-medium text-center">
-                                            Online payment for subscriptions is currently turned off by admin. Please contact support.
+                                            {t("sSub.onlineOffContact")}
                                         </p>
                                     )}
                                 </div>

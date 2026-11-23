@@ -26,8 +26,11 @@ import { toast } from "sonner";
 import { exportToCSV } from "@/lib/exportUtils";
 import { useSellerEarnings } from "../context/SellerEarningsContext";
 import Pagination from "@shared/components/ui/Pagination";
+import { useTranslation } from "react-i18next";
+import { translateStatus, translateLedgerType, sellerLocale } from "../i18n/format";
 
 const Transactions = () => {
+  const { t } = useTranslation();
   const { earningsData: data, earningsLoading: loading } = useSellerEarnings();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("All");
@@ -39,21 +42,21 @@ const Transactions = () => {
 
   const stats = [
     {
-      label: "Settled Balance",
+      label: t("sTxn.settledBalance"),
       value: `₹${(data?.balances?.settledBalance || 0).toLocaleString()}`,
       icon: HiOutlineBanknotes,
       color: "text-emerald-700",
       bg: "bg-emerald-50",
     },
     {
-      label: "Pending Payouts",
+      label: t("sTxn.pendingPayouts"),
       value: `₹${(data?.balances?.pendingPayouts || 0).toLocaleString()}`,
       icon: HiOutlineClock,
       color: "text-amber-700",
       bg: "bg-amber-50",
     },
     {
-      label: "Total Revenue",
+      label: t("sDash.totalRevenue"),
       value: `₹${(data?.balances?.totalRevenue || 0).toLocaleString()}`,
       icon: HiOutlineCreditCard,
       color: "text-emerald-700",
@@ -121,24 +124,24 @@ const Transactions = () => {
         ref: txn.ref ?? "",
       };
       exportToCSV([record], `Transaction_${record.id || "receipt"}`, {
-        id: "Transaction ID",
-        type: "Type",
-        amount: "Amount",
-        status: "Status",
-        date: "Date",
-        time: "Time",
-        customer: "Customer/Recipient",
-        ref: "Reference",
+        id: t("sEarnings.txnId"),
+        type: t("sEarnings.type"),
+        amount: t("common.amount"),
+        status: t("common.status"),
+        date: t("common.date"),
+        time: t("sOrders.time"),
+        customer: t("sTxn.customerRecipient"),
+        ref: t("sEarnings.reference"),
       });
-      toast.success("Receipt downloaded");
+      toast.success(t("sTxn.receiptDownloaded"));
     } catch (error) {
       console.error("Receipt download error:", error);
-      toast.error("Failed to download receipt");
+      toast.error(t("sTxn.receiptFailed"));
     }
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen font-semibold text-slate-500">LOADING TRANSACTIONS...</div>;
+    return <div className="flex items-center justify-center h-screen font-semibold text-slate-500">{t("sTxn.loading")}</div>;
   }
 
   return (
@@ -148,15 +151,15 @@ const Transactions = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-              Transaction Ledger
+{t("sTxn.title")}
               <Badge
                 variant="primary"
                 className="text-[10px] sm:text-xs px-1.5 py-0 font-semibold tracking-wider uppercase bg-emerald-50 text-emerald-800">
-                Audit Trail
+{t("sTxn.auditTrail")}
               </Badge>
             </h1>
             <p className="text-slate-500 text-sm mt-0.5 font-medium">
-              Keep track of all financial movements, payouts, and settlements.
+{t("sTxn.subtitle")}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -176,19 +179,19 @@ const Transactions = () => {
                   }));
 
                   exportToCSV(exportData, "Seller_Transactions", {
-                    id: "Transaction ID",
-                    type: "Type",
-                    amount: "Amount",
-                    status: "Status",
-                    date: "Date",
-                    time: "Time",
-                    customer: "Customer",
-                    ref: "Reference"
+                    id: t("sEarnings.txnId"),
+                    type: t("sEarnings.type"),
+                    amount: t("common.amount"),
+                    status: t("common.status"),
+                    date: t("common.date"),
+                    time: t("sOrders.time"),
+                    customer: t("sDash.customer"),
+                    ref: t("sEarnings.reference")
                   });
-                  toast.success("Statement downloaded successfully!");
+                  toast.success(t("sTxn.statementDownloaded"));
                 } catch (error) {
                   console.error("Download Error:", error);
-                  toast.error("Failed to download statement");
+                  toast.error(t("sTxn.statementFailed"));
                 } finally {
                   setIsDownloading(false);
                 }
@@ -196,7 +199,7 @@ const Transactions = () => {
               className="rounded-lg px-4 py-2 bg-[#1A4516] hover:bg-[#133A10] text-white text-xs font-bold shadow-lg shadow-[#1A4516]/10 disabled:opacity-50 flex items-center transition-all"
               disabled={isDownloading || filteredTransactions.length === 0}>
               <HiOutlineDocumentText className="h-4 w-4 mr-2" />
-              {isDownloading ? "DOWNLOADING..." : "DOWNLOAD STATEMENTS"}
+              {isDownloading ? t("sTxn.downloading") : t("sTxn.downloadStatements")}
             </Button>
           </div>
         </div>
@@ -247,14 +250,14 @@ const Transactions = () => {
                       ? "bg-white text-[#1A4516] shadow-sm font-bold"
                       : "text-slate-600 hover:text-slate-700",
                   )}>
-                  {tab === "Order Payment" ? "Payments" : tab}
+                  {tab === "All" ? t("common.all") : tab === "Order Payment" ? t("sTxn.payments") : translateLedgerType(t, tab)}
                 </button>
               ))}
             </div>
             <div className="relative w-full md:w-80">
               <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <Input
-                placeholder="Search by customer..."
+                placeholder={t("sTxn.searchPh")}
                 className="pl-10 pr-4 py-2.5 rounded-lg border-none ring-1 ring-slate-100 bg-slate-50/50 focus:ring-2 focus:ring-[#1A4516]/10 transition-all text-xs font-semibold"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -268,19 +271,19 @@ const Transactions = () => {
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Transaction Details
+{t("sTxn.txnDetails")}
                   </th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Reference
+{t("sEarnings.reference")}
                   </th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Amount
+{t("common.amount")}
                   </th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Status
+{t("common.status")}
                   </th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
-                    Actions
+{t("common.actions")}
                   </th>
                 </tr>
               </thead>
@@ -289,7 +292,7 @@ const Transactions = () => {
                   {filteredTransactions.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-slate-600 text-sm font-medium">
-                        {ledger.length === 0 ? "No transactions yet." : "No matches for your search or filter."}
+                        {ledger.length === 0 ? t("sTxn.noTxns") : t("sTxn.noMatches")}
                       </td>
                     </tr>
                   ) : paginatedTransactions.map((txn, idx) => (
@@ -323,7 +326,7 @@ const Transactions = () => {
                               {txn.id ?? txn.ref ?? "—"}
                             </p>
                             <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-                              {txn.type ?? "—"}
+                              {translateLedgerType(t, txn.type) || "—"}
                             </p>
                           </div>
                         </div>
@@ -353,7 +356,7 @@ const Transactions = () => {
                           {Math.abs(Number(txn.amount ?? 0)).toLocaleString()}
                         </p>
                         <p className="text-[10px] sm:text-xs font-bold text-slate-600 mt-0.5">
-                          Settlement: {(txn.status ?? "") === "Settled" ? "Complete" : "T+2"}
+                          {t("sTxn.settlement")}: {(txn.status ?? "") === "Settled" ? t("sTxn.complete") : "T+2"}
                         </p>
                       </td>
                       <td className="px-6 py-5">
@@ -371,7 +374,7 @@ const Transactions = () => {
                           ) : (
                             <HiOutlineClock className="mr-1 h-3 w-3" />
                           )}
-                          {txn.status}
+                          {translateStatus(t, txn.status)}
                         </Badge>
                       </td>
                       <td className="px-6 py-5 text-right">
@@ -414,12 +417,12 @@ const Transactions = () => {
       <Modal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
-        title="Transaction Receipt">
+        title={t("sTxn.receipt")}>
         {selectedTxn && (
           <div className="space-y-6">
             <div className="text-center p-6 bg-slate-50 rounded-lg border border-slate-100">
               <p className="text-xs font-black text-slate-600 uppercase tracking-widest mb-1">
-                Total Amount
+{t("sTxn.totalAmount")}
               </p>
               <h2
                 className={cn(
@@ -436,38 +439,38 @@ const Transactions = () => {
 
             <div className="space-y-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-600 font-bold">Transaction ID</span>
+                <span className="text-slate-600 font-bold">{t("sEarnings.txnId")}</span>
                 <span className="text-slate-900 font-black">
                   {selectedTxn.id ?? selectedTxn.ref ?? "—"}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-600 font-bold">Type</span>
+                <span className="text-slate-600 font-bold">{t("sEarnings.type")}</span>
                 <span className="text-slate-900 font-black">
                   {selectedTxn.type ?? "—"}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-600 font-bold">
-                  Customer/Recipient
+{t("sTxn.customerRecipient")}
                 </span>
                 <span className="text-slate-900 font-black">
                   {selectedTxn.customer ?? "—"}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-600 font-bold">Reference</span>
+                <span className="text-slate-600 font-bold">{t("sEarnings.reference")}</span>
                 <span className="text-slate-900 font-black">
                   {selectedTxn.ref ?? "—"}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-600 font-bold">Date & Time</span>
+                <span className="text-slate-600 font-bold">{t("sEarnings.dateTime")}</span>
                 <span className="text-slate-900 font-black">
                   {selectedTxn.date && selectedTxn.time
                     ? `${selectedTxn.date} at ${selectedTxn.time}`
                     : selectedTxn.createdAt
-                      ? `${new Date(selectedTxn.createdAt).toLocaleDateString()} at ${new Date(selectedTxn.createdAt).toLocaleTimeString()}`
+                      ? t("sTxn.dateAt", { date: new Date(selectedTxn.createdAt).toLocaleDateString(sellerLocale()), time: new Date(selectedTxn.createdAt).toLocaleTimeString(sellerLocale()) })
                       : "—"}
                 </span>
               </div>
@@ -476,9 +479,7 @@ const Transactions = () => {
             <div className="p-4 bg-amber-50 rounded-lg border border-amber-100 flex gap-3">
               <HiOutlineClock className="h-5 w-5 text-amber-600 shrink-0" />
               <p className="text-[10px] text-amber-800 font-bold leading-relaxed">
-                This transaction is scheduled for settlement in your bank
-                account via T+2 rolling cycle. Settlements usually occur before
-                6:00 PM.
+                {t("sTxn.settlementNote")}
               </p>
             </div>
 
@@ -487,12 +488,12 @@ const Transactions = () => {
                 variant="outline"
                 onClick={() => window.print()}
                 className="rounded-lg py-4 font-black bg-white">
-                PRINT RECEIPT
+{t("sTxn.printReceipt")}
               </Button>
               <Button
                 onClick={() => setIsDetailModalOpen(false)}
                 className="rounded-lg py-4 font-black shadow-xl shadow-primary/20">
-                CLOSE
+{t("sDash.closeCaps")}
               </Button>
             </div>
           </div>

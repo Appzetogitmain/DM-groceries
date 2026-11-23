@@ -60,7 +60,7 @@ export const createList = async (req, res) => {
 
     const productIds = items.map((it) => it.productId);
     const products = await Product.find({ _id: { $in: productIds } })
-      .select("_id name sellerId price salePrice status approvalStatus variants mainImage stock")
+      .select("_id name nameHi nameGu sellerId price salePrice status approvalStatus variants mainImage stock")
       .lean();
 
     if (products.length !== productIds.length) {
@@ -124,7 +124,7 @@ export const createList = async (req, res) => {
     const populated = await CustomerList.findById(newList._id)
       .populate({
         path: "items.productId",
-        select: "name price salePrice images mainImage stock status approvalStatus unit weight",
+        select: "name nameHi nameGu price salePrice images mainImage stock status approvalStatus unit weight",
       })
       .populate("sellerId", "shopName name storeName address city")
       .lean();
@@ -164,7 +164,7 @@ export const getLists = async (req, res) => {
       .sort({ isPinned: -1, updatedAt: -1 })
       .populate({
         path: "items.productId",
-        select: "name price salePrice images mainImage stock status approvalStatus unit weight sellerId",
+        select: "name nameHi nameGu price salePrice images mainImage stock status approvalStatus unit weight sellerId",
       })
       .populate("sellerId", "shopName name storeName address city")
       .lean();
@@ -228,7 +228,7 @@ export const getListById = async (req, res) => {
     const list = await CustomerList.findOne({ _id: id, customerId })
       .populate({
         path: "items.productId",
-        select: "name price salePrice images mainImage stock status approvalStatus unit weight sellerId",
+        select: "name nameHi nameGu price salePrice images mainImage stock status approvalStatus unit weight sellerId",
       })
       .populate("sellerId", "shopName name storeName address city")
       .lean();
@@ -292,7 +292,7 @@ export const updateList = async (req, res) => {
     if (Array.isArray(items) && items.length > 0) {
       const productIds = items.map((it) => it.productId);
       const products = await Product.find({ _id: { $in: productIds } })
-        .select("_id name sellerId price salePrice status stock")
+        .select("_id name nameHi nameGu sellerId price salePrice status stock")
         .lean();
 
       // Check single seller
@@ -329,7 +329,7 @@ export const updateList = async (req, res) => {
     const populated = await CustomerList.findById(list._id)
       .populate({
         path: "items.productId",
-        select: "name price salePrice images mainImage stock status approvalStatus unit weight",
+        select: "name nameHi nameGu price salePrice images mainImage stock status approvalStatus unit weight",
       })
       .populate("sellerId", "shopName name storeName address city")
       .lean();

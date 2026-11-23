@@ -22,8 +22,11 @@ import { Loader2, X } from "lucide-react";
 import { onReturnDropOtp } from "@core/services/orderSocket";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
+import { useTranslation } from "react-i18next";
+import { sellerLocale, formatDateTime } from "../i18n/format";
 
 const Returns = () => {
+    const { t } = useTranslation();
     const { showToast } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedOrderId = searchParams.get('selected');
@@ -54,6 +57,9 @@ const Returns = () => {
         "QC Failed",
         "Completed",
     ];
+
+    // Display label for an internal (English) tab/status label.
+    const tabLabel = (label) => t(`sReturns.tabs.${String(label).replace(/\s+/g, '_')}`, { defaultValue: label });
 
     const mapReturnStatusLabel = (status) => {
         switch (status) {
@@ -122,7 +128,7 @@ const Returns = () => {
                 setIsLocked(true);
                 setLockedMessage(error.response.data?.message || "This feature is not available in your current plan");
             } else {
-                showToast("Failed to fetch return requests", "error");
+                showToast(t("sReturns.fetchFailed"), "error");
             }
         } finally {
             setLoading(false);
@@ -140,7 +146,7 @@ const Returns = () => {
                 ...prev,
                 [orderId]: { otp, expiresAt }
             }));
-            showToast(`Rider arrived for Return #${orderId}. OTP: ${otp}`, "info");
+            showToast(t("sReturns.riderArrivedToast", { id: orderId, otp }), "info");
         });
 
         return () => {
@@ -190,13 +196,13 @@ const Returns = () => {
     const handleApprove = async (orderId) => {
         try {
             await sellerApi.approveReturn(orderId, {});
-            showToast("Return approved", "success");
+            showToast(t("sReturns.approved"), "success");
             setIsDetailsOpen(false);
             await fetchReturns();
         } catch (error) {
             console.error("Failed to approve return", error);
             showToast(
-                error.response?.data?.message || "Failed to approve return",
+                error.response?.data?.message || t("sReturns.approveFailed"),
                 "error"
             );
         }
@@ -207,7 +213,7 @@ const Returns = () => {
         try {
             setSubmittingReject(true);
             await sellerApi.rejectReturn(selectedReturn.orderId, { reason: rejectReason });
-            showToast("Return rejected", "success");
+            showToast(t("sReturns.rejected"), "success");
             setIsRejectModalOpen(false);
             setRejectReason("");
             setIsDetailsOpen(false);
@@ -215,7 +221,7 @@ const Returns = () => {
         } catch (error) {
             console.error("Failed to reject return", error);
             showToast(
-                error.response?.data?.message || "Failed to reject return",
+                error.response?.data?.message || t("sReturns.rejectFailed"),
                 "error"
             );
         } finally {
@@ -226,14 +232,14 @@ const Returns = () => {
     const handleQcSubmit = async () => {
         if (!qcStatus || !selectedReturn) return;
         if (qcStatus === "qc_failed" && !qcNote.trim()) {
-            showToast("Please provide a note for failed QC", "error");
+            showToast(t("sReturns.qcNoteRequired"), "error");
             return;
         }
 
         try {
             setSubmittingQc(true);
             await sellerApi.updateReturnQcStatus(selectedReturn.orderId, { qcStatus, note: qcNote });
-            showToast(`QC ${qcStatus === "qc_passed" ? "Passed" : "Failed"} successfully`, "success");
+            showToast(qcStatus === "qc_passed" ? t("sReturns.qcPassedToast") : t("sReturns.qcFailedToast"), "success");
             setIsQcModalOpen(false);
             setQcNote("");
             setQcStatus("");
@@ -242,7 +248,7 @@ const Returns = () => {
         } catch (error) {
             console.error("Failed to update QC", error);
             showToast(
-                error.response?.data?.message || "Failed to update QC",
+                error.response?.data?.message || t("sReturns.qcUpdateFailed"),
                 "error"
             );
         } finally {
@@ -254,13 +260,13 @@ const Returns = () => {
         try {
             setAssigningPickup(true);
             await sellerApi.assignReturnDelivery(orderId, {});
-            showToast("Riders notified for return pickup", "success");
+            showToast(t("sReturns.ridersNotified"), "success");
             setIsDetailsOpen(false);
             await fetchReturns();
         } catch (error) {
             console.error("Failed to assign pickup", error);
             showToast(
-                error.response?.data?.message || "No nearby riders found or assignment failed",
+                error.response?.data?.message || t("sReturns.assignFailed"),
                 "error"
             );
         } finally {
@@ -277,7 +283,7 @@ const Returns = () => {
                     </svg>
                 </div>
                 <div className="space-y-2 max-w-lg">
-                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">Feature Locked</h2>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">{t("sReturns.featureLocked")}</h2>
                     <p className="text-slate-500 font-medium text-lg leading-relaxed">
                         {lockedMessage}
                     </p>
@@ -286,7 +292,7 @@ const Returns = () => {
                     onClick={() => window.location.href = '/seller/subscription'} 
                     className="mt-4 text-sm font-black tracking-widest uppercase shadow-xl shadow-brand-500/20 px-8 py-4 rounded-xl hover:scale-105 transition-transform"
                 >
-                    View Subscription Plans
+                    {t("sReturns.viewPlans")}
                 </Button>
             </div>
         );
@@ -298,16 +304,16 @@ const Returns = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
                     <div className="min-w-0">
                         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex flex-wrap items-center gap-2">
-                            Return Requests
+                            {t("sReturns.title")}
                             <Badge
                                 variant="secondary"
                                 className="text-[10px] px-1.5 py-0 font-bold tracking-widest uppercase"
                             >
-                                New
+                                {t("sReturns.new")}
                             </Badge>
                         </h1>
                         <p className="text-slate-600 text-sm sm:text-base mt-0.5 font-medium">
-                            Review and manage customer return requests.
+                            {t("sReturns.subtitle")}
                         </p>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
@@ -317,7 +323,7 @@ const Returns = () => {
                             className="flex items-center space-x-1.5 sm:space-x-2 px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold text-slate-600 bg-white hover:bg-slate-50 border-slate-200"
                         >
                             <HiOutlineArrowPath className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">REFRESH</span>
+                            <span className="hidden sm:inline">{t("sReturns.refresh")}</span>
                         </Button>
                     </div>
                 </div>
@@ -327,7 +333,7 @@ const Returns = () => {
                 <div className="min-h-[320px] flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-100 shadow-sm">
                     <Loader2 className="h-10 w-10 text-primary animate-spin" />
                     <p className="text-slate-600 font-bold mt-4 uppercase tracking-widest text-xs">
-                        Loading Return Requests...
+                        {t("sReturns.loading")}
                     </p>
                 </div>
             ) : (
@@ -379,7 +385,7 @@ const Returns = () => {
                                                     : "text-slate-600 hover:text-slate-700"
                                             )}
                                         >
-                                            {tab}
+                                            {tabLabel(tab)}
                                             {activeTab === tab && (
                                                 <motion.div
                                                     layoutId="returns-tab-underline"
@@ -398,10 +404,10 @@ const Returns = () => {
                                             <HiOutlineInboxStack className="h-7 w-7" />
                                         </div>
                                         <h3 className="text-sm font-bold text-slate-900">
-                                            No return requests found
+                                            {t("sReturns.emptyTitle")}
                                         </h3>
                                         <p className="text-xs text-slate-600 font-medium text-center mt-1">
-                                            You will see customer return requests here.
+                                            {t("sReturns.emptyBody")}
                                         </p>
                                     </div>
                                 ) : (
@@ -423,16 +429,16 @@ const Returns = () => {
                                                         {ret.returnRequestedAt
                                                             ? new Date(
                                                                 ret.returnRequestedAt
-                                                            ).toLocaleString("en-IN", {
+                                                            ).toLocaleString(sellerLocale(), {
                                                                 day: "2-digit",
                                                                 month: "short",
                                                                 hour: "2-digit",
                                                                 minute: "2-digit",
                                                             })
-                                                            : "N/A"}
+                                                            : t("sReturns.na")}
                                                     </p>
                                                     <p className="text-xs font-bold text-slate-800 mt-1">
-                                                        {ret.customer?.name || "Customer"}
+                                                        {ret.customer?.name || t("sDash.customer")}
                                                     </p>
                                                     <p className="text-xs text-slate-500 mt-1 line-clamp-2">
                                                         {ret.returnReason ||
@@ -460,7 +466,7 @@ const Returns = () => {
                                                         )}
                                                         className="text-[10px] font-black uppercase px-2 py-0"
                                                     >
-                                                        {mapReturnStatusLabel(ret.returnStatus)}
+                                                        {tabLabel(mapReturnStatusLabel(ret.returnStatus))}
                                                     </Badge>
                                                     <p className="text-xs font-black text-slate-900">
                                                         {"\u20B9"}
@@ -514,9 +520,9 @@ const Returns = () => {
                                             )}
                                             className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0"
                                         >
-                                            {mapReturnStatusLabel(
+                                            {tabLabel(mapReturnStatusLabel(
                                                 selectedReturn.returnStatus
-                                            )}
+                                            ))}
                                         </Badge>
                                     </div>
                                 </div>
@@ -531,7 +537,7 @@ const Returns = () => {
                             <div className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto overscroll-contain flex-1 space-y-4">
                                 <div className="space-y-2">
                                     <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
-                                        Customer
+                                        {t("sDash.customer")}
                                     </p>
                                     <p className="text-sm font-bold text-slate-900">
                                         {selectedReturn.customer?.name || "Customer"}
@@ -543,7 +549,7 @@ const Returns = () => {
 
                                 <div className="space-y-2">
                                     <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
-                                        Return Details
+                                        {t("sReturns.details")}
                                     </p>
                                     <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 space-y-2">
                                         <p className="text-sm font-bold text-slate-800">
@@ -558,7 +564,7 @@ const Returns = () => {
                                             <div className="flex items-start gap-1.5 pt-1">
                                                 <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${selectedReturn.returnConditionAssurance ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                                                 <p className="text-xs font-semibold text-slate-600">
-                                                    {selectedReturn.returnConditionAssurance ? "Customer confirmed proper accessories & good condition." : "Customer did NOT confirm condition."}
+                                                    {selectedReturn.returnConditionAssurance ? t("sReturns.conditionConfirmed") : t("sReturns.conditionNotConfirmed")}
                                                 </p>
                                             </div>
                                         )}
@@ -596,7 +602,7 @@ const Returns = () => {
                                                     <HiOutlineTruck className="h-5 w-5" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black text-brand-600 uppercase tracking-widest leading-none mb-1">Rider Assigned</p>
+                                                    <p className="text-[10px] font-black text-brand-600 uppercase tracking-widest leading-none mb-1">{t("sReturns.riderAssigned")}</p>
                                                     <p className="text-sm font-bold text-slate-900 leading-none">{selectedReturn.returnDeliveryBoy.name}</p>
                                                 </div>
                                             </div>
@@ -610,7 +616,7 @@ const Returns = () => {
                                             )}
                                             {selectedReturn.returnStatus === "return_drop_pending" && (
                                                 <p className="text-[10px] font-bold text-brand-800 italic mt-1 bg-white/50 p-2 rounded-lg">
-                                                    Rider is at your location. Please check the OTP below to confirm the drop.
+                                                    {t("sReturns.riderAtLocation")}
                                                 </p>
                                             )}
                                         </div>
@@ -627,15 +633,15 @@ const Returns = () => {
                                             </div>
                                             <div>
                                                 <p className={`text-[10px] font-black uppercase tracking-widest leading-none mb-1 ${selectedReturn.returnStatus === "qc_passed" ? "text-emerald-600" : "text-rose-600"
-                                                    }`}>Quality Check Results</p>
+                                                    }`}>{t("sReturns.qcResults")}</p>
                                                 <p className="text-sm font-bold text-slate-900 leading-none">
-                                                    {selectedReturn.returnStatus === "qc_passed" ? "QC Passed" : "QC Failed"}
+                                                    {selectedReturn.returnStatus === "qc_passed" ? t("sReturns.tabs.QC_Passed") : t("sReturns.tabs.QC_Failed")}
                                                 </p>
                                             </div>
                                         </div>
                                         {selectedReturn.returnQcNote && (
                                             <div className="bg-white/60 p-3 rounded-xl border border-black/5">
-                                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">QC Decision Note:</p>
+                                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t("sReturns.qcNote")}</p>
                                                 <p className="text-sm text-slate-800 italic leading-relaxed">
                                                     "{selectedReturn.returnQcNote}"
                                                 </p>
@@ -643,7 +649,7 @@ const Returns = () => {
                                         )}
                                         {selectedReturn.returnQcAt && (
                                             <p className="text-[10px] font-medium text-slate-500">
-                                                Reviewed on: {new Date(selectedReturn.returnQcAt).toLocaleString()}
+                                                {t("sReturns.reviewedOn", { date: formatDateTime(selectedReturn.returnQcAt) })}
                                             </p>
                                         )}
                                     </div>
@@ -652,7 +658,7 @@ const Returns = () => {
                                 {/* Quality Check Comparison (4-Way) */}
                                 <div className="space-y-3 pt-2">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
-                                        Product Comparison (QC)
+                                        {t("sReturns.comparison")}
                                     </p>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         {/* 1. Original Listing Image */}
@@ -660,11 +666,11 @@ const Returns = () => {
                                             <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner group-hover:border-slate-300 transition-colors">
                                                 <img
                                                     src={selectedReturn.returnItems?.[0]?.image || selectedReturn.items?.[0]?.image || "https://placehold.co/400x400/f8fafc/64748b?text=Original"}
-                                                    alt="Original"
+                                                    alt={t("sReturns.listing")}
                                                     className="h-full w-full object-cover"
                                                 />
                                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/60 to-transparent p-2">
-                                                    <p className="text-[9px] font-black text-white uppercase leading-none">Listing</p>
+                                                    <p className="text-[9px] font-black text-white uppercase leading-none">{t("sReturns.listing")}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -675,18 +681,18 @@ const Returns = () => {
                                                 {selectedReturn.pickupProofImages?.[0] ? (
                                                     <img
                                                         src={selectedReturn.pickupProofImages[0]}
-                                                        alt="Forward Pickup"
+                                                        alt={t("sReturns.sellerPickup")}
                                                         className="h-full w-full object-cover"
                                                         onClick={() => window.open(selectedReturn.pickupProofImages[0], '_blank')}
                                                     />
                                                 ) : (
                                                     <div className="flex flex-col items-center gap-1.5 text-slate-400 px-3 text-center">
                                                         <HiOutlineInboxStack className="h-5 w-5" />
-                                                        <p className="text-[8px] font-bold leading-tight uppercase">No Photo</p>
+                                                        <p className="text-[8px] font-bold leading-tight uppercase">{t("sReturns.noPhoto")}</p>
                                                     </div>
                                                 )}
                                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/60 to-transparent p-2">
-                                                    <p className="text-[9px] font-black text-white uppercase leading-none">Seller Pickup</p>
+                                                    <p className="text-[9px] font-black text-white uppercase leading-none">{t("sReturns.sellerPickup")}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -697,18 +703,18 @@ const Returns = () => {
                                                 {selectedReturn.deliveryProofImages?.[0] ? (
                                                     <img
                                                         src={selectedReturn.deliveryProofImages[0]}
-                                                        alt="Forward Delivery"
+                                                        alt={t("sReturns.delivery")}
                                                         className="h-full w-full object-cover"
                                                         onClick={() => window.open(selectedReturn.deliveryProofImages[0], '_blank')}
                                                     />
                                                 ) : (
                                                     <div className="flex flex-col items-center gap-1.5 text-slate-400 px-3 text-center">
                                                         <HiOutlineInboxStack className="h-5 w-5" />
-                                                        <p className="text-[8px] font-bold leading-tight uppercase">No Photo</p>
+                                                        <p className="text-[8px] font-bold leading-tight uppercase">{t("sReturns.noPhoto")}</p>
                                                     </div>
                                                 )}
                                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/60 to-transparent p-2">
-                                                    <p className="text-[9px] font-black text-white uppercase leading-none">Delivery</p>
+                                                    <p className="text-[9px] font-black text-white uppercase leading-none">{t("sReturns.delivery")}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -719,17 +725,17 @@ const Returns = () => {
                                                 {selectedReturn.returnPickupImages?.[0] ? (
                                                     <img
                                                         src={selectedReturn.returnPickupImages[0]}
-                                                        alt="Return Pickup"
+                                                        alt={t("sReturns.returnWord")}
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (
                                                     <div className="flex flex-col items-center gap-1.5 text-slate-400 px-3 text-center">
                                                         <HiOutlineInboxStack className="h-5 w-5" />
-                                                        <p className="text-[8px] font-bold leading-tight uppercase">Not Picked Yet</p>
+                                                        <p className="text-[8px] font-bold leading-tight uppercase">{t("sReturns.notPicked")}</p>
                                                     </div>
                                                 )}
                                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-900/60 to-transparent p-2">
-                                                    <p className="text-[9px] font-black text-white uppercase leading-none">Return</p>
+                                                    <p className="text-[9px] font-black text-white uppercase leading-none">{t("sReturns.returnWord")}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -748,7 +754,7 @@ const Returns = () => {
 
                                 <div className="space-y-2">
                                     <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
-                                        Items
+                                        {t("sReturns.items")}
                                     </p>
                                     <div className="space-y-2">
                                         {(selectedReturn.returnItems || []).map(
@@ -762,7 +768,7 @@ const Returns = () => {
                                                             {item.name}
                                                         </p>
                                                         <p className="text-xs text-slate-500">
-                                                            Qty: {item.quantity}
+                                                            {t("sReturns.qty", { qty: item.quantity })}
                                                         </p>
                                                     </div>
                                                     <p className="text-xs font-black text-slate-900">
@@ -776,10 +782,10 @@ const Returns = () => {
 
                                 <div className="space-y-1">
                                     <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
-                                        Payment Breakdown
+                                        {t("sReturns.paymentBreakdown")}
                                     </p>
                                     <p className="text-xs text-slate-700">
-                                        Product refund:{" "}
+                                        {t("sReturns.productRefund")}{" "}
                                         <span className="font-black">
                                             {"\u20B9"}
                                             {selectedReturn.returnRefundAmount ||
@@ -788,7 +794,7 @@ const Returns = () => {
                                         </span>
                                     </p>
                                     <p className="text-xs text-slate-700">
-                                        Return delivery commission:{" "}
+                                        {t("sReturns.returnCommission")}{" "}
                                         <span className="font-black">
                                             {"\u20B9"}
                                             {selectedReturn.returnDeliveryCommission ||
@@ -801,7 +807,7 @@ const Returns = () => {
                                 {activeOtps[selectedReturn.orderId] && (
                                     <div className="bg-brand-50 border-2 border-dashed border-brand-200 rounded-3xl p-6 text-center space-y-3 animate-in fade-in zoom-in duration-500">
                                         <p className="text-[10px] font-black text-brand-600 uppercase tracking-[0.2em]">
-                                            Rider Arrived - Share OTP
+                                            {t("sReturns.riderArrivedOtp")}
                                         </p>
                                         <div className="flex items-center justify-center gap-3">
                                             {activeOtps[selectedReturn.orderId].otp.split('').map((char, i) => (
@@ -811,7 +817,7 @@ const Returns = () => {
                                             ))}
                                         </div>
                                         <p className="text-[10px] font-bold text-slate-500 italic">
-                                            Sharing this code confirms you have received the product.
+                                            {t("sReturns.sharingConfirms")}
                                         </p>
                                     </div>
                                 )}
@@ -823,7 +829,7 @@ const Returns = () => {
                                         onClick={() => setIsDetailsOpen(false)}
                                         className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all"
                                     >
-                                        Close
+                                        {t("common.close")}
                                     </button>
 
                                     {/* Action: Approve/Reject */}
@@ -834,13 +840,13 @@ const Returns = () => {
                                                 className="text-xs font-bold border-rose-200 text-rose-600 hover:bg-rose-50"
                                                 onClick={() => setIsRejectModalOpen(true)}
                                             >
-                                                Reject Request
+                                                {t("sReturns.rejectRequest")}
                                             </Button>
                                             <Button
                                                 className="text-xs font-bold bg-slate-900"
                                                 onClick={() => handleApprove(selectedReturn.orderId)}
                                             >
-                                                Approve Return
+                                                {t("sReturns.approveReturn")}
                                             </Button>
                                         </>
                                     )}
@@ -857,7 +863,7 @@ const Returns = () => {
                                             ) : (
                                                 <HiOutlineInboxStack className="h-4 w-4 mr-2" />
                                             )}
-                                            Assign Pickup
+                                            {t("sReturns.assignPickup")}
                                         </Button>
                                     )}
 
@@ -872,7 +878,7 @@ const Returns = () => {
                                                     setIsQcModalOpen(true);
                                                 }}
                                             >
-                                                Fail QC
+                                                {t("sReturns.failQc")}
                                             </Button>
                                             <Button
                                                 className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700"
@@ -881,7 +887,7 @@ const Returns = () => {
                                                     setIsQcModalOpen(true);
                                                 }}
                                             >
-                                                Pass QC
+                                                {t("sReturns.passQc")}
                                             </Button>
                                         </>
                                     )}
@@ -907,15 +913,15 @@ const Returns = () => {
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             className="w-full max-w-md relative z-10 bg-white rounded-3xl shadow-2xl p-6 space-y-4"
                         >
-                            <h3 className="text-xl font-black text-slate-900">Reject Return</h3>
-                            <p className="text-sm text-slate-600 font-medium">Please provide a reason for rejecting this return request. This will be shared with the customer.</p>
+                            <h3 className="text-xl font-black text-slate-900">{t("sReturns.rejectReturn")}</h3>
+                            <p className="text-sm text-slate-600 font-medium">{t("sReturns.rejectBody")}</p>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Reason for Rejection</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t("sReturns.rejectReason")}</label>
                                 <textarea
                                     className="w-full rounded-2xl border border-slate-200 p-4 text-sm font-medium focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
                                     rows={4}
-                                    placeholder="e.g. Product returned in damaged condition..."
+                                    placeholder={t("sReturns.rejectPh")}
                                     value={rejectReason}
                                     onChange={(e) => setRejectReason(e.target.value)}
                                 />
@@ -928,7 +934,7 @@ const Returns = () => {
                                     onClick={() => setIsRejectModalOpen(false)}
                                     disabled={submittingReject}
                                 >
-                                    Cancel
+                                    {t("common.cancel")}
                                 </Button>
                                 <Button
                                     className="flex-1 font-bold bg-rose-600 hover:bg-rose-700"
@@ -936,7 +942,7 @@ const Returns = () => {
                                     isLoading={submittingReject}
                                     disabled={!rejectReason.trim() || submittingReject}
                                 >
-                                    Reject Request
+                                    {t("sReturns.rejectRequest")}
                                 </Button>
                             </div>
                         </motion.div>
@@ -960,12 +966,12 @@ const Returns = () => {
                             className="w-full max-w-md relative z-10 bg-white rounded-3xl shadow-2xl p-6 space-y-4"
                         >
                             <h3 className={`text-xl font-black ${qcStatus === "qc_passed" ? "text-emerald-600" : "text-rose-600"}`}>
-                                {qcStatus === "qc_passed" ? "Mark as QC Passed" : "Mark as QC Failed"}
+                                {qcStatus === "qc_passed" ? t("sReturns.markPassed") : t("sReturns.markFailed")}
                             </h3>
                             <p className="text-sm text-slate-600 font-medium">
                                 {qcStatus === "qc_passed" 
-                                    ? "Are you sure you want to pass QC? This will initiate the refund to the customer."
-                                    : "Please provide a reason for failing the QC. This is required."}
+                                    ? t("sReturns.passConfirm")
+                                    : t("sReturns.failReasonRequired")}
                             </p>
 
                             <div className="space-y-2">
@@ -975,7 +981,7 @@ const Returns = () => {
                                 <textarea
                                     className="w-full rounded-2xl border border-slate-200 p-4 text-sm font-medium focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
                                     rows={4}
-                                    placeholder={qcStatus === "qc_passed" ? "Optional note about the condition..." : "E.g. Item is damaged, missing accessories..."}
+                                    placeholder={qcStatus === "qc_passed" ? t("sReturns.passNotePh") : t("sReturns.failNotePh")}
                                     value={qcNote}
                                     onChange={(e) => setQcNote(e.target.value)}
                                 />
@@ -988,7 +994,7 @@ const Returns = () => {
                                     onClick={() => setIsQcModalOpen(false)}
                                     disabled={submittingQc}
                                 >
-                                    Cancel
+                                    {t("common.cancel")}
                                 </Button>
                                 <Button
                                     className={`flex-1 font-bold ${qcStatus === "qc_passed" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"}`}
@@ -996,7 +1002,7 @@ const Returns = () => {
                                     isLoading={submittingQc}
                                     disabled={submittingQc || (qcStatus === "qc_failed" && !qcNote.trim())}
                                 >
-                                    Confirm {qcStatus === "qc_passed" ? "Pass" : "Fail"}
+                                    {qcStatus === "qc_passed" ? t("sReturns.confirmPass") : t("sReturns.confirmFail")}
                                 </Button>
                             </div>
                         </motion.div>

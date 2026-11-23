@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import MainLocationHeader from '../components/shared/MainLocationHeader';
 import { customerApi } from '../services/customerApi';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
+import { useTranslation } from "react-i18next";
+import { getLocalizedName, pickNameFields } from '../i18n/format';
 
 const COLORS = [
     "#F2EEE4", "#EFE7E2", "#EAF1F4", "#F0E8F2",
@@ -10,6 +12,7 @@ const COLORS = [
 ];
 
 const CategoriesPage = () => {
+    useTranslation(); // re-render when the language changes
     const [groups, setGroups] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [columnsPerRow, setColumnsPerRow] = useState(() => {
@@ -31,13 +34,13 @@ const CategoriesPage = () => {
                     .map((header, idx) => {
                         const categories = (header.children || []).map((cat, cIdx) => ({
                             id: cat._id,
-                            name: cat.name,
+                            ...pickNameFields(cat),
                             image: cat.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
                             color: COLORS[(idx + cIdx) % COLORS.length]
                         }));
 
                         return {
-                            title: header.name,
+                            header: { ...pickNameFields(header) },
                             categories,
                         };
                     })
@@ -144,7 +147,7 @@ const CategoriesPage = () => {
                     <div key={groupIdx} className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${groupIdx * 100}ms` }}>
                         {/* Group Title */}
                         <h2 className="text-xl md:text-2xl font-black text-[#1A1A1A] mb-6 px-1">
-                            {group.title}
+                            {getLocalizedName(group.header)}
                         </h2>
 
                         {/* Categories Grid */}
@@ -175,7 +178,7 @@ const CategoriesPage = () => {
                                                 >
                                                     <img
                                                         src={applyCloudinaryTransform(category.image)}
-                                                        alt={category.name}
+                                                        alt={getLocalizedName(category)}
                                                         loading="lazy"
                                                         className="w-full h-full rounded-full object-cover"
                                                     />
@@ -190,16 +193,16 @@ const CategoriesPage = () => {
                                                     }}
                                                 >
                                                     <span className="text-[10px] md:text-[12px] font-bold leading-tight">
-                                                        {category.name}
+                                                        {getLocalizedName(category)}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
                                         <p
                                             className="mt-1 px-0.5 text-center text-[11px] md:text-[13px] font-semibold leading-tight text-slate-800 line-clamp-2 break-words"
-                                            title={category.name}
+                                            title={getLocalizedName(category)}
                                         >
-                                            {category.name}
+                                            {getLocalizedName(category)}
                                         </p>
                                     </Link>
                                 </div>

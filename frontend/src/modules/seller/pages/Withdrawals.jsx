@@ -28,8 +28,11 @@ import Pagination from "@shared/components/ui/Pagination";
 import { onWithdrawalUpdated } from "@core/services/orderSocket";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
+import { useTranslation } from "react-i18next";
+import { translateStatus, translateLedgerType, sellerLocale } from "../i18n/format";
 
 const Withdrawals = () => {
+    const { t } = useTranslation();
     const { earningsData: data, earningsLoading: loading, refreshEarnings } = useSellerEarnings();
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,7 +65,7 @@ const Withdrawals = () => {
     }, []);
 
     const ledger = Array.isArray(data?.ledger) ? data.ledger : [];
-    const withdrawalHistory = ledger.filter((t) => (t.type || '').toString() === 'Withdrawal');
+    const withdrawalHistory = ledger.filter((row) => (row.type || '').toString() === 'Withdrawal');
 
     React.useEffect(() => {
         const getToken = createSocketTokenReader(STORAGE_KEYS.AUTH_SELLER);
@@ -123,7 +126,7 @@ const Withdrawals = () => {
         a.download = `withdrawal-receipt-${id}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        toast.success('Receipt downloaded');
+        toast.success(t('sTxn.receiptDownloaded'));
     };
 
     const hasBankDetails = Boolean(
@@ -140,7 +143,7 @@ const Withdrawals = () => {
         e.preventDefault();
 
         if (!hasBankDetails) {
-            toast.error('Please add your bank account details in your profile before requesting a withdrawal.');
+            toast.error(t('sWithdraw.addBankFirst'));
             handleGoToBankDetails();
             return;
         }
@@ -150,7 +153,7 @@ const Withdrawals = () => {
         const available = Math.max(0, settled - pending);
 
         if (!amount || parseFloat(amount) <= 0 || parseFloat(amount) > available) {
-            toast.error(`Please enter a valid amount within your available balance (₹${available}).`);
+            toast.error(t('sWithdraw.validAmount', { amount: available }));
             return;
         }
 
@@ -158,20 +161,20 @@ const Withdrawals = () => {
             setIsSubmitting(true);
             const response = await sellerApi.requestWithdrawal({ amount: parseFloat(amount) });
             if (response.data.success) {
-                toast.success('Withdrawal request submitted successfully!');
+                toast.success(t('sWithdraw.submitted'));
                 setIsModalOpen(false);
                 setAmount('');
                 refreshEarnings();
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to submit request");
+            toast.error(error.response?.data?.message || t("sWithdraw.submitFailed"));
         } finally {
             setIsSubmitting(false);
         }
     };
 
     if (loading || isCheckingPlan) {
-        return <div className="flex items-center justify-center h-screen font-black text-slate-600">LOADING WITHDRAWALS...</div>;
+        return <div className="flex items-center justify-center h-screen font-black text-slate-600">{t("sWithdraw.loading")}</div>;
     }
 
     if (isLocked) {
@@ -180,12 +183,12 @@ const Withdrawals = () => {
                 <div className="h-24 w-24 bg-rose-50 rounded-full flex items-center justify-center mb-4">
                     <Wallet className="h-10 w-10 text-rose-500" />
                 </div>
-                <h2 className="text-2xl font-black text-slate-900">Feature Locked</h2>
+                <h2 className="text-2xl font-black text-slate-900">{t("sReturns.featureLocked")}</h2>
                 <p className="text-slate-600 max-w-md mx-auto text-sm">
-                    You need the <strong>MONEY WITHDRAWAL</strong> feature to request payouts and manage your withdrawals. Upgrade your plan to access this tool.
+                    {t("sWithdraw.locked")}
                 </p>
                 <Button onClick={() => navigate('/seller/subscription')} className="px-8 py-3 bg-[#1A4516] hover:bg-[#133A10] text-white">
-                    Buy Subscription
+{t("sWithdraw.buySubscription")}
                 </Button>
             </div>
         );
@@ -204,19 +207,19 @@ const Withdrawals = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                            Money Requests
+{t("sWithdraw.title")}
                             <div className="p-1.5 bg-emerald-50 rounded-lg">
                                 <Wallet className="h-5 w-5 text-emerald-700" />
                             </div>
                         </h1>
-                        <p className="text-slate-500 text-base mt-1 font-medium">Request payouts and track your withdrawal history.</p>
+                        <p className="text-slate-500 text-base mt-1 font-medium">{t("sWithdraw.subtitle")}</p>
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="px-6 py-3 bg-[#1A4516] hover:bg-[#133A10] text-white rounded-2xl text-xs font-bold uppercase tracking-wider transition-all shadow-xl active:scale-95 flex items-center gap-2 group"
                     >
                         <ArrowUpRight className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                        New Request
+{t("sWithdraw.newRequest")}
                     </button>
                 </div>
             </BlurFade>
@@ -224,10 +227,10 @@ const Withdrawals = () => {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[850px]">
                 {[
-                    { label: 'Available Balance', value: `₹${balances.available.toLocaleString()}`, icon: Wallet, color: 'emerald', sub: 'Ready to withdraw', path: '/seller/earnings' },
-                    { label: 'On Hold', value: `₹${balances.onHold.toLocaleString()}`, icon: Clock, color: 'blue', sub: 'Return window open', onClick: () => setIsOnHoldModalOpen(true) },
-                    { label: 'Withdrawal Pending', value: `₹${balances.pending.toLocaleString()}`, icon: History, color: 'amber', sub: 'Awaiting approval' },
-                    { label: 'Last Withdrawal', value: `₹${balances.lastWithdrawal.toLocaleString()}`, icon: CheckCircle2, color: 'indigo', sub: 'Sent to bank' },
+                    { label: t('sWithdraw.availableBalance'), value: `₹${balances.available.toLocaleString()}`, icon: Wallet, color: 'emerald', sub: t('sWithdraw.readyToWithdraw'), path: '/seller/earnings' },
+                    { label: t('sWithdraw.onHold'), value: `₹${balances.onHold.toLocaleString()}`, icon: Clock, color: 'blue', sub: t('sWithdraw.returnWindowOpen'), onClick: () => setIsOnHoldModalOpen(true) },
+                    { label: t('sWithdraw.withdrawalPending'), value: `₹${balances.pending.toLocaleString()}`, icon: History, color: 'amber', sub: t('sWithdraw.awaitingApproval') },
+                    { label: t('sWithdraw.lastWithdrawal'), value: `₹${balances.lastWithdrawal.toLocaleString()}`, icon: CheckCircle2, color: 'indigo', sub: t('sWithdraw.sentToBank') },
                 ].map((stat, i) => (
                     <BlurFade key={i} delay={0.2 + i * 0.1}>
                         <Card 
@@ -264,13 +267,13 @@ const Withdrawals = () => {
                     <div className="p-4 sm:p-6 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4">
                         <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
                             <History className="h-5 w-5 text-[#1A4516]" />
-                            Withdrawal History
+{t("sWithdraw.history")}
                         </h2>
                         <div className="relative w-full md:w-64 group">
                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 group-focus-within:text-[#1A4516] transition-colors" />
                             <input
                                 type="text"
-                                placeholder="Search ID or Status..."
+                                placeholder={t("sWithdraw.searchPh")}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-[#1A4516]/10 transition-all"
@@ -281,17 +284,17 @@ const Withdrawals = () => {
                         <table className="w-full text-left min-w-[640px]">
                             <thead>
                                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Request Details</th>
-                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
-                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
-                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Method</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t("sWithdraw.requestDetails")}</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t("common.amount")}</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">{t("common.status")}</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">{t("sWithdraw.method")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {filteredHistory.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="px-8 py-12 text-center text-slate-600 text-sm font-medium">
-                                            {withdrawalHistory.length === 0 ? "No withdrawal requests yet." : "No matches for your search."}
+                                            {withdrawalHistory.length === 0 ? t("sWithdraw.none") : t("sWithdraw.noMatches")}
                                         </td>
                                     </tr>
                                 ) : paginatedHistory.map((item, idx) => (
@@ -309,7 +312,7 @@ const Withdrawals = () => {
                                                 className="text-[8px] font-black px-2.5 py-0.5 uppercase tracking-widest rounded-lg"
                                             >
                                                 {item.status === 'Settled' ? <CheckCircle2 className="h-3 w-3 mr-1" /> : (item.status === 'Pending' || item.status === 'Processing') ? <Clock className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
-                                                {item.status}
+                                                {translateStatus(t, item.status)}
                                             </Badge>
                                             {item.reason && <p className="text-[9px] text-rose-500 font-bold mt-1 uppercase italic">{item.reason}</p>}
                                         </td>
@@ -352,12 +355,12 @@ const Withdrawals = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => !isSubmitting && setIsModalOpen(false)}
-                title="Request Withdrawal"
+                title={t("sWithdraw.requestWithdrawal")}
             >
                 <form onSubmit={handleSubmitRequest} className="space-y-6 py-4">
                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
                         <div>
-                            <p className="text-xs font-black text-slate-600 uppercase tracking-widest mb-1">Available to Withdraw</p>
+                            <p className="text-xs font-black text-slate-600 uppercase tracking-widest mb-1">{t("sEarnings.available")}</p>
                             <h4 className="text-2xl font-black text-brand-600">₹{balances.available.toLocaleString()}</h4>
                         </div>
                         <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
@@ -367,7 +370,7 @@ const Withdrawals = () => {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 block ml-1">Enter Amount</label>
+                            <label className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 block ml-1">{t("sWithdraw.enterAmount")}</label>
                             <div className="relative group">
                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 group-focus-within:text-brand-500 transition-colors">₹</span>
                                 <input
@@ -396,14 +399,14 @@ const Withdrawals = () => {
                                     ? "bg-brand-50/50 border-brand-100/50 hover:bg-brand-50 hover:border-brand-300"
                                     : "bg-amber-50/70 border-amber-200 hover:bg-amber-100/80 hover:border-amber-300"
                             )}
-                            title={hasBankDetails ? "Click to view or edit bank details in profile" : "Click to add bank details in profile"}
+                            title={hasBankDetails ? t("sWithdraw.viewBankTitle") : t("sWithdraw.addBankTitle")}
                         >
                             <div className="flex items-center justify-between mb-2">
                                 <p className={cn(
                                     "text-[10px] font-black uppercase tracking-widest",
                                     hasBankDetails ? "text-brand-600" : "text-amber-800"
                                 )}>
-                                    Transfer Destination
+{t("sWithdraw.destination")}
                                 </p>
                                 <span className={cn(
                                     "text-[10px] font-bold flex items-center gap-1 transition-colors",
@@ -411,7 +414,7 @@ const Withdrawals = () => {
                                         ? "text-brand-700 group-hover:text-brand-900"
                                         : "text-amber-800 underline group-hover:text-amber-950 font-black"
                                 )}>
-                                    {hasBankDetails ? "Edit in Profile" : "Add Bank Details"}
+                                    {hasBankDetails ? t("sWithdraw.editInProfile") : t("sWithdraw.addBankDetails")}
                                     <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
                                 </span>
                             </div>
@@ -439,7 +442,7 @@ const Withdrawals = () => {
                                             </>
                                         ) : (
                                             <p className="text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
-                                                Click here to add bank details in profile
+{t("sWithdraw.clickAddBank")}
                                             </p>
                                         )}
                                         {data?.bankDetails?.accountHolderName && (
@@ -465,10 +468,10 @@ const Withdrawals = () => {
                                 <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                                 <div className="flex-1">
                                     <p className="font-bold text-[11px] uppercase tracking-wide text-amber-900">
-                                        Bank details required
+{t("sWithdraw.bankRequired")}
                                     </p>
                                     <p className="text-[11px] text-amber-700 mt-0.5">
-                                        Withdrawal requests cannot be submitted without active bank details. Please link your account.
+{t("sWithdraw.bankRequiredBody")}
                                     </p>
                                     <button
                                         type="button"
@@ -506,7 +509,7 @@ const Withdrawals = () => {
                             onClick={() => setIsModalOpen(false)}
                             className="w-full py-2 text-xs font-black text-slate-600 uppercase tracking-widest hover:text-slate-600 transition-colors"
                         >
-                            Nevermind, keep funds
+{t("sWithdraw.keepFunds")}
                         </button>
                     </div>
                 </form>
@@ -516,30 +519,30 @@ const Withdrawals = () => {
             <Modal
                 isOpen={isOnHoldModalOpen}
                 onClose={() => setIsOnHoldModalOpen(false)}
-                title="On Hold Details"
+                title={t("sWithdraw.onHoldDetails")}
                 className="max-w-2xl"
             >
                 <div className="p-1">
                     <p className="text-sm text-slate-500 mb-4">
-                        These amounts are currently on hold because their return window has not yet expired.
+{t("sWithdraw.onHoldBody")}
                     </p>
                     <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
                         <table className="w-full text-left min-w-[500px]">
                             <thead className="sticky top-0 bg-white">
                                 <tr className="bg-slate-50 border-b border-slate-100">
-                                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Order Ref</th>
-                                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
-                                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Release Time</th>
+                                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">{t("sEarnings.orderRef")}</th>
+                                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">{t("common.amount")}</th>
+                                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">{t("sWithdraw.releaseTime")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {ledger.filter(t => t.type === 'Order Payment' && t.status === 'Pending').length === 0 ? (
+                                {ledger.filter(row => row.type === 'Order Payment' && row.status === 'Pending').length === 0 ? (
                                     <tr>
                                         <td colSpan={3} className="px-4 py-8 text-center text-slate-600 text-sm font-medium">
-                                            No funds currently on hold.
+{t("sWithdraw.noHold")}
                                         </td>
                                     </tr>
-                                ) : ledger.filter(t => t.type === 'Order Payment' && t.status === 'Pending').map((item, idx) => {
+                                ) : ledger.filter(row => row.type === 'Order Payment' && row.status === 'Pending').map((item, idx) => {
                                     let releaseText = 'Pending';
                                     if (item.releaseTime) {
                                         const releaseDate = new Date(item.releaseTime);
@@ -569,7 +572,7 @@ const Withdrawals = () => {
                                                 </Badge>
                                                 {item.releaseTime && (
                                                     <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase">
-                                                        {new Date(item.releaseTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                                                        {new Date(item.releaseTime).toLocaleString(sellerLocale(), { dateStyle: 'short', timeStyle: 'short' })}
                                                     </p>
                                                 )}
                                             </td>
@@ -585,7 +588,7 @@ const Withdrawals = () => {
                             onClick={() => setIsOnHoldModalOpen(false)}
                             className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors"
                         >
-                            Close
+{t("common.close")}
                         </button>
                     </div>
                 </div>

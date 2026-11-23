@@ -30,8 +30,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
 import Pagination from "@shared/components/ui/Pagination";
+import { useTranslation } from "react-i18next";
+import NameTranslationFields from "../components/NameTranslationFields";
+import { getSellerLocalizedName as locName } from "../i18n";
 
 const ProductManagement = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const qFromUrl = searchParams.get("q") || "";
@@ -83,7 +87,7 @@ const ProductManagement = () => {
         }
       }
     } catch (error) {
-      toast.error("Failed to fetch products");
+      toast.error(t("sProducts.fetchFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -211,6 +215,8 @@ const ProductManagement = () => {
 
   const [formData, setFormData] = useState({
     name: "",
+    nameHi: "",
+    nameGu: "",
     slug: "",
     sku: "",
     description: "",
@@ -322,35 +328,37 @@ const ProductManagement = () => {
   const ApprovalBadge = ({ approvalStatus }) => {
     const normalized = String(approvalStatus || "approved").toLowerCase();
     if (normalized === "pending") {
-      return <Badge variant="warning" className="text-[10px] px-2 py-0.5">Pending Approval</Badge>;
+      return <Badge variant="warning" className="text-[10px] px-2 py-0.5">{t("sProducts.pendingApproval")}</Badge>;
     }
     if (normalized === "rejected") {
-      return <Badge variant="error" className="text-[10px] px-2 py-0.5">Rejected</Badge>;
+      return <Badge variant="error" className="text-[10px] px-2 py-0.5">{t("status.rejected")}</Badge>;
     }
-    return <Badge variant="success" className="text-[10px] px-2 py-0.5">Approved</Badge>;
+    return <Badge variant="success" className="text-[10px] px-2 py-0.5">{t("status.approved")}</Badge>;
   };
 
   const handleSave = async () => {
     try {
       if (!formData.name || !formData.price || !formData.stock || !formData.header || !formData.category || !formData.subcategory) {
-        toast.error("Please fill all required fields, including categories");
+        toast.error(t("sProducts.fillRequired"));
         return;
       }
 
       if (Number(formData.salePrice) > 0 && Number(formData.price) <= Number(formData.salePrice)) {
-        toast.error("Price must be strictly greater than Sale Price");
+        toast.error(t("sProducts.priceGtSale"));
         return;
       }
 
       for (const variant of formData.variants) {
         if (Number(variant.salePrice) > 0 && Number(variant.price) <= Number(variant.salePrice)) {
-          toast.error(`Price must be strictly greater than Sale Price for variant "${variant.name || variant.sku}"`);
+          toast.error(t("sProducts.priceGtSaleVariant", { name: variant.name || variant.sku }));
           return;
         }
       }
 
       const data = new FormData();
       data.append("name", formData.name);
+      data.append("nameHi", formData.nameHi || "");
+      data.append("nameGu", formData.nameGu || "");
       data.append("slug", formData.slug);
       data.append("sku", formData.sku);
       data.append("description", formData.description);
@@ -377,17 +385,17 @@ const ProductManagement = () => {
         const response = await sellerApi.updateProduct(editingItem._id || editingItem.id, data);
         const approvalStatus = response?.data?.result?.approvalStatus;
         if (approvalStatus === "pending") {
-          toast.success("Product changes submitted for admin approval");
+          toast.success(t("sProducts.changesSubmitted"));
         } else {
-          toast.success(response?.data?.message || "Product updated successfully");
+          toast.success(t("sProducts.updated"));
         }
       } else {
         const response = await sellerApi.createProduct(data);
         const approvalStatus = response?.data?.result?.approvalStatus;
         if (approvalStatus === "pending") {
-          toast.success("Product submitted for admin approval");
+          toast.success(t("sProducts.submitted"));
         } else {
-          toast.success(response?.data?.message || "Product created successfully");
+          toast.success(t("sProducts.created"));
         }
       }
 
@@ -395,7 +403,7 @@ const ProductManagement = () => {
       setEditingItem(null);
       fetchProducts();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to save product");
+      toast.error(error.response?.data?.message || t("sProducts.saveFailed"));
     }
   };
 
@@ -431,12 +439,12 @@ const ProductManagement = () => {
   const confirmDelete = async () => {
     try {
       await sellerApi.deleteProduct(itemToDelete._id || itemToDelete.id);
-      toast.success("Product deleted successfully");
+      toast.success(t("sProducts.deleted"));
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
       fetchProducts();
     } catch (error) {
-      toast.error("Failed to delete product");
+      toast.error(t("sProducts.deleteFailed"));
     }
   };
 
@@ -444,6 +452,8 @@ const ProductManagement = () => {
     if (item) {
       setFormData({
         name: item.name || "",
+        nameHi: item.nameHi || "",
+        nameGu: item.nameGu || "",
         slug: item.slug || "",
         sku: item.sku || "",
         description: item.description || "",
@@ -475,6 +485,8 @@ const ProductManagement = () => {
     } else {
       setFormData({
         name: "",
+        nameHi: "",
+        nameGu: "",
         slug: "",
         sku: "",
         description: "",
@@ -515,21 +527,21 @@ const ProductManagement = () => {
           <button 
             onClick={() => navigate(-1)}
             className="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors"
-            title="Go Back"
+            title={t("sProducts.goBack")}
           >
             <HiOutlineArrowLeft className="w-5 h-5" />
           </button>
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              Product List
+{t("sProducts.title")}
             <Badge
               variant="primary"
               className="text-[9px] px-1.5 py-0 font-bold tracking-wider uppercase">
-              Live
+{t("sProducts.live")}
             </Badge>
           </h1>
             <p className="text-gray-500 mt-1">
-              Track your items, prices, and how many are left in stock.
+{t("sProducts.subtitle")}
             </p>
           </div>
         </div>
@@ -537,14 +549,14 @@ const ProductManagement = () => {
           onClick={() => navigate("/seller/products/add")}
           className="flex items-center gap-2 bg-[#1A4516] text-white px-4 py-2 rounded-lg hover:bg-[#133A10] transition-colors">
           <HiOutlinePlus className="h-5 w-5" />
-          Add New Product
+{t("sDash.qaAddProduct")}
         </button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-[850px]">
         {[
           {
-            label: "All Items",
+            label: t("sProducts.allItems"),
             val: stats.total,
             icon: HiOutlineCube,
             color: "text-emerald-700",
@@ -552,7 +564,7 @@ const ProductManagement = () => {
             status: "All",
           },
           {
-            label: "Active Items",
+            label: t("sProducts.activeItems"),
             val: stats.active,
             icon: HiOutlineCheckCircle,
             color: "text-emerald-700",
@@ -560,7 +572,7 @@ const ProductManagement = () => {
             status: "Active",
           },
           {
-            label: "Low Stock",
+            label: t("status.low_stock"),
             val: stats.lowStock,
             icon: HiOutlineExclamationCircle,
             color: "text-amber-700",
@@ -568,7 +580,7 @@ const ProductManagement = () => {
             status: "Low Stock",
           },
           {
-            label: "Out of Stock",
+            label: t("status.out_of_stock"),
             val: stats.outOfStock,
             icon: HiOutlineArchiveBox,
             color: "text-rose-700",
@@ -614,7 +626,7 @@ const ProductManagement = () => {
                 else next.delete("q");
                 setSearchParams(next);
               }}
-              placeholder="Search by name, SKU or slug..."
+              placeholder={t("sProducts.searchPh")}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border-none rounded-xl text-xs font-semibold text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-[#1A4516]/5 transition-all outline-none"
             />
           </div>
@@ -624,13 +636,13 @@ const ProductManagement = () => {
               onChange={(e) => setFilterCategory(e.target.value)}
               className="flex-1 lg:flex-none px-4 py-2.5 bg-white ring-1 ring-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-[#1A4516]/5 outline-none appearance-none cursor-pointer"
             >
-              <option value="all">All Categories</option>
+              <option value="all">{t("sProducts.allCategories")}</option>
               {categories.map((h) => (
-                <optgroup key={h._id || h.id} label={h.name}>
-                  <option value={h._id || h.id}>All {h.name}</option>
+                <optgroup key={h._id || h.id} label={locName(h)}>
+                  <option value={h._id || h.id}>{t("sProducts.allOf", { name: locName(h) })}</option>
                   {(h.children || []).map((c) => (
                     <option key={c._id || c.id} value={c._id || c.id}>
-                      {c.name}
+                      {locName(c)}
                     </option>
                   ))}
                 </optgroup>
@@ -640,34 +652,34 @@ const ProductManagement = () => {
               value={filterApproval}
               onChange={(e) => setFilterApproval(e.target.value)}
               className="flex-1 lg:flex-none px-4 py-2.5 bg-white ring-1 ring-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-[#1A4516]/5 outline-none appearance-none cursor-pointer"
-              aria-label="Filter by approval status"
-              title="Approval"
+              aria-label={t("sProducts.filterApproval")}
+              title={t("sProducts.approval")}
             >
-              <option value="all">All Approvals</option>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
+              <option value="all">{t("sProducts.allApprovals")}</option>
+              <option value="approved">{t("status.approved")}</option>
+              <option value="pending">{t("status.pending")}</option>
+              <option value="rejected">{t("status.rejected")}</option>
             </select>
             <button
               onClick={() => setIsFilterOpen((prev) => !prev)}
               className="flex items-center space-x-2 px-4 py-2.5 bg-white ring-1 ring-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
             >
               <HiOutlineFunnel className="h-4 w-4" />
-              <span>Filters</span>
+              <span>{t("sProducts.filters")}</span>
             </button>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="flex-1 lg:flex-none px-4 py-2.5 bg-white ring-1 ring-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-[#1A4516]/5 outline-none appearance-none cursor-pointer"
             >
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="name-asc">Name A-Z</option>
-              <option value="name-desc">Name Z-A</option>
-              <option value="price-asc">Price Low-High</option>
-              <option value="price-desc">Price High-Low</option>
-              <option value="stock-asc">Stock Low-High</option>
-              <option value="stock-desc">Stock High-Low</option>
+              <option value="newest">{t("sProducts.sort.newest")}</option>
+              <option value="oldest">{t("sProducts.sort.oldest")}</option>
+              <option value="name-asc">{t("sProducts.sort.nameAsc")}</option>
+              <option value="name-desc">{t("sProducts.sort.nameDesc")}</option>
+              <option value="price-asc">{t("sProducts.sort.priceAsc")}</option>
+              <option value="price-desc">{t("sProducts.sort.priceDesc")}</option>
+              <option value="stock-asc">{t("sProducts.sort.stockAsc")}</option>
+              <option value="stock-desc">{t("sProducts.sort.stockDesc")}</option>
             </select>
           </div>
         </div>
@@ -682,28 +694,28 @@ const ProductManagement = () => {
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
-                  Product
+{t("sProducts.colProduct")}
                 </th>
                 <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
-                  Product Code
+{t("sProducts.productCode")}
                 </th>
                 <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
-                  Header
+{t("sProducts.colHeader")}
                 </th>
                 <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
-                  Category
+{t("sProducts.colCategory")}
                 </th>
                 <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
-                  Subcategory
+{t("sProducts.colSubcategory")}
                 </th>
                 <th className="px-6 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
-                  Variant
+{t("sProducts.colVariant")}
                 </th>
                 <th className="px-6 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
-                  Approval
+{t("sProducts.approval")}
                 </th>
                 <th className="px-6 py-3 text-right text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
-                  Actions
+{t("common.actions")}
                 </th>
               </tr>
             </thead>
@@ -731,12 +743,12 @@ const ProductManagement = () => {
                         </p>
                         {String(p.approvalStatus || "").toLowerCase() === "pending" ? (
                           <p className="text-[10px] font-medium text-amber-600">
-                            Hidden from customers until admin approval.
+{t("sProducts.hiddenUntilApproval")}
                           </p>
                         ) : null}
                         {String(p.approvalStatus || "").toLowerCase() === "rejected" ? (
                           <p className="text-[10px] font-medium text-rose-600">
-                            {p.approvalNote ? `Rejected: ${p.approvalNote}` : "Rejected by admin. Update and resubmit."}
+                            {p.approvalNote ? t("sProducts.rejectedNote", { note: p.approvalNote }) : t("sProducts.rejectedByAdmin")}
                           </p>
                         ) : null}
                       </div>
@@ -750,18 +762,18 @@ const ProductManagement = () => {
                   <td className="px-6 py-4 text-left">
                     <div className="flex flex-col">
                       <span className="text-xs font-medium text-slate-900 uppercase tracking-tight bg-slate-100 px-3 py-0.5 rounded-full w-fit">
-                        {p.headerId?.name || "N/A"}
+                        {locName(p.headerId) || t("sReturns.na")}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm font-medium text-slate-900">
-                      {p.categoryId?.name || "N/A"}
+                      {locName(p.categoryId) || t("sReturns.na")}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm font-medium text-slate-900">
-                      {p.subcategoryId?.name || "N/A"}
+                      {locName(p.subcategoryId) || t("sReturns.na")}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -777,12 +789,12 @@ const ProductManagement = () => {
                           variant="indigo"
                           className="text-xs font-medium px-3 py-0.5 group-hover:shadow-sm transition-all"
                         >
-                          {p.variants.length} VARIANTS
+                          {t("sProducts.variantsCount", { count: p.variants.length })}
                         </Badge>
                       </div>
                     ) : (
                       <span className="text-xs font-medium text-slate-400 bg-slate-50 border border-slate-100 px-2 py-1 rounded italic">
-                        None
+{t("sProducts.none")}
                       </span>
                     )}
                   </td>
@@ -791,11 +803,11 @@ const ProductManagement = () => {
                       <ApprovalBadge approvalStatus={p.approvalStatus} />
                       {p.approvalReviewedAt ? (
                         <span className="text-[10px] text-slate-400">
-                          Reviewed
+{t("sProducts.reviewed")}
                         </span>
                       ) : p.approvalRequestedAt ? (
                         <span className="text-[10px] text-slate-400">
-                          Submitted
+{t("sProducts.submittedLabel")}
                         </span>
                       ) : null}
                     </div>
@@ -805,21 +817,21 @@ const ProductManagement = () => {
                       <button
                         onClick={() => { setPreviewProduct(p); setIsPreviewModalOpen(true); }}
                         className="p-1 hover:text-indigo-600 rounded-lg transition-all text-slate-500"
-                        title="Preview Product"
+                        title={t("sProducts.preview")}
                       >
                         <HiOutlineEye className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => openEditModal(p)}
                         className="p-1 hover:text-brand-600 rounded-lg transition-all text-slate-500"
-                        title="Edit Product"
+                        title={t("sProducts.editProduct")}
                       >
                         <HiOutlinePencilSquare className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(p)}
                         className="p-1 hover:text-rose-600 rounded-lg transition-all text-slate-500"
-                        title="Delete Product"
+                        title={t("sProducts.deleteProduct")}
                       >
                         <HiOutlineTrash className="h-4 w-4" />
                       </button>
@@ -840,23 +852,23 @@ const ProductManagement = () => {
         >
           <div>
             <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">
-              Status
+{t("common.status")}
             </p>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 outline-none bg-white"
             >
-              <option value="All">All</option>
-              <option value="Active">Active</option>
-              <option value="Low Stock">Low Stock</option>
-              <option value="Out of Stock">Out of Stock</option>
+              <option value="All">{t("common.all")}</option>
+              <option value="Active">{t("common.active")}</option>
+              <option value="Low Stock">{t("status.low_stock")}</option>
+              <option value="Out of Stock">{t("status.out_of_stock")}</option>
             </select>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">
-                Min Price
+{t("sProducts.minPrice")}
               </p>
               <input
                 type="number"
@@ -868,7 +880,7 @@ const ProductManagement = () => {
             </div>
             <div>
               <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">
-                Max Price
+{t("sProducts.maxPrice")}
               </p>
               <input
                 type="number"
@@ -893,14 +905,14 @@ const ProductManagement = () => {
               }}
               className="text-[11px] font-bold text-slate-600 hover:text-slate-700"
             >
-              Clear
+{t("sProducts.clear")}
             </button>
             <button
               type="button"
               onClick={() => setIsFilterOpen(false)}
               className="px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
             >
-              Done
+{t("sProducts.done")}
             </button>
           </div>
         </div>
@@ -946,13 +958,13 @@ const ProductManagement = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-slate-900">
-                      Edit Product
+{t("sProducts.editProduct")}
                     </h3>
                     <div className="flex items-center space-x-2 mt-0.5">
                       <Badge
                         variant="primary"
                         className="text-[7px] font-bold uppercase tracking-widest px-1 bg-brand-100 text-brand-700">
-                        SELLER
+{t("sProducts.sellerBadge")}
                       </Badge>
                       <HiOutlineChevronRight className="h-2.5 w-2.5 text-slate-300" />
                       <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">
@@ -976,20 +988,20 @@ const ProductManagement = () => {
                   {[
                     {
                       id: "general",
-                      label: "General Info",
+                      label: t("sProducts.tabGeneral"),
                       icon: HiOutlineTag,
                     },
                     {
                       id: "variants",
-                      label: "Pricing & Variants",
+                      label: t("sProducts.tabPricing"),
                       icon: HiOutlineSwatch,
                     },
                     {
                       id: "category",
-                      label: "Groups",
+                      label: t("sProducts.tabGroups"),
                       icon: HiOutlineFolderOpen,
                     },
-                    { id: "media", label: "Photos", icon: HiOutlinePhoto },
+                    { id: "media", label: t("sProducts.tabPhotos"), icon: HiOutlinePhoto },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -1008,7 +1020,7 @@ const ProductManagement = () => {
                   <div className="pt-8 px-4">
                     <div className="p-4 bg-brand-50 rounded-2xl border border-brand-100">
                       <p className="text-[9px] font-bold text-brand-600 uppercase tracking-widest mb-1">
-                        Status
+{t("common.status")}
                       </p>
                       <select
                         value={formData.status}
@@ -1016,8 +1028,8 @@ const ProductManagement = () => {
                           setFormData({ ...formData, status: e.target.value })
                         }
                         className="w-full bg-transparent border-none text-xs font-bold text-brand-700 outline-none p-0 cursor-pointer focus:ring-0">
-                        <option value="active">PUBLISHED</option>
-                        <option value="inactive">DRAFT</option>
+                        <option value="active">{t("sProducts.published")}</option>
+                        <option value="inactive">{t("sProducts.draft")}</option>
                       </select>
                     </div>
                   </div>
@@ -1032,7 +1044,7 @@ const ProductManagement = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5 flex flex-col">
                           <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                            Product Title
+{t("sProducts.productTitle")}
                           </label>
                           <input
                             value={formData.name}
@@ -1057,12 +1069,13 @@ const ProductManagement = () => {
                               }));
                             }}
                             className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-semibold outline-none ring-primary/5 focus:ring-2"
-                            placeholder="e.g. Premium Basmati Rice"
+                            placeholder={t("sProducts.titlePh")}
                           />
                         </div>
+                        <NameTranslationFields formData={formData} setFormData={setFormData} />
                         <div className="space-y-1.5 flex flex-col">
                           <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                            Web Address
+{t("sProducts.webAddress")}
                           </label>
                           <div className="flex items-center bg-slate-50 rounded-xl px-4 py-2.5">
                             <span className="text-[10px] text-slate-600 font-bold mr-1">
@@ -1084,7 +1097,7 @@ const ProductManagement = () => {
                       </div>
                       <div className="space-y-1.5 flex flex-col">
                         <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                          About this item
+{t("sProducts.about")}
                         </label>
                         <textarea
                           value={formData.description}
@@ -1097,13 +1110,13 @@ const ProductManagement = () => {
                           onWheel={(e) => e.stopPropagation()}
                           onTouchMove={(e) => e.stopPropagation()}
                           className="w-full px-4 py-3 bg-slate-100 border-none rounded-2xl text-sm font-semibold min-h-[160px] max-h-[260px] outline-none resize-none overflow-y-auto custom-scrollbar"
-                          placeholder="Describe the item here..."
+                          placeholder={t("sProducts.aboutPh")}
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5 flex flex-col">
                           <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                            Brand Name
+{t("sProducts.brand")}
                           </label>
                           <input
                             value={formData.brand}
@@ -1114,12 +1127,12 @@ const ProductManagement = () => {
                               })
                             }
                             className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-semibold outline-none ring-primary/5 focus:ring-2"
-                            placeholder="e.g. Amul"
+                            placeholder={t("sProducts.brandPh")}
                           />
                         </div>
                         <div className="space-y-1.5 flex flex-col">
                           <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                            Product Code
+{t("sProducts.productCode")}
                           </label>
                           <input
                             value={formData.sku}
@@ -1127,7 +1140,7 @@ const ProductManagement = () => {
                               setFormData({ ...formData, sku: e.target.value })
                             }
                             className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-mono font-bold outline-none ring-primary/5 focus:ring-2"
-                            placeholder="AUTO-GENERATED"
+                            placeholder={t("sProducts.autoGenerated")}
                           />
                         </div>
                       </div>
@@ -1147,10 +1160,10 @@ const ProductManagement = () => {
                               setFormData({ ...formData, header: e.target.value, category: "", subcategory: "" })
                             }
                             className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-bold outline-none cursor-pointer">
-                            <option value="">Select Main Group</option>
+                            <option value="">{t("sProducts.selectMainGroup")}</option>
                             {categories.map((h) => (
                               <option key={h._id || h.id} value={h._id || h.id}>
-                                {h.name}
+                                {locName(h)}
                               </option>
                             ))}
                           </select>
@@ -1166,12 +1179,12 @@ const ProductManagement = () => {
                             }
                             disabled={!formData.header}
                             className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-bold outline-none cursor-pointer disabled:opacity-50">
-                            <option value="">Select Category</option>
+                            <option value="">{t("sProducts.selectCategory")}</option>
                             {categories
                               .find((h) => (h._id || h.id) === formData.header)
                               ?.children?.map((c) => (
                                 <option key={c._id || c.id} value={c._id || c.id}>
-                                  {c.name}
+                                  {locName(c)}
                                 </option>
                               ))}
                           </select>
@@ -1188,13 +1201,13 @@ const ProductManagement = () => {
                           }
                           disabled={!formData.category}
                           className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-bold outline-none cursor-pointer disabled:opacity-50">
-                          <option value="">Select Sub-Category</option>
+                          <option value="">{t("sProducts.selectSubcategory")}</option>
                           {categories
                             .find((h) => (h._id || h.id) === formData.header)
                             ?.children?.find((c) => (c._id || c.id) === formData.category)
                             ?.children?.map((sc) => (
                               <option key={sc._id || sc.id} value={sc._id || sc.id}>
-                                {sc.name}
+                                {locName(sc)}
                               </option>
                             ))}
                         </select>
@@ -1206,7 +1219,7 @@ const ProductManagement = () => {
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-2 duration-300">
                       <div className="space-y-3">
                         <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                          Main Cover Photo
+{t("sProducts.mainPhoto")}
                         </label>
                         <div className="flex flex-col md:flex-row items-start gap-6">
                           <div className="w-48 aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all cursor-pointer overflow-hidden relative">
@@ -1216,11 +1229,11 @@ const ProductManagement = () => {
                               onChange={(e) => handleImageUpload(e, "main")}
                             />
                             {formData.mainImage ? (
-                              <img src={formData.mainImage} alt="Main Preview" className="w-full h-full object-cover" />
+                              <img src={formData.mainImage} alt={t("sProducts.mainPhoto")} className="w-full h-full object-cover" />
                             ) : (
                               <div className="flex flex-col items-center">
                                 <HiOutlinePhoto className="h-10 w-10 text-slate-200" />
-                                <p className="text-[10px] text-slate-600 font-bold mt-2">UPLOAD</p>
+                                <p className="text-[10px] text-slate-600 font-bold mt-2">{t("sProducts.uploadCaps")}</p>
                               </div>
                             )}
                           </div>
@@ -1230,7 +1243,7 @@ const ProductManagement = () => {
                       {hasImagesFeature && (
                         <div className="space-y-3">
                           <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                            Gallery Photos
+{t("sProducts.galleryPhotos")}
                           </label>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {(formData.galleryImages || []).slice(0, 4).map((img, idx) => (
@@ -1251,13 +1264,13 @@ const ProductManagement = () => {
                                 />
                                 <div className="flex flex-col items-center">
                                   <HiOutlinePhoto className="h-8 w-8 text-slate-200" />
-                                  <p className="text-[10px] text-slate-600 font-bold mt-2">UPLOAD</p>
+                                  <p className="text-[10px] text-slate-600 font-bold mt-2">{t("sProducts.uploadCaps")}</p>
                                 </div>
                               </div>
                             ))}
                           </div>
                           <p className="text-[10px] text-slate-500 font-medium">
-                            Existing gallery images are shown here. Uploading new images will append them to the gallery.
+{t("sProducts.galleryHint")}
                           </p>
                         </div>
                       )}
@@ -1267,7 +1280,7 @@ const ProductManagement = () => {
                   {modalTab === "variants" && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-bold">Product Variants</h4>
+                        <h4 className="text-sm font-bold">{t("sProducts.variants")}</h4>
                         <button
                           type="button"
                           onClick={() =>
@@ -1286,51 +1299,51 @@ const ProductManagement = () => {
                               ],
                             }))
                           }
-                          className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-[10px] font-bold">+ ADD</button>
+                          className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-[10px] font-bold">+ {t("sProducts.addCaps")}</button>
                       </div>
                       <div className="space-y-3">
                         {formData.variants.map((v, i) => (
                           <div key={v.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
                             <div className="md:col-span-2 space-y-1">
-                              <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">Variant Name</label>
+                              <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">{t("sProducts.variantName")}</label>
                               <input value={v.name} onChange={e => {
                                 const news = [...formData.variants];
                                 news[i].name = e.target.value;
                                 setFormData({ ...formData, variants: news });
-                              }} placeholder="e.g. 1kg, 1 pack, 1 liter..." className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
+                              }} placeholder={t("sProducts.variantNamePh")} className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">Price</label>
+                              <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">{t("sProducts.price")}</label>
                               <input type="number" value={v.price} onChange={e => {
                                 const news = [...formData.variants];
                                 news[i].price = e.target.value;
                                 setFormData({ ...formData, variants: news });
-                              }} placeholder="Price" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
+                              }} placeholder={t("sProducts.price")} className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[8px] font-bold text-brand-400 uppercase tracking-widest ml-1">Sale Price</label>
+                              <label className="text-[8px] font-bold text-brand-400 uppercase tracking-widest ml-1">{t("sProducts.salePrice")}</label>
                               <input type="number" value={v.salePrice} onChange={e => {
                                 const news = [...formData.variants];
                                 news[i].salePrice = e.target.value;
                                 setFormData({ ...formData, variants: news });
-                              }} placeholder="Sale" className="w-full bg-brand-50/50 px-3 py-2 rounded-xl text-xs ring-1 ring-brand-100 text-brand-700 outline-none" />
+                              }} placeholder={t("sProducts.sale")} className="w-full bg-brand-50/50 px-3 py-2 rounded-xl text-xs ring-1 ring-brand-100 text-brand-700 outline-none" />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">Stock</label>
+                              <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">{t("nav.stock")}</label>
                               <input type="number" value={v.stock} onChange={e => {
                                 const news = [...formData.variants];
                                 news[i].stock = e.target.value;
                                 setFormData({ ...formData, variants: news });
-                              }} placeholder="Stock" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
+                              }} placeholder={t("nav.stock")} className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="flex-1 space-y-1">
-                                <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">SKU</label>
+                                <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">{t("sProducts.sku")}</label>
                                 <input value={v.sku} onChange={e => {
                                   const news = [...formData.variants];
                                   news[i].sku = e.target.value;
                                   setFormData({ ...formData, variants: news });
-                                }} placeholder="SKU" className="w-full bg-white px-3 py-2 rounded-xl text-[10px] ring-1 ring-slate-100 outline-none" />
+                                }} placeholder={t("sProducts.sku")} className="w-full bg-white px-3 py-2 rounded-xl text-[10px] ring-1 ring-slate-100 outline-none" />
                               </div>
                               <button type="button" onClick={() => {
                                 setFormData((prev) => {
@@ -1364,12 +1377,12 @@ const ProductManagement = () => {
                 <button
                   onClick={() => setIsProductModalOpen(false)}
                   className="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
-                  CLOSE
+{t("sDash.closeCaps")}
                 </button>
                 <button
                   onClick={handleSave}
                   className="bg-slate-900 text-white px-10 py-2.5 rounded-xl text-xs font-bold shadow-xl hover:-translate-y-0.5 transition-all">
-                  SAVE CHANGES
+{t("sProducts.saveChanges")}
                 </button>
               </div>
             </motion.div>
@@ -1381,19 +1394,19 @@ const ProductManagement = () => {
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Confirm Deletion"
+        title={t("sProducts.confirmDeletion")}
         size="sm"
         footer={
           <div className="flex gap-4 justify-end w-full">
             <button
               onClick={() => setIsDeleteModalOpen(false)}
               className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-700 transition-colors">
-              Cancel
+{t("common.cancel")}
             </button>
             <button
               onClick={confirmDelete}
               className="px-6 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-rose-100 hover:bg-rose-700 transition-all active:scale-95">
-              Delete product
+{t("sProducts.deleteProductBtn")}
             </button>
           </div>
         }>
@@ -1403,7 +1416,7 @@ const ProductManagement = () => {
           </div>
           <div className="space-y-2 max-w-md">
             <h4 className="text-lg font-semibold text-slate-900">
-              Are you absolutely sure?
+{t("sProducts.areYouSure")}
             </h4>
             <p className="text-sm text-slate-600 leading-relaxed">
               This action cannot be undone. This will permanently remove{" "}
@@ -1420,7 +1433,7 @@ const ProductManagement = () => {
       <Modal
         isOpen={isVariantsViewModalOpen}
         onClose={() => setIsVariantsViewModalOpen(false)}
-        title="Product Variants Details"
+        title={t("sProducts.variantsDetails")}
         size="lg"
       >
         <div className="py-2">
@@ -1435,7 +1448,7 @@ const ProductManagement = () => {
             <div>
               <h3 className="text-lg font-black text-slate-900 leading-tight">{viewingVariants?.name}</h3>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant="primary" className="text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5">{viewingVariants?.categoryId?.name || 'Category'}</Badge>
+                <Badge variant="primary" className="text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5">{locName(viewingVariants?.categoryId) || t('sProducts.colCategory')}</Badge>
                 <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Master SKU: {viewingVariants?.sku || viewingVariants?._id?.slice(-6).toUpperCase() || 'N/A'}</span>
               </div>
             </div>
@@ -1445,10 +1458,10 @@ const ProductManagement = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Variant Specification</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Unit Price</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Available Stock</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">Variant SKU</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">{t("sProducts.variantSpec")}</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">{t("sProducts.unitPrice")}</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">{t("sProducts.availableStock")}</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">{t("sProducts.variantSku")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -1468,7 +1481,7 @@ const ProductManagement = () => {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <Badge variant={v.stock === 0 ? "rose" : v.stock <= 10 ? "amber" : "emerald"} className="text-[10px] font-black uppercase tracking-widest px-2 shadow-sm">
-                        {v.stock === 0 ? 'OUT OF STOCK' : `${v.stock} UNITS`}
+                        {v.stock === 0 ? t('sProducts.outOfStockCaps') : t('sProducts.unitsCount', { count: v.stock })}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -1487,7 +1500,7 @@ const ProductManagement = () => {
               onClick={() => setIsVariantsViewModalOpen(false)}
               className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:-translate-y-0.5 transition-all active:scale-95"
             >
-              CLOSE VIEWER
+{t("sProducts.closeViewer")}
             </button>
           </div>
         </div>
@@ -1497,7 +1510,7 @@ const ProductManagement = () => {
       <Modal
         isOpen={isPreviewModalOpen}
         onClose={() => setIsPreviewModalOpen(false)}
-        title="Product Preview"
+        title={t("sProducts.productPreview")}
         size="md"
       >
         {previewProduct && (
@@ -1539,7 +1552,7 @@ const ProductManagement = () => {
                 onClick={() => setIsPreviewModalOpen(false)}
                 className="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-xl hover:-translate-y-0.5 transition-all"
               >
-                Close Preview
+{t("sProducts.closePreview")}
               </button>
             </div>
           </div>

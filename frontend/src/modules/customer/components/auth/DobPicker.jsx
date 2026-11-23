@@ -3,6 +3,8 @@ import { DayPicker } from 'react-day-picker';
 import { format, parseISO, isValid, startOfMonth } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react';
 import 'react-day-picker/style.css';
+import { useTranslation } from 'react-i18next';
+import { useCustomerLanguage } from '../../i18n/CustomerLanguageProvider';
 
 const MIN_YEAR = 1920;
 const DEFAULT_START = new Date(2000, 0, 1);
@@ -14,7 +16,32 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
  * instead of scrolling a native <select>. No future dates.
  * value / onChange use ISO "yyyy-MM-dd" strings, same as <input type="date">.
  */
-const DobPicker = ({ value, onChange, placeholder = 'Date of Birth (Optional)', themeColor = '#1A4516' }) => {
+const DobPicker = ({ value, onChange, placeholder: placeholderProp, themeColor = '#1A4516' }) => {
+    const { t } = useTranslation();
+    const { intlLocale } = useCustomerLanguage();
+    const placeholder = placeholderProp || t('auth.dobPlaceholder');
+    const monthNames = React.useMemo(() => {
+        try {
+            const fmt = new Intl.DateTimeFormat(intlLocale, { month: 'short' });
+            return MONTHS.map((_, i) => fmt.format(new Date(2000, i, 1)));
+        } catch {
+            return MONTHS;
+        }
+    }, [intlLocale]);
+    const formatDisplayDate = (date) => {
+        try {
+            return new Intl.DateTimeFormat(intlLocale, { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+        } catch {
+            return format(date, 'dd MMM yyyy');
+        }
+    };
+    const weekdayFormatter = (date) => {
+        try {
+            return new Intl.DateTimeFormat(intlLocale, { weekday: 'short' }).format(date);
+        } catch {
+            return format(date, 'EEEEEE');
+        }
+    };
     const [open, setOpen] = useState(false);
     const [view, setView] = useState('days'); // 'days' | 'months' | 'years'
     const [month, setMonth] = useState(DEFAULT_START);
@@ -120,13 +147,13 @@ const DobPicker = ({ value, onChange, placeholder = 'Date of Birth (Optional)', 
                 } ${open ? 'bg-white' : 'border-gray-100'}`}
                 style={open ? { borderColor: themeColor } : undefined}
             >
-                {selected ? format(selected, 'dd MMM yyyy') : placeholder}
+                {selected ? formatDisplayDate(selected) : placeholder}
             </button>
 
             {selected && (
                 <button
                     type="button"
-                    aria-label="Clear date of birth"
+                    aria-label={t('auth.clearDob')}
                     onClick={() => onChange('')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                 >
@@ -137,7 +164,7 @@ const DobPicker = ({ value, onChange, placeholder = 'Date of Birth (Optional)', 
             {open && (
                 <div
                     role="dialog"
-                    aria-label="Choose date of birth"
+                    aria-label={t('auth.chooseDob')}
                     className="absolute left-0 right-0 z-50 mt-2 rounded-2xl border border-gray-100 bg-white p-3 shadow-2xl"
                     style={{
                         '--rdp-accent-color': themeColor,
@@ -150,7 +177,7 @@ const DobPicker = ({ value, onChange, placeholder = 'Date of Birth (Optional)', 
                     <div className="mb-2 flex items-center justify-between">
                         <button
                             type="button"
-                            aria-label="Previous"
+                            aria-label={t('common.previous')}
                             className={`${navClass} ${view === 'years' ? 'invisible' : ''}`}
                             disabled={!canGoPrev}
                             onClick={() => shift(-1)}
@@ -165,7 +192,7 @@ const DobPicker = ({ value, onChange, placeholder = 'Date of Birth (Optional)', 
                                 style={view === 'months' ? { background: accentSoft, color: themeColor } : undefined}
                                 onClick={() => setView(view === 'months' ? 'days' : 'months')}
                             >
-                                {MONTHS[month.getMonth()]}
+                                {monthNames[month.getMonth()]}
                                 <ChevronDown size={14} />
                             </button>
                             <button
@@ -181,7 +208,7 @@ const DobPicker = ({ value, onChange, placeholder = 'Date of Birth (Optional)', 
 
                         <button
                             type="button"
-                            aria-label="Next"
+                            aria-label={t('common.next')}
                             className={`${navClass} ${view === 'years' ? 'invisible' : ''}`}
                             disabled={!canGoNext}
                             onClick={() => shift(1)}
@@ -204,13 +231,14 @@ const DobPicker = ({ value, onChange, placeholder = 'Date of Birth (Optional)', 
                                 endMonth={today}
                                 disabled={{ after: today }}
                                 showOutsideDays
+                                formatters={{ formatWeekdayName: weekdayFormatter }}
                             />
                         </div>
                     )}
 
                     {view === 'months' && (
                         <div className="grid grid-cols-3 gap-2 py-1">
-                            {MONTHS.map((name, index) => {
+                            {monthNames.map((name, index) => {
                                 const isFuture = new Date(month.getFullYear(), index, 1) > today;
                                 const isActive = index === month.getMonth();
                                 return (

@@ -1,6 +1,8 @@
 import React from "react";
 import { Plus, Minus, Lock } from "lucide-react";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
+import { useTranslation } from "react-i18next";
+import { getLocalizedItemLabel as itemName } from "../../../i18n/format";
 
 /**
  * CheckoutCartSummary
@@ -20,6 +22,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
   onRemovePackage,
   onMoveToWishlist,
 }) {
+  const { t } = useTranslation();
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
       {cart.map((item) => {
@@ -45,22 +48,22 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
             <div className="h-20 w-20 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-100">
               <img
                 src={applyCloudinaryTransform(item.image)}
-                alt={item.name}
+                alt={itemName(item)}
                 loading="lazy"
                 className="h-full w-full object-cover"
               />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-slate-800 mb-0.5 leading-snug">{item.name}</h4>
+              <h4 className="font-bold text-slate-800 mb-0.5 leading-snug">{itemName(item)}</h4>
               
               {isPackageItem && (
                 <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    Combo Pack Price
+                    {t("checkout.comboPackPrice")}
                   </span>
                   {item.packageName && (
-                    <span className="text-[10px] text-slate-400 truncate max-w-[140px]" title={item.packageName}>
-                      {item.packageName}
+                    <span className="text-[10px] text-slate-400 truncate max-w-[140px]" title={itemName(item, "packageName")}>
+                      {itemName(item, "packageName")}
                     </span>
                   )}
                 </div>
@@ -68,7 +71,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
 
               {(item.variantName || item.variantSku) && (
                 <p className="text-xs text-slate-500 mb-1">
-                  Variant: {item.variantName || item.variantSku}
+                  {t("checkout.variant", { name: item.variantName || item.variantSku })}
                 </p>
               )}
               
@@ -79,7 +82,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
                     onClick={() => onRemovePackage(item.packageId)}
                     className="text-xs text-slate-500 underline hover:text-rose-600 transition-colors"
                   >
-                    Remove combo
+                    {t("checkout.removeCombo")}
                   </button>
                 )
               ) : (
@@ -87,7 +90,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
                   onClick={() => onMoveToWishlist(item)}
                   className="text-xs text-slate-500 underline hover:text-[#1A4516] transition-colors"
                 >
-                  Move to wishlist
+                  {t("checkout.moveToWishlist")}
                 </button>
               )}
             </div>
@@ -97,10 +100,10 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
                 // Combo items: quantity is fixed by the package — no +/- controls.
                 <div
                   className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5"
-                  title="Quantity is fixed for combo pack items"
+                  title={t("checkout.comboQtyFixed")}
                 >
                   <Lock size={11} className="text-slate-400" />
-                  <span className="text-slate-700 font-bold text-xs">Qty {item.quantity}</span>
+                  <span className="text-slate-700 font-bold text-xs">{t("product.qty")} {item.quantity}</span>
                 </div>
               ) : (
               <div className="flex items-center gap-2 bg-[#1A4516] rounded-lg px-2 py-1 shadow-xs">
@@ -136,7 +139,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
                 )}
                 {hasDiscount && (
                   <p className="text-[10px] font-bold text-emerald-600">
-                    Save ₹{totalMrp - total}
+                    {t("product.saveAmount", { amount: totalMrp - total })}
                   </p>
                 )}
               </div>
@@ -147,7 +150,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
       <div className="pt-3 border-t border-slate-100 flex justify-center mt-2">
         <a href="/user" className="flex items-center gap-2 text-[#1A4516] font-bold text-sm hover:underline py-1">
           <Plus size={16} strokeWidth={3} />
-          Add more items
+          {t("checkout.addMoreItems")}
         </a>
       </div>
     </div>

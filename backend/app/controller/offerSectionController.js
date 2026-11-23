@@ -36,12 +36,12 @@ export const getPublicOfferSections = async (req, res) => {
 
         const sections = await OfferSection.find({ status: "active" })
           .sort({ order: 1, createdAt: 1 })
-          .populate("categoryIds", "name slug image")
-          .populate("categoryId", "name slug image")
+          .populate("categoryIds", "name nameHi nameGu slug image")
+          .populate("categoryId", "name nameHi nameGu slug image")
           .populate("sellerIds", "shopName name logo")
           .populate({
             path: "productIds",
-            select: "name slug price salePrice mainImage stock unit sellerId status approvalStatus",
+            select: "name nameHi nameGu slug price salePrice mainImage stock unit sellerId status approvalStatus",
             match: {
               status: "active",
               ...getApprovedOrLegacyFilter(),
@@ -88,8 +88,8 @@ export const getAdminOfferSections = async (req, res) => {
 
     const sections = await OfferSection.find(query)
       .sort({ order: 1, createdAt: 1 })
-      .populate("categoryIds", "name")
-      .populate("categoryId", "name")
+      .populate("categoryIds", "name nameHi nameGu")
+      .populate("categoryId", "name nameHi nameGu")
       .populate("sellerIds", "shopName name")
       .lean();
 

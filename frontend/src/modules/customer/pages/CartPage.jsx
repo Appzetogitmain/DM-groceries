@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Lottie from 'lottie-react';
 import { useCart } from '../context/CartContext';
+import { getLocalizedItemLabel as itemName } from "../i18n/format";
 import {
     Minus,
     Plus,
@@ -99,7 +100,7 @@ const CartPage = () => {
                                                 <div className="h-24 w-24 md:h-28 md:w-28 flex-shrink-0 overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-100">
                                                     <img
                                                         src={applyCloudinaryTransform(item.image)}
-                                                        alt={item.name}
+                                                        alt={itemName(item)}
                                                         loading="lazy"
                                                         className="h-full w-full object-cover"
                                                     />
@@ -110,7 +111,7 @@ const CartPage = () => {
                                                         <div className="min-w-0">
                                                             {isPkg ? (
                                                                 <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 border border-emerald-200">
-                                                                    Combo Pack Price • {item.packageName || "Combo"}
+                                                                    Combo Pack Price • {itemName(item, "packageName") || "Combo"}
                                                                 </span>
                                                             ) : (
                                                                 <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-brand-700">
@@ -118,7 +119,7 @@ const CartPage = () => {
                                                                 </span>
                                                             )}
                                                             <h3 className="mt-2 truncate text-lg md:text-xl font-black tracking-tight text-slate-900">
-                                                                {item.name}
+                                                                {itemName(item)}
                                                             </h3>
                                                             {item.variantName && (
                                                                 <p className="mt-1 text-sm font-medium text-slate-500">

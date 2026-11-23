@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslation } from "react-i18next";
 
 /**
  * CheckoutCouponSection
@@ -35,6 +36,7 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
   onOpenChange,
   onApplyManualCode,
 }) {
+  const { t } = useTranslation();
   return (
     <>
       {/* Inline coupon carousel */}
@@ -42,17 +44,17 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Tag size={20} className="text-orange-500" />
-            <h3 className="font-black text-slate-800">Available Coupons</h3>
+            <h3 className="font-black text-slate-800">{t("coupon.available")}</h3>
           </div>
           <button
             onClick={() => onOpenChange(true)}
             className="text-[#1A4516] text-sm font-bold hover:underline">
-            See All
+            {t("common.seeAll")}
           </button>
         </div>
         {coupons.length === 0 ? (
           <p className="text-xs text-slate-400 font-medium py-2">
-            No coupons available right now.
+            {t("coupon.none")}
           </p>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4 snap-x">
@@ -77,17 +79,17 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
                     </span>
                     {isApplied && (
                       <span className="text-[10px] font-black text-green-600 uppercase tracking-wide">
-                        ✓ Applied
+                        ✓ {t("coupon.appliedShort")}
                       </span>
                     )}
                   </div>
                   <p className="text-sm font-black text-slate-800 leading-tight">
                     {coupon.discountType === "percentage"
-                      ? `${coupon.discountValue}% OFF`
-                      : `₹${coupon.discountValue} OFF`}
+                      ? t("product.percentOff", { percent: coupon.discountValue })
+                      : t("coupon.flatOff", { amount: coupon.discountValue })}
                     {coupon.minOrderValue > 0 && (
                       <span className="block text-[10px] font-medium text-slate-500">
-                        on orders above ₹{coupon.minOrderValue}
+                        {t("coupon.onOrdersAbove", { amount: coupon.minOrderValue })}
                       </span>
                     )}
                   </p>
@@ -100,13 +102,13 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
                     <button
                       onClick={onRemoveCoupon}
                       className="mt-auto w-full py-1.5 rounded-xl text-xs font-black bg-red-50 text-red-500 hover:bg-red-100 active:scale-95 transition-all">
-                      Remove
+                      {t("common.remove")}
                     </button>
                   ) : (
                     <button
                       onClick={() => onApplyCoupon(coupon)}
                       className="mt-auto w-full py-1.5 rounded-xl text-xs font-black bg-[#1A4516] text-[#1A4516]-foreground hover:bg-[var(--brand-400)] active:scale-95 transition-all">
-                      Apply
+                      {t("common.apply")}
                     </button>
                   )}
                 </div>
@@ -120,8 +122,8 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Apply Coupon</DialogTitle>
-            <DialogDescription>Browse available offers and save more.</DialogDescription>
+            <DialogTitle>{t("coupon.applyTitle")}</DialogTitle>
+            <DialogDescription>{t("coupon.applyDesc")}</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
             {coupons.map((coupon) => (
@@ -161,7 +163,7 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
                           ? "bg-white text-[#1A4516] border-2 border-[#1A4516] cursor-default"
                           : "bg-[#1A4516] text-[#1A4516]-foreground hover:bg-[#0b721b]"
                       }`}>
-                      {selectedCoupon?.code === coupon.code ? "Applied" : "Apply Now"}
+                      {selectedCoupon?.code === coupon.code ? t("coupon.appliedShort") : t("coupon.applyNow")}
                     </button>
                   </div>
                 </div>
@@ -175,7 +177,7 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
                 size={16}
               />
               <Input
-                placeholder="Enter coupon code manually"
+                placeholder={t("coupon.manualPh")}
                 value={manualCode}
                 onChange={(e) => onManualCodeChange(e.target.value.toUpperCase())}
                 className="pl-10 h-12 rounded-xl focus-visible:ring-[#1A4516]"
@@ -183,7 +185,7 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
               <button
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1A4516] font-bold text-xs"
                 onClick={onApplyManualCode}>
-                CHECK
+                {t("coupon.check")}
               </button>
             </div>
           </div>

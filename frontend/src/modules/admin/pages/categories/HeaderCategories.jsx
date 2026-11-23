@@ -48,6 +48,7 @@ import ColorLensIcon from "@mui/icons-material/ColorLens";
 import BuildIcon from "@mui/icons-material/Build";
 import LuggageIcon from "@mui/icons-material/Luggage";
 
+import CategoryTranslationFields from "../../components/CategoryTranslationFields";
 const makeSlug = (value) =>
   String(value || "")
     .toLowerCase()
@@ -85,6 +86,8 @@ const HeaderCategories = () => {
 
   const [formData, setFormData] = useState({
     name: "",
+    nameHi: "",
+    nameGu: "",
     slug: "",
     description: "",
     status: "active",
@@ -314,6 +317,8 @@ const HeaderCategories = () => {
     setEditingItem(null);
     setFormData({
       name: "",
+      nameHi: "",
+      nameGu: "",
       slug: "",
       description: "",
       status: "active",
@@ -335,6 +340,8 @@ const HeaderCategories = () => {
     setEditingItem(item);
     setFormData({
       name: item.name,
+      nameHi: item.nameHi || "",
+      nameGu: item.nameGu || "",
       slug: item.slug,
       description: item.description || "",
       status: item.status,
@@ -819,6 +826,8 @@ const HeaderCategories = () => {
                     </p>
                   )}
                 </div>
+
+                <CategoryTranslationFields formData={formData} setFormData={setFormData} />
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">

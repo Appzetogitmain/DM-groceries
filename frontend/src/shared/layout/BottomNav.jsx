@@ -13,9 +13,11 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '@core/context/AuthContext';
+import { useLayoutText } from './LayoutTextContext';
 
 const BottomNav = ({ navItems }) => {
     const { role } = useAuth();
+    const lt = useLayoutText();
     const location = useLocation();
 
     // Define the primary bottom nav items based on user role
@@ -44,7 +46,7 @@ const BottomNav = ({ navItems }) => {
                     )}
                 >
                     <item.icon className="h-5 w-5" />
-                    <span className="text-[10px] font-bold uppercase tracking-tight">{item.label}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-tight">{lt(`nav.${item.label.toLowerCase()}`, item.label)}</span>
                 </NavLink>
             ))}
         </div>

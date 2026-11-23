@@ -19,9 +19,13 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { sellerApi } from "../services/sellerApi";
+import { useTranslation } from "react-i18next";
+import NameTranslationFields from "../components/NameTranslationFields";
+import { getSellerLocalizedName as locName } from "../i18n";
 
 
 const AddProduct = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [modalTab, setModalTab] = useState("general");
   const [isSaving, setIsSaving] = useState(false);
@@ -56,6 +60,8 @@ const AddProduct = () => {
     }
     return {
       name: "",
+      nameHi: "",
+      nameGu: "",
       slug: "",
       sku: "",
       description: "",
@@ -139,7 +145,7 @@ const AddProduct = () => {
           setDbCategories(res.data.results || res.data.result || []);
         }
       } catch (error) {
-        toast.error("Failed to load categories");
+        toast.error(t("sAdd.categoriesFailed"));
       } finally {
         setIsLoadingCats(false);
       }
@@ -170,25 +176,25 @@ const AddProduct = () => {
   const handleSave = async () => {
     // Validate required fields
     if (!formData.name) {
-      toast.error("Please fill in the Product Title");
+      toast.error(t("sAdd.titleRequired"));
       return;
     }
 
     // Validate all three category levels are selected
     if (!formData.header || !formData.category || !formData.subcategory) {
-      toast.error("Please select all three category levels: Main Group, Specific Category, and Sub-Category");
+      toast.error(t("sAdd.allLevels"));
       return;
     }
 
     const firstVariant = formData.variants[0] || {};
     if (!firstVariant.price || !firstVariant.stock) {
-      toast.error("Main variant must have price and stock");
+      toast.error(t("sAdd.mainVariant"));
       return;
     }
 
     for (const variant of formData.variants) {
       if (Number(variant.salePrice) > 0 && Number(variant.price) <= Number(variant.salePrice)) {
-        toast.error(`Price must be strictly greater than Sale Price for variant "${variant.name || variant.sku}"`);
+        toast.error(t("sProducts.priceGtSaleVariant", { name: variant.name || variant.sku }));
         return;
       }
     }
@@ -199,6 +205,8 @@ const AddProduct = () => {
 
       // Basic fields
       data.append("name", formData.name);
+      data.append("nameHi", formData.nameHi || "");
+      data.append("nameGu", formData.nameGu || "");
       data.append("slug", formData.slug);
       data.append("sku", formData.sku);
       data.append("description", formData.description);
@@ -236,14 +244,14 @@ const AddProduct = () => {
       const response = await sellerApi.createProduct(data);
       const approvalStatus = response?.data?.result?.approvalStatus;
       if (approvalStatus === "pending") {
-        toast.success("Product submitted for admin approval");
+        toast.success(t("sProducts.submitted"));
       } else {
-        toast.success(response?.data?.message || "Product saved successfully!");
+        toast.success(t("sAdd.saved"));
       }
       localStorage.removeItem("sellerAddProductDraft");
       navigate("/seller/products");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to save product");
+      toast.error(error.response?.data?.message || t("sProducts.saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -281,11 +289,11 @@ const AddProduct = () => {
           className="pl-0 hover:bg-transparent hover:text-primary-600"
           onClick={() => navigate(-1)}>
           <HiOutlineArrowLeft className="mr-2 h-5 w-5" />
-          Back to Products
+{t("sAdd.backToProducts")}
         </Button>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => navigate(-1)}>
-            Cancel
+{t("common.cancel")}
           </Button>
           <Button
             onClick={handleSave}
@@ -294,10 +302,10 @@ const AddProduct = () => {
             {isSaving ? (
               <>
                 <HiOutlineArrowPath className="mr-2 h-5 w-5 animate-spin" />
-                Publishing...
+{t("sAdd.publishing")}
               </>
             ) : (
-              "Save & Publish"
+              t("sAdd.saveAndPublish")
             )}
           </Button>
         </div>
@@ -307,10 +315,10 @@ const AddProduct = () => {
         {/* Sidebar Tabs */}
         <div className="md:w-64 bg-slate-50/50 border-r border-slate-100 p-4 space-y-1 overflow-y-auto">
           {[
-            { id: "general", label: "General Info", icon: HiOutlineTag },
-            { id: "variants", label: "Pricing & Variants", icon: HiOutlineSwatch },
-            { id: "category", label: "Groups", icon: HiOutlineFolderOpen },
-            { id: "media", label: "Photos", icon: HiOutlinePhoto },
+            { id: "general", label: t("sProducts.tabGeneral"), icon: HiOutlineTag },
+            { id: "variants", label: t("sProducts.tabPricing"), icon: HiOutlineSwatch },
+            { id: "category", label: t("sProducts.tabGroups"), icon: HiOutlineFolderOpen },
+            { id: "media", label: t("sProducts.tabPhotos"), icon: HiOutlinePhoto },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -329,7 +337,7 @@ const AddProduct = () => {
           <div className="pt-8 px-4">
             <div className="p-4 bg-brand-50 rounded-md border border-brand-100">
               <p className="text-[9px] font-bold text-brand-600 uppercase tracking-widest mb-1">
-                Status
+{t("common.status")}
               </p>
               <select
                 value={formData.status}
@@ -337,8 +345,8 @@ const AddProduct = () => {
                   setFormData({ ...formData, status: e.target.value })
                 }
                 className="w-full bg-transparent border-none text-xs font-bold text-brand-700 outline-none p-0 cursor-pointer focus:ring-0">
-                <option value="active">PUBLISHED</option>
-                <option value="inactive">DRAFT</option>
+                <option value="active">{t("sProducts.published")}</option>
+                <option value="inactive">{t("sProducts.draft")}</option>
               </select>
             </div>
           </div>
@@ -350,7 +358,7 @@ const AddProduct = () => {
             <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
               <div className="space-y-1.5 flex flex-col">
                 <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                  Product Title
+{t("sProducts.productTitle")}
                 </label>
                 <input
                   value={formData.name}
@@ -375,12 +383,13 @@ const AddProduct = () => {
                     }));
                   }}
                   className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-semibold outline-none ring-primary/5 focus:ring-2 transition-all"
-                  placeholder="e.g. Premium Basmati Rice"
+                  placeholder={t("sProducts.titlePh")}
                 />
               </div>
+              <NameTranslationFields formData={formData} setFormData={setFormData} />
               <div className="space-y-1.5 flex flex-col">
                 <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                  About this item
+{t("sProducts.about")}
                 </label>
                 <textarea
                   value={formData.description}
@@ -390,13 +399,13 @@ const AddProduct = () => {
                   onWheel={(e) => e.stopPropagation()}
                   onTouchMove={(e) => e.stopPropagation()}
                   className="w-full px-4 py-3 bg-slate-100 border-none rounded-2xl text-sm font-semibold min-h-[160px] max-h-[260px] outline-none transition-all focus:ring-2 focus:ring-primary/5 resize-none overflow-y-auto custom-scrollbar"
-                  placeholder="Describe the item here..."
+                  placeholder={t("sProducts.aboutPh")}
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5 flex flex-col">
                   <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                    Brand Name
+{t("sProducts.brand")}
                   </label>
                   <input
                     value={formData.brand}
@@ -404,12 +413,12 @@ const AddProduct = () => {
                       setFormData({ ...formData, brand: e.target.value })
                     }
                     className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-semibold outline-none ring-primary/5 focus:ring-2 transition-all"
-                    placeholder="e.g. Amul"
+                    placeholder={t("sProducts.brandPh")}
                   />
                 </div>
                 <div className="space-y-1.5 flex flex-col">
                   <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                    Product Code
+{t("sProducts.productCode")}
                   </label>
                   <input
                     value={formData.sku}
@@ -417,12 +426,12 @@ const AddProduct = () => {
                       setFormData({ ...formData, sku: e.target.value })
                     }
                     className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-mono font-bold outline-none ring-primary/5 focus:ring-2 transition-all"
-                    placeholder="AUTO-GENERATED"
+                    placeholder={t("sProducts.autoGenerated")}
                   />
                 </div>
               </div>
               <div className="flex justify-end pt-4">
-                <Button onClick={() => setModalTab("variants")}>Next: Variants <HiOutlineArrowLeft className="ml-2 h-4 w-4 rotate-180" /></Button>
+                <Button onClick={() => setModalTab("variants")}>{t("sAdd.nextVariants")} <HiOutlineArrowLeft className="ml-2 h-4 w-4 rotate-180" /></Button>
               </div>
             </div>
           )}
@@ -432,10 +441,10 @@ const AddProduct = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-bold text-slate-900">
-                    Product Variants
+{t("sProducts.variants")}
                   </h4>
                   <p className="text-xs text-slate-600 font-medium">
-                    Add different sizes, colors or weights.
+{t("sAdd.variantsHint")}
                   </p>
                 </div>
                 <button
@@ -457,7 +466,7 @@ const AddProduct = () => {
                   }
                   className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-all">
                   <HiOutlineSquaresPlus className="h-4 w-4" />
-                  <span>ADD VARIANT</span>
+                  <span>{t("sAdd.addVariant")}</span>
                 </button>
               </div>
 
@@ -468,7 +477,7 @@ const AddProduct = () => {
                     className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-end group relative">
                     <div className="col-span-12 md:col-span-3 space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                        Variant Name
+{t("sProducts.variantName")}
                       </label>
                       <input
                         value={variant.name}
@@ -485,13 +494,13 @@ const AddProduct = () => {
                             };
                           });
                         }}
-                        placeholder="e.g. 1kg, 1 pack, 1 liter..."
+                        placeholder={t("sProducts.variantNamePh")}
                         className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/10"
                       />
                     </div>
                     <div className="col-span-6 md:col-span-2 space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                        Price
+{t("sProducts.price")}
                       </label>
                       <input
                         type="number"
@@ -515,7 +524,7 @@ const AddProduct = () => {
                     </div>
                     <div className="col-span-6 md:col-span-2 space-y-1">
                       <label className="text-[8px] font-bold text-brand-500 uppercase tracking-widest ml-1">
-                        Sale
+{t("sProducts.sale")}
                       </label>
                       <input
                         type="number"
@@ -539,7 +548,7 @@ const AddProduct = () => {
                     </div>
                     <div className="col-span-6 md:col-span-2 space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                        Stock
+{t("nav.stock")}
                       </label>
                       <input
                         type="number"
@@ -563,7 +572,7 @@ const AddProduct = () => {
                     </div>
                     <div className="col-span-5 md:col-span-2 space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                        Product Code
+{t("sProducts.productCode")}
                       </label>
                       <input
                         value={variant.sku}
@@ -604,7 +613,7 @@ const AddProduct = () => {
                 ))}
               </div>
               <div className="flex justify-end pt-4">
-                <Button onClick={() => setModalTab("category")}>Next: Category <HiOutlineArrowLeft className="ml-2 h-4 w-4 rotate-180" /></Button>
+                <Button onClick={() => setModalTab("category")}>{t("sAdd.nextCategory")} <HiOutlineArrowLeft className="ml-2 h-4 w-4 rotate-180" /></Button>
               </div>
             </div>
           )}
@@ -622,10 +631,10 @@ const AddProduct = () => {
                       setFormData({ ...formData, header: e.target.value, category: "", subcategory: "" })
                     }
                     className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-primary/5 transition-all">
-                    <option value="">Select Main Group</option>
+                    <option value="">{t("sProducts.selectMainGroup")}</option>
                     {categories.map((h) => (
                       <option key={h._id || h.id} value={h._id || h.id}>
-                        {h.name}
+                        {locName(h)}
                       </option>
                     ))}
                   </select>
@@ -641,12 +650,12 @@ const AddProduct = () => {
                     }
                     disabled={!formData.header}
                     className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-primary/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Select Category</option>
+                    <option value="">{t("sProducts.selectCategory")}</option>
                     {categories
                       .find((h) => (h._id || h.id) === formData.header)
                       ?.children?.map((c) => (
                         <option key={c._id || c.id} value={c._id || c.id}>
-                          {c.name}
+                          {locName(c)}
                         </option>
                       ))}
                   </select>
@@ -664,20 +673,20 @@ const AddProduct = () => {
                     }
                     disabled={!formData.category}
                     className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-primary/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Select Sub-Category</option>
+                    <option value="">{t("sProducts.selectSubcategory")}</option>
                     {categories
                       .find((h) => (h._id || h.id) === formData.header)
                       ?.children?.find((c) => (c._id || c.id) === formData.category)
                       ?.children?.map((sc) => (
                         <option key={sc._id || sc.id} value={sc._id || sc.id}>
-                          {sc.name}
+                          {locName(sc)}
                         </option>
                       ))}
                   </select>
                 </div>
               </div>
               <div className="flex justify-end pt-4">
-                <Button onClick={() => setModalTab("media")}>Next: Media <HiOutlineArrowLeft className="ml-2 h-4 w-4 rotate-180" /></Button>
+                <Button onClick={() => setModalTab("media")}>{t("sAdd.nextMedia")} <HiOutlineArrowLeft className="ml-2 h-4 w-4 rotate-180" /></Button>
               </div>
             </div>
           )}
@@ -687,7 +696,7 @@ const AddProduct = () => {
               {/* Main Image Section */}
               <div className="space-y-3">
                 <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                  Main Cover Photo
+{t("sProducts.mainPhoto")}
                 </label>
                 <div className="flex flex-col md:flex-row items-start gap-6">
                   <div className="w-48 aspect-square rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all cursor-pointer overflow-hidden relative">
@@ -705,21 +714,20 @@ const AddProduct = () => {
                       <>
                         <HiOutlinePhoto className="h-10 w-10 text-slate-200 group-hover:text-primary transition-colors" />
                         <p className="text-[9px] font-bold text-slate-600 mt-2 uppercase tracking-widest group-hover:text-primary">
-                          Upload Cover
+{t("sAdd.uploadCover")}
                         </p>
                       </>
                     )}
                   </div>
                   <div className="flex-1 space-y-2 pt-2">
                     <p className="text-xs font-bold text-slate-900">
-                      Choose a primary image
+{t("sAdd.choosePrimary")}
                     </p>
                     <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                      We show this image on the search page and the main
-                      store listing. Make sure it is clear and bright.
+                      {t("sAdd.primaryHint")}
                     </p>
                     <button className="text-[10px] font-black text-primary uppercase tracking-wider hover:underline">
-                      Pick from Library
+{t("sAdd.pickLibrary")}
                     </button>
                   </div>
                 </div>
@@ -750,7 +758,7 @@ const AddProduct = () => {
                             />
                             <HiOutlinePlus className="h-5 w-5 text-slate-200 group-hover:text-primary transition-colors" />
                             <p className="text-[8px] font-bold text-slate-600 mt-1 uppercase tracking-widest group-hover:text-primary">
-                              Add
+{t("common.add")}
                             </p>
                           </>
                         )}
@@ -766,7 +774,7 @@ const AddProduct = () => {
               </p>
               <div className="flex justify-end pt-4 border-t border-slate-50">
                 <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? "Publishing..." : "Save & Publish"}
+                  {isSaving ? t("sAdd.publishing") : t("sAdd.saveAndPublish")}
                 </Button>
               </div>
             </div>

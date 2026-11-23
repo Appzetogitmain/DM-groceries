@@ -8,6 +8,7 @@ import {
 } from "@/core/services/orderSocket";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
+import { useTranslation } from "react-i18next";
 
 /**
  * DeliveryOtpDisplay Component
@@ -42,6 +43,7 @@ const calculateRemainingTime = (expiresAt) => {
 };
 
 const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtpData = null }) => {
+  const { t } = useTranslation();
   const [otpData, setOtpData] = useState(initialOtpData);
   const [isDelivered, setIsDelivered] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(
@@ -178,10 +180,10 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtpData = 
           </div>
         </div>
         <h3 className="text-lg font-bold text-brand-900 mb-1">
-          Delivery Confirmed!
+          {t("otp.deliveryConfirmed")}
         </h3>
         <p className="text-sm text-brand-700">
-          Your order has been successfully delivered
+          {t("otp.deliveredBody")}
         </p>
       </div>
     );
@@ -202,10 +204,10 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtpData = 
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-brand-900 uppercase tracking-wider">
-                Delivery Partner Nearby
+                {t("otp.partnerNearby")}
               </p>
               <p className="text-xs text-brand-700">
-                Within 0-120 meters of your location
+                {t("otp.withinMeters", { range: "0-120" })}
               </p>
             </div>
           </div>
@@ -228,7 +230,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtpData = 
                 isExpiringSoon ? "text-amber-800" : "text-purple-800"
               }`}
             >
-              Delivery OTP
+              {t("orderDetail.deliveryOtp")}
             </p>
           </div>
 
@@ -244,7 +246,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtpData = 
           </div>
 
           <p className={`text-xs ${isExpiringSoon ? "text-amber-700" : "text-purple-700"}`}>
-            Share this code with your delivery partner
+            {t("otp.shareCode")}
           </p>
         </div>
 
@@ -260,7 +262,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtpData = 
           <div className="flex items-center gap-2">
             <Clock className={`w-4 h-4 ${isExpiringSoon ? "text-amber-600" : "text-gray-600"}`} />
             <span className={`text-xs font-semibold ${isExpiringSoon ? "text-amber-900" : "text-gray-700"}`}>
-              {isExpiringSoon ? "Expiring Soon" : "Valid For"}
+              {isExpiringSoon ? t("otp.expiringSoon") : t("otp.validFor")}
             </span>
           </div>
           <span

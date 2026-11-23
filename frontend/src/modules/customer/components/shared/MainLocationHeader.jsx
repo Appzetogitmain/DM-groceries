@@ -26,7 +26,10 @@ import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
+import { useTranslation } from "react-i18next";
+import { translateEta, translateCategoryName } from "../../i18n/format";
 
+import useLocalizedLocationName from "../../i18n/useLocalizedLocation";
 /** Full-width bottom stroke + tab curve; l/r are 0–100% of column where the inner bump sits. */
 function buildActiveTabPath(l, r) {
   const y = 20;
@@ -43,6 +46,8 @@ function CategoryNavColumn({
   headerFontColor,
   headerIconColor,
 }) {
+  const { t } = useTranslation();
+  const label = translateCategoryName(t, cat);
   const iconColor = headerIconColor || "#111111";
   const colRef = useRef(null);
   const labelRef = useRef(null);
@@ -68,7 +73,7 @@ function CategoryNavColumn({
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [isActive, cat.name]);
+  }, [isActive, label]);
 
   const pathD = isActive ? buildActiveTabPath(lr.l, lr.r) : "";
 
@@ -99,7 +104,7 @@ function CategoryNavColumn({
         ) : (
           <img
             src={applyCloudinaryTransform(cat.icon, "f_auto,q_auto,w_100")}
-            alt={cat.name}
+            alt={label}
             loading="lazy"
             className={cn(
               "h-7 w-7 rounded-md object-contain transition-transform duration-200 md:h-8 md:w-8",
@@ -119,7 +124,7 @@ function CategoryNavColumn({
             color: isActive ? iconColor : (headerFontColor || "#111111"),
             opacity: isActive ? 1 : 0.68,
           }}>
-          {cat.name}
+          {label}
         </span>
       </div>
       {isActive && (
@@ -164,17 +169,19 @@ const MainLocationHeader = ({
   }, []);
   const { currentLocation, refreshLocation, isFetchingLocation } =
     useLocation();
+  const displayLocationName = useLocalizedLocationName(currentLocation);
   const { cartCount } = useCart();
   const { wishlist } = useWishlist();
   const wishlistCount = wishlist?.length || 0;
   const { isOpen: isProductDetailOpen } = useProductDetail();
   const { settings } = useSettings();
+  const { t } = useTranslation();
   const appName = settings?.appName || "App";
   const logoUrl = "/Logo.png";
   const navigate = useNavigate();
 
   // Search placeholder animation (removed for static text in new design)
-  const searchPlaceholder = "Search for vegetables, fruits, grocery...";
+  const searchPlaceholder = t("header.searchPlaceholderLong");
 
   // Smooth scroll interpolations
   const headerTopPadding = useTransform(scrollY, [0, 160], [16, 12]);
@@ -253,7 +260,7 @@ const MainLocationHeader = ({
               display: displayCart,
             }}
             type="button"
-            aria-label="Open cart"
+            aria-label={t("header.openCart")}
             onClick={() => navigate("/user/checkout")}
             className="absolute top-3 right-5 sm:top-4 sm:right-6 md:top-5 md:right-8 z-20 w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 cursor-pointer">
             {cartAnimData ? (
@@ -292,7 +299,7 @@ const MainLocationHeader = ({
                     className="text-[11px] font-bold uppercase tracking-wider leading-none"
                     style={{ color: headerFontColor }}
                   >
-                    {currentLocation.time}
+                    {translateEta(t, currentLocation.time)}
                   </span>
                 </div>
                 <button
@@ -309,8 +316,8 @@ const MainLocationHeader = ({
                     style={{ color: headerFontColor }}
                   >
                     {isFetchingLocation
-                      ? "Detecting location..."
-                      : currentLocation.name}
+                      ? t("location.detecting")
+                      : displayLocationName}
                   </div>
                   <ChevronDownIcon
                     sx={{ fontSize: 12, opacity: 0.5, color: headerFontColor }}
@@ -399,7 +406,7 @@ const MainLocationHeader = ({
                       className="text-base font-bold tracking-tight leading-none"
                       style={{ color: headerFontColor }}
                     >
-                      {currentLocation.time}
+                      {translateEta(t, currentLocation.time)}
                     </span>
                   </div>
                   <button
@@ -416,8 +423,8 @@ const MainLocationHeader = ({
                       style={{ color: headerFontColor }}
                     >
                       {isFetchingLocation
-                        ? "Detecting location..."
-                        : currentLocation.name}
+                        ? t("location.detecting")
+                        : displayLocationName}
                     </div>
                     <ChevronDownIcon
                       sx={{ fontSize: 12, opacity: 0.5, color: headerFontColor }}

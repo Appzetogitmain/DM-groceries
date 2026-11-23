@@ -2,15 +2,21 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Package, ChevronRight, Clock, CheckCircle, Loader2, ChevronLeft } from 'lucide-react';
 import { customerApi } from '../services/customerApi';
-import { getOrderStatusLabel, getLegacyStatusFromOrder } from '@/shared/utils/orderStatus';
+import { getLegacyStatusFromOrder } from '@/shared/utils/orderStatus';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
 import { formatOrderId } from '@/lib/utils';
 import { getOrderSocket, onOrderStatusUpdate } from '@/core/services/orderSocket';
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
+import { useTranslation } from 'react-i18next';
+import { getLocalizedItemLabel as itemName } from "../i18n/format";
+import { useCustomerLanguage } from '../i18n/CustomerLanguageProvider';
+import { translateOrderStatus } from '../utils/orderStatusI18n';
 
 const OrdersPage = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
+    const { intlLocale } = useCustomerLanguage();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -60,7 +66,7 @@ const OrdersPage = () => {
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white shadow-sm border border-slate-100">
                     <Loader2 className="animate-spin text-[#1A4516]" size={22} />
-                    <span className="text-sm font-medium text-slate-600">Loading your orders…</span>
+                    <span className="text-sm font-medium text-slate-600">{t('orders.loading')}</span>
                 </div>
             </div>
         );
@@ -75,19 +81,19 @@ const OrdersPage = () => {
                 >
                     <ChevronLeft size={22} className="text-[#1A4516]" />
                 </button>
-                <h1 className="text-xl font-semibold text-[#1A4516] tracking-tight">My Orders</h1>
+                <h1 className="text-xl font-semibold text-[#1A4516] tracking-tight">{t('orders.title')}</h1>
             </div>
 
             <div className="space-y-4 px-4 pb-2">
                 {orders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <Package size={56} className="text-slate-300 mb-4" />
-                        <h3 className="text-base font-semibold text-[#1A4516] mb-1">No orders yet</h3>
+                        <h3 className="text-base font-semibold text-[#1A4516] mb-1">{t('orders.emptyTitle')}</h3>
                         <p className="text-slate-500 text-sm mb-6 max-w-[260px]">
-                            When you place an order, it will appear here so you can track it easily.
+                            {t('orders.emptyBody')}
                         </p>
                         <Link to="/user" className="bg-[#1A4516] hover:bg-[#0a3000] text-white px-7 py-2.5 rounded-full font-semibold text-sm shadow-sm transition-colors">
-                            Start Shopping
+                            {t('common.startShopping')}
                         </Link>
                     </div>
                 ) : (
@@ -105,14 +111,14 @@ const OrdersPage = () => {
                                         {(order.returnStatus && order.returnStatus !== "none" && order.returnItems?.[0]?.image) ? (
                                             <img
                                                 src={applyCloudinaryTransform(order.returnItems[0].image)}
-                                                alt={order.returnItems[0]?.name || 'Return thumbnail'}
+                                                alt={order.returnItems[0]?.name || t('orders.returnThumbnail')}
                                                 loading="lazy"
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : order.items[0]?.image ? (
                                             <img
                                                 src={applyCloudinaryTransform(order.items[0].image)}
-                                                alt={order.items[0]?.name || 'Order thumbnail'}
+                                                alt={order.items[0]?.name || t('orders.orderThumbnail')}
                                                 loading="lazy"
                                                 className="w-full h-full object-cover"
                                             />
@@ -122,18 +128,18 @@ const OrdersPage = () => {
                                     </div>
                                     <div className="min-w-0">
                                         <h3 className="font-semibold text-[#1A4516] text-sm tracking-tight leading-snug">
-                                            Order #{formatOrderId(order.orderId)}
+                                            {t('orders.orderNumber', { id: formatOrderId(order.orderId) })}
                                         </h3>
                                         <p className="mt-0.5 text-[11px] text-slate-500 font-medium leading-tight flex items-center flex-wrap gap-1">
                                             <span>
-                                                {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                                                {new Date(order.createdAt).toLocaleDateString(intlLocale, {
                                                     day: 'numeric',
                                                     month: 'short',
                                                 })}
                                             </span>
                                             <span className="text-slate-400">•</span>
                                             <span className="whitespace-nowrap">
-                                                {new Date(order.createdAt).toLocaleTimeString('en-IN', {
+                                                {new Date(order.createdAt).toLocaleTimeString(intlLocale, {
                                                     hour: '2-digit',
                                                     minute: '2-digit',
                                                 })}
@@ -163,21 +169,21 @@ const OrdersPage = () => {
                                                 }`}
                                             />
                                         </span>
-                                        <span>{getOrderStatusLabel(order).toUpperCase()}</span>
+                                        <span>{translateOrderStatus(t, order).toUpperCase()}</span>
                                     </span>
                                     <span className="inline-flex items-center text-[10px] font-medium text-slate-400">
                                         <span className="h-1 w-1 rounded-full bg-slate-300 mr-1" />
-                                        Tap to view details
+                                        {t('orders.tapToView')}
                                     </span>
                                 </div>
                             </div>
 
                             <div className="border-t border-slate-100 pt-3 flex justify-between items-center gap-3">
                                 <div className="text-[11px] text-slate-500 font-medium truncate max-w-[230px]">
-                                    {order.items.map((i) => i.name).join(', ')}
+                                    {order.items.map((i) => itemName(i)).join(', ')}
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                    <span className="text-[11px] font-medium text-slate-400">Total</span>
+                                    <span className="text-[11px] font-medium text-slate-400">{t('orders.total')}</span>
                                     <span className="text-sm font-semibold text-[#1A4516]">
                                     ₹{order.pricing.total}
                                     </span>

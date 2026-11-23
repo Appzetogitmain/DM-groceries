@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ListReminderPickerModal from "./ListReminderPickerModal";
+import { useTranslation } from "react-i18next";
+import { getLocalizedItemLabel as itemName } from "../../i18n/format";
 
 const extractSellerId = (product) => {
   if (!product) return "";
@@ -31,13 +33,13 @@ const extractSellerId = (product) => {
   return String(s || "");
 };
 
-const extractSellerName = (product) => {
-  if (!product) return "Local Store";
+const extractSellerName = (product, fallback = "Local Store") => {
+  if (!product) return fallback;
   const s = product.sellerId || product.seller;
   if (typeof s === "object" && s !== null) {
-    return s.shopName || s.storeName || s.name || "Local Store";
+    return s.shopName || s.storeName || s.name || fallback;
   }
-  return "Local Store";
+  return fallback;
 };
 
 const ListBuilderModal = ({
@@ -46,13 +48,14 @@ const ListBuilderModal = ({
   initialList = null,
   onListSaved,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { currentLocation } = useLocation();
   const { addCustomListToCart } = useCart();
 
   const [listName, setListName] = useState(
-    initialList?.name || "Monthly Essentials Basket"
+    initialList?.name || t("lists.monthlyEssentials")
   );
   const [items, setItems] = useState(initialList?.items || []);
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,24 +72,26 @@ const ListBuilderModal = ({
 
   useEffect(() => {
     if (initialList) {
-      setListName(initialList.name || "My Grocery Basket");
+      setListName(initialList.name || t("lists.myGroceryBasket"));
       setItems(
         (initialList.items || []).map((it) => {
           const prod = it.productId?._id ? it.productId : it;
           return {
             productId: prod._id || prod.id,
             name: prod.name,
+            nameHi: prod.nameHi,
+            nameGu: prod.nameGu,
             price: Number(prod.salePrice || prod.price || it.unitPriceSnapshot || 0),
             mainImage: prod.mainImage || prod.image,
             stock: prod.stock,
             quantity: Math.max(1, Number(it.quantity) || 1),
             sellerId: extractSellerId(prod) || String(initialList.sellerId || ""),
-            sellerName: extractSellerName(prod),
+            sellerName: extractSellerName(prod, t("lists.localStore")),
           };
         })
       );
     } else {
-      setListName("Monthly Essentials Basket");
+      setListName(t("lists.monthlyEssentials"));
       setItems([]);
     }
   }, [initialList, isOpen]);
@@ -96,7 +101,7 @@ const ListBuilderModal = ({
     if (items.length === 0) return null;
     return {
       sellerId: items[0].sellerId,
-      sellerName: items[0].sellerName || "Selected Store",
+      sellerName: items[0].sellerName || t("lists.selectedStore"),
     };
   }, [items]);
 
@@ -135,7 +140,7 @@ const ListBuilderModal = ({
 
   const handleAddItem = (product) => {
     const prodSellerId = extractSellerId(product);
-    const prodSellerName = extractSellerName(product);
+    const prodSellerName = extractSellerName(product, t("lists.localStore"));
 
     // Cross-seller boundary check
     if (activeSeller && prodSellerId && activeSeller.sellerId !== prodSellerId) {
@@ -160,6 +165,8 @@ const ListBuilderModal = ({
         {
           productId: prodId,
           name: product.name,
+          nameHi: product.nameHi,
+          nameGu: product.nameGu,
           price: Number(product.salePrice || product.price || 0),
           mainImage: product.mainImage || product.image,
           stock: product.stock,
@@ -199,15 +206,17 @@ const ListBuilderModal = ({
       {
         productId: String(p._id || p.id),
         name: p.name,
+        nameHi: p.nameHi,
+        nameGu: p.nameGu,
         price: Number(p.salePrice || p.price || 0),
         mainImage: p.mainImage || p.image,
         stock: p.stock,
         quantity: 1,
         sellerId: extractSellerId(p),
-        sellerName: extractSellerName(p),
+        sellerName: extractSellerName(p, t("lists.localStore")),
       },
     ]);
-    toast.info(`Switched list store to ${extractSellerName(p)}`);
+    toast.info(t("lists.switchedStore", { store: extractSellerName(p, t("lists.localStore")) }));
   };
 
   const totalEstimatedAmount = useMemo(() => {
@@ -219,18 +228,18 @@ const ListBuilderModal = ({
 
   const handleSaveListOnly = async () => {
     if (!isAuthenticated) {
-      toast.error("Please log in to save your custom list");
+      toast.error(t("lists.loginToSave"));
       return;
     }
     if (items.length === 0) {
-      toast.error("Add at least one product to your list");
+      toast.error(t("lists.addAtLeastOne"));
       return;
     }
 
     setIsSaving(true);
     try {
       const payload = {
-        name: listName.trim() || "My Grocery Basket",
+        name: listName.trim() || t("lists.myGroceryBasket"),
         sellerId: activeSeller?.sellerId,
         items: items.map((it) => ({
           productId: it.productId,
@@ -242,16 +251,16 @@ const ListBuilderModal = ({
       let res;
       if (initialList?._id) {
         res = await customerApi.updateCustomerList(initialList._id, payload);
-        toast.success("List updated successfully!");
+        toast.success(t("lists.updated"));
       } else {
         res = await customerApi.createCustomerList(payload);
-        toast.success("List saved to your profile!");
+        toast.success(t("lists.savedToProfile"));
       }
 
       onListSaved?.(res.data?.result);
       onClose();
     } catch (err) {
-      const msg = err.response?.data?.message || "Failed to save list";
+      const msg = err.response?.data?.message || t("lists.saveFailed");
       toast.error(msg);
     } finally {
       setIsSaving(false);
@@ -262,7 +271,7 @@ const ListBuilderModal = ({
   // guests (list can't be saved) go straight to checkout as before.
   const handleOrderListNow = () => {
     if (items.length === 0) {
-      toast.error("Add at least one product to your list");
+      toast.error(t("lists.addAtLeastOne"));
       return;
     }
     if (isAuthenticated) {
@@ -274,13 +283,13 @@ const ListBuilderModal = ({
 
   const proceedToOrderList = async (reminderDays) => {
     if (items.length === 0) {
-      toast.error("Add at least one product to your list");
+      toast.error(t("lists.addAtLeastOne"));
       return;
     }
 
     setIsOrdering(true);
     let resolvedListId = initialList?._id || undefined;
-    const resolvedListName = listName.trim() || "My Grocery Basket";
+    const resolvedListName = listName.trim() || t("lists.myGroceryBasket");
 
     // Save list if logged in
     if (isAuthenticated) {
@@ -331,6 +340,8 @@ const ListBuilderModal = ({
           _id: it.productId,
           id: it.productId,
           name: it.name,
+          nameHi: it.nameHi,
+          nameGu: it.nameGu,
           price: it.price,
           salePrice: it.price,
           mainImage: it.mainImage,
@@ -342,7 +353,7 @@ const ListBuilderModal = ({
 
     const added = await addCustomListToCart(customListObj);
     if (added) {
-      toast.success("Loaded list into your cart!");
+      toast.success(t("lists.loadedList"));
       onClose();
       navigate("/user/checkout");
     } else {
@@ -355,7 +366,7 @@ const ListBuilderModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialList ? "Edit Grocery List" : "Make Your Own Grocery List"}
+      title={initialList ? t("lists.editGroceryList") : t("home.myList.title")}
       size="xl"
       maxWidth="max-w-4xl"
     >
@@ -364,13 +375,13 @@ const ListBuilderModal = ({
         <div className="bg-emerald-50/60 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex-1">
             <label className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block mb-1">
-              List / Basket Name
+              {t("lists.nameLabel")}
             </label>
             <input
               type="text"
               value={listName}
               onChange={(e) => setListName(e.target.value)}
-              placeholder="e.g. Monthly Ration, Weekly Veggies, Breakfast Pack"
+              placeholder={t("lists.namePh")}
               className="w-full px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
@@ -380,7 +391,7 @@ const ListBuilderModal = ({
               <Store size={16} className="text-emerald-700 shrink-0" />
               <div className="text-left">
                 <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight">
-                  Single Store Bound
+                  {t("lists.singleStore")}
                 </span>
                 <span className="text-xs font-black text-slate-800 dark:text-white truncate max-w-[140px] block leading-tight">
                   {activeSeller.sellerName}
@@ -395,17 +406,17 @@ const ListBuilderModal = ({
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
               <ShoppingBag size={14} className="text-emerald-700" />
-              Included Items ({items.length})
+              {t("lists.includedItems", { count: items.length })}
             </h4>
             <span className="text-xs font-extrabold text-[#1A4516] dark:text-emerald-400">
-              Est. Total: ₹{totalEstimatedAmount.toFixed(2)}
+              {t("lists.estTotalShort", { amount: totalEstimatedAmount.toFixed(2) })}
             </span>
           </div>
 
           {items.length === 0 ? (
             <div className="p-6 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50">
               <p className="text-xs text-slate-500 font-medium">
-                No items added yet. Search products below to build your basket!
+                {t("lists.noItemsYet")}
               </p>
             </div>
           ) : (
@@ -418,12 +429,12 @@ const ListBuilderModal = ({
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <img
                       src={it.mainImage || "/vegetable-basket-banner.png"}
-                      alt={it.name}
+                      alt={itemName(it)}
                       className="w-10 h-10 rounded-lg object-cover border border-slate-100 shrink-0"
                     />
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                        {it.name}
+                        {itemName(it)}
                       </p>
                       <p className="text-[11px] font-semibold text-slate-500">
                         ₹{Number(it.price).toFixed(2)} each
@@ -479,7 +490,7 @@ const ListBuilderModal = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products to add to your list..."
+              placeholder={t("lists.searchPhShort")}
               className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
             />
           </div>
@@ -487,7 +498,7 @@ const ListBuilderModal = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
             {searchResults.map((prod) => {
               const inList = items.some((it) => String(it.productId) === String(prod._id));
-              const prodSeller = extractSellerName(prod);
+              const prodSeller = extractSellerName(prod, t("lists.localStore"));
               return (
                 <div
                   key={prod._id}
@@ -520,7 +531,7 @@ const ListBuilderModal = ({
                     )}
                   >
                     {inList ? <Check size={12} /> : <Plus size={12} />}
-                    {inList ? "Added" : "Add"}
+                    {inList ? t("lists.added") : t("common.add")}
                   </button>
                 </div>
               );
@@ -532,7 +543,7 @@ const ListBuilderModal = ({
         <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-left w-full sm:w-auto">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">
-              Basket Estimated Total
+              {t("lists.basketEstTotal")}
             </span>
             <span className="text-lg font-black text-[#1A4516]">
               ₹{totalEstimatedAmount.toFixed(2)}
@@ -546,7 +557,7 @@ const ListBuilderModal = ({
               disabled={isSaving || items.length === 0}
               className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-slate-300 font-bold text-xs text-slate-700 hover:bg-slate-50 transition active:scale-95 disabled:opacity-50"
             >
-              {isSaving ? "Saving..." : "Save List Only"}
+              {isSaving ? t("common.saving") : t("lists.saveListOnly")}
             </button>
             <button
               type="button"
@@ -554,7 +565,7 @@ const ListBuilderModal = ({
               disabled={items.length === 0}
               className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-[#1A4516] text-white font-black text-xs hover:bg-[#1A4516]/90 transition active:scale-95 shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              Order Basket Now <ArrowRight size={14} />
+              {t("lists.orderNow")} <ArrowRight size={14} />
             </button>
           </div>
         </div>
@@ -565,7 +576,7 @@ const ListBuilderModal = ({
         <Modal
           isOpen={Boolean(storeConflict)}
           onClose={() => setStoreConflict(null)}
-          title="Different Store Selected"
+          title={t("lists.differentStore")}
           size="sm"
           maxWidth="max-w-md"
         >
@@ -573,9 +584,9 @@ const ListBuilderModal = ({
             <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-3">
               <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={20} />
               <div className="text-xs text-amber-900 leading-relaxed font-medium">
-                Your current list contains items from{" "}
-                <strong>{storeConflict.currentSellerName}</strong>. Adding items from{" "}
-                <strong>{storeConflict.newSellerName}</strong> will clear the current list and start a new basket from this store.
+                {t("lists.conflictPart1")}{" "}
+                <strong>{storeConflict.currentSellerName}</strong>. {t("lists.conflictPart2")}{" "}
+                <strong>{storeConflict.newSellerName}</strong> {t("lists.conflictPart3")}
               </div>
             </div>
 
@@ -585,14 +596,14 @@ const ListBuilderModal = ({
                 onClick={() => setStoreConflict(null)}
                 className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition"
               >
-                Keep Current List
+                {t("lists.keepCurrent")}
               </button>
               <button
                 type="button"
                 onClick={confirmSwitchStore}
                 className="px-4 py-2 text-xs font-bold rounded-xl bg-[#1A4516] text-white hover:bg-[#1A4516]/90 transition"
               >
-                Switch Store & Start Fresh
+                {t("lists.switchStore")}
               </button>
             </div>
           </div>
@@ -605,7 +616,7 @@ const ListBuilderModal = ({
         onClose={() => setShowReminderPicker(false)}
         onConfirm={(days) => proceedToOrderList(days)}
         initialDays={initialList?.reminderDays}
-        listName={listName.trim() || "My Grocery Basket"}
+        listName={listName.trim() || t("lists.myGroceryBasket")}
         isSubmitting={isOrdering}
       />
     </Modal>

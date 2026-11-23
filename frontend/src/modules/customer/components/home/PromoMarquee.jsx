@@ -1,7 +1,10 @@
 import React from "react";
-import { MARQUEE_MESSAGES } from "../../constants/homeConstants";
+import { useTranslation } from "react-i18next";
 
 const PromoMarquee = () => {
+  const { t } = useTranslation();
+  const messages = t('home.marquee', { returnObjects: true });
+  const MARQUEE_MESSAGES = Array.isArray(messages) ? messages : [];
   return (
     <div className="w-full -mt-[2px] md:-mt-[2px] mb-4">
       <div className="relative overflow-hidden border-y border-[#389ecb] bg-primary shadow-[0_10px_30px_rgba(15,23,42,0.08)]">

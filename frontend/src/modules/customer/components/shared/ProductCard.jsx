@@ -19,6 +19,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Clock } from "lucide-react";
 
 import { useProductDetail } from "../../context/ProductDetailContext";
+import { useTranslation } from "react-i18next";
+import { getLocalizedItemLabel as itemName } from "../../i18n/format";
+import { translateEta } from "../../i18n/format";
 
 const ProductCard = React.memo(
   ({ product, badge, className, compact = false, neutralBg = false }) => {
@@ -26,6 +29,7 @@ const ProductCard = React.memo(
       useWishlist();
     const { cart, addToCart, updateQuantity, removeFromCart } = useCart();
     const { showToast } = useToast();
+    const { t } = useTranslation();
     const { animateAddToCart, animateRemoveFromCart } = useCartAnimation();
 
     const { openProduct } = useProductDetail();
@@ -93,12 +97,12 @@ const ProductCard = React.memo(
         toggleWishlistGlobal(product);
         showToast(
           isWishlisted
-            ? `${product.name} removed from wishlist`
-            : `${product.name} added to wishlist`,
+            ? t("wishlist.removedItem", { name: itemName(product) })
+            : t("wishlist.addedItem", { name: itemName(product) }),
           isWishlisted ? "info" : "success",
         );
       },
-      [isWishlisted, toggleWishlistGlobal, product, showToast],
+      [isWishlisted, toggleWishlistGlobal, product, showToast, t],
     );
 
     const handleAddToCart = React.useCallback(
@@ -108,7 +112,7 @@ const ProductCard = React.memo(
 
         const currentStock = defaultVariant ? defaultVariant.stock : (product?.stock || 0);
         if (currentStock <= 0) {
-          showToast("This item is currently out of stock", "error");
+          showToast(t("product.outOfStockToast"), "error");
           return;
         }
 
@@ -130,7 +134,7 @@ const ProductCard = React.memo(
           toggleWishlistGlobal(product);
         }
       },
-      [animateAddToCart, product, addToCart, variantKey, defaultVariant?.name, isWishlistPage, isWishlisted, toggleWishlistGlobal, defaultVariant, showToast],
+      [animateAddToCart, product, addToCart, variantKey, defaultVariant?.name, isWishlistPage, isWishlisted, toggleWishlistGlobal, defaultVariant, showToast, t],
     );
 
     const handleIncrement = React.useCallback(
@@ -139,12 +143,12 @@ const ProductCard = React.memo(
         e.stopPropagation();
         const currentStock = defaultVariant ? defaultVariant.stock : (product?.stock || 0);
         if (quantity >= currentStock) {
-           showToast(`Only ${currentStock} units available in stock.`, "error");
+           showToast(t("product.onlyUnitsAvailable", { count: currentStock }), "error");
            return;
         }
         updateQuantity(productId, 1, variantKey);
       },
-      [updateQuantity, productId, variantKey, quantity, defaultVariant, product?.stock, showToast],
+      [updateQuantity, productId, variantKey, quantity, defaultVariant, product?.stock, showToast, t],
     );
 
     const handleDecrement = React.useCallback(
@@ -197,7 +201,7 @@ const ProductCard = React.memo(
                 )}>
                 {badge ||
                   product.discount ||
-                  `${defaultVariant?.discountPercent}% OFF`}
+                  t("product.percentOff", { percent: defaultVariant?.discountPercent })}
               </div>
             )}
 
@@ -244,7 +248,7 @@ const ProductCard = React.memo(
             <img
               ref={imageRef}
               src={applyCloudinaryTransform(product.image)}
-              alt={product.name}
+              alt={itemName(product)}
               loading="lazy"
               className="w-full h-full object-cover mix-blend-multiply"
             />
@@ -277,7 +281,7 @@ const ProductCard = React.memo(
                 "bg-[#F5FBF5] text-[#1A4516] font-bold rounded px-1.5 py-0 tracking-wide",
                 compact ? "text-[8px]" : "text-[8px] sm:text-[9px]",
               )}>
-              {defaultVariant?.name || product.weight || "1 unit"}
+              {defaultVariant?.name || (product.weight && product.weight !== "1 unit" ? product.weight : t("product.oneUnit"))}
             </div>
           </div>
 
@@ -287,7 +291,7 @@ const ProductCard = React.memo(
                 "font-[600] text-[#1A1A1A] leading-tight line-clamp-2",
                 compact ? "text-[10.5px]" : "text-[12px] sm:text-[13px]",
               )}>
-              {product.name}
+              {itemName(product)}
             </h4>
           </div>
 
@@ -296,7 +300,7 @@ const ProductCard = React.memo(
             const currentStock = defaultVariant ? defaultVariant.stock : (product?.stock || 0);
             return currentStock <= 0 ? (
               <div className="text-red-500 font-bold text-[9px] sm:text-[10px] mt-0.5">
-                Out of stock
+                {t("product.outOfStock")}
               </div>
             ) : currentStock <= (product.lowStockAlert || 5) ? (
               <div className="text-orange-500 font-bold text-[9px] sm:text-[10px] mt-0.5">
@@ -313,7 +317,7 @@ const ProductCard = React.memo(
                 "font-semibold",
                 compact ? "text-[8px]" : "text-[9px] sm:text-[10px]",
               )}>
-              {product.deliveryTime || "8-12 mins"}
+              {translateEta(t, product.deliveryTime || "8-12 mins")}
             </span>
           </div>
 
@@ -375,7 +379,7 @@ const ProductCard = React.memo(
                         ? "px-1.5 py-1 text-[8px] min-w-[60px]"
                         : "px-2 py-1.5 text-[9px] sm:px-3 sm:py-2 sm:text-[10px] md:text-[11px] md:px-4 md:py-2.5",
                     )}>
-                    OUT OF STOCK
+                    {t("product.outOfStockCaps")}
                   </div>
                 ) : (
                   <button
@@ -386,7 +390,7 @@ const ProductCard = React.memo(
                         ? "px-2.5 py-1 text-[10px]"
                         : "px-3.5 py-1.5 text-[11px] sm:px-7 sm:py-2 sm:text-[13px] md:text-sm md:px-8 md:py-2.5",
                     )}>
-                    ADD
+                    {t("product.add")}
                   </button>
                 );
               })()}

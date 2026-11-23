@@ -5,6 +5,7 @@ import { getJSON, setJSON, remove as removeStorage, STORAGE_KEYS } from "@core/u
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const CartContext = createContext();
 
@@ -37,6 +38,7 @@ const extractSellerId = (item) => {
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [cart, setCart] = useState(() => loadGuestCart());
 
@@ -75,6 +77,8 @@ export const CartProvider = ({ children }) => {
         image: product?.mainImage, // Handle mapping for frontend
         packageId: pkgObj?._id || item.packageId || null,
         packageName: pkgObj?.name || "",
+        packageNameHi: pkgObj?.nameHi || "",
+        packageNameGu: pkgObj?.nameGu || "",
         packagePricePerUnit: isPkg && !isNaN(pkgPrice) && pkgPrice > 0 ? pkgPrice : null,
         originalPrice: isPkg && !isNaN(origPrice) && origPrice > 0 ? origPrice : null,
       };
@@ -279,6 +283,8 @@ export const CartProvider = ({ children }) => {
           salePrice: packagePricePerUnit,
           packageId: pkgId,
           packageName: pkgName,
+          packageNameHi: pkg.nameHi || "",
+          packageNameGu: pkg.nameGu || "",
           packagePricePerUnit,
           originalPrice,
           quantity,
@@ -428,7 +434,7 @@ export const CartProvider = ({ children }) => {
           quantity: targetQty,
         });
       }
-      toast.success(`Added "${packageToAdd.name}" (${packageToAdd.items?.length || 0} items) to your cart!`);
+      toast.success(t("combos.addedToCart", { name: packageToAdd.name, count: packageToAdd.items?.length || 0 }));
     } else if (listToAdd) {
       await performAddListItemsToCart(listToAdd);
     } else if (productToAdd && !productToAdd.isPlaceholder) {
@@ -586,17 +592,17 @@ export const CartProvider = ({ children }) => {
       <Dialog open={Boolean(pendingVendorProduct || pendingVendorPackage || pendingVendorList)} onOpenChange={(open) => !open && cancelVendorReplace()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Replace cart items?</DialogTitle>
+            <DialogTitle>{t("cart.replaceTitle")}</DialogTitle>
             <DialogDescription>
-              Do you want to replace your current cart? Your cart currently contains items from a different store.
+              {t("cart.replaceBody")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 flex gap-2">
             <Button variant="outline" onClick={cancelVendorReplace}>
-              No
+              {t("common.no")}
             </Button>
             <Button variant="default" className="bg-[#1A4516] hover:bg-[#1A4516]/90 text-white" onClick={confirmVendorReplace}>
-              Yes
+              {t("common.yes")}
             </Button>
           </DialogFooter>
         </DialogContent>

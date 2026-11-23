@@ -4,8 +4,10 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Clock3, ShieldAlert, Store } from "lucide-react";
 import { useAuth } from "@core/context/AuthContext";
 import { useSettings } from "@core/context/SettingsContext";
+import { useTranslation } from "react-i18next";
 
 const ApplicationPending = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const { isAuthenticated, role, user, isLoading } = useAuth();
   const { settings } = useSettings();
@@ -63,24 +65,24 @@ const ApplicationPending = () => {
               }`}
             >
               {isRejected ? <ShieldAlert className="h-4 w-4" /> : <Clock3 className="h-4 w-4" />}
-              {isRejected ? "Application Rejected" : "Application Pending"}
+              {isRejected ? t("pending.rejected") : t("pending.pending")}
             </div>
           </div>
 
           <h1 className="text-3xl md:text-4xl font-black text-white leading-tight">
             {isRejected
-              ? "Your seller application needs action."
-              : "Your seller application is under review."}
+              ? t("pending.needsAction")
+              : t("pending.underReview")}
           </h1>
           <p className="mt-4 text-base md:text-lg text-slate-200/90 font-medium max-w-2xl">
             {isRejected
-              ? "You cannot access the seller dashboard yet. Please contact admin support and re-submit with the required details."
-              : "Dashboard access unlocks automatically once admin approves your account."}
+              ? t("pending.rejectedBody")
+              : t("pending.pendingBody")}
           </p>
 
           {rejectionReason ? (
             <div className="mt-6 rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-              <span className="font-black uppercase tracking-widest text-[11px]">Reason</span>
+              <span className="font-black uppercase tracking-widest text-[11px]">{t("pending.reason")}</span>
               <p className="mt-1 font-medium">{rejectionReason}</p>
             </div>
           ) : null}
@@ -89,7 +91,7 @@ const ApplicationPending = () => {
             <div className="mt-6 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200 flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0 text-emerald-400" />
               <p className="font-semibold">
-                Approval usually takes less than 24 hours. You can return to login and try again later.
+                {t("pending.approvalTime")}
               </p>
             </div>
           ) : null}
@@ -99,7 +101,7 @@ const ApplicationPending = () => {
               to="/seller/auth"
               className="inline-flex items-center justify-center rounded-xl bg-white text-slate-900 px-5 py-3 text-sm font-black tracking-wide hover:bg-slate-100 transition-colors"
             >
-              Back To Seller Login
+              {t("pending.backToLogin")}
             </Link>
           </div>
         </motion.div>

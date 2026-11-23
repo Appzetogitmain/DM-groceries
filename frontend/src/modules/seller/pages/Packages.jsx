@@ -24,8 +24,12 @@ import {
     HiOutlineArchiveBox
 } from 'react-icons/hi2';
 import { cn } from '@/lib/utils';
+import { useTranslation } from "react-i18next";
+import NameTranslationFields from "../components/NameTranslationFields";
+import { getSellerLocalizedName as locName } from "../i18n";
 
 const Packages = () => {
+    const { t } = useTranslation();
     const [packages, setPackages] = useState([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
@@ -61,6 +65,8 @@ const Packages = () => {
     // Create / Edit Form State
     const [formData, setFormData] = useState({
         name: '',
+        nameHi: '',
+        nameGu: '',
         description: '',
         packagePrice: '',
         coverImage: '',
@@ -96,7 +102,7 @@ const Packages = () => {
                 }
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to load packages');
+            toast.error(error.response?.data?.message || t('sPack.loadFailed'));
         } finally {
             setIsLoading(false);
         }
@@ -120,7 +126,7 @@ const Packages = () => {
                 setEligibleProducts(Array.isArray(raw) ? raw : []);
             }
         } catch (error) {
-            toast.error('Failed to load your eligible products');
+            toast.error(t('sPack.eligibleFailed'));
         } finally {
             setLoadingProducts(false);
         }
@@ -137,13 +143,15 @@ const Packages = () => {
 
     const handleOpenCreateModal = () => {
         if (!quota.canCreate) {
-            toast.error(`You have reached the limit of ${quota.maxAllowed} packages. Delete or deactivate existing packages to create a new one.`);
+            toast.error(t('sPack.limitReached', { count: quota.maxAllowed }));
             return;
         }
         setEditingPackage(null);
         setProductSearch('');
         setFormData({
             name: '',
+            nameHi: '',
+            nameGu: '',
             description: '',
             packagePrice: '',
             coverImage: '',
@@ -169,6 +177,8 @@ const Packages = () => {
 
         setFormData({
             name: pkg.name || '',
+            nameHi: pkg.nameHi || '',
+            nameGu: pkg.nameGu || '',
             description: pkg.description || '',
             packagePrice: pkg.packagePrice || '',
             coverImage: pkg.coverImage || '',
@@ -200,7 +210,7 @@ const Packages = () => {
         } else {
             // Check max products limit
             if (formData.items.length >= (quota.maxProductsPerPackage || 10)) {
-                toast.error(`You can add up to ${quota.maxProductsPerPackage || 10} products per package.`);
+                toast.error(t('sPack.maxProducts', { count: quota.maxProductsPerPackage || 10 }));
                 return;
             }
             const unitPrice = prod.salePrice > 0 ? prod.salePrice : prod.price;
@@ -291,12 +301,12 @@ const Packages = () => {
         e.preventDefault();
 
         if (formData.items.length < (quota.minProductsPerPackage || 2)) {
-            toast.error(`Please select at least ${quota.minProductsPerPackage || 2} products for the package.`);
+            toast.error(t('sPack.minProducts', { count: quota.minProductsPerPackage || 2 }));
             return;
         }
 
         if (formData.items.length > (quota.maxProductsPerPackage || 10)) {
-            toast.error(`A package cannot have more than ${quota.maxProductsPerPackage || 10} products.`);
+            toast.error(t('sPack.tooMany', { count: quota.maxProductsPerPackage || 10 }));
             return;
         }
 
@@ -304,23 +314,23 @@ const Packages = () => {
         for (const it of formData.items) {
             const p = parseFloat(it.packagePrice);
             if (isNaN(p) || p <= 0) {
-                toast.error(`Please enter a valid pack price for "${it.name}".`);
+                toast.error(t('sPack.validPackPrice', { name: it.name }));
                 return;
             }
             if (p > it.regularPrice) {
-                toast.error(`Pack price for "${it.name}" (₹${p}) cannot exceed its regular price (₹${it.regularPrice}).`);
+                toast.error(t('sPack.packExceeds', { name: it.name, price: p, regular: it.regularPrice }));
                 return;
             }
         }
 
         const pkgPrice = parseFloat(formData.packagePrice);
         if (isNaN(pkgPrice) || pkgPrice <= 0) {
-            toast.error('Please enter a valid package price.');
+            toast.error(t('sPack.validPkgPrice'));
             return;
         }
 
         if (pkgPrice > originalTotalPrice) {
-            toast.error(`Package price (₹${pkgPrice}) cannot be greater than regular total price (₹${originalTotalPrice}).`);
+            toast.error(t('sPack.pkgExceeds', { price: pkgPrice, total: originalTotalPrice }));
             return;
         }
 
@@ -335,6 +345,8 @@ const Packages = () => {
 
             const formPayload = new FormData();
             formPayload.append('name', formData.name.trim());
+            formPayload.append('nameHi', (formData.nameHi || '').trim());
+            formPayload.append('nameGu', (formData.nameGu || '').trim());
             formPayload.append('description', formData.description.trim());
             formPayload.append('packagePrice', pkgPrice);
             formPayload.append('items', JSON.stringify(payloadItems));
@@ -348,20 +360,20 @@ const Packages = () => {
             if (editingPackage) {
                 const res = await sellerApi.updatePackage(editingPackage._id, formPayload);
                 if (res.data?.success) {
-                    toast.success(res.data.message || 'Package updated successfully!');
+                    toast.success(t('sPack.updated'));
                     setIsCreateModalOpen(false);
                     fetchPackages();
                 }
             } else {
                 const res = await sellerApi.createPackage(formPayload);
                 if (res.data?.success) {
-                    toast.success(res.data.message || 'Package created successfully!');
+                    toast.success(t('sPack.created'));
                     setIsCreateModalOpen(false);
                     fetchPackages();
                 }
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to save package');
+            toast.error(error.response?.data?.message || t('sPack.saveFailed'));
         } finally {
             setIsSubmittingForm(false);
         }
@@ -372,11 +384,11 @@ const Packages = () => {
         try {
             const res = await sellerApi.togglePackageStatus(pkg._id);
             if (res.data?.success) {
-                toast.success(res.data.message || 'Package status updated');
+                toast.success(t('sPack.statusUpdated'));
                 fetchPackages();
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to update status');
+            toast.error(error.response?.data?.message || t('sDash.statusUpdateFailed'));
         }
     };
 
@@ -387,12 +399,12 @@ const Packages = () => {
         try {
             const res = await sellerApi.deletePackage(packageToDelete._id);
             if (res.data?.success) {
-                toast.success('Package deleted successfully');
+                toast.success(t('sPack.deleted'));
                 setPackageToDelete(null);
                 fetchPackages();
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to delete package');
+            toast.error(error.response?.data?.message || t('sPack.deleteFailed'));
         } finally {
             setIsDeleting(false);
         }
@@ -417,10 +429,10 @@ const Packages = () => {
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                         <HiOutlineCube className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
-                        Packages & Combos
+{t("sPack.title")}
                     </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Group your listed products into attractive combo bundles and sell them together.
+{t("sPack.subtitle")}
                     </p>
                 </div>
 
@@ -430,7 +442,7 @@ const Packages = () => {
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <HiOutlinePlus className="h-5 w-5" />
-                    Create Package
+{t("sPack.create")}
                 </button>
             </div>
 
@@ -440,21 +452,21 @@ const Packages = () => {
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                                Package Quota Status
+{t("sPack.quotaStatus")}
                             </span>
                             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
                                 {quota.used} / {quota.maxAllowed} Used
                             </span>
                         </div>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                            You can create up to <strong className="text-slate-900 dark:text-white">{quota.maxAllowed} packages</strong> on DM Groceries.
-                            Each package can contain up to <strong className="text-slate-900 dark:text-white">{quota.maxProductsPerPackage} products</strong>.
+                            {t("sPack.createUpTo")} <strong className="text-slate-900 dark:text-white">{quota.maxAllowed} {t("sPack.packagesWord")}</strong> {t("sPack.onApp")}
+                            {t("sPack.eachContains")} <strong className="text-slate-900 dark:text-white">{quota.maxProductsPerPackage} {t("sPack.productsWord")}</strong>.
                         </p>
                     </div>
 
                     <div className="w-full md:w-64 space-y-1.5">
                         <div className="flex justify-between text-xs font-medium text-slate-500">
-                            <span>{quota.remaining} slots remaining</span>
+                            <span>{t("sPack.slotsRemaining", { count: quota.remaining })}</span>
                             <span>{quotaPercentage}%</span>
                         </div>
                         <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -531,7 +543,7 @@ const Packages = () => {
                         <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                         <input
                             type="text"
-                            placeholder="Search your packages..."
+                            placeholder={t("sPack.searchPh")}
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                             className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -539,7 +551,7 @@ const Packages = () => {
                     </div>
                     <button
                         onClick={fetchPackages}
-                        title="Refresh"
+                        title={t("common.refresh")}
                         className="p-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                     >
                         <HiOutlineArrowPath className="h-4 w-4" />
@@ -552,20 +564,20 @@ const Packages = () => {
                 {isLoading ? (
                     <div className="py-20 text-center text-slate-500">
                         <HiOutlineArrowPath className="h-8 w-8 animate-spin mx-auto text-emerald-500 mb-2" />
-                        Loading packages...
+{t("sPack.loading")}
                     </div>
                 ) : packages.length === 0 ? (
                     <div className="py-20 text-center text-slate-500">
                         <HiOutlineArchiveBox className="h-12 w-12 mx-auto text-slate-400 mb-3" />
-                        <h3 className="text-base font-semibold text-slate-900 dark:text-white">No Packages Created Yet</h3>
-                        <p className="text-sm text-slate-500 mt-1">Start by creating combo packs from your approved products to boost sales.</p>
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-white">{t("sPack.emptyTitle")}</h3>
+                        <p className="text-sm text-slate-500 mt-1">{t("sPack.emptyBody")}</p>
                         {quota.canCreate && (
                             <button
                                 onClick={handleOpenCreateModal}
                                 className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition"
                             >
                                 <HiOutlinePlus className="h-4 w-4" />
-                                Create Your First Package
+{t("sPack.createFirst")}
                             </button>
                         )}
                     </div>
@@ -574,13 +586,13 @@ const Packages = () => {
                         <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
                             <thead className="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase text-slate-500 border-b border-slate-200 dark:border-slate-700 font-semibold">
                                 <tr>
-                                    <th className="px-5 py-3.5">Package</th>
-                                    <th className="px-5 py-3.5">Products Included</th>
-                                    <th className="px-5 py-3.5">Combo Price</th>
-                                    <th className="px-5 py-3.5">Stock</th>
-                                    <th className="px-5 py-3.5">Review Status</th>
-                                    <th className="px-5 py-3.5">Live Status</th>
-                                    <th className="px-5 py-3.5 text-right">Actions</th>
+                                    <th className="px-5 py-3.5">{t("sPack.colPackage")}</th>
+                                    <th className="px-5 py-3.5">{t("sPack.colProducts")}</th>
+                                    <th className="px-5 py-3.5">{t("sPack.colPrice")}</th>
+                                    <th className="px-5 py-3.5">{t("nav.stock")}</th>
+                                    <th className="px-5 py-3.5">{t("sPack.colReview")}</th>
+                                    <th className="px-5 py-3.5">{t("sPack.colLive")}</th>
+                                    <th className="px-5 py-3.5 text-right">{t("common.actions")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -637,20 +649,20 @@ const Packages = () => {
                                                     "font-semibold text-xs px-2 py-0.5 rounded-full",
                                                     pkg.stock > 0 ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-rose-100 text-rose-800"
                                                 )}>
-                                                    {pkg.stock > 0 ? `${pkg.stock} packs` : 'Out of stock'}
+                                                    {pkg.stock > 0 ? t('sPack.packsCount', { count: pkg.stock }) : t('status.out_of_stock')}
                                                 </span>
                                             </td>
 
                                             <td className="px-5 py-4">
                                                 {pkg.approvalStatus === 'approved' && (
-                                                    <Badge variant="success">Approved</Badge>
+                                                    <Badge variant="success">{t("status.approved")}</Badge>
                                                 )}
                                                 {pkg.approvalStatus === 'pending' && (
-                                                    <Badge variant="warning">Under Review</Badge>
+                                                    <Badge variant="warning">{t("sPack.underReview")}</Badge>
                                                 )}
                                                 {pkg.approvalStatus === 'rejected' && (
                                                     <div className="space-y-1">
-                                                        <Badge variant="danger">Rejected</Badge>
+                                                        <Badge variant="danger">{t("status.rejected")}</Badge>
                                                         {pkg.rejectionReason && (
                                                             <p className="text-[11px] text-rose-600 font-medium max-w-[150px] truncate" title={pkg.rejectionReason}>
                                                                 {pkg.rejectionReason}
@@ -679,21 +691,21 @@ const Packages = () => {
                                                     <button
                                                         onClick={() => setViewingPackage(pkg)}
                                                         className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-                                                        title="View Details"
+                                                        title={t("sPack.viewDetails")}
                                                     >
                                                         <HiOutlineEye className="h-4 w-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleOpenEditModal(pkg)}
                                                         className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition"
-                                                        title="Edit Package"
+                                                        title={t("sPack.edit")}
                                                     >
                                                         <HiOutlinePencilSquare className="h-4 w-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => setPackageToDelete(pkg)}
                                                         className="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
-                                                        title="Delete Package"
+                                                        title={t("sPack.delete")}
                                                     >
                                                         <HiOutlineTrash className="h-4 w-4" />
                                                     </button>
@@ -724,7 +736,7 @@ const Packages = () => {
                 <Modal
                     isOpen={isCreateModalOpen}
                     onClose={() => setIsCreateModalOpen(false)}
-                    title={editingPackage ? `Edit Package: ${editingPackage.name}` : 'Create New Package'}
+                    title={editingPackage ? t('sPack.editNamed', { name: editingPackage.name }) : t('sPack.createNew')}
                     size="xl"
                     maxWidth="max-w-4xl"
                 >
@@ -737,25 +749,27 @@ const Packages = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="sm:col-span-2">
                                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                                        Package Name *
+{t("sPack.packageName")}
                                     </label>
                                     <input
                                         type="text"
                                         required
-                                        placeholder="e.g. Weekly Breakfast Essentials Pack"
+                                        placeholder={t("sPack.namePh")}
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         className="w-full px-3.5 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     />
                                 </div>
 
+                                <NameTranslationFields formData={formData} setFormData={setFormData} />
+
                                 <div className="sm:col-span-2">
                                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                                        Description
+{t("sEarnings.description")}
                                     </label>
                                     <textarea
                                         rows={2}
-                                        placeholder="Describe what makes this combo special..."
+                                        placeholder={t("sPack.descPh")}
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         className="w-full px-3.5 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -764,7 +778,7 @@ const Packages = () => {
 
                                 <div className="sm:col-span-2">
                                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                                        Cover Image
+{t("sPack.coverImage")}
                                     </label>
                                     <div className="flex items-center gap-4">
                                         <input
@@ -785,12 +799,12 @@ const Packages = () => {
                                         {formData.coverImage && (
                                             <img
                                                 src={formData.coverImage}
-                                                alt="Preview"
+                                                alt={t("sPack.preview")}
                                                 className="w-12 h-12 rounded-lg object-cover border border-slate-200"
                                             />
                                         )}
                                     </div>
-                                    <p className="text-[11px] text-slate-400 mt-1">If omitted, the main image of the first included product will be used.</p>
+                                    <p className="text-[11px] text-slate-400 mt-1">{t("sPack.coverHint")}</p>
                                 </div>
                             </div>
                         </div>
@@ -802,7 +816,7 @@ const Packages = () => {
                                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                                         2. Select Products to Include ({formData.items.length} / {quota.maxProductsPerPackage || 10} max)
                                     </h3>
-                                    <p className="text-xs text-slate-500">Only your listed, approved, and active products appear here.</p>
+                                    <p className="text-xs text-slate-500">{t("sPack.onlyListed")}</p>
                                 </div>
                                 <span className={cn(
                                     "text-xs font-bold px-2 py-0.5 rounded-full",
@@ -819,10 +833,10 @@ const Packages = () => {
                                 <div className="space-y-2 p-3 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
                                     <div className="flex items-center justify-between">
                                         <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                                            Included Products & Item Pack Pricing:
+{t("sPack.includedPricing")}
                                         </p>
                                         <span className="text-[11px] text-slate-500">
-                                            Set each product's price for this bundle
+                                            {t("sPack.setEachPrice")}
                                         </span>
                                     </div>
                                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -862,7 +876,7 @@ const Packages = () => {
                                                     <div className="flex items-center justify-between sm:justify-end gap-3 flex-wrap">
                                                         {/* Regular Price (Displayed in front) */}
                                                         <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700">
-                                                            <span className="text-[10px] text-slate-400 uppercase font-bold">Regular:</span>
+                                                            <span className="text-[10px] text-slate-400 uppercase font-bold">{t("sPack.regular")}:</span>
                                                             <span className="font-semibold text-slate-500 line-through">
                                                                 ₹{itemReg.toFixed(2)}
                                                             </span>
@@ -871,7 +885,7 @@ const Packages = () => {
                                                         {/* Pack Price Input */}
                                                         <div className="flex items-center gap-1.5">
                                                             <label className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">
-                                                                Pack Price:
+{t("sPack.packPriceLabel")}
                                                             </label>
                                                             <div className="relative w-24">
                                                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-xs">
@@ -886,7 +900,7 @@ const Packages = () => {
                                                                     onChange={(e) => updateItemPrice(it.productId, e.target.value)}
                                                                     placeholder={itemReg.toString()}
                                                                     className="w-full pl-5 pr-1.5 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                                                    title="Set discount price for this product in package"
+                                                                    title={t("sPack.setDiscountTitle")}
                                                                 />
                                                             </div>
                                                         </div>
@@ -897,7 +911,7 @@ const Packages = () => {
                                                                 type="button"
                                                                 onClick={() => updateItemQuantity(it.productId, it.quantity - 1)}
                                                                 className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300"
-                                                                title="Decrease quantity"
+                                                                title={t("sPack.decrease")}
                                                             >
                                                                 <HiOutlineMinus className="h-3 w-3" />
                                                             </button>
@@ -908,7 +922,7 @@ const Packages = () => {
                                                                 type="button"
                                                                 onClick={() => updateItemQuantity(it.productId, it.quantity + 1)}
                                                                 className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300"
-                                                                title="Increase quantity"
+                                                                title={t("sPack.increase")}
                                                             >
                                                                 <HiOutlinePlus className="h-3 w-3" />
                                                             </button>
@@ -931,7 +945,7 @@ const Packages = () => {
                                                             type="button"
                                                             onClick={() => toggleProductInPackage(it)}
                                                             className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 p-1.5 rounded-lg transition"
-                                                            title="Remove product"
+                                                            title={t("sPack.removeProduct")}
                                                         >
                                                             <HiOutlineTrash className="h-4 w-4" />
                                                         </button>
@@ -949,7 +963,7 @@ const Packages = () => {
                                     <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                                     <input
                                         type="text"
-                                        placeholder="Search your listed products to add..."
+                                        placeholder={t("sPack.searchProductsPh")}
                                         value={productSearch}
                                         onChange={(e) => setProductSearch(e.target.value)}
                                         className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -960,14 +974,14 @@ const Packages = () => {
                                     {loadingProducts ? (
                                         <div className="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
                                             <HiOutlineArrowPath className="h-4 w-4 animate-spin text-emerald-500" />
-                                            Searching your products...
+{t("sPack.searchingProducts")}
                                         </div>
                                     ) : filteredEligibleProducts.length === 0 ? (
                                         <div className="p-4 text-center text-xs text-slate-400">
                                             {productSearch.trim() ? (
                                                 <p>No products matching &quot;{productSearch}&quot;</p>
                                             ) : (
-                                                <p>No approved products found in your inventory. Only active and approved products can be packaged.</p>
+                                                <p>{t("sPack.noApproved")}</p>
                                             )}
                                         </div>
                                     ) : (
@@ -1000,7 +1014,7 @@ const Packages = () => {
                                                                 : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                                                         )}
                                                     >
-                                                        {isSelected ? 'Remove' : '+ Add'}
+                                                        {isSelected ? t('common.remove') : `+ ${t('common.add')}`}
                                                     </button>
                                                 </div>
                                             );
@@ -1018,12 +1032,12 @@ const Packages = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                                    <p className="text-xs text-slate-500 font-medium">Regular Total Price of Items:</p>
+                                    <p className="text-xs text-slate-500 font-medium">{t("sPack.regularTotal")}</p>
                                     <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">
                                         ₹{originalTotalPrice.toFixed(2)}
                                     </p>
                                     <p className="text-[11px] text-slate-400 mt-1">
-                                        Calculated from standard catalog prices of all included items.
+{t("sPack.calcHint")}
                                     </p>
                                 </div>
 
@@ -1037,13 +1051,13 @@ const Packages = () => {
                                         min="1"
                                         max={originalTotalPrice > 0 ? originalTotalPrice : undefined}
                                         required
-                                        placeholder="Auto-calculated from items"
+                                        placeholder={t("sPack.autoCalc")}
                                         value={formData.packagePrice}
                                         onChange={(e) => setFormData({ ...formData, packagePrice: e.target.value })}
                                         className="w-full px-3.5 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                                     />
                                     <p className="text-[11px] text-slate-400 mt-1">
-                                        Final package price auto-summed from individual item pack prices.
+{t("sPack.finalHint")}
                                     </p>
                                     {discountDetails.percent > 0 && (
                                         <p className="text-xs text-emerald-600 font-semibold mt-1">
@@ -1059,7 +1073,7 @@ const Packages = () => {
                             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
                                 <HiOutlineClock className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" />
                                 <div>
-                                    <strong>Admin Approval Required:</strong> Upon saving, your package will be submitted to the DM Groceries Admin team for verification before appearing in search or store fronts.
+                                    <strong>{t("sPack.adminApprovalTitle")}</strong> {t("sPack.adminApprovalBody")}
                                 </div>
                             </div>
                         )}
@@ -1071,7 +1085,7 @@ const Packages = () => {
                                 onClick={() => setIsCreateModalOpen(false)}
                                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium hover:bg-slate-100"
                             >
-                                Cancel
+{t("common.cancel")}
                             </button>
                             <button
                                 type="submit"
@@ -1079,7 +1093,7 @@ const Packages = () => {
                                 className="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition shadow-sm disabled:opacity-50 flex items-center gap-2"
                             >
                                 {isSubmittingForm && <HiOutlineArrowPath className="h-4 w-4 animate-spin" />}
-                                {editingPackage ? 'Update & Submit Package' : 'Create & Submit Package'}
+                                {editingPackage ? t('sPack.updateSubmit') : t('sPack.createSubmit')}
                             </button>
                         </div>
                     </form>
@@ -1091,7 +1105,7 @@ const Packages = () => {
                 <Modal
                     isOpen={Boolean(viewingPackage)}
                     onClose={() => setViewingPackage(null)}
-                    title="Package Overview"
+                    title={t("sPack.overview")}
                     maxWidth="max-w-xl"
                 >
                     <div className="space-y-4">
@@ -1125,7 +1139,7 @@ const Packages = () => {
                         {/* Review Status Note */}
                         {viewingPackage.approvalStatus === 'rejected' && (
                             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
-                                <strong>Admin Rejection Reason:</strong> {viewingPackage.rejectionReason}
+                                <strong>{t("sPack.rejectionReason")}</strong> {viewingPackage.rejectionReason}
                                 <div className="mt-2">
                                     <button
                                         onClick={() => {
@@ -1134,7 +1148,7 @@ const Packages = () => {
                                         }}
                                         className="text-xs font-bold underline hover:text-rose-900"
                                     >
-                                        Edit and resubmit this package now
+{t("sPack.editResubmit")}
                                     </button>
                                 </div>
                             </div>
@@ -1159,7 +1173,7 @@ const Packages = () => {
                                                 <div>
                                                     <p className="font-semibold text-slate-900 dark:text-white">{prod.name || 'Product'}</p>
                                                     <p className="text-slate-400">
-                                                        Qty: <strong className="text-slate-700 dark:text-slate-300">{it.quantity}x</strong> • Regular: <span className="line-through">₹{regPrice}</span> • Pack Price: <strong className="text-emerald-600">₹{packPrice}</strong>
+                                                        {t("sReturns.qty", { qty: "" }).trim()} <strong className="text-slate-700 dark:text-slate-300">{it.quantity}x</strong> • {t("sPack.regular")}: <span className="line-through">₹{regPrice}</span> • {t("sPack.packPriceLabel")} <strong className="text-emerald-600">₹{packPrice}</strong>
                                                     </p>
                                                 </div>
                                             </div>
@@ -1182,7 +1196,7 @@ const Packages = () => {
                                 onClick={() => setViewingPackage(null)}
                                 className="px-4 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 hover:bg-slate-100"
                             >
-                                Close
+{t("common.close")}
                             </button>
                         </div>
                     </div>
@@ -1194,12 +1208,12 @@ const Packages = () => {
                 <Modal
                     isOpen={Boolean(packageToDelete)}
                     onClose={() => setPackageToDelete(null)}
-                    title="Delete Package"
+                    title={t("sPack.delete")}
                     maxWidth="max-w-md"
                 >
                     <div className="space-y-4">
                         <p className="text-sm text-slate-600 dark:text-slate-300">
-                            Are you sure you want to permanently delete the package <strong className="text-slate-900 dark:text-white">&quot;{packageToDelete.name}&quot;</strong>? This action cannot be undone.
+                            {t("sPack.deleteConfirmPre")} <strong className="text-slate-900 dark:text-white">&quot;{packageToDelete.name}&quot;</strong>{t("sPack.deleteConfirmPost")}
                         </p>
                         <div className="flex justify-end gap-3 pt-3">
                             <button
@@ -1207,7 +1221,7 @@ const Packages = () => {
                                 onClick={() => setPackageToDelete(null)}
                                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium hover:bg-slate-100"
                             >
-                                Cancel
+{t("common.cancel")}
                             </button>
                             <button
                                 type="button"
@@ -1215,7 +1229,7 @@ const Packages = () => {
                                 onClick={handleDeletePackage}
                                 className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition shadow-sm"
                             >
-                                {isDeleting ? 'Deleting...' : 'Delete Package'}
+                                {isDeleting ? t('sPack.deleting') : t('sPack.delete')}
                             </button>
                         </div>
                     </div>

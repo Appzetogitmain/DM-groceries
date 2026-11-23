@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { adminApi } from "../../services/adminApi";
 import { toast } from "sonner";
 
+import CategoryTranslationFields from "../../components/CategoryTranslationFields";
 const makeSlug = (value) =>
   String(value || "")
     .toLowerCase()
@@ -44,6 +45,8 @@ const Level2Categories = () => {
 
   const [formData, setFormData] = useState({
     name: "",
+    nameHi: "",
+    nameGu: "",
     slug: "",
     description: "",
     status: "active",
@@ -158,6 +161,9 @@ const Level2Categories = () => {
           data.append(key, val);
         }
       });
+      // Always send translations so clearing a field removes it.
+      if (!data.has("nameHi")) data.append("nameHi", formData.nameHi || "");
+      if (!data.has("nameGu")) data.append("nameGu", formData.nameGu || "");
 
       if (imageFile) {
         data.append("image", imageFile);
@@ -202,6 +208,8 @@ const Level2Categories = () => {
     setEditingItem(null);
     setFormData({
       name: "",
+      nameHi: "",
+      nameGu: "",
       slug: "",
       description: "",
       status: "active",
@@ -217,6 +225,8 @@ const Level2Categories = () => {
     setEditingItem(item);
     setFormData({
       name: item.name,
+      nameHi: item.nameHi || "",
+      nameGu: item.nameGu || "",
       slug: item.slug,
       description: item.description || "",
       status: item.status,
@@ -561,6 +571,8 @@ const Level2Categories = () => {
                     maxLength={50}
                   />
                 </div>
+
+                <CategoryTranslationFields formData={formData} setFormData={setFormData} />
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">

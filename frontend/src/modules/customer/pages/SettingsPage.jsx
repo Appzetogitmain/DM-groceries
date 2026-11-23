@@ -7,11 +7,17 @@ import { toast } from 'sonner';
 import Button from '@/shared/components/ui/Button';
 import ConfirmDialog from '@/shared/components/ui/ConfirmDialog';
 import { useConfirmDialog } from '@/shared/hooks/useConfirmDialog';
+import { useTranslation } from 'react-i18next';
+import { useCustomerLanguage } from '../i18n/CustomerLanguageProvider';
+import { getLanguageMeta } from '../i18n/languages';
 
 const SettingsPage = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
     const confirm = useConfirmDialog();
+    const { t } = useTranslation();
+    const { language, openLanguagePicker } = useCustomerLanguage();
+    const [pendingDialog, setPendingDialog] = useState(null);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -39,25 +45,26 @@ const SettingsPage = () => {
         
         try {
             await customerApi.updateProfile({ notificationsEnabled: newStatus });
-            toast.success(`Notifications ${newStatus ? 'enabled' : 'disabled'}`);
+            toast.success(newStatus ? t('settings.notificationsEnabled') : t('settings.notificationsDisabled'));
         } catch (error) {
             setNotificationsEnabled(!newStatus); // revert on failure
-            toast.error("Failed to update settings");
+            toast.error(t('settings.updateFailed'));
         }
     };
     const promptDeleteAccount = () => {
+        setPendingDialog('delete');
         confirm.open({
-            title: "Delete Account",
-            message: "Are you sure you want to delete your account? This action cannot be undone.",
-            confirmLabel: "Delete Account",
-            cancelLabel: "Cancel",
+            title: t('settings.deleteAccount'),
+            message: t('settings.deleteAccountConfirm'),
+            confirmLabel: t('settings.deleteAccount'),
+            cancelLabel: t('common.cancel'),
             onConfirm: async () => {
                 try {
                     await customerApi.deleteAccount();
-                    toast.success("Account deleted successfully.");
+                    toast.success(t('settings.accountDeleted'));
                     logout();
                 } catch (error) {
-                    toast.error("Failed to delete account.");
+                    toast.error(t('settings.accountDeleteFailed'));
                     console.error("Delete account error:", error);
                     throw error;
                 }
@@ -66,11 +73,12 @@ const SettingsPage = () => {
     };
 
     const promptLogout = () => {
+        setPendingDialog('logout');
         confirm.open({
-            title: "Log out",
-            message: "Are you sure you want to log out?",
-            confirmLabel: "Log out",
-            cancelLabel: "Cancel",
+            title: t('settings.logoutTitle'),
+            message: t('settings.logoutConfirm'),
+            confirmLabel: t('settings.logoutTitle'),
+            cancelLabel: t('common.cancel'),
             onConfirm: () => {
                 logout();
             }
@@ -88,8 +96,8 @@ const SettingsPage = () => {
                     <ChevronLeft size={22} className="text-[#1A4516]" />
                 </button>
                 <div>
-                    <h1 className="text-xl font-semibold text-[#1A4516] tracking-tight">Settings</h1>
-                    <p className="text-[#1A4516]/70 text-xs font-medium mt-0.5">Configure your app preferences</p>
+                    <h1 className="text-xl font-semibold text-[#1A4516] tracking-tight">{t('settings.title')}</h1>
+                    <p className="text-[#1A4516]/70 text-xs font-medium mt-0.5">{t('settings.subtitle')}</p>
                 </div>
             </div>
 
@@ -99,7 +107,7 @@ const SettingsPage = () => {
                 {/* General Section */}
                 <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
                     <div className="px-4 pt-4 pb-2 bg-transparent border-b border-slate-50">
-                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">GENERAL</h3>
+                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('settings.general')}</h3>
                     </div>
                     <div className="divide-y divide-slate-50">
                         {isLoading ? (
@@ -107,16 +115,20 @@ const SettingsPage = () => {
                         ) : (
                             <SettingItem 
                                 icon={Bell} 
-                                label="Notifications" 
+                                label={t('settings.notifications')} 
                                 hasToggle 
                                 activeToggle={notificationsEnabled}
                                 onToggle={toggleNotifications}
                             />
                         )}
+                        <SettingItem
+                            icon={Globe}
+                            label={t('settings.language')}
+                            value={getLanguageMeta(language).nativeName}
+                            onClick={openLanguagePicker}
+                        />
                     </div>
                 </div>
-
-
 
                 {/* Danger Zone */}
                 <div className="pt-4 space-y-3">
@@ -125,14 +137,14 @@ const SettingsPage = () => {
                         variant="outline"
                         className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
                     >
-                        <LogOut size={20} className="mr-2" /> Delete Account
+                        <LogOut size={20} className="mr-2" /> {t('settings.deleteAccount')}
                     </Button>
                     <Button
                         onClick={promptLogout}
                         variant="outline"
                         className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 py-6 rounded-2xl font-bold flex items-center justify-center text-sm shadow-sm"
                     >
-                        <LogOut size={20} className="mr-2" /> Logout
+                        <LogOut size={20} className="mr-2" /> {t('common.logout')}
                     </Button>
                 </div>
 
@@ -145,7 +157,7 @@ const SettingsPage = () => {
                     onConfirm={confirm.handleConfirm}
                     onCancel={confirm.close}
                     loading={confirm.loading}
-                    variant={confirm.title === 'Delete Account' || confirm.title === 'Log out' ? 'danger' : 'primary'}
+                    variant={pendingDialog === 'delete' || pendingDialog === 'logout' ? 'danger' : 'primary'}
                 />
 
             </div>
@@ -153,11 +165,12 @@ const SettingsPage = () => {
     );
 };
 
-const SettingItem = ({ icon: Icon, label, value, hasToggle, activeToggle, onToggle }) => {
+const SettingItem = ({ icon: Icon, label, value, hasToggle, activeToggle, onToggle, onClick }) => {
     return (
         <div 
             className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors"
-            onClick={hasToggle ? onToggle : undefined}
+            onClick={hasToggle ? onToggle : onClick}
+            role="button"
         >
             <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-[#F5FBF5] flex items-center justify-center text-[#1A4516]">

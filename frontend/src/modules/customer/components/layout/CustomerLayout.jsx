@@ -24,12 +24,14 @@ import { playNotificationSound } from '@/lib/soundUtils';
 import LocationRequiredModal from '../shared/LocationRequiredModal';
 import CustomerPaymentReminderModal from '../order/CustomerPaymentReminderModal';
 import { customerApi } from '../../services/customerApi';
+import { useTranslation } from 'react-i18next';
 
 const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = false, showCart: showCartProp, showBottomNav: showBottomNavProp }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { isOpen: isProductDetailOpen } = useProductDetail();
     const { user, token } = useAuth();
+    const { t } = useTranslation();
     const [paymentReminderAlert, setPaymentReminderAlert] = useState(null);
     const [isProcessingPaymentReminder, setIsProcessingPaymentReminder] = useState(false);
 
@@ -40,16 +42,16 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
         const cleanupPickup = onReturnPickupOtp(() => token, (payload) => {
             console.log('[CustomerLayout] Return Pickup OTP Received:', payload);
             playNotificationSound();
-            toast.custom((t) => (
+            toast.custom(() => (
                 <div className="bg-white border-2 border-brand-600 rounded-3xl p-5 shadow-2xl animate-in slide-in-from-bottom-full duration-500 max-w-md w-full">
                     <div className="flex items-start gap-4">
                         <div className="h-12 w-12 bg-brand-100 rounded-2xl flex items-center justify-center text-brand-600 shrink-0">
                             <ShieldCheck size={28} />
                         </div>
                         <div className="flex-1">
-                            <h3 className="text-lg font-black text-slate-900 leading-tight mb-1">Return Pickup OTP</h3>
+                            <h3 className="text-lg font-black text-slate-900 leading-tight mb-1">{t('layout.returnPickupOtpTitle')}</h3>
                             <p className="text-sm text-slate-500 font-medium mb-3">
-                                Share this code with the delivery partner to confirm your return pickup.
+                                {t('layout.returnPickupOtpBody')}
                             </p>
                             <div className="flex items-center gap-2">
                                 <span className="text-3xl font-black tracking-[0.2em] text-brand-600 bg-brand-50 px-4 py-2 rounded-xl border border-brand-100">
@@ -65,16 +67,16 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
         const cleanupDrop = onReturnDropOtp(() => token, (payload) => {
             console.log('[CustomerLayout] Return Drop OTP Received:', payload);
             playNotificationSound();
-            toast.custom((t) => (
+            toast.custom(() => (
                 <div className="bg-white border-2 border-green-600 rounded-3xl p-5 shadow-2xl animate-in slide-in-from-bottom-full duration-500 max-w-md w-full">
                     <div className="flex items-start gap-4">
                         <div className="h-12 w-12 bg-green-100 rounded-2xl flex items-center justify-center text-green-600 shrink-0">
                             <Package size={28} />
                         </div>
                         <div className="flex-1">
-                            <h3 className="text-lg font-black text-slate-900 leading-tight mb-1">Return Received Alert</h3>
+                            <h3 className="text-lg font-black text-slate-900 leading-tight mb-1">{t('layout.returnDropOtpTitle')}</h3>
                             <p className="text-sm text-slate-500 font-medium mb-3">
-                                Use this code to confirm that your return has reached the seller.
+                                {t('layout.returnDropOtpBody')}
                             </p>
                             <div className="flex items-center gap-2">
                                 <span className="text-3xl font-black tracking-[0.2em] text-green-600 bg-green-50 px-4 py-2 rounded-xl border border-green-100">
@@ -90,8 +92,8 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
         const cleanupGeneralNotification = onNotificationNew(() => token, (payload) => {
             console.log('[CustomerLayout] Notification Received:', payload);
             if (payload) {
-                toast.success(payload.title || 'New Message', { 
-                    description: payload.body || payload.message || 'You have received a new notification.' 
+                toast.success(payload.title || t('layout.newMessage'), { 
+                    description: payload.body || payload.message || t('layout.newNotificationBody') 
                 });
             }
             playNotificationSound();
@@ -118,7 +120,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
         const cleanupOrderCancelled = onCustomerOrderCancelled(() => token, (payload) => {
             console.log('[CustomerLayout] Order Cancelled Received:', payload);
             if (payload?.reason === 'payment_timeout') {
-                toast.error(payload.message || 'Order cancelled because payment was not completed within 5 minutes.', {
+                toast.error(t('layout.orderCancelledPaymentTimeout'), {
                     duration: 8000,
                 });
             }
@@ -151,7 +153,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
             cleanupOrderCancelled();
             cleanupStatusUpdate();
         };
-    }, [token, user]);
+    }, [token, user, t]);
 
     const isKeyboardOpen = useKeyboardOpen();
 
@@ -217,13 +219,13 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
                 onPayCod={async (orderId) => {
                     try {
                         setIsProcessingPaymentReminder(true);
-                        const res = await customerApi.selectPaymentMethod(orderId, { paymentMode: "COD" });
-                        toast.success(res?.data?.message || "Order confirmed with Cash on Delivery!");
+                        await customerApi.selectPaymentMethod(orderId, { paymentMode: "COD" });
+                        toast.success(t('layout.codConfirmed'));
                         setPaymentReminderAlert(null);
                         navigate(`/user/orders/${orderId}`);
                     } catch (err) {
                         console.error("[CustomerLayout] COD selection failed:", err);
-                        toast.error(err?.response?.data?.message || "Failed to select Cash on Delivery. Please try again.");
+                        toast.error(err?.response?.data?.message || t('layout.codFailed'));
                     } finally {
                         setIsProcessingPaymentReminder(false);
                     }

@@ -270,6 +270,8 @@ export async function processMultiSellerCheckout(params) {
             sellerId: product.sellerId,
           },
           name: product.name,
+          nameHi: product.nameHi || undefined,
+          nameGu: product.nameGu || undefined,
           quantity: item.quantity,
           price: product.salePrice || product.price,
           variantSlot: item.variantSlot,

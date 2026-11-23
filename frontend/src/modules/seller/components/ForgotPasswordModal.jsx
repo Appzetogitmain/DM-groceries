@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, KeyRound, Lock, ArrowRight, CheckCircle2, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { sellerApi } from "../services/sellerApi";
+import { useTranslation } from "react-i18next";
 
 const ForgotPasswordModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -35,17 +37,17 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const handleSendOtp = async (e) => {
     e.preventDefault();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Please enter a valid email address");
+      toast.error(t("forgot.validEmail"));
       return;
     }
 
     setIsLoading(true);
     try {
       await sellerApi.sendResetOtp({ channel: "email", rawValue: email });
-      toast.success("OTP sent to your email");
+      toast.success(t("forgot.otpSent"));
       setStep(2);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send OTP");
+      toast.error(error.response?.data?.message || t("sAuth.otpSendFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +56,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (!otp || otp.length !== 4) {
-      toast.error("Please enter the 4-digit OTP");
+      toast.error(t("forgot.enterOtp"));
       return;
     }
 
@@ -66,10 +68,10 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
         otp,
       });
       setResetToken(response.data?.result?.verificationToken || response.data?.result?.token);
-      toast.success("OTP verified successfully");
+      toast.success(t("forgot.otpVerified"));
       setStep(3);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Invalid or expired OTP");
+      toast.error(error.response?.data?.message || t("forgot.invalidOtp"));
     } finally {
       setIsLoading(false);
     }
@@ -78,11 +80,11 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters long");
+      toast.error(t("sAuth.passwordMin"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t("forgot.mismatch"));
       return;
     }
 
@@ -94,10 +96,10 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
         token: resetToken,
         newPassword,
       });
-      toast.success("Password reset successfully. You can now login.");
+      toast.success(t("forgot.resetDone"));
       handleClose();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to reset password");
+      toast.error(error.response?.data?.message || t("forgot.resetFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -137,14 +139,14 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                 {step === 3 && <Lock className="text-white" size={24} />}
               </div>
               <h2 className="text-xl font-bold text-white">
-                {step === 1 && "Forgot Password"}
-                {step === 2 && "Verify Email"}
-                {step === 3 && "Reset Password"}
+                {step === 1 && t("forgot.title")}
+                {step === 2 && t("forgot.verifyEmail")}
+                {step === 3 && t("forgot.resetPassword")}
               </h2>
               <p className="text-white/70 text-xs mt-1">
-                {step === 1 && "Enter your email to receive an OTP"}
-                {step === 2 && `Enter the 4-digit OTP sent to ${email}`}
-                {step === 3 && "Create a new secure password"}
+                {step === 1 && t("forgot.step1Body")}
+                {step === 2 && t("forgot.step2Body", { email })}
+                {step === 3 && t("forgot.step3Body")}
               </p>
             </div>
 
@@ -162,14 +164,14 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                   >
                     <div>
                       <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
-                        Registered Email
+                        {t("forgot.registeredEmail")}
                       </label>
                       <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
+                        placeholder={t("sAuth.enterEmail")}
                         className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                       />
                     </div>
@@ -182,7 +184,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          SEND OTP
+                          {t("forgot.sendOtp")}
                           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
@@ -218,7 +220,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                       disabled={isLoading || otp.length !== 4}
                       className="w-full bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3.5 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "VERIFY OTP"}
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("forgot.verifyOtp")}
                     </button>
                     <div className="text-center">
                       <button
@@ -227,7 +229,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                         disabled={isLoading}
                         className="text-[10px] font-bold text-slate-500 hover:text-[#1A4516] transition-colors"
                       >
-                        Didn't receive code? Resend
+                        {t("forgot.didntReceive")}
                       </button>
                     </div>
                   </motion.form>
@@ -244,7 +246,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                   >
                     <div>
                       <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
-                        New Password
+                        {t("forgot.newPassword")}
                       </label>
                       <div className="relative group">
                         <input
@@ -252,7 +254,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                           required
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Enter new password"
+                          placeholder={t("forgot.newPasswordPh")}
                           className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-10"
                         />
                         <button
@@ -266,7 +268,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                     </div>
                     <div>
                       <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">
-                        Confirm Password
+                        {t("forgot.confirmPassword")}
                       </label>
                       <div className="relative group">
                         <input
@@ -274,7 +276,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                           required
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="Confirm new password"
+                          placeholder={t("forgot.confirmPasswordPh")}
                           className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-10"
                         />
                         <button
@@ -295,7 +297,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          <CheckCircle2 className="w-4 h-4" /> RESET PASSWORD
+                          <CheckCircle2 className="w-4 h-4" /> {t("forgot.resetPasswordCaps")}
                         </>
                       )}
                     </button>

@@ -17,6 +17,8 @@ import SectionRenderer from "../components/experience/SectionRenderer";
 import { useLocation as useAppLocation } from '../context/LocationContext';
 import { useSettings } from '@core/context/SettingsContext';
 import Lottie from 'lottie-react';
+import { useTranslation } from 'react-i18next';
+import { translateCategoryName, getLocalizedName, pickNameFields } from '../i18n/format';
 
 // Fallback for "All" when the admin hasn't uploaded an image for the "All" header
 const DEFAULT_ALL_ICON = 'https://cdn-icons-png.flaticon.com/128/2321/2321831.png';
@@ -27,6 +29,7 @@ const CategoryProductsPage = () => {
     const location = useLocation();
     const { currentLocation } = useAppLocation();
     const { settings } = useSettings();
+    const { t } = useTranslation();
     const initialSubcategoryId = location.state?.activeSubcategoryId || 'all';
     const { isOpen: isProductDetailOpen } = useProductDetail();
     const [selectedSubCategory, setSelectedSubCategory] = useState(initialSubcategoryId);
@@ -104,7 +107,7 @@ const CategoryProductsPage = () => {
                     setCategory(currentCat);
                     const subs = (currentCat.children || []).map(s => ({
                         id: s._id,
-                        name: s.name,
+                        ...pickNameFields(s),
                         icon: s.image || 'https://cdn-icons-png.flaticon.com/128/2321/2321801.png'
                     }));
                     // "All" uses the image set on the default "All" header in Admin → Header Categories
@@ -156,7 +159,7 @@ const CategoryProductsPage = () => {
                         <ChevronLeft size={24} className="text-gray-900" />
                     </button>
                     <h1 className="text-[18px] font-bold text-gray-800 tracking-tight">
-                        {category?.name || catId}
+                        {(category && getLocalizedName(category)) || (String(catId).toLowerCase() === 'all' ? t('categories.allProducts') : catId)}
                     </h1>
                 </div>
 
@@ -173,16 +176,16 @@ const CategoryProductsPage = () => {
                             )}
                         </div>
                         <h3 className="text-3xl font-[1000] text-slate-800 tracking-tighter mb-4 uppercase">
-                            Service <span className="text-primary">Unavailable</span>
+                            {t('home.service')} <span className="text-primary">{t('home.unavailable')}</span>
                         </h3>
                         <p className="text-slate-500 font-bold text-sm max-w-[280px] mb-8 leading-relaxed">
-                            {settings?.appName || 'Our service'} is not available in your area yet. We're expanding fast!
+                            {t('categories.notAvailableInArea', { appName: settings?.appName || t('categories.ourService') })}
                         </p>
                         <button 
                             onClick={fetchData}
                             className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all shadow-xl shadow-black/10"
                         >
-                            Try Refreshing
+                            {t('categories.tryRefreshing')}
                         </button>
                     </div>
                 ) : (
@@ -204,13 +207,13 @@ const CategoryProductsPage = () => {
                                         "w-14 h-14 rounded-2xl flex items-center justify-center p-1.5 transition-all duration-300",
                                         selectedSubCategory === cat.id ? "scale-110" : "opacity-100"
                                     )}>
-                                        <img src={applyCloudinaryTransform(cat.icon)} alt={cat.name} loading="lazy" className="w-full h-full object-contain" />
+                                        <img src={applyCloudinaryTransform(cat.icon)} alt={translateCategoryName(t, cat)} loading="lazy" className="w-full h-full object-contain" />
                                     </div>
                                     <span className={cn(
                                         "text-[10px] text-center font-bold font-sans leading-tight px-1",
                                         selectedSubCategory === cat.id ? "text-primary" : "text-gray-600"
                                     )}>
-                                        {cat.name}
+                                        {translateCategoryName(t, cat)}
                                     </span>
                                 </button>
                             ))}

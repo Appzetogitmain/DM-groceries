@@ -41,6 +41,9 @@ import { sellerApi } from "../services/sellerApi";
 import MapPicker from "../../../shared/components/MapPicker";
 import sellerLoginImg from "../../../assets/SellerLogin.png";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import { useTranslation } from "react-i18next";
+import { useSellerLanguage } from "../i18n/SellerLanguageProvider";
+import { getLanguageMeta } from "@/shared/i18n/languages";
 
 const createInitialVerificationState = () => ({
   status: "idle",
@@ -79,6 +82,8 @@ const SELLER_DOCUMENT_CONFIG = [
 const REQUIRED_DOCUMENT_CONFIG = SELLER_DOCUMENT_CONFIG;
 
 const Auth = () => {
+  const { t } = useTranslation();
+  const { language, openLanguagePicker } = useSellerLanguage();
   const getInitialState = (key, defaultValue) => {
     const saved = sessionStorage.getItem(key);
     if (saved) {
@@ -207,16 +212,16 @@ const Auth = () => {
   const getMissingRequiredDocuments = () => {
     const missing = [];
     if (!documents.panCard) {
-      missing.push({ id: "panCard", label: "PAN Card" });
+      missing.push({ id: "panCard", label: t("sAuth.docs.panCard.label") });
     }
     if (!documents.aadharCard) {
-      missing.push({ id: "aadharCard", label: "Aadhaar Card" });
+      missing.push({ id: "aadharCard", label: t("sAuth.docs.aadharCard.label") });
     }
     if (sellerType === "registered_business") {
       if (!documents.tradeLicense && !documents.gstCertificate) {
         missing.push({
           id: "tradeLicense_or_gst",
-          label: "Trade License or GST Certificate",
+          label: t("sAuth.docs.tradeOrGst"),
         });
       }
     }
@@ -227,7 +232,7 @@ const Auth = () => {
     const isUploaded = Boolean(documents[docId]);
     if (isUploaded) {
       return {
-        badgeText: "Uploaded ✓",
+        badgeText: t("sAuth.badge.uploaded"),
         badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-300",
         isFulfilled: true,
       };
@@ -235,7 +240,7 @@ const Auth = () => {
 
     if (docId === "panCard" || docId === "aadharCard") {
       return {
-        badgeText: "Mandatory *",
+        badgeText: t("sAuth.badge.mandatory"),
         badgeClass: "bg-rose-100 text-rose-800 border-rose-300",
         isFulfilled: false,
       };
@@ -243,7 +248,7 @@ const Auth = () => {
 
     if (sellerType === "individual") {
       return {
-        badgeText: "Optional (If available)",
+        badgeText: t("sAuth.badge.optionalIfAvailable"),
         badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
         isFulfilled: true,
       };
@@ -253,13 +258,13 @@ const Auth = () => {
     if (docId === "tradeLicense") {
       if (documents.gstCertificate) {
         return {
-          badgeText: "Optional (GST Provided)",
+          badgeText: t("sAuth.badge.optionalGstProvided"),
           badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
           isFulfilled: true,
         };
       }
       return {
-        badgeText: "Required (Either Trade License or GST) *",
+        badgeText: t("sAuth.badge.requiredEitherTradeOrGst"),
         badgeClass: "bg-amber-100 text-amber-800 border-amber-300",
         isFulfilled: false,
       };
@@ -268,20 +273,20 @@ const Auth = () => {
     if (docId === "gstCertificate") {
       if (documents.tradeLicense) {
         return {
-          badgeText: "Optional (Trade License Provided)",
+          badgeText: t("sAuth.badge.optionalTradeProvided"),
           badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
           isFulfilled: true,
         };
       }
       return {
-        badgeText: "Required (Either GST or Trade License) *",
+        badgeText: t("sAuth.badge.requiredEitherGstOrTrade"),
         badgeClass: "bg-amber-100 text-amber-800 border-amber-300",
         isFulfilled: false,
       };
     }
 
     return {
-      badgeText: "Optional",
+      badgeText: t("sAuth.badge.optional"),
       badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
       isFulfilled: true,
     };
@@ -322,7 +327,7 @@ const Auth = () => {
         }
       } catch (error) {
         console.error("Camera handler error:", error);
-        toast.error("Failed to open camera");
+        toast.error(t("sAuth.cameraFailed"));
       }
     }
   };
@@ -392,13 +397,13 @@ const Auth = () => {
 
     if (e.target.id.startsWith("pdf-")) {
       if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-        toast.error("Invalid file type. Please select a valid PDF file.");
+        toast.error(t("sAuth.invalidPdf"));
         e.target.value = "";
         return;
       }
     } else if (e.target.id.startsWith("gallery-") || e.target.id.startsWith("camera-")) {
       if (!file.type.startsWith("image/")) {
-        toast.error("Invalid file type. Please select an image.");
+        toast.error(t("sAuth.invalidImage"));
         e.target.value = "";
         return;
       }
@@ -418,8 +423,8 @@ const Auth = () => {
     ) {
       toast.error(
         isEmailField
-          ? "Enter a valid email before requesting OTP."
-          : "Enter a valid 10-digit phone number before requesting OTP.",
+          ? t("sAuth.validEmailBeforeOtp")
+          : t("sAuth.validPhoneBeforeOtp"),
       );
       return;
     }
@@ -442,22 +447,22 @@ const Auth = () => {
       });
       toast.success(
         isEmailField
-          ? "Verification OTP sent to your email."
-          : "Verification OTP sent to your phone.",
+          ? t("sAuth.otpSentEmail")
+          : t("sAuth.otpSentPhone"),
       );
     } catch (error) {
       updateVerificationState(field, {
         isSending: false,
         status: "idle",
       });
-      toast.error(error.response?.data?.message || "Failed to send OTP");
+      toast.error(error.response?.data?.message || t("sAuth.otpSendFailed"));
     }
   };
 
   const handleVerifyOtp = async (field) => {
     const verificationState = verifications[field];
     if (!/^\d{4}$/.test(verificationState.otp || "")) {
-      toast.error("Enter a valid 4-digit OTP.");
+      toast.error(t("sAuth.enterValidOtp"));
       return;
     }
 
@@ -483,14 +488,14 @@ const Auth = () => {
       });
       toast.success(
         field === "email"
-          ? "Email verified successfully."
-          : "Phone number verified successfully.",
+          ? t("sAuth.emailVerified")
+          : t("sAuth.phoneVerified"),
       );
     } catch (error) {
       updateVerificationState(field, {
         isVerifying: false,
       });
-      toast.error(error.response?.data?.message || "Failed to verify OTP");
+      toast.error(error.response?.data?.message || t("sAuth.otpVerifyFailed"));
     }
   };
 
@@ -513,21 +518,21 @@ const Auth = () => {
         const email = formData.email || "";
         const phone = formData.phone || "";
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          toast.error("Please enter a valid business email address.");
+          toast.error(t("sAuth.validBusinessEmail"));
           setIsLoading(false);
           return;
         }
         if (!/^[0-9]{10}$/.test(phone)) {
-          toast.error("Please enter a valid 10-digit contact number.");
+          toast.error(t("sAuth.validContact"));
           return;
         }
         if (signupStep === 1) {
           if (verifications.email.status !== "verified" || !verifications.email.token) {
-            toast.error("Please verify your business email before continuing.");
+            toast.error(t("sAuth.verifyEmailFirst"));
             return;
           }
           if (verifications.phone.status !== "verified" || !verifications.phone.token) {
-            toast.error("Please verify your contact number before continuing.");
+            toast.error(t("sAuth.verifyPhoneFirst"));
             return;
           }
         }
@@ -536,7 +541,7 @@ const Auth = () => {
       const pwd = (formData.password || "").trim();
       if (pwd.length < 6) {
         toast.error(
-          "Password must be at least 6 characters.",
+          t("sAuth.passwordMin"),
         );
         return;
       }
@@ -549,8 +554,8 @@ const Auth = () => {
       if (!isLogin) {
         const missingRequiredDocuments = getMissingRequiredDocuments();
         if (missingRequiredDocuments.length > 0) {
-          const names = missingRequiredDocuments.map(d => d.label).join(" and ");
-          toast.error(`Please upload ${names}.`);
+          const names = missingRequiredDocuments.map(d => d.label).join(` ${t("sAuth.and")} `);
+          toast.error(t("sAuth.pleaseUpload", { names }));
           return;
         }
       }
@@ -610,7 +615,7 @@ const Auth = () => {
           token,
           role: "seller",
         });
-        toast.success("Welcome back, Partner!");
+        toast.success(t("sAuth.welcomeBackPartner"));
         
         // Use a slight delay and a hard redirect to ensure AuthContext 
         // state and localStorage are fully persisted and router mounts cleanly.
@@ -636,7 +641,7 @@ const Auth = () => {
           password: "",
         }));
         toast.success(
-          "Application submitted. Login is enabled only after admin approval.",
+          t("sAuth.applicationSubmitted"),
         );
         navigate("/seller/pending-approval", {
           replace: true,
@@ -661,7 +666,7 @@ const Auth = () => {
           },
         });
       }
-      toast.error(error.response?.data?.message || "Authentication failed");
+      toast.error(error.response?.data?.message || t("sAuth.authFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -753,13 +758,21 @@ const Auth = () => {
                 </div>
                 
                 <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-                  {isLogin ? "Welcome Back!" : "Seller Register"}
+                  {isLogin ? t("sAuth.welcomeBack") : t("sAuth.sellerRegister")}
                 </h1>
                 <p className="text-slate-500 font-medium text-xs">
                   {isLogin
-                    ? "Seller Login"
-                    : `Step ${signupStep} of 3: ${signupStep === 1 ? "Store Information" : signupStep === 2 ? "Location Setup" : "Verify Documents"}`}
+                    ? t("sAuth.sellerLogin")
+                    : t("sAuth.stepOf", { step: signupStep, total: 3, name: signupStep === 1 ? t("sAuth.stepStore") : signupStep === 2 ? t("sAuth.stepLocation") : t("sAuth.stepDocs") })}
                 </p>
+                <button
+                  type="button"
+                  onClick={openLanguagePicker}
+                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200 bg-white text-[11px] font-bold text-[#1A4516] hover:bg-slate-50 transition-colors"
+                >
+                  <Globe size={12} />
+                  {t("common.language")}: {getLanguageMeta(language).nativeName}
+                </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -769,13 +782,13 @@ const Auth = () => {
                     {!isLogin && (
                       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Owner Name</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.ownerName")}</label>
                           <div className="relative group">
                             <input
                               type="text"
                               name="name"
                               required
-                              placeholder="Owner Name"
+                              placeholder={t("sAuth.ownerName")}
                               className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                               value={formData.name}
                               onChange={handleChange}
@@ -783,13 +796,13 @@ const Auth = () => {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Shop Name</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.shopName")}</label>
                           <div className="relative group">
                             <input
                               type="text"
                               name="shopName"
                               required
-                              placeholder="Shop Name"
+                              placeholder={t("sAuth.shopName")}
                               className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                               value={formData.shopName}
                               onChange={handleChange}
@@ -800,7 +813,7 @@ const Auth = () => {
                     )}
 
                     <div>
-                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Email</label>
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.email")}</label>
                       <div className="relative group flex items-center">
                         <input
                           type="email"
@@ -808,7 +821,7 @@ const Auth = () => {
                           required
                           inputMode="email"
                           autoComplete="email"
-                          placeholder="Enter your email"
+                          placeholder={t("sAuth.enterEmail")}
                           className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[120px]"
                           value={formData.email}
                           onChange={handleChange}
@@ -830,11 +843,11 @@ const Auth = () => {
                             {verifications.email.isSending ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : verifications.email.status === "verified" ? (
-                              "Verified"
+                              t("sAuth.verified")
                             ) : verifications.email.isOtpVisible ? (
-                              verifications.email.timer > 0 ? `Resend in ${verifications.email.timer}s` : "Resend"
+                              verifications.email.timer > 0 ? t("sAuth.resendIn", { seconds: verifications.email.timer }) : t("sAuth.resend")
                             ) : (
-                              "Verify"
+                              t("sAuth.verify")
                             )}
                           </button>
                         )}
@@ -848,7 +861,7 @@ const Auth = () => {
                             type="text"
                             inputMode="numeric"
                             maxLength={4}
-                            placeholder="Enter email OTP"
+                            placeholder={t("sAuth.enterEmailOtp")}
                             value={verifications.email.otp}
                             onChange={(e) =>
                               updateVerificationState("email", {
@@ -863,31 +876,31 @@ const Auth = () => {
                             disabled={verifications.email.isVerifying || verifications.email.otp.length !== 4}
                             className="rounded-md bg-white px-3 py-2 text-[10px] whitespace-nowrap font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
                           >
-                            {verifications.email.isVerifying ? "Checking..." : "Confirm OTP"}
+                            {verifications.email.isVerifying ? t("sAuth.checking") : t("sAuth.confirmOtp")}
                           </button>
                         </div>
                         <p className="text-[11px] text-slate-400 ml-1 leading-snug">
-                          If you don't see the email, please check your <strong className="text-slate-500">Spam or Junk</strong> folder.
+                          {t("sAuth.checkSpamPrefix")} <strong className="text-slate-500">{t("sAuth.spamOrJunk")}</strong> {t("sAuth.checkSpamSuffix")}
                         </p>
                       </div>
                     )}
                     {!isLogin && verifications.email.status === "verified" && (
                       <div className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 px-1">
                         <CheckCircle className="h-3.5 w-3.5" />
-                        <span>Email verified successfully.</span>
+                        <span>{t("sAuth.emailVerified")}</span>
                       </div>
                     )}
 
                     {!isLogin && (
                       <>
                         <div>
-                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Contact Number</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.contactNumber")}</label>
                           <div className="relative group flex items-center">
                             <input
                               type="tel"
                               name="phone"
                               required
-                              placeholder="Contact Number"
+                              placeholder={t("sAuth.contactNumber")}
                               className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-[120px]"
                               value={formData.phone}
                               onChange={handleChange}
@@ -908,11 +921,11 @@ const Auth = () => {
                               {verifications.phone.isSending ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : verifications.phone.status === "verified" ? (
-                                "Verified"
+                                t("sAuth.verified")
                               ) : verifications.phone.isOtpVisible ? (
-                                verifications.phone.timer > 0 ? `Resend in ${verifications.phone.timer}s` : "Resend"
+                                verifications.phone.timer > 0 ? t("sAuth.resendIn", { seconds: verifications.phone.timer }) : t("sAuth.resend")
                               ) : (
-                                "Verify"
+                                t("sAuth.verify")
                               )}
                             </button>
                           </div>
@@ -923,7 +936,7 @@ const Auth = () => {
                               type="text"
                               inputMode="numeric"
                               maxLength={4}
-                              placeholder="Enter phone OTP"
+                              placeholder={t("sAuth.enterPhoneOtp")}
                               value={verifications.phone.otp}
                               onChange={(e) =>
                                 updateVerificationState("phone", {
@@ -938,21 +951,21 @@ const Auth = () => {
                               disabled={verifications.phone.isVerifying || verifications.phone.otp.length !== 4}
                               className="rounded-md bg-white px-3 py-2 text-[10px] whitespace-nowrap font-black uppercase tracking-wider text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
                             >
-                              {verifications.phone.isVerifying ? "Checking..." : "Confirm OTP"}
+                              {verifications.phone.isVerifying ? t("sAuth.checking") : t("sAuth.confirmOtp")}
                             </button>
                           </div>
                         )}
                         {verifications.phone.status === "verified" && (
                           <div className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 px-1">
                             <CheckCircle className="h-3.5 w-3.5" />
-                            <span>Phone number verified successfully.</span>
+                            <span>{t("sAuth.phoneVerified")}</span>
                           </div>
                         )}
                       </>
                     )}
 
                     <div>
-                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Password</label>
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.password")}</label>
                       <div className="relative group">
                         <input
                           type={showPassword ? "text" : "password"}
@@ -960,7 +973,7 @@ const Auth = () => {
                           required
                           minLength={6}
                           autoComplete="current-password"
-                          placeholder="Enter your password"
+                          placeholder={t("sAuth.enterPassword")}
                           className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 pr-12"
                           value={formData.password}
                           onChange={handleChange}
@@ -978,7 +991,7 @@ const Auth = () => {
                     {!isLogin && (
                       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Date of Birth</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.dob")}</label>
                           <div className="relative group">
                             <input
                               type="date"
@@ -991,7 +1004,7 @@ const Auth = () => {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Blood Group</label>
+                          <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.bloodGroup")}</label>
                           <div className="relative group">
                             <select
                               name="bloodGroup"
@@ -999,7 +1012,7 @@ const Auth = () => {
                               value={formData.bloodGroup}
                               onChange={handleChange}
                             >
-                              <option value="" disabled>Select Blood Group</option>
+                              <option value="" disabled>{t("sAuth.selectBloodGroup")}</option>
                               <option value="A+">A+</option>
                               <option value="A-">A-</option>
                               <option value="B+">B+</option>
@@ -1021,7 +1034,7 @@ const Auth = () => {
                   <div className="space-y-3">
                     <div className="pt-1">
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-0.5">
-                        Shop Location & Service Area
+                        {t("sAuth.shopLocation")}
                       </p>
                       <button
                         type="button"
@@ -1043,19 +1056,19 @@ const Auth = () => {
                             <p
                               className={`text-[11px] font-extrabold truncate ${formData.lat ? "text-emerald-800" : "text-slate-600"}`}>
                               {formData.lat
-                                ? "Location Selected"
-                                : "Pin Shop on Map"}
+                                ? t("sAuth.locationSelected")
+                                : t("sAuth.pinOnMap")}
                             </p>
                             <p className="text-[10px] text-slate-400 font-medium truncate">
                               {formData.lat
                                 ? `${formData.address} (${formData.radius}km)`
-                                : "Precisely mark your shop location"}
+                                : t("sAuth.markLocation")}
                             </p>
                           </div>
                         </div>
                         {formData.lat && (
                           <span className="shrink-0 text-[9px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
-                            Verified
+                            {t("sAuth.verified")}
                           </span>
                         )}
                       </button>
@@ -1063,48 +1076,48 @@ const Auth = () => {
 
                     <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Locality</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.locality")}</label>
                         <input
                           type="text"
                           name="locality"
                           required
-                          placeholder="Locality / Area"
+                          placeholder={t("sAuth.localityPh")}
                           className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.locality}
                           onChange={handleChange}
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Pincode</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.pincode")}</label>
                         <input
                           type="text"
                           name="pincode"
                           required
-                          placeholder="Pincode"
+                          placeholder={t("sAuth.pincode")}
                           className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.pincode}
                           onChange={handleChange}
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">City</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.city")}</label>
                         <input
                           type="text"
                           name="city"
                           required
-                          placeholder="City"
+                          placeholder={t("sAuth.city")}
                           className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.city}
                           onChange={handleChange}
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">State</label>
+                        <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.state")}</label>
                         <input
                           type="text"
                           name="state"
                           required
-                          placeholder="State"
+                          placeholder={t("sAuth.state")}
                           className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300"
                           value={formData.state}
                           onChange={handleChange}
@@ -1113,12 +1126,12 @@ const Auth = () => {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Full Address</label>
+                      <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">{t("sAuth.fullAddress")}</label>
                       <textarea
                         name="address"
                         rows={2}
                         required
-                        placeholder="Full address details"
+                        placeholder={t("sAuth.fullAddressPh")}
                         className="w-full px-3.5 py-3 sm:py-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-base sm:text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-[#1A4516] focus:ring-2 focus:ring-[#1A4516]/10 transition-all placeholder:text-slate-300 resize-none"
                         value={formData.address}
                         onChange={handleChange}
@@ -1135,10 +1148,10 @@ const Auth = () => {
                       <div className="pt-0.5">
                         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 mb-2 ml-0.5">
                           <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                            1. Select Seller Type
+                            {t("sAuth.selectSellerType")}
                           </p>
                           <span className="text-[11px] font-semibold text-slate-400">
-                            Determines document requirement
+                            {t("sAuth.determinesDocs")}
                           </span>
                         </div>
 
@@ -1162,7 +1175,7 @@ const Auth = () => {
                                 )}>
                                   <User className="w-3.5 h-3.5" />
                                 </div>
-                                <p className="text-[13px] font-black text-slate-800">Individual / Proprietor</p>
+                                <p className="text-[13px] font-black text-slate-800">{t("sAuth.individual")}</p>
                               </div>
                               <div className={cn(
                                 "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
@@ -1172,7 +1185,7 @@ const Auth = () => {
                               </div>
                             </div>
                             <p className="text-[11.5px] text-slate-500 font-medium leading-snug">
-                              PAN & Aadhaar mandatory. Trade License / GST optional.
+                              {t("sAuth.individualHint")}
                             </p>
                           </div>
 
@@ -1194,7 +1207,7 @@ const Auth = () => {
                                 )}>
                                   <Building2 className="w-3.5 h-3.5" />
                                 </div>
-                                <p className="text-[13px] font-black text-slate-800">Registered Business</p>
+                                <p className="text-[13px] font-black text-slate-800">{t("sAuth.registeredBusiness")}</p>
                               </div>
                               <div className={cn(
                                 "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
@@ -1204,7 +1217,7 @@ const Auth = () => {
                               </div>
                             </div>
                             <p className="text-[11.5px] text-slate-500 font-medium leading-snug">
-                              PAN, Aadhaar + either Trade License or GST required.
+                              {t("sAuth.businessHint")}
                             </p>
                           </div>
                         </div>
@@ -1215,7 +1228,7 @@ const Auth = () => {
                             <div className="flex items-center gap-1.5">
                               <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                               <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
-                                Required Document Combination
+                                {t("sAuth.requiredCombination")}
                               </span>
                             </div>
                             <span className={cn(
@@ -1224,24 +1237,24 @@ const Auth = () => {
                                 ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                                 : "bg-amber-100 text-amber-800 border-amber-300"
                             )}>
-                              {progress.fulfilledCount} of {progress.totalRequired} Ready
+                              {t("sAuth.readyCount", { done: progress.fulfilledCount, total: progress.totalRequired })}
                             </span>
                           </div>
                           <p className="text-xs text-slate-600 font-medium leading-relaxed">
                             {sellerType === "individual" ? (
                               <>
-                                <span className="font-bold text-slate-800">PAN Card</span> and <span className="font-bold text-slate-800">Aadhaar Card</span> are mandatory. Trade License and GST Certificate are optional (if available).
+                                {t("sAuth.individualRule")}
                               </>
                             ) : (
                               <>
-                                <span className="font-bold text-slate-800">PAN Card</span> and <span className="font-bold text-slate-800">Aadhaar Card</span> are mandatory. You must provide either <span className="font-bold text-slate-800">Trade License</span> or <span className="font-bold text-slate-800">GST Certificate</span> (upload both if available).
+                                {t("sAuth.businessRule")}
                               </>
                             )}
                           </p>
                         </div>
 
                         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-0.5">
-                          2. Upload Verification Documents
+                          {t("sAuth.uploadDocs")}
                         </p>
 
                         {/* Document Upload Cards */}
@@ -1298,14 +1311,14 @@ const Auth = () => {
                                       <div className="text-left flex-1 min-w-0">
                                         <div className="flex items-center gap-x-2 gap-y-1 flex-wrap">
                                           <p className={cn("text-[13px] font-black", file ? "text-emerald-900" : "text-slate-800")}>
-                                            {doc.label}
+                                            {t(`sAuth.docs.${doc.id}.label`, { defaultValue: doc.label })}
                                           </p>
                                           <span className={cn("text-[10px] font-black px-1.5 py-0.5 rounded-md border tracking-tight whitespace-nowrap", status.badgeClass)}>
                                             {status.badgeText}
                                           </span>
                                         </div>
                                         <p className="text-[11.5px] text-slate-500 font-medium leading-snug mt-1 break-words">
-                                          {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : doc.description}
+                                          {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : t(`sAuth.docs.${doc.id}.description`, { defaultValue: doc.description })}
                                         </p>
                                       </div>
                                     </div>
@@ -1317,11 +1330,11 @@ const Auth = () => {
                                         className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto shrink-0 rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
                                       >
                                         <X className="w-4 h-4" />
-                                        Remove
+                                        {t("sAuth.remove")}
                                       </button>
                                     ) : (
                                       <span className="inline-flex items-center justify-center w-full sm:w-auto shrink-0 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs group-hover:border-slate-300">
-                                        Upload
+                                        {t("sAuth.upload")}
                                       </span>
                                     )}
                                   </div>
@@ -1346,10 +1359,10 @@ const Auth = () => {
                       className="mt-0.5 rounded border-gray-300 text-[#1A4516] focus:ring-[#1A4516] cursor-pointer"
                     />
                     <label htmlFor="agreeTerms" className="text-[10px] text-slate-500 font-medium leading-tight cursor-pointer">
-                      I have read and agree to the{" "}
-                      <span onClick={(e) => { e.preventDefault(); navigate('/seller/support'); }} className="text-[#1A4516] font-bold hover:underline">Support</span>
+                      {t("sAuth.agreeTo")}{" "}
+                      <span onClick={(e) => { e.preventDefault(); navigate('/seller/support'); }} className="text-[#1A4516] font-bold hover:underline">{t("sAuth.support")}</span>
                       {" "}&amp;{" "}
-                      <span onClick={(e) => { e.preventDefault(); navigate('/seller/privacy'); }} className="text-[#1A4516] font-bold hover:underline">Privacy Policy</span>
+                      <span onClick={(e) => { e.preventDefault(); navigate('/seller/privacy'); }} className="text-[#1A4516] font-bold hover:underline">{t("sAuth.privacyPolicy")}</span>
                       .
                     </label>
                   </div>
@@ -1363,14 +1376,14 @@ const Auth = () => {
                         type="checkbox"
                         className="rounded border-gray-300 text-[#1A4516] focus:ring-[#1A4516]"
                       />
-                      Remember me
+                      {t("sAuth.rememberMe")}
                     </label>
                     <button
                       type="button"
                       className="font-bold text-[#1A4516] hover:text-[#133A10] transition-colors"
                       onClick={() => setIsForgotPasswordOpen(true)}
                     >
-                      Forgot Password?
+                      {t("sAuth.forgotPassword")}
                     </button>
                   </div>
                 )}
@@ -1381,7 +1394,7 @@ const Auth = () => {
                       type="button"
                       onClick={() => setSignupStep((prev) => Math.max(1, prev - 1))}
                       className="w-1/3 bg-slate-100 text-slate-600 rounded-lg py-3.5 text-xs font-black tracking-wider transition-all hover:bg-slate-200">
-                      BACK
+                      {t("sAuth.back")}
                     </button>
                   )}
                   <button
@@ -1389,12 +1402,12 @@ const Auth = () => {
                     disabled={isLoading || (!isLogin && signupStep === 3 && !agreedToTerms)}
                     className={`${!isLogin && signupStep > 1 ? "w-2/3" : "w-full"} bg-[#1A4516] hover:bg-[#133A10] text-white rounded-lg py-3.5 text-xs font-black tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer`}>
                     {isLoading
-                      ? "WORKING..."
+                      ? t("sAuth.working")
                       : isLogin
-                        ? "Login"
+                        ? t("sAuth.login")
                         : signupStep < 3
-                          ? "NEXT STEP"
-                          : "SUBMIT APPLICATION"}
+                          ? t("sAuth.nextStep")
+                          : t("sAuth.submitApplication")}
                     <ArrowRight
                       className="group-hover:translate-x-1 transition-transform"
                       size={16}
@@ -1406,7 +1419,7 @@ const Auth = () => {
               <div className="pt-2.5 border-t border-slate-100 flex flex-col items-center gap-2.5 text-center">
                 {!isLogin && (
                   <p className="text-slate-500 font-bold text-xs">
-                    Already part of us?{" "}
+                    {t("sAuth.alreadyPartOfUs")}{" "}
                     <button
                       type="button"
                       onClick={() => {
@@ -1418,14 +1431,14 @@ const Auth = () => {
                         });
                       }}
                       className="text-[#1A4516] hover:text-[#133A10] font-extrabold transition-colors px-1">
-                      Sign In
+                      {t("sAuth.signIn")}
                     </button>
                   </p>
                 )}
                 
                 {isLogin && (
                   <p className="text-slate-400 font-medium text-[10px]">
-                    Want to register your store?{" "}
+                    {t("sAuth.wantToRegister")}{" "}
                     <button
                       type="button"
                       onClick={() => {
@@ -1434,7 +1447,7 @@ const Auth = () => {
                       }}
                       className="text-[#1A4516] hover:underline font-bold"
                     >
-                      Register here
+                      {t("sAuth.registerHere")}
                     </button>
                   </p>
                 )}
@@ -1479,7 +1492,7 @@ const Auth = () => {
             >
               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-4" />
               <h3 className="text-sm font-black text-slate-800 text-center uppercase tracking-wider mb-2">
-                Upload {REQUIRED_DOCUMENT_CONFIG.find(d => d.id === activeUploadDoc)?.label}
+                {t("sAuth.uploadDoc", { doc: t(`sAuth.docs.${activeUploadDoc}.label`, { defaultValue: REQUIRED_DOCUMENT_CONFIG.find(d => d.id === activeUploadDoc)?.label || "" }) })}
               </h3>
               
               <button
@@ -1497,7 +1510,7 @@ const Auth = () => {
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3.5 bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 rounded-xl font-bold transition-colors border border-slate-100"
               >
-                <Camera className="w-5 h-5" /> Open Camera
+                <Camera className="w-5 h-5" /> {t("sAuth.openCamera")}
               </button>
               
               <button
@@ -1508,7 +1521,7 @@ const Auth = () => {
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3.5 bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 rounded-xl font-bold transition-colors border border-slate-100"
               >
-                <ImageIcon className="w-5 h-5" /> Choose from Gallery
+                <ImageIcon className="w-5 h-5" /> {t("sAuth.chooseGallery")}
               </button>
               
               <button
@@ -1519,7 +1532,7 @@ const Auth = () => {
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3.5 bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 rounded-xl font-bold transition-colors border border-slate-100"
               >
-                <FileText className="w-5 h-5" /> Upload PDF File
+                <FileText className="w-5 h-5" /> {t("sAuth.uploadPdf")}
               </button>
               
               <button
@@ -1527,7 +1540,7 @@ const Auth = () => {
                 onClick={() => setActiveUploadDoc(null)}
                 className="w-full mt-2 py-3 text-slate-400 hover:text-slate-600 font-bold uppercase tracking-wider text-xs"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
             </motion.div>
           </>
