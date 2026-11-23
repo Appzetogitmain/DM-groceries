@@ -78,14 +78,22 @@ export const getSubscriberById = async (req, res) => {
 
 export const getSubscriptionStats = async (req, res) => {
     try {
+        const now = new Date();
         const [
             totalActive,
             totalExpired,
             totalPending,
             totalCancelled,
         ] = await Promise.all([
-            Subscription.countDocuments({ status: "ACTIVE" }),
-            Subscription.countDocuments({ status: "EXPIRED" }),
+            // Truly active: marked ACTIVE and validity not yet over
+            Subscription.countDocuments({ status: "ACTIVE", endDate: { $gte: now } }),
+            // Expired: marked EXPIRED, or still ACTIVE but past end date
+            Subscription.countDocuments({
+                $or: [
+                    { status: "EXPIRED" },
+                    { status: "ACTIVE", endDate: { $lt: now } },
+                ],
+            }),
             Subscription.countDocuments({ status: "PENDING" }),
             Subscription.countDocuments({ status: "CANCELLED" }),
         ]);

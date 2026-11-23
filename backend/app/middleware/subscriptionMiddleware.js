@@ -34,7 +34,9 @@ export const requireFeature = (featureCode) => {
                 seller: sellerId,
                 status: "ACTIVE",
                 endDate: { $gt: new Date() },
-            }).populate({
+            })
+            .sort({ createdAt: -1 })
+            .populate({
                 path: "plan",
                 populate: {
                     path: "features",
@@ -124,7 +126,7 @@ export const incrementOrderUsage = async (sellerId) => {
                 endDate: { $gt: new Date() },
             },
             { $inc: { ordersUsed: 1 } },
-            { new: true }
+            { new: true, sort: { createdAt: -1 } }
         );
         return updated;
     } catch (error) {

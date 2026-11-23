@@ -31,7 +31,7 @@ const SubscribersList = () => {
     const fetchStats = async () => {
         try {
             const response = await adminApi.getSubscriptionStats();
-            setStats(response.data);
+            setStats(response.data?.result || {});
         } catch (error) {
             console.error('Failed to fetch subscriber stats');
         }
@@ -40,7 +40,7 @@ const SubscribersList = () => {
     const handleViewDetails = async (id) => {
         try {
             const res = await adminApi.getSubscriberById(id);
-            setSelectedSub(res.data);
+            setSelectedSub(res.data?.result);
             setModalOpen(true);
         } catch (error) {
             toast.error(error.message || "Failed to load details");

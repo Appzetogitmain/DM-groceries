@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Seller from "../models/seller.js";
 import Subscription from "../models/subscription.js";
 import { invalidate } from "./cacheService.js";
@@ -57,13 +58,42 @@ export async function hasSellerReachedOrderLimit(sellerId, sellerDoc = null) {
   const seller =
     sellerDoc || (await Seller.findById(sellerId).select("email").lean());
   if (!seller || isSellerExemptFromOrderLimit(seller)) return false;
+  // Always judge by the latest active subscription
   const subscription = await Subscription.findOne({
     seller: sellerId,
     ...activeSubscriptionFilter(),
   })
+    .sort({ createdAt: -1 })
     .select("orderLimit ordersUsed")
     .lean();
   return isSubscriptionLimitReached(subscription);
+}
+
+/**
+ * Seller ids (strings) whose LATEST active subscription has used up its order
+ * limit. An older used-up subscription doesn't count once a newer one exists.
+ */
+async function findLimitReachedSellerIds(sellerIds = null) {
+  const match = { ...activeSubscriptionFilter() };
+  if (sellerIds) {
+    match.seller = {
+      $in: sellerIds.map((id) => new mongoose.Types.ObjectId(String(id))),
+    };
+  }
+  const latest = await Subscription.aggregate([
+    { $match: match },
+    { $sort: { createdAt: -1 } },
+    {
+      $group: {
+        _id: "$seller",
+        orderLimit: { $first: "$orderLimit" },
+        ordersUsed: { $first: "$ordersUsed" },
+      },
+    },
+  ]);
+  return latest
+    .filter((s) => isSubscriptionLimitReached(s))
+    .map((s) => String(s._id));
 }
 
 /**
@@ -72,17 +102,9 @@ export async function hasSellerReachedOrderLimit(sellerId, sellerDoc = null) {
  */
 export async function getLimitReachedSellerIds(sellerIds = []) {
   if (!sellerIds.length) return new Set();
-  const subs = await Subscription.find({
-    seller: { $in: sellerIds },
-    ...activeSubscriptionFilter(),
-    orderLimit: { $ne: null },
-    $expr: { $gte: ["$ordersUsed", "$orderLimit"] },
-  })
-    .select("seller")
-    .lean();
-  if (!subs.length) return new Set();
+  const reachedIds = await findLimitReachedSellerIds(sellerIds);
+  if (!reachedIds.length) return new Set();
 
-  const reachedIds = [...new Set(subs.map((s) => String(s.seller)))];
   const sellers = await Seller.find({ _id: { $in: reachedIds } })
     .select("_id email")
     .lean();
@@ -162,14 +184,7 @@ export async function reopenShopAfterOrderLimitReset(sellerId) {
  * their limit, e.g. sellers who hit it before this rule existed.
  */
 export async function enforceOrderLimitForAllSellers() {
-  const subs = await Subscription.find({
-    ...activeSubscriptionFilter(),
-    orderLimit: { $ne: null },
-    $expr: { $gte: ["$ordersUsed", "$orderLimit"] },
-  })
-    .select("seller")
-    .lean();
-  const sellerIds = [...new Set(subs.map((s) => String(s.seller)))];
+  const sellerIds = await findLimitReachedSellerIds();
   if (!sellerIds.length) return 0;
 
   const sellers = await Seller.find({ _id: { $in: sellerIds }, isShopOpen: true })

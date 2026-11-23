@@ -201,6 +201,13 @@ export const createSubscriptionOrder = async (req, res) => {
                 endDate.setFullYear(endDate.getFullYear() + 1);
             }
 
+            // Expire any existing active subscription (same as the paid flow),
+            // otherwise an old, used-up subscription keeps blocking the shop.
+            await Subscription.updateMany(
+                { seller: sellerId, status: "ACTIVE" },
+                { $set: { status: "EXPIRED" } }
+            );
+
             const subscription = new Subscription({
                 seller: sellerId,
                 plan: planId,
