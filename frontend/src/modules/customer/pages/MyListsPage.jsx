@@ -326,7 +326,7 @@ const MyListsPage = () => {
           </button>
 
           <button
-            onClick={() => navigate("/user/lists/create")}
+            onClick={() => navigate("/user/lists/create", { state: { fromLists: true } })}
             className="px-4 py-2 rounded-xl bg-[#1A4516] text-white font-black text-xs hover:bg-[#1A4516]/90 transition shadow-xs flex items-center gap-1.5 active:scale-95"
           >
             <ListPlus size={15} />
@@ -393,7 +393,7 @@ const MyListsPage = () => {
                   Create your first personalized list of groceries and reorder anytime in 1-click.
                 </p>
                 <button
-                  onClick={() => navigate("/user/lists/create")}
+                  onClick={() => navigate("/user/lists/create", { state: { fromLists: true } })}
                   className="px-5 py-2.5 rounded-xl bg-[#1A4516] text-white text-xs font-black hover:bg-[#1A4516]/90 transition active:scale-95 shadow-md"
                 >
                   + Create First List
@@ -426,7 +426,7 @@ const MyListsPage = () => {
 
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigate(`/user/lists/edit/${list._id}`)}
+                          onClick={() => navigate(`/user/lists/edit/${list._id}`, { state: { fromLists: true } })}
                           className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
                           title="Edit List"
                         >

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, useLocation as useRouterLocation } from "react-router-dom";
 import {
   ChevronLeft,
   Search,
@@ -47,6 +47,14 @@ const CreateListPage = () => {
   const navigate = useNavigate();
   const { id: editListId } = useParams();
   const [searchParams] = useSearchParams();
+  const routerLocation = useRouterLocation();
+  // Return to My Lists without stacking a new history entry: if we came from
+  // My Lists, go back to it; otherwise replace this page with it. Pushing
+  // "/user/lists" made its Back button reopen this list.
+  const goToMyLists = () => {
+    if (routerLocation.state?.fromLists) navigate(-1);
+    else navigate("/user/lists", { replace: true });
+  };
   const templateParam = searchParams.get("template");
   const { currentLocation } = useLocation();
   const { isAuthenticated } = useAuth();
@@ -289,7 +297,7 @@ const CreateListPage = () => {
         toast.success("List saved to your profile!");
       }
 
-      navigate("/user/lists");
+      goToMyLists();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to save list");
     } finally {
@@ -386,7 +394,7 @@ const CreateListPage = () => {
         {/* Navigation & Title Header */}
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => navigate("/user/lists")}
+            onClick={goToMyLists}
             className="flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 transition"
           >
             <ChevronLeft size={16} />

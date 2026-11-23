@@ -5,7 +5,6 @@ import {
   Sparkles,
   ShoppingBag,
   Store,
-  ArrowRight,
   RotateCcw,
   Plus,
   ChevronRight,
@@ -15,30 +14,6 @@ import { useCart } from "../../context/CartContext";
 import { useAuth } from "@core/context/AuthContext";
 import { toast } from "sonner";
 import ListBuilderModal from "../list/ListBuilderModal";
-
-const INSPIRATION_TEMPLATES = [
-  {
-    name: "Monthly Pantry Ration",
-    tag: "Aata, Rice, Dal & Oil",
-    itemsCount: "8-12 items",
-    bg: "from-amber-500/10 to-orange-500/10 border-amber-200/80",
-    badgeColor: "bg-amber-100 text-amber-900",
-  },
-  {
-    name: "Daily Dairy & Breakfast",
-    tag: "Milk, Bread, Butter & Eggs",
-    itemsCount: "4-6 items",
-    bg: "from-emerald-500/10 to-teal-500/10 border-emerald-200/80",
-    badgeColor: "bg-emerald-100 text-emerald-900",
-  },
-  {
-    name: "Fresh Kitchen Veggies",
-    tag: "Onion, Potato, Tomato & Herbs",
-    itemsCount: "6-8 items",
-    bg: "from-green-500/10 to-lime-500/10 border-green-200/80",
-    badgeColor: "bg-green-100 text-green-900",
-  },
-];
 
 const MakeYourOwnListSection = () => {
   const navigate = useNavigate();
@@ -95,10 +70,6 @@ const MakeYourOwnListSection = () => {
     }
   };
 
-  const handleOpenBuilderWithTemplate = (templateName) => {
-    navigate(`/user/lists/create?template=${encodeURIComponent(templateName)}`);
-  };
-
   return (
     <section className="container mx-auto px-4 md:px-8 lg:px-[50px] py-4 mb-4">
       {/* Main Section Card */}
@@ -107,7 +78,7 @@ const MakeYourOwnListSection = () => {
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-64 h-64 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="max-w-xl">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 shadow-xs mb-3">
               <Sparkles size={12} />
@@ -139,40 +110,6 @@ const MakeYourOwnListSection = () => {
                 My Lists <ChevronRight size={14} />
               </Link>
             )}
-          </div>
-        </div>
-
-        {/* Popular Basket Ideas — Always displayed as inspiration presets */}
-        <div>
-          <span className="text-[11px] font-black uppercase tracking-wider text-emerald-200 block mb-3 px-1">
-            Popular Basket Ideas — Tap to Customize
-          </span>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {INSPIRATION_TEMPLATES.map((tmpl, idx) => (
-              <div
-                key={idx}
-                onClick={() => handleOpenBuilderWithTemplate(tmpl.name)}
-                className="p-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 transition cursor-pointer active:scale-95 flex flex-col justify-between gap-3 text-left group"
-              >
-                <div>
-                  <span
-                    className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block mb-2 ${tmpl.badgeColor}`}
-                  >
-                    {tmpl.itemsCount}
-                  </span>
-                  <h4 className="font-bold text-sm text-white group-hover:text-emerald-200 transition">
-                    {tmpl.name}
-                  </h4>
-                  <p className="text-[11px] text-emerald-100/70 mt-1 font-medium">
-                    {tmpl.tag}
-                  </p>
-                </div>
-
-                <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  Start this list <ArrowRight size={12} />
-                </span>
-              </div>
-            ))}
           </div>
         </div>
       </div>

@@ -14,6 +14,31 @@ const getCustomerId = (req) => {
   return req.user?.id || req.user?._id || req.userId;
 };
 
+const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Find an existing active list of this customer with the same name
+ * (case-insensitive). Same products across different lists are allowed.
+ */
+const findDuplicateList = async ({ customerId, name, excludeId }) => {
+  if (!name || !name.trim()) return null;
+  const filter = {
+    customerId,
+    status: "active",
+    name: { $regex: `^${escapeRegex(name.trim())}$`, $options: "i" },
+  };
+  if (excludeId) filter._id = { $ne: excludeId };
+  return CustomerList.findOne(filter).select("_id name").lean();
+};
+
+const duplicateResponse = (res, dup) =>
+  res.status(409).json({
+    success: false,
+    code: "DUPLICATE_LIST",
+    existingListId: dup._id,
+    message: `You already have a list named "${dup.name}". Please choose a different name.`,
+  });
+
 /**
  * POST /api/customer/lists
  * Create a new custom grocery basket / list
@@ -82,9 +107,13 @@ export const createList = async (req, res) => {
       };
     });
 
+    const finalName = (name || "My Grocery Basket").trim();
+    const dup = await findDuplicateList({ customerId, name: finalName });
+    if (dup) return duplicateResponse(res, dup);
+
     const newList = await CustomerList.create({
       customerId,
-      name: (name || "My Grocery Basket").trim(),
+      name: finalName,
       sellerId: resolvedSellerId,
       items: normalizedItems,
       isPinned: Boolean(isPinned),
@@ -242,6 +271,10 @@ export const updateList = async (req, res) => {
       });
     }
 
+    if (name && name.trim().toLowerCase() !== String(list.name).toLowerCase()) {
+      const dup = await findDuplicateList({ customerId, name, excludeId: list._id });
+      if (dup) return duplicateResponse(res, dup);
+    }
     if (name) list.name = name.trim();
     if (typeof isPinned === "boolean") list.isPinned = isPinned;
     if (status) list.status = status;
