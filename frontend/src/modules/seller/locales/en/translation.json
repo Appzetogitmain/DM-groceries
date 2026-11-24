@@ -726,7 +726,8 @@
     "searchSkuPh": "Search by product name or SKU...",
     "nameHi": "Name in Hindi",
     "nameGu": "Name in Gujarati",
-    "optional": "optional"
+    "optional": "optional",
+    "autoNameHint": "Auto-filled from the English name — please check and correct the spelling."
   },
   "ledgerType": {
     "order_payment": "Order Payment",

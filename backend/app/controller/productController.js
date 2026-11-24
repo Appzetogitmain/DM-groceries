@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { fillMissingNameTranslations } from "../utils/transliterate.js";
 import Product from "../models/product.js";
 import Category from "../models/category.js";
 import Order from "../models/order.js";
@@ -702,6 +703,7 @@ export const createProduct = async (req, res) => {
     if (!productData.name) {
       return handleResponse(res, 400, "Product name is required");
     }
+    fillMissingNameTranslations(productData);
     
     // Auto-generate slug
     if (!productData.slug || productData.slug.trim() === "") {
@@ -980,6 +982,7 @@ export const updateProduct = async (req, res) => {
       }
     }
     Object.assign(productData, moderationUpdate);
+    fillMissingNameTranslations(productData);
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,

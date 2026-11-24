@@ -17,7 +17,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { transliterate } from "./lib/transliterate.js";
+import { transliterate } from "../app/utils/transliterate.js";
 
 // Some networks/ISPs refuse SRV lookups (querySrv ECONNREFUSED) needed by mongodb+srv://.
 // Use public resolvers for this script only.

@@ -1,3 +1,4 @@
+import { fillMissingNameTranslations } from "../utils/transliterate.js";
 import mongoose from "mongoose";
 import Package from "../models/package.js";
 import Product from "../models/product.js";
@@ -592,8 +593,11 @@ export const createPackage = async (req, res) => {
     const newPackage = new Package({
       sellerId,
       name,
-      nameHi: typeof req.body.nameHi === "string" ? req.body.nameHi.trim() : "",
-      nameGu: typeof req.body.nameGu === "string" ? req.body.nameGu.trim() : "",
+      ...fillMissingNameTranslations({
+        name,
+        nameHi: typeof req.body.nameHi === "string" ? req.body.nameHi.trim() : "",
+        nameGu: typeof req.body.nameGu === "string" ? req.body.nameGu.trim() : "",
+      }),
       slug,
       description,
       coverImage,
@@ -715,6 +719,15 @@ export const updatePackage = async (req, res) => {
     existingPackage.name = name;
     if (req.body.nameHi !== undefined) existingPackage.nameHi = String(req.body.nameHi || "").trim();
     if (req.body.nameGu !== undefined) existingPackage.nameGu = String(req.body.nameGu || "").trim();
+    {
+      const filled = fillMissingNameTranslations({
+        name,
+        nameHi: existingPackage.nameHi,
+        nameGu: existingPackage.nameGu,
+      });
+      existingPackage.nameHi = filled.nameHi || "";
+      existingPackage.nameGu = filled.nameGu || "";
+    }
     existingPackage.description = description;
     existingPackage.coverImage = coverImage;
     existingPackage.galleryImages = galleryImages;

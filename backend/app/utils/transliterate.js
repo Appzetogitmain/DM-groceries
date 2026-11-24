@@ -210,3 +210,18 @@ export function transliterate(text, lang = "hi") {
 }
 
 export default transliterate;
+
+/**
+ * Fills empty `nameHi` / `nameGu` on a payload from its English `name`
+ * (best-effort draft). Seller-entered values are never overwritten.
+ */
+export function fillMissingNameTranslations(data) {
+  const name = String(data?.name || "").trim();
+  if (!name) return data;
+  for (const [key, lang] of [["nameHi", "hi"], ["nameGu", "gu"]]) {
+    if (String(data[key] ?? "").trim()) continue;
+    const draft = transliterate(name, lang);
+    if (draft && draft !== name) data[key] = draft;
+  }
+  return data;
+}
