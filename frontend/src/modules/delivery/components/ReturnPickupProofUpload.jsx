@@ -3,11 +3,12 @@ import { Camera, CheckCircle, Loader2, Package, AlertTriangle, X } from "lucide-
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
 import { compressImage } from "@core/utils/imageUtils";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 const CONDITIONS = [
-  { value: "good", label: "Good Condition", color: "bg-green-100 text-green-800 border-green-300", icon: "✅" },
-  { value: "damaged", label: "Damaged", color: "bg-orange-100 text-orange-800 border-orange-300", icon: "⚠️" },
-  { value: "suspicious", label: "Suspicious", color: "bg-red-100 text-red-800 border-red-300", icon: "🚨" },
+  { value: "good", labelKey: "dReturnPickupProofUpload.cond_good", color: "bg-green-100 text-green-800 border-green-300", icon: "✅" },
+  { value: "damaged", labelKey: "dReturnPickupProofUpload.cond_damaged", color: "bg-orange-100 text-orange-800 border-orange-300", icon: "⚠️" },
+  { value: "suspicious", labelKey: "dReturnPickupProofUpload.cond_suspicious", color: "bg-red-100 text-red-800 border-red-300", icon: "🚨" },
 ];
 
 /**
@@ -15,6 +16,7 @@ const CONDITIONS = [
  * Rider must upload at least 1 image and select condition before requesting OTP.
  */
 const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
+  const { t } = useTranslation();
   const [images, setImages] = useState([]); // array of { url, preview }
   const [condition, setCondition] = useState("");
   const [conditionNote, setConditionNote] = useState("");
@@ -79,7 +81,7 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
 
         newImages.push({ url, preview });
       } catch (err) {
-        toast.error("Failed to process image: " + (err.message || "Unknown error"));
+        toast.error("Failed to process image: " + (err.message || t("dReturnPickupProofUpload.unknown_error")));
       }
     }
 
@@ -108,11 +110,11 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
 
   const handleSubmit = async () => {
     if (images.length === 0) {
-      toast.error("Please upload at least 1 photo of the product.");
+      toast.error(t("dReturnPickupProofUpload.please_upload_at_least_1"));
       return;
     }
     if (!condition) {
-      toast.error("Please select the product condition.");
+      toast.error(t("dReturnPickupProofUpload.please_select_the_product_condition"));
       return;
     }
 
@@ -124,12 +126,12 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
         conditionNote: conditionNote.trim() || undefined,
       });
 
-      toast.success("Pickup proof uploaded! You can now request OTP.");
+      toast.success(t("dReturnPickupProofUpload.pickup_proof_uploaded_you_can"));
       setSubmitted(true);
       try { sessionStorage.removeItem(`proof_imgs_${orderId}`); } catch {}
       if (onSubmitted) onSubmitted({ images, condition, conditionNote });
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Upload failed";
+      const msg = err.response?.data?.message || err.message || t("dReturnPickupProofUpload.upload_failed");
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
@@ -140,9 +142,9 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
     return (
       <div className="bg-green-50 border border-green-200 rounded-2xl p-5 flex flex-col items-center gap-3 text-center">
         <CheckCircle className="w-12 h-12 text-green-600" />
-        <p className="font-bold text-green-800 text-lg">Proof Uploaded!</p>
+        <p className="font-bold text-green-800 text-lg">{t("dReturnPickupProofUpload.proof_uploaded")}</p>
         <p className="text-sm text-green-700">
-          You can now slide to request the pickup OTP from the customer.
+         {t("dReturnPickupProofUpload.you_can_now_slide_to")}
         </p>
       </div>
     );
@@ -156,20 +158,20 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
           <Package className="w-5 h-5 text-purple-700" />
         </div>
         <div>
-          <p className="font-bold text-gray-900 text-sm">Upload Pickup Proof</p>
-          <p className="text-xs text-gray-500">Take photos of product & packaging before pickup</p>
+          <p className="font-bold text-gray-900 text-sm">{t("dReturnPickupProofUpload.upload_pickup_proof")}</p>
+          <p className="text-xs text-gray-500">{t("dReturnPickupProofUpload.take_photos_of_product_packaging")}</p>
         </div>
       </div>
 
       {/* Image Upload Grid */}
       <div>
         <p className="text-xs text-gray-500 font-bold mb-2 uppercase tracking-wide">
-          Photos ({images.length}/5) — <span className="text-purple-600">Min 1 required</span>
+         {t("dReturnPickupProofUpload.photos_count", { count: images.length })} — <span className="text-purple-600">{t("dReturnPickupProofUpload.min_1_required")}</span>
         </p>
         <div className="grid grid-cols-4 gap-2">
           {images.map((img, index) => (
             <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
-              <img src={img.preview || img.url} alt={`proof-${index}`} className="w-full h-full object-cover" />
+              <img src={img.preview || img.url} alt={t("dReturnPickupProofUpload.proof", { index })} className="w-full h-full object-cover" />
               <button
                 onClick={() => removeImage(index)}
                 className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
@@ -189,7 +191,7 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
               ) : (
                 <>
                   <Camera className="w-5 h-5 text-gray-400" />
-                  <span className="text-xs text-gray-400 mt-1">Add</span>
+                  <span className="text-xs text-gray-400 mt-1">{t("dReturnPickupProofUpload.add")}</span>
                 </>
               )}
             </button>
@@ -208,7 +210,7 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
       {/* Condition */}
       <div>
         <p className="text-xs text-gray-500 font-bold mb-2 uppercase tracking-wide">
-          Product Condition
+         {t("dReturnPickupProofUpload.product_condition")}
         </p>
         <div className="flex gap-2 flex-wrap">
           {CONDITIONS.map((c) => (
@@ -219,7 +221,7 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
                 condition === c.value ? "ring-2 ring-offset-1 ring-purple-500 scale-105" : "opacity-70"
               }`}
             >
-              {c.icon} {c.label}
+              {c.icon} {t(c.labelKey)}
             </button>
           ))}
         </div>
@@ -229,15 +231,15 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
       {condition === "damaged" || condition === "suspicious" ? (
         <div>
           <p className="text-xs text-gray-500 font-medium mb-1">
-            {condition === "suspicious" ? "🚨 Describe Suspicious Activity" : "⚠️ Describe Damage"}
+            {condition === "suspicious" ? t("dReturnPickupProofUpload.describe_suspicious_activity") : t("dReturnPickupProofUpload.describe_damage")}
           </p>
           <textarea
             value={conditionNote}
             onChange={(e) => setConditionNote(e.target.value)}
             placeholder={
               condition === "suspicious"
-                ? "Describe what looks suspicious..."
-                : "Describe the damage..."
+                ? t("dReturnPickupProofUpload.describe_what_looks_suspicious")
+                : t("dReturnPickupProofUpload.describe_the_damage")
             }
             rows={2}
             maxLength={500}
@@ -247,7 +249,7 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
             <div className="flex items-start gap-2 mt-2 bg-red-50 border border-red-200 rounded-lg p-2">
               <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
               <p className="text-xs text-red-700">
-                Suspicious pickups are flagged for admin review. Proceed if you believe it is safe.
+               {t("dReturnPickupProofUpload.suspicious_pickups_are_flagged_for")}
               </p>
             </div>
           )}
@@ -267,18 +269,18 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
         {isSubmitting ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            Uploading...
+           {t("dReturnPickupProofUpload.uploading")}
           </>
         ) : (
           <>
             <CheckCircle className="w-4 h-4" />
-            Submit Proof ({images.length} photo{images.length !== 1 ? "s" : ""})
+           {t("dReturnPickupProofUpload.submit_proof_count", { count: images.length })}
           </>
         )}
       </button>
 
       <p className="text-xs text-gray-400 text-center">
-        These photos will be reviewed during admin quality check
+       {t("dReturnPickupProofUpload.these_photos_will_be_reviewed")}
       </p>
     </div>
   );

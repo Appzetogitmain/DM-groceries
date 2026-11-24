@@ -39,6 +39,8 @@ export const STORAGE_KEYS = Object.freeze({
     CUSTOMER_LANGUAGE: 'customer_language_v1',
     // Seller-panel UI language (device preference, survives logout).
     SELLER_LANGUAGE: 'seller_language_v1',
+    // Delivery-panel UI language (device preference, survives logout).
+    DELIVERY_LANGUAGE: 'delivery_language_v1',
 
     // ── Delivery operational state ───────────────────────────────────────────
     DELIVERY_LAST_LOCATION: 'delivery_partner_last_location',

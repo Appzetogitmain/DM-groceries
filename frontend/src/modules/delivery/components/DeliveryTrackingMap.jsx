@@ -10,6 +10,7 @@ import {
   getCachedDeliveryPartnerLocation,
   saveDeliveryPartnerLocation,
 } from "../utils/deliveryLastLocation";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 const libraries = ["geometry"];
 const ROUTE_REFRESH_THRESHOLD_M = 150;
@@ -157,6 +158,7 @@ const DeliveryTrackingMapComponent = ({
   order,
   onRouteStatsChange,
 }) => {
+  const { t } = useTranslation();
   const mapRef = useRef(null);
   const routePolylineRef = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
@@ -793,8 +795,7 @@ const DeliveryTrackingMapComponent = ({
     return (
       <div className="relative w-full h-48 bg-slate-100 rounded-2xl flex items-center justify-center text-center px-4">
         <p className="text-xs text-slate-500">
-          Set <code className="font-mono">VITE_GOOGLE_MAPS_API_KEY</code> to show live
-          tracking.
+          {t("dDeliveryTrackingMap.set")} <code className="font-mono">VITE_GOOGLE_MAPS_API_KEY</code> {t("dDeliveryTrackingMap.to_show_live_tracking")}
         </p>
       </div>
     );
@@ -803,7 +804,7 @@ const DeliveryTrackingMapComponent = ({
   if (loadError) {
     return (
       <div className="relative w-full h-48 bg-rose-50 rounded-2xl flex items-center justify-center text-xs text-rose-700 px-4">
-        Map failed to load. Check the API key and billing.
+        {t("dDeliveryTrackingMap.map_failed_to_load_check")}
       </div>
     );
   }
@@ -850,7 +851,7 @@ const DeliveryTrackingMapComponent = ({
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <img src={deliveryIcon} style={{ width: 40, height: 40, objectFit: 'contain', display: 'block' }} alt="rider" />
+              <img src={deliveryIcon} style={{ width: 40, height: 40, objectFit: 'contain', display: 'block' }} alt={t("dDeliveryTrackingMap.rider")} />
             </div>
           </OverlayView>
         )}
@@ -860,11 +861,11 @@ const DeliveryTrackingMapComponent = ({
             title={
               phase === "pickup"
                 ? isReturn
-                  ? "Pickup (customer)"
-                  : "Pickup (store)"
+                  ? t("dDeliveryTrackingMap.pickup_customer")
+                  : t("dDeliveryTrackingMap.pickup_store")
                 : isReturn
-                  ? "Drop (seller)"
-                  : "Drop (customer)"
+                  ? t("dDeliveryTrackingMap.drop_seller")
+                  : t("dDeliveryTrackingMap.drop_customer")
             }
             icon={
               phase === "pickup"
@@ -879,7 +880,7 @@ const DeliveryTrackingMapComponent = ({
         )}
       </GoogleMap>
       <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded-md text-[10px] text-slate-600 font-bold border border-slate-200 shadow-sm">
-        {routeLoading ? "Updating route…" : "Tracking View"}
+        {routeLoading ? t("dDeliveryTrackingMap.updating_route") : t("dDeliveryTrackingMap.tracking_view")}
       </div>
 
 
@@ -891,13 +892,13 @@ const DeliveryTrackingMapComponent = ({
             <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-2">
               <div className="flex items-center gap-1.5 font-bold text-slate-800">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Dev GPS Simulator</span>
+                <span>{t("dDeliveryTrackingMap.dev_gps_simulator")}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSimMinimized(!simMinimized)}
                 className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 cursor-pointer"
-                title={simMinimized ? "Expand simulator" : "Minimize simulator"}
+                title={simMinimized ? t("dDeliveryTrackingMap.expand_simulator") : t("dDeliveryTrackingMap.minimize_simulator")}
               >
                 {simMinimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
@@ -916,12 +917,12 @@ const DeliveryTrackingMapComponent = ({
                     }`}
                   >
                     {simRunning ? <Pause size={12} /> : <Play size={12} />}
-                    <span>{simRunning ? "Pause" : simProgress >= 1 ? "Replay" : "Drive"}</span>
+                    <span>{simRunning ? t("dDeliveryTrackingMap.pause") : simProgress >= 1 ? t("dDeliveryTrackingMap.replay") : t("dDeliveryTrackingMap.drive")}</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleSimReset}
-                    title="Reset to start"
+                    title={t("dDeliveryTrackingMap.reset_to_start")}
                     className="p-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl cursor-pointer"
                   >
                     <RotateCcw size={14} />
@@ -944,7 +945,7 @@ const DeliveryTrackingMapComponent = ({
 
                 <div>
                   <div className="flex justify-between text-[10px] text-slate-500 font-medium mb-1">
-                    <span>Route progress</span>
+                    <span>{t("dDeliveryTrackingMap.route_progress")}</span>
                     <span className="font-bold text-slate-700">{Math.round(simProgress * 100)}%</span>
                   </div>
                   <input
@@ -959,7 +960,7 @@ const DeliveryTrackingMapComponent = ({
                 </div>
 
                 <div className="text-[9px] text-slate-400 font-mono text-center">
-                  Dev only • Floating outside mobile frame
+                  {t("dDeliveryTrackingMap.dev_only_floating_outside_mobile")}
                 </div>
               </div>
             )}

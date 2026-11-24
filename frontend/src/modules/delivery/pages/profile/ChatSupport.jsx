@@ -13,6 +13,8 @@ import {
   leaveTicketRoom,
   onTicketMessage,
 } from "@/core/services/orderSocket";
+import { useDeliveryTranslation as useTranslation } from "../../i18n/useDeliveryTranslation";
+import { deliveryLocale } from "../../i18n/format";
 
 const emojis = [
   "😀",
@@ -42,7 +44,7 @@ function formatTime(value) {
   try {
     const date = new Date(value);
     if (!Number.isFinite(date.getTime())) return "";
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString(deliveryLocale(), { hour: "2-digit", minute: "2-digit" });
   } catch {
     return "";
   }
@@ -83,6 +85,7 @@ function mergeIncomingMessage(prev, incoming) {
 }
 
 const ChatSupport = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { token } = useAuth();
@@ -166,13 +169,13 @@ const ChatSupport = () => {
     setMessages([
       {
         id: "welcome-1",
-        text: `Hi there! 👋 Welcome to ${appName} Support.`,
+        text: t("dChatSupport.hi_there_welcome_to_support", { appName }),
         sender: "support",
         time: "",
       },
       {
         id: "welcome-2",
-        text: "Send a message and an admin will reply here.",
+        text: t("dChatSupport.send_a_message_and_an"),
         sender: "support",
         time: "",
       },
@@ -196,7 +199,7 @@ const ChatSupport = () => {
             : [];
 
         const active =
-          tickets.find((t) => String(t?.status || "").toLowerCase() !== "closed") ||
+          tickets.find((tk) => String(tk?.status || "").toLowerCase() !== "closed") ||
           tickets[0] ||
           null;
 
@@ -211,13 +214,13 @@ const ChatSupport = () => {
           setMessages([
             {
               id: "welcome-1",
-              text: `Hi there! 👋 Welcome to ${appName} Support.`,
+              text: t("dChatSupport.hi_there_welcome_to_support", { appName }),
               sender: "support",
               time: "",
             },
             {
               id: "welcome-2",
-              text: "Send a message and an admin will reply here.",
+              text: t("dChatSupport.send_a_message_and_an"),
               sender: "support",
               time: "",
             },
@@ -225,7 +228,7 @@ const ChatSupport = () => {
         }
       } catch (error) {
         if (!mounted) return;
-        showToast("Failed to load support chat", "error");
+        showToast(t("dChatSupport.failed_to_load_support_chat"), "error");
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -266,8 +269,8 @@ const ChatSupport = () => {
       // Best-effort system notification (in addition to FCM push) for incoming admin replies.
       if (incoming.sender === "support" && document.hidden) {
         notifySupportMessage({
-          title: "Support reply",
-          body: incoming.text || "New message",
+          title: t("dChatSupport.support_reply"),
+          body: incoming.text || t("dChatSupport.new_message"),
           link: ticketIdRef.current
             ? `/chat?ticketId=${encodeURIComponent(String(ticketIdRef.current))}`
             : "/chat",
@@ -322,7 +325,7 @@ const ChatSupport = () => {
           uploadRes.data?.url ||
           "";
         if (!mediaUrl) {
-          throw new Error("Failed to upload image");
+          throw new Error(t("dChatSupport.failed_to_upload_image"));
         }
       }
 
@@ -359,7 +362,7 @@ const ChatSupport = () => {
       setSelectedImage(null);
       setSelectedImageFile(null);
     } catch (error) {
-      showToast("Failed to send message", "error");
+      showToast(t("dChatSupport.failed_to_send_message"), "error");
     } finally {
       setIsSending(false);
     }
@@ -385,7 +388,7 @@ const ChatSupport = () => {
                 {brandLogoUrl && !logoFailed ? (
                   <img
                     src={brandLogoUrl}
-                    alt={`${appName} logo`}
+                    alt={t("dChatSupport.logo", { appName })}
                     className="h-full w-full object-contain bg-white"
                     onError={() => setLogoFailed(true)}
                   />
@@ -397,11 +400,11 @@ const ChatSupport = () => {
             </div>
             <div>
               <h1 className="text-base font-black text-slate-800 leading-none">
-                Support Chat
+               {t("dChatSupport.support_chat")}
               </h1>
               <p className="text-[10px] text-[#1A4516] font-bold mt-1 uppercase tracking-wider flex items-center gap-1">
                 <span className="h-1 w-1 bg-[#1A4516] rounded-full"></span>
-                Online
+               {t("dChatSupport.online")}
               </p>
             </div>
           </div>
@@ -411,18 +414,18 @@ const ChatSupport = () => {
             <a
               href={supportPhoneHref}
               className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
-              aria-label={`Call support at ${supportPhone}`}
-              title={`Call support: ${supportPhone}`}
+              aria-label={t("dChatSupport.call_support_at", { supportPhone })}
+              title={t("dChatSupport.call_support", { supportPhone })}
             >
               <Phone size={20} />
             </a>
           ) : (
             <button
               type="button"
-              onClick={() => showToast("Support number not configured", "info")}
+              onClick={() => showToast(t("dChatSupport.support_number_not_configured"), "info")}
               className="p-2 rounded-full text-slate-300 cursor-not-allowed"
-              aria-label="Support number not configured"
-              title="Support number not configured"
+              aria-label={t("dChatSupport.support_number_not_configured")}
+              title={t("dChatSupport.support_number_not_configured")}
             >
               <Phone size={20} />
             </button>
@@ -433,14 +436,14 @@ const ChatSupport = () => {
       <div
         className="flex-1 overflow-y-auto px-4 py-6 pb-24 space-y-6 min-h-0 overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch]"
         tabIndex={0}
-        aria-label="Support chat messages"
+        aria-label={t("dChatSupport.support_chat_messages")}
         data-lenis-prevent
         data-lenis-prevent-touch
         data-lenis-prevent-wheel
       >
         {isLoading && (
           <div className="text-center text-xs font-bold text-slate-400">
-            Loading chat…
+           {t("dChatSupport.loading_chat")}
           </div>
         )}
 
@@ -462,7 +465,7 @@ const ChatSupport = () => {
                 {msg.mediaUrl ? (
                   <img
                     src={msg.mediaUrl}
-                    alt="Attachment"
+                    alt={t("dChatSupport.attachment")}
                     loading="lazy"
                     className="max-w-[220px] w-full rounded-xl border border-black/10"
                   />
@@ -517,7 +520,7 @@ const ChatSupport = () => {
               <div className="relative">
                 <img
                   src={selectedImage}
-                  alt="Preview"
+                  alt={t("dChatSupport.preview")}
                   loading="lazy"
                   className="h-20 w-20 object-cover rounded-lg"
                 />
@@ -553,7 +556,7 @@ const ChatSupport = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-40 cursor-default"
-                aria-label="Close attachments menu"
+                aria-label={t("dChatSupport.close_attachments_menu")}
                 onClick={() => setShowAttachmentMenu(false)}
               />
               <motion.div
@@ -570,7 +573,7 @@ const ChatSupport = () => {
                   }}
                   className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  Open camera
+                 {t("dChatSupport.open_camera")}
                 </button>
                 <div className="h-px bg-slate-100" />
                 <button
@@ -581,7 +584,7 @@ const ChatSupport = () => {
                   }}
                   className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  Upload from gallery
+                 {t("dChatSupport.upload_from_gallery")}
                 </button>
               </motion.div>
             </>
@@ -632,7 +635,7 @@ const ChatSupport = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="Type a message..."
+            placeholder={t("dChatSupport.type_a_message")}
             className="bg-transparent text-sm w-full py-2.5 outline-none text-slate-700 placeholder:text-slate-400 font-medium"
           />
           <button

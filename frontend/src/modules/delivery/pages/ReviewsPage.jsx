@@ -3,8 +3,10 @@ import { deliveryApi } from "../services/deliveryApi";
 import { Star } from "lucide-react";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { format } from "date-fns";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 export default function ReviewsPage() {
+  const { t } = useTranslation();
   const [reviews, setReviews] = useState([]);
   const [stats, setStats] = useState({ averageRating: 0, totalReviews: 0 });
   const [loading, setLoading] = useState(true);
@@ -29,12 +31,12 @@ export default function ReviewsPage() {
   };
 
   if (loading) {
-    return <div className="p-5 flex justify-center mt-10">Loading reviews...</div>;
+    return <div className="p-5 flex justify-center mt-10">{t("dReviewsPage.loading_reviews")}</div>;
   }
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24 max-w-3xl">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6">My Reviews</h1>
+      <h1 className="text-2xl font-bold text-slate-800 mb-6">{t("dReviewsPage.my_reviews")}</h1>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center mb-8">
         <h2 className="text-5xl font-black text-slate-800 mb-2">{stats.averageRating.toFixed(1)}</h2>
@@ -52,13 +54,13 @@ export default function ReviewsPage() {
             />
           ))}
         </div>
-        <p className="text-slate-500 font-medium">Based on {stats.totalReviews} reviews</p>
+        <p className="text-slate-500 font-medium">{t("dReviewsPage.based_on_reviews", { totalReviews: stats.totalReviews })}</p>
       </div>
 
       <div className="flex flex-col gap-4">
         {reviews.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-slate-100">
-            <p className="text-slate-500 font-medium">You don't have any reviews yet.</p>
+            <p className="text-slate-500 font-medium">{t("dReviewsPage.you_don_t_have_any")}</p>
           </div>
         ) : (
           reviews.map((review) => (
@@ -96,7 +98,7 @@ export default function ReviewsPage() {
               </div>
               {review.comment && <p className="text-slate-600 text-sm">{review.comment}</p>}
               <p className="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-50">
-                Order: #{review.orderId?.orderId || 'Unknown'}
+               {t("dReviewsPage.order")}{review.orderId?.orderId || t("dReviewsPage.unknown")}
               </p>
             </div>
           ))

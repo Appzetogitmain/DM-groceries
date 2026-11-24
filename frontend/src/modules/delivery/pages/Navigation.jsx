@@ -9,8 +9,10 @@ import {
   MapPin,
   LocateFixed,
 } from "lucide-react";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 const Navigation = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -62,13 +64,13 @@ const Navigation = () => {
 
         <div className="bg-black/70 text-white px-4 py-2 rounded-full backdrop-blur-md shadow-lg flex items-center space-x-3 pointer-events-auto">
           <div className="flex flex-col items-center">
-            <span className="text-xs font-medium text-gray-300">Distance</span>
-            <span className="font-bold text-lg">1.2 km</span>
+            <span className="text-xs font-medium text-gray-300">{t("dNavigation.distance")}</span>
+            <span className="font-bold text-lg">{t("dNavigation.1_2_km")}</span>
           </div>
           <div className="w-px h-8 bg-gray-500"></div>
           <div className="flex flex-col items-center">
-            <span className="text-xs font-medium text-gray-300">ETA</span>
-            <span className="font-bold text-lg text-brand-400">4 min</span>
+            <span className="text-xs font-medium text-gray-300">{t("dNavigation.eta")}</span>
+            <span className="font-bold text-lg text-brand-400">{t("dNavigation.4_min")}</span>
           </div>
         </div>
 
@@ -97,9 +99,9 @@ const Navigation = () => {
               <User size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-gray-900">Priya Sharma</h3>
+              <h3 className="font-bold text-lg text-gray-900">{t("dNavigation.priya_sharma")}</h3>
               <p className="text-gray-500 text-sm">
-                Drop: Flat 302, Green Apts
+               {t("dNavigation.drop_flat_302_green_apts")}
               </p>
             </div>
           </div>
@@ -112,12 +114,12 @@ const Navigation = () => {
           <button
             onClick={() => navigate("/delivery/order-details/123")}
             className="flex-1 bg-gray-100 text-gray-800 font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors">
-            Order Details
+           {t("dNavigation.order_details")}
           </button>
           <button
             onClick={() => navigate("/delivery/confirm-delivery/TEST12345")}
             className="flex-1 bg-primary text-primary-foreground font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 hover:bg-primary/90 transition-colors">
-            Arrived
+           {t("dNavigation.arrived")}
           </button>
         </div>
       </div>

@@ -2,13 +2,15 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { Home, IndianRupee, History, User } from "lucide-react";
 import { motion } from "framer-motion";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 const BottomNav = () => {
+  const { t } = useTranslation();
   const navItems = [
-    { path: "/delivery/dashboard", label: "Home", icon: Home },
-    { path: "/delivery/earnings", label: "Earnings", icon: IndianRupee },
-    { path: "/delivery/history", label: "History", icon: History },
-    { path: "/delivery/profile", label: "Profile", icon: User },
+    { path: "/delivery/dashboard", label: t("dBottomNav.home"), icon: Home },
+    { path: "/delivery/earnings", label: t("dBottomNav.earnings"), icon: IndianRupee },
+    { path: "/delivery/history", label: t("dBottomNav.history"), icon: History },
+    { path: "/delivery/profile", label: t("dBottomNav.profile"), icon: User },
   ];
 
   return (

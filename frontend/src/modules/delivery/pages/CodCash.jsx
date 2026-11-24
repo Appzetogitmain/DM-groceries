@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import Card from "@/shared/components/ui/Card";
 import Button from "@/shared/components/ui/Button";
 import { deliveryApi } from "../services/deliveryApi";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
+import { deliveryLocale } from "../i18n/format";
 
 const RUPEE = "\u20B9";
 
@@ -15,6 +17,7 @@ function safeMoney(value) {
 }
 
 const CodCash = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = React.useState(true);
   const [paying, setPaying] = React.useState(false);
   const [payAmount, setPayAmount] = React.useState("");
@@ -45,7 +48,7 @@ const CodCash = () => {
         setPayAmount(nextPayable > 0 ? String(nextPayable) : "");
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to load COD cash");
+      toast.error(error?.response?.data?.message || t("dCodCash.failed_to_load_cod_cash"));
     } finally {
       setLoading(false);
     }
@@ -92,11 +95,11 @@ const CodCash = () => {
   const handlePayNow = async () => {
     if (paying) return;
     if (enteredPayAmount <= 0) {
-      toast.error("Enter an amount to pay");
+      toast.error(t("dCodCash.enter_an_amount_to_pay"));
       return;
     }
     if (enteredPayAmount > payableNowAmount) {
-      toast.error(`You can pay up to ${RUPEE}${safeMoney(payableNowAmount).toLocaleString()}`);
+      toast.error(t("dCodCash.you_can_pay_up_to", { RUPEE, v2: safeMoney(payableNowAmount).toLocaleString(deliveryLocale()) }));
       return;
     }
 
@@ -105,7 +108,7 @@ const CodCash = () => {
       
       const isLoaded = await loadRazorpayScript();
       if (!isLoaded) {
-        toast.error("Failed to load payment gateway. Please check your connection.");
+        toast.error(t("dCodCash.failed_to_load_payment_gateway"));
         setPaying(false);
         return;
       }
@@ -114,7 +117,7 @@ const CodCash = () => {
       const { orderId, amount, key } = initRes.data?.result || {};
 
       if (!orderId || !key) {
-        toast.error("Failed to initialize payment");
+        toast.error(t("dCodCash.failed_to_initialize_payment"));
         setPaying(false);
         return;
       }
@@ -124,7 +127,7 @@ const CodCash = () => {
         amount: amount * 100, // Amount in paise
         currency: "INR",
         name: "DM Groceries",
-        description: "COD Cash Deposit",
+        description: t("dCodCash.cod_cash_deposit"),
         order_id: orderId,
         handler: async function (response) {
           try {
@@ -137,11 +140,11 @@ const CodCash = () => {
             });
             const result = verifyRes.data?.result || {};
             toast.success(
-              `Deposited ${RUPEE}${safeMoney(result.totalSubmitted).toLocaleString()} successfully`
+              t("dCodCash.deposited_successfully", { RUPEE, v2: safeMoney(result.totalSubmitted).toLocaleString(deliveryLocale()) })
             );
             await fetchSummary();
           } catch (verifyError) {
-            toast.error(verifyError?.response?.data?.message || "Payment verification failed");
+            toast.error(verifyError?.response?.data?.message || t("dCodCash.payment_verification_failed"));
           } finally {
             setPaying(false);
             setPayAmount("");
@@ -154,13 +157,13 @@ const CodCash = () => {
 
       const razorpayInstance = new window.Razorpay(options);
       razorpayInstance.on('payment.failed', function (response) {
-        toast.error(response.error.description || "Payment failed");
+        toast.error(response.error.description || t("dCodCash.payment_failed"));
         setPaying(false);
       });
       
       razorpayInstance.open();
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to initiate COD deposit");
+      toast.error(error?.response?.data?.message || t("dCodCash.failed_to_initiate_cod_deposit"));
       setPaying(false);
     }
   };
@@ -170,9 +173,9 @@ const CodCash = () => {
       <div className="bg-white shadow-sm p-6 sticky top-0 z-30">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="ds-h2 text-gray-900">COD Cash</h1>
+            <h1 className="ds-h2 text-gray-900">{t("dCodCash.cod_cash")}</h1>
             <p className="text-xs text-gray-500 mt-1">
-              Simple view of what you should collect and what you should submit.
+             {t("dCodCash.simple_view_of_what_you")}
             </p>
           </div>
           <Button
@@ -180,7 +183,7 @@ const CodCash = () => {
             size="icon"
             disabled={loading}
             onClick={fetchSummary}
-            aria-label="Refresh"
+            aria-label={t("dCodCash.refresh")}
           >
             <RotateCw size={18} className={loading ? "animate-spin text-gray-400" : "text-gray-600"} />
           </Button>
@@ -198,15 +201,14 @@ const CodCash = () => {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
-                  Cash To Submit
+                 {t("dCodCash.cash_to_submit")}
                 </p>
                 <p className="text-3xl font-extrabold text-gray-900">
                   {RUPEE}
-                  {safeMoney(data.systemFloatCOD).toLocaleString()}
+                  {safeMoney(data.systemFloatCOD).toLocaleString(deliveryLocale())}
                 </p>
                 <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                  This is the platform money you are holding for COD orders.
-                  It is calculated after your delivery commission.
+                 {t("dCodCash.this_is_the_platform_money")}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-orange-50 text-orange-600">
@@ -217,16 +219,16 @@ const CodCash = () => {
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div className="rounded-xl bg-gray-50 border border-gray-100 p-3">
                 <p className="text-[11px] font-bold text-gray-500 uppercase">
-                  Cash In Hand
+                 {t("dCodCash.cash_in_hand")}
                 </p>
                 <p className="text-lg font-bold text-gray-900">
                   {RUPEE}
-                  {safeMoney(data.cashInHand).toLocaleString()}
+                  {safeMoney(data.cashInHand).toLocaleString(deliveryLocale())}
                 </p>
               </div>
               <div className="rounded-xl bg-gray-50 border border-gray-100 p-3">
                 <p className="text-[11px] font-bold text-gray-500 uppercase">
-                  Pending Orders
+                 {t("dCodCash.pending_orders")}
                 </p>
                 <p className="text-lg font-bold text-gray-900">{pendingOrdersCount}</p>
               </div>
@@ -237,26 +239,26 @@ const CodCash = () => {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-bold text-orange-700 uppercase">
-                      Ready To Pay Now
+                     {t("dCodCash.ready_to_pay_now")}
                     </p>
                     <p className="text-xl font-extrabold text-gray-900 mt-1">
                       {RUPEE}
-                      {safeMoney(payableNowAmount).toLocaleString()}
+                      {safeMoney(payableNowAmount).toLocaleString(deliveryLocale())}
                     </p>
                     <p className="text-xs text-gray-600 mt-1">
-                      Only cash from collected orders can be paid now.
+                     {t("dCodCash.only_cash_from_collected_orders")}
                     </p>
                   </div>
                 </div>
 
                 <div>
                   <p className="text-[11px] font-bold text-orange-700 uppercase">
-                    Enter Amount
+                   {t("dCodCash.enter_amount")}
                   </p>
                   <div className="mt-2 flex items-center gap-3">
                     <div className="flex-1 rounded-xl border border-orange-200 bg-white px-4 py-3">
                       <label className="text-[11px] font-bold text-gray-500 uppercase block mb-1">
-                        Amount To Pay
+                       {t("dCodCash.amount_to_pay")}
                       </label>
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-bold text-gray-900">{RUPEE}</span>
@@ -266,7 +268,7 @@ const CodCash = () => {
                           step="0.01"
                           value={payAmount}
                           onChange={(e) => setPayAmount(e.target.value)}
-                          placeholder="Enter amount"
+                          placeholder={t("dCodCash.enter_amount_2")}
                           disabled={paying}
                           className="w-full bg-transparent outline-none text-lg font-bold text-gray-900"
                         />
@@ -277,16 +279,14 @@ const CodCash = () => {
                       disabled={paying || enteredPayAmount <= 0}
                       className="shrink-0"
                     >
-                      {paying ? "Paying..." : "Pay Admin"}
+                      {paying ? t("dCodCash.paying") : t("dCodCash.pay_admin")}
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-600 mt-2">
-                    Max you can pay right now: {RUPEE}
-                    {safeMoney(payableNowAmount).toLocaleString()}
+                  <p className="text-xs text-gray-600 mt-2">{t("dCodCash.max_you_can_pay_right", { RUPEE, v2: safeMoney(payableNowAmount).toLocaleString(deliveryLocale()) })}
                   </p>
                   {payableNowAmount <= 0 && (
                     <p className="text-xs text-orange-700 mt-1">
-                      You can pay after COD cash is marked as collected.
+                     {t("dCodCash.you_can_pay_after_cod")}
                     </p>
                   )}
                 </div>
@@ -297,9 +297,9 @@ const CodCash = () => {
 
         <motion.div variants={itemVariants}>
           <Card className="p-6">
-            <h3 className="font-bold text-gray-900 mb-1">To Collect From Customer</h3>
+            <h3 className="font-bold text-gray-900 mb-1">{t("dCodCash.to_collect_from_customer")}</h3>
             <p className="text-xs text-gray-500 mb-4">
-              These COD orders are not marked as collected yet.
+             {t("dCodCash.these_cod_orders_are_not")}
             </p>
 
             <div className="space-y-2">
@@ -309,18 +309,14 @@ const CodCash = () => {
                   className="flex items-start justify-between gap-2 rounded-xl border border-orange-100 bg-orange-50/40 p-3"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900 truncate" title={`Order #${row.orderId}`}>
-                      Order #{formatOrderId(row.orderId)}
+                    <p className="text-sm font-bold text-gray-900 truncate" title={t("dCodCash.order_2", { orderId: row.orderId })}>{t("dCodCash.order", { v1: formatOrderId(row.orderId) })}
                     </p>
-                    <p className="text-xs text-gray-600 truncate">
-                      Collect {RUPEE}
-                      {safeMoney(row.amountGross).toLocaleString()} (gross)
-                    </p>
+                    <p className="text-xs text-gray-600 truncate">{t("dCodCash.collect_gross", { RUPEE, v2: safeMoney(row.amountGross).toLocaleString(deliveryLocale()) })}</p>
                   </div>
                   <div className="shrink-0 text-right mt-0.5">
                     <p className="text-sm font-extrabold text-orange-700">
                       {RUPEE}
-                      {safeMoney(row.amountNetExpected).toLocaleString()}
+                      {safeMoney(row.amountNetExpected).toLocaleString(deliveryLocale())}
                     </p>
                   </div>
                 </div>
@@ -328,7 +324,7 @@ const CodCash = () => {
 
               {(!Array.isArray(data.toCollect) || data.toCollect.length === 0) && (
                 <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">
-                  Nothing to collect right now.
+                 {t("dCodCash.nothing_to_collect_right_now")}
                 </div>
               )}
             </div>
@@ -337,9 +333,9 @@ const CodCash = () => {
 
         <motion.div variants={itemVariants}>
           <Card className="p-6">
-            <h3 className="font-bold text-gray-900 mb-1">To Submit To Platform</h3>
+            <h3 className="font-bold text-gray-900 mb-1">{t("dCodCash.to_submit_to_platform")}</h3>
             <p className="text-xs text-gray-500 mb-4">
-              These orders are marked collected. Submit the net cash shown here.
+             {t("dCodCash.these_orders_are_marked_collected")}
             </p>
 
             <div className="space-y-2">
@@ -349,15 +345,14 @@ const CodCash = () => {
                   className="flex items-start justify-between gap-2 rounded-xl border border-gray-100 bg-white p-3"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900 truncate" title={`Order #${row.orderId}`}>
-                      Order #{formatOrderId(row.orderId)}
+                    <p className="text-sm font-bold text-gray-900 truncate" title={t("dCodCash.order_2", { orderId: row.orderId })}>{t("dCodCash.order", { v1: formatOrderId(row.orderId) })}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">Submit to platform (net)</p>
+                    <p className="text-xs text-gray-500 truncate">{t("dCodCash.submit_to_platform_net")}</p>
                   </div>
                   <div className="shrink-0 text-right mt-0.5">
                     <p className="text-sm font-extrabold text-gray-900">
                       {RUPEE}
-                      {safeMoney(row.amountNetPending).toLocaleString()}
+                      {safeMoney(row.amountNetPending).toLocaleString(deliveryLocale())}
                     </p>
                   </div>
                 </div>
@@ -365,7 +360,7 @@ const CodCash = () => {
 
               {(!Array.isArray(data.toRemit) || data.toRemit.length === 0) && (
                 <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">
-                  Nothing to submit right now.
+                 {t("dCodCash.nothing_to_submit_right_now")}
                 </div>
               )}
             </div>

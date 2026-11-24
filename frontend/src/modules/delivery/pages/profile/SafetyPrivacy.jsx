@@ -7,8 +7,10 @@ import Input from "@/shared/components/ui/Input";
 import { toast } from "sonner";
 import { useSettings } from "@core/context/SettingsContext";
 import { deliveryApi } from "../../services/deliveryApi";
+import { useDeliveryTranslation as useTranslation } from "../../i18n/useDeliveryTranslation";
 
 const SafetyPrivacy = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
@@ -36,7 +38,7 @@ const SafetyPrivacy = () => {
         setProfileVisibility(profile.profileVisibility !== false);
       }
     } catch (error) {
-      toast.error("Failed to load safety settings");
+      toast.error(t("dSafetyPrivacy.failed_to_load_safety_settings"));
     } finally {
       setLoading(false);
     }
@@ -47,7 +49,7 @@ const SafetyPrivacy = () => {
       await deliveryApi.updateProfile(data);
       return true;
     } catch (error) {
-      toast.error(error.response?.data?.message || "Update failed");
+      toast.error(error.response?.data?.message || t("dSafetyPrivacy.update_failed"));
       return false;
     }
   };
@@ -61,7 +63,7 @@ const SafetyPrivacy = () => {
         setContacts(updatedContacts);
         setNewContact({ name: "", phone: "" });
         setShowAddContact(false);
-        toast.success("Emergency contact added!");
+        toast.success(t("dSafetyPrivacy.emergency_contact_added"));
       }
     }
   };
@@ -71,7 +73,7 @@ const SafetyPrivacy = () => {
     const success = await handleUpdateProfile({ emergencyContacts: updatedContacts });
     if (success) {
       setContacts(updatedContacts);
-      toast.success("Contact removed");
+      toast.success(t("dSafetyPrivacy.contact_removed"));
     }
   };
 
@@ -100,7 +102,7 @@ const SafetyPrivacy = () => {
           >
             <ArrowLeft size={20} className="text-gray-600" />
           </button>
-          <h1 className="ds-h3 text-gray-900">Safety & Privacy</h1>
+          <h1 className="ds-h3 text-gray-900">{t("dSafetyPrivacy.safety_privacy")}</h1>
         </div>
       </div>
 
@@ -108,18 +110,18 @@ const SafetyPrivacy = () => {
         {/* Emergency Contacts */}
         <section>
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
-            <Shield size={20} className="mr-2 text-primary" /> Emergency Contacts
+            <Shield size={20} className="mr-2 text-primary" /> {t("dSafetyPrivacy.emergency_contacts")}
           </h2>
           <p className="text-sm text-gray-500 mb-4">
-            These contacts will be notified if you trigger the SOS alert during a delivery.
+           {t("dSafetyPrivacy.these_contacts_will_be_notified")}
           </p>
 
           <div className="space-y-3">
             {loading ? (
-              <div className="flex justify-center p-4 text-gray-500">Loading contacts...</div>
+              <div className="flex justify-center p-4 text-gray-500">{t("dSafetyPrivacy.loading_contacts")}</div>
             ) : contacts.length === 0 ? (
               <div className="p-4 bg-gray-50 text-center text-sm text-gray-500 rounded-lg border border-dashed">
-                No emergency contacts added yet.
+               {t("dSafetyPrivacy.no_emergency_contacts_added_yet")}
               </div>
             ) : (
               contacts.map((contact) => (
@@ -144,13 +146,13 @@ const SafetyPrivacy = () => {
             {showAddContact ? (
               <Card className="p-4 border-dashed border-2 border-gray-200 bg-gray-50">
                 <Input 
-                  placeholder="Name (e.g. Wife, Brother)" 
+                  placeholder={t("dSafetyPrivacy.name_e_g_wife_brother")} 
                   value={newContact.name}
                   onChange={(e) => setNewContact({...newContact, name: e.target.value})}
                   className="mb-3 bg-white"
                 />
                 <Input 
-                  placeholder="Phone Number" 
+                  placeholder={t("dSafetyPrivacy.phone_number")} 
                   value={newContact.phone}
                   onChange={(e) => setNewContact({...newContact, phone: e.target.value.replace(/\D/g, "")})}
                   className="mb-3 bg-white"
@@ -158,8 +160,8 @@ const SafetyPrivacy = () => {
                   maxLength={15}
                 />
                 <div className="flex space-x-2">
-                  <Button size="sm" onClick={handleAddContact} className="flex-1">Save</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setShowAddContact(false)} className="flex-1">Cancel</Button>
+                  <Button size="sm" onClick={handleAddContact} className="flex-1">{t("dSafetyPrivacy.save")}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowAddContact(false)} className="flex-1">{t("dSafetyPrivacy.cancel")}</Button>
                 </div>
               </Card>
             ) : (
@@ -168,7 +170,7 @@ const SafetyPrivacy = () => {
                 className="w-full border-dashed border-gray-300 text-gray-500 hover:border-primary hover:text-primary"
                 onClick={() => setShowAddContact(true)}
               >
-                <UserPlus size={18} className="mr-2" /> Add New Contact
+                <UserPlus size={18} className="mr-2" /> {t("dSafetyPrivacy.add_new_contact")}
               </Button>
             )}
           </div>
@@ -177,13 +179,13 @@ const SafetyPrivacy = () => {
         {/* Privacy Settings */}
         <section>
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
-            <Lock size={20} className="mr-2 text-primary" /> Privacy Settings
+            <Lock size={20} className="mr-2 text-primary" /> {t("dSafetyPrivacy.privacy_settings")}
           </h2>
           <Card className="divide-y divide-gray-100">
             <div className="p-4 flex justify-between items-center">
               <div>
-                <h4 className="font-medium text-gray-800">Share Live Location</h4>
-                <p className="text-xs text-gray-500">Allow customers to track you during delivery</p>
+                <h4 className="font-medium text-gray-800">{t("dSafetyPrivacy.share_live_location")}</h4>
+                <p className="text-xs text-gray-500">{t("dSafetyPrivacy.allow_customers_to_track_you")}</p>
               </div>
               <div 
                 className={`relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer ${shareLiveLocation ? 'bg-brand-500' : 'bg-gray-300'}`}
@@ -194,8 +196,8 @@ const SafetyPrivacy = () => {
             </div>
             <div className="p-4 flex justify-between items-center">
               <div>
-                <h4 className="font-medium text-gray-800">Profile Visibility</h4>
-                <p className="text-xs text-gray-500">Show your photo to customers</p>
+                <h4 className="font-medium text-gray-800">{t("dSafetyPrivacy.profile_visibility")}</h4>
+                <p className="text-xs text-gray-500">{t("dSafetyPrivacy.show_your_photo_to_customers")}</p>
               </div>
               <div 
                 className={`relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer ${profileVisibility ? 'bg-brand-500' : 'bg-gray-300'}`}
@@ -210,8 +212,7 @@ const SafetyPrivacy = () => {
         <div className="bg-brand-50 p-4 rounded-xl flex items-start">
           <Eye size={20} className="text-brand-600 mr-3 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-brand-800">
-            {appName} values your privacy. Your location is only shared while you are on an active delivery.
-          </p>
+            {t("dSafetyPrivacy.values_your_privacy_your_location", { appName })}</p>
         </div>
       </div>
     </div>

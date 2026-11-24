@@ -8,6 +8,8 @@ import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { toast } from "sonner";
 import { deliveryApi } from "../../services/deliveryApi";
+import { useDeliveryTranslation as useTranslation } from "../../i18n/useDeliveryTranslation";
+import deliveryI18n from "../../i18n";
 
 // Dynamic PDF.js loader for rendering PDF pages to canvas on mobile & desktop
 let pdfjsPromise = null;
@@ -26,10 +28,10 @@ function loadPdfJs() {
           "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
         resolve(window.pdfjsLib);
       } else {
-        reject(new Error("PDF.js failed to initialize"));
+        reject(new Error(deliveryI18n.t("dDocuments.pdf_js_failed_to_initialize")));
       }
     };
-    script.onerror = () => reject(new Error("Network error loading PDF.js"));
+    script.onerror = () => reject(new Error(deliveryI18n.t("dDocuments.network_error_loading_pdf_js")));
     document.head.appendChild(script);
   });
   return pdfjsPromise;
@@ -55,6 +57,7 @@ async function renderPdfPages(arrayBuffer) {
 }
 
 const Documents = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -63,11 +66,11 @@ const Documents = () => {
   const [viewModal, setViewModal] = useState(null);
 
   const [docs, setDocs] = useState([
-    { id: "aadhar", title: "Aadhar Card", status: "Pending", fileName: null, url: null },
-    { id: "pan", title: "PAN Card", status: "Pending", fileName: null, url: null },
-    { id: "drivingLicense", title: "Driving License", status: "Pending", fileName: null, url: null },
-    { id: "policeClearance", title: "Police Clearance", status: "Pending", fileName: null, url: null },
-    { id: "bankPassbook", title: "Bank Passbook", status: "Pending", fileName: null, url: null },
+    { id: "aadhar", title: t("dDocuments.aadhar_card"), status: "Pending", fileName: null, url: null },
+    { id: "pan", title: t("dDocuments.pan_card"), status: "Pending", fileName: null, url: null },
+    { id: "drivingLicense", title: t("dDocuments.driving_license"), status: "Pending", fileName: null, url: null },
+    { id: "policeClearance", title: t("dDocuments.police_clearance"), status: "Pending", fileName: null, url: null },
+    { id: "bankPassbook", title: t("dDocuments.bank_passbook"), status: "Pending", fileName: null, url: null },
   ]);
 
   useEffect(() => {
@@ -117,7 +120,7 @@ const Documents = () => {
         }));
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to fetch documents");
+      toast.error(error.response?.data?.message || t("dDocuments.failed_to_fetch_documents"));
     } finally {
       setLoading(false);
     }
@@ -138,13 +141,13 @@ const Documents = () => {
       const formData = new FormData();
       formData.append(activeUploadId, file);
 
-      toast.loading(`Uploading ${activeUploadId} to server...`, { id: "upload-doc" });
+      toast.loading(t("dDocuments.uploading_to_server", { activeUploadId }), { id: "upload-doc" });
       await deliveryApi.updateDocuments(formData);
-      toast.success("Document uploaded successfully to server and submitted for review", { id: "upload-doc" });
+      toast.success(t("dDocuments.document_uploaded_successfully_to_server"), { id: "upload-doc" });
       
       await fetchProfile();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to upload document", { id: "upload-doc" });
+      toast.error(error.response?.data?.message || t("dDocuments.failed_to_upload_document"), { id: "upload-doc" });
     } finally {
       setActiveUploadId(null);
       if (fileInputRef.current) {
@@ -160,7 +163,7 @@ const Documents = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("Document downloaded. Tap to open with phone's PDF viewer.");
+    toast.success(t("dDocuments.document_downloaded_tap_to_open"));
   };
 
   const handleViewFile = async (doc) => {
@@ -222,22 +225,22 @@ const Documents = () => {
       }
     } catch (err) {
       console.error("Failed to view document:", err);
-      toast.error(err.response?.data?.message || "Failed to load document from server");
+      toast.error(err.response?.data?.message || t("dDocuments.failed_to_load_document_from"));
     } finally {
       setOpeningDocId(null);
     }
   };
 
   const handleDeleteFile = async (docId) => {
-    if (!window.confirm("Are you sure you want to delete this document from the server?")) return;
+    if (!window.confirm(t("dDocuments.confirm_delete"))) return;
 
     try {
-      toast.loading("Deleting document from server...", { id: "delete-doc" });
+      toast.loading(t("dDocuments.deleting_document_from_server"), { id: "delete-doc" });
       await deliveryApi.deleteDocument(docId);
-      toast.success("Document deleted successfully from server", { id: "delete-doc" });
+      toast.success(t("dDocuments.document_deleted_successfully_from_serve"), { id: "delete-doc" });
       await fetchProfile();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to delete document", { id: "delete-doc" });
+      toast.error(err.response?.data?.message || t("dDocuments.failed_to_delete_document"), { id: "delete-doc" });
     }
   };
 
@@ -253,19 +256,19 @@ const Documents = () => {
       case "Verified":
         return (
           <span className="flex items-center text-emerald-600 bg-emerald-50 border border-emerald-100/30 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
-            <FileCheck size={11} className="mr-0.5" /> Verified
+            <FileCheck size={11} className="mr-0.5" /> {t("dDocuments.verified")}
           </span>
         );
       case "Pending":
         return (
           <span className="flex items-center text-amber-600 bg-amber-50 border border-amber-100/30 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
-            <Clock size={11} className="mr-0.5" /> Pending
+            <Clock size={11} className="mr-0.5" /> {t("dDocuments.pending")}
           </span>
         );
       case "Rejected":
         return (
           <span className="flex items-center text-rose-600 bg-rose-50 border border-rose-100/30 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
-            <XCircle size={11} className="mr-0.5" /> Rejected
+            <XCircle size={11} className="mr-0.5" /> {t("dDocuments.rejected")}
           </span>
         );
       default:
@@ -281,11 +284,11 @@ const Documents = () => {
         <button 
           onClick={() => navigate(-1)} 
           className="p-1.5 rounded-full hover:bg-white/10 transition-colors mr-2 cursor-pointer"
-          aria-label="Go Back"
+          aria-label={t("dDocuments.go_back")}
         >
           <ArrowLeft size={18} className="text-white" />
         </button>
-        <h1 className="text-sm font-black leading-tight tracking-tight">My Documents</h1>
+        <h1 className="text-sm font-black leading-tight tracking-tight">{t("dDocuments.my_documents")}</h1>
       </div>
 
       <input 
@@ -298,13 +301,13 @@ const Documents = () => {
 
       {/* Main Content Area */}
       <div className="bg-white rounded-t-[32px] -mt-5 pt-10 px-4 space-y-3 relative z-10">
-        {loading && <div className="text-center py-4 text-sm text-gray-500">Loading documents...</div>}
+        {loading && <div className="text-center py-4 text-sm text-gray-500">{t("dDocuments.loading_documents")}</div>}
         {!loading && docs.map((doc) => (
           <Card key={doc.id} className="p-3.5 bg-white border border-gray-100 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-1.5">
               <h4 className="font-bold text-gray-800 text-xs">{doc.title}</h4>
               {doc.url ? getStatusBadge(doc.status) : (
-                <span className="text-[9px] text-gray-400 font-medium italic">Not Uploaded</span>
+                <span className="text-[9px] text-gray-400 font-medium italic">{t("dDocuments.not_uploaded")}</span>
               )}
             </div>
 
@@ -315,8 +318,7 @@ const Documents = () => {
             )}
 
             {doc.status === "Rejected" && doc.reason && (
-              <div className="bg-rose-50/60 border border-rose-100/50 text-rose-700 text-[10px] p-2 rounded-lg mb-2.5 font-medium leading-normal">
-                Reason: {doc.reason}
+              <div className="bg-rose-50/60 border border-rose-100/50 text-rose-700 text-[10px] p-2 rounded-lg mb-2.5 font-medium leading-normal">{t("dDocuments.reason", { reason: doc.reason })}
               </div>
             )}
 
@@ -328,7 +330,7 @@ const Documents = () => {
                 disabled={activeUploadId !== null}
               >
                 <UploadCloud size={13} /> 
-                {doc.url ? "Change / Re-upload" : "Upload Document"}
+                {doc.url ? t("dDocuments.change_re_upload") : t("dDocuments.upload_document")}
               </Button>
               
               {doc.url && (
@@ -341,7 +343,7 @@ const Documents = () => {
                     disabled={openingDocId === doc.id}
                   >
                     <Eye size={12} />
-                    {openingDocId === doc.id ? "Opening..." : "View File"}
+                    {openingDocId === doc.id ? t("dDocuments.opening") : t("dDocuments.view_file")}
                   </Button>
 
                   <Button 
@@ -349,7 +351,7 @@ const Documents = () => {
                     size="sm" 
                     className="px-2.5 text-[10px] h-8 border-rose-100 text-rose-600 hover:bg-rose-50 rounded-lg font-bold flex justify-center items-center"
                     onClick={() => handleDeleteFile(doc.id)}
-                    title="Delete document from server"
+                    title={t("dDocuments.delete_document_from_server")}
                   >
                     <Trash2 size={13} />
                   </Button>
@@ -382,16 +384,16 @@ const Documents = () => {
                   <button
                     onClick={() => triggerDownload(viewModal.blobUrl, viewModal.fileName)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1A4516] hover:bg-[#153b12] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                    title="Download / Open with Phone PDF Viewer"
+                    title={t("dDocuments.download_open_with_phone_pdf")}
                   >
                     <Download size={13} />
-                    <span>Open in App</span>
+                    <span>{t("dDocuments.open_in_app")}</span>
                   </button>
 
                   <button
                     onClick={() => window.open(viewModal.blobUrl, "_blank")}
                     className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                    title="Open in new tab"
+                    title={t("dDocuments.open_in_new_tab")}
                   >
                     <ExternalLink size={16} />
                   </button>
@@ -416,7 +418,7 @@ const Documents = () => {
             {viewModal.loading && (
               <div className="flex flex-col items-center justify-center py-12 text-white">
                 <Loader2 size={36} className="animate-spin text-emerald-500 mb-3" />
-                <p className="text-xs font-medium text-gray-300">Rendering document pages...</p>
+                <p className="text-xs font-medium text-gray-300">{t("dDocuments.rendering_document_pages")}</p>
               </div>
             )}
 
@@ -427,12 +429,11 @@ const Documents = () => {
                   <div key={index} className="relative shadow-2xl rounded-xl overflow-hidden max-w-full bg-white">
                     <img 
                       src={imgSrc} 
-                      alt={`${viewModal.title} page ${index + 1}`} 
+                      alt={t("dDocuments.page", { title: viewModal.title, v2: index + 1 })} 
                       className="max-w-full max-h-[82vh] object-contain block"
                     />
                     {viewModal.images.length > 1 && (
-                      <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
-                        Page {index + 1} of {viewModal.images.length}
+                      <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">{t("dDocuments.page_of", { v1: index + 1, length: viewModal.images.length })}
                       </div>
                     )}
                   </div>
@@ -446,13 +447,13 @@ const Documents = () => {
                 <FileText size={48} className="text-emerald-400 mb-3" />
                 <h3 className="text-sm font-bold mb-1">{viewModal.title}</h3>
                 <p className="text-xs text-gray-300 mb-5 max-w-[240px]">
-                  PDF is ready to view. Tap below to open with your phone's PDF viewer.
+                  {t("dDocuments.pdf_is_ready_to_view")}
                 </p>
                 <button
                   onClick={() => triggerDownload(viewModal.blobUrl, viewModal.fileName)}
                   className="w-full py-2.5 bg-[#1A4516] hover:bg-[#153b12] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg cursor-pointer"
                 >
-                  <Download size={14} /> Open in Phone PDF Viewer
+                  <Download size={14} /> {t("dDocuments.open_in_phone_pdf_viewer")}
                 </button>
               </div>
             )}

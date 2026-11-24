@@ -178,6 +178,12 @@ const deliverySchema = new mongoose.Schema(
         },
 
         lastLogin: Date,
+        // Delivery-panel UI language ("en" | "hi" | "gu"). Unset = not chosen yet.
+        preferredLanguage: {
+            type: String,
+            trim: true,
+            lowercase: true,
+        },
 
         /** Last GPS fix from POST /delivery/location (for radius matching). */
         lastLocationAt: {

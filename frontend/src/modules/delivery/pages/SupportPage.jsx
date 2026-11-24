@@ -3,8 +3,10 @@ import { ChevronLeft, ScrollText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '@core/context/SettingsContext';
 import ReactMarkdown from 'react-markdown';
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 const TermsPage = () => {
+  const { t } = useTranslation();
     const navigate = useNavigate();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
@@ -19,7 +21,7 @@ const TermsPage = () => {
                 >
                     <ChevronLeft size={24} className="text-slate-600" />
                 </button>
-                <h1 className="text-lg font-black text-slate-800">Support</h1>
+                <h1 className="text-lg font-black text-slate-800">{t("dSupportPage.support")}</h1>
             </div>
 
             <div className="p-5 max-w-3xl mx-auto space-y-6">
@@ -29,7 +31,7 @@ const TermsPage = () => {
                             <ScrollText size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800">Support (Delivery Partner)</h2>
+                            <h2 className="text-xl font-bold text-slate-800">{t("dSupportPage.support_delivery_partner")}</h2>
                         </div>
                     </div>
 
@@ -40,7 +42,7 @@ const TermsPage = () => {
                                     {settings.deliveryTermsConditions}
                                 </ReactMarkdown>
                             ) : (
-                                <p>By creating an account or using our services, you agree to comply with our support policies.</p>
+                                <p>{t("dSupportPage.by_creating_an_account_or")}</p>
                             )}
                         </div>
                     </div>

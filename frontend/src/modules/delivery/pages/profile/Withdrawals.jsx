@@ -16,8 +16,12 @@ import { toast } from "sonner";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { deliveryApi } from "../../services/deliveryApi";
+import { useDeliveryTranslation as useTranslation } from "../../i18n/useDeliveryTranslation";
+import { deliveryLocale } from "../../i18n/format";
+import { translateLabel } from "../../i18n/format";
 
 const Withdrawals = () => {
+  const { t } = useTranslation();
     const navigate = useNavigate();
     const [amount, setAmount] = useState("");
     const [loading, setLoading] = useState(false);
@@ -36,10 +40,10 @@ const Withdrawals = () => {
                 setStats({
                     availableBalance: res.data.result.totalEarnings || 0,
                     pendingWithdrawals: (res.data.result.recentTransactions || [])
-                        .filter(t => t.type.includes('Withdrawal') && (t.status === 'Pending' || t.status === 'Processing'))
-                        .reduce((acc, t) => acc + Math.abs(t.amount), 0),
+                        .filter(tx => tx.type.includes('Withdrawal') && (tx.status === 'Pending' || tx.status === 'Processing'))
+                        .reduce((acc, tx) => acc + Math.abs(tx.amount), 0),
                     history: (res.data.result.recentTransactions || [])
-                        .filter(t => t.type.includes('Withdrawal'))
+                        .filter(tx => tx.type.includes('Withdrawal'))
                 });
             }
         } catch (error) {
@@ -64,24 +68,24 @@ const Withdrawals = () => {
 
     const handleRequest = async () => {
         if (!amount || isNaN(amount) || Number(amount) <= 0) {
-            return toast.error("Please enter a valid amount");
+            return toast.error(t("dWithdrawals.please_enter_a_valid_amount"));
         }
         if (Number(amount) > stats.availableBalance) {
-            return toast.error("Insufficient balance");
+            return toast.error(t("dWithdrawals.insufficient_balance"));
         }
 
         setLoading(true);
         try {
             const res = await deliveryApi.requestWithdrawal({ amount: Number(amount) });
             if (res.data.success) {
-                toast.success("Withdrawal request submitted successfully!");
+                toast.success(t("dWithdrawals.withdrawal_request_submitted_successfull"));
                 setAmount("");
                 fetchData();
             } else {
-                toast.error(res.data.message || "Failed to submit request");
+                toast.error(res.data.message || t("dWithdrawals.failed_to_submit_request"));
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to submit request");
+            toast.error(error.response?.data?.message || t("dWithdrawals.failed_to_submit_request"));
         } finally {
             setLoading(false);
         }
@@ -95,11 +99,11 @@ const Withdrawals = () => {
                 <button
                     onClick={() => navigate(-1)}
                     className="p-1.5 rounded-full hover:bg-white/10 transition-colors mr-2 cursor-pointer"
-                    aria-label="Go Back"
+                    aria-label={t("dWithdrawals.go_back")}
                 >
                     <ArrowLeft className="text-white" size={18} />
                 </button>
-                <h1 className="text-sm font-black leading-tight tracking-tight">Money Request</h1>
+                <h1 className="text-sm font-black leading-tight tracking-tight">{t("dWithdrawals.money_request")}</h1>
             </div>
 
             <div className="p-4 max-w-lg mx-auto space-y-4 relative z-10">
@@ -109,16 +113,16 @@ const Withdrawals = () => {
                     <div className="absolute bottom-0 left-0 w-20 h-20 bg-black/5 rounded-full -ml-6 -mb-6 blur-lg" />
 
                     <div className="relative z-10">
-                        <p className="text-white/60 text-[9px] font-bold uppercase tracking-wider mb-1 opacity-90">Available for Withdrawal</p>
+                        <p className="text-white/60 text-[9px] font-bold uppercase tracking-wider mb-1 opacity-90">{t("dWithdrawals.available_for_withdrawal")}</p>
                         <h2 className="text-3xl font-black flex items-baseline leading-none tracking-tight">
                             <span className="text-xl mr-0.5 font-bold">₹</span>
-                            {stats.availableBalance.toLocaleString()}
+                            {stats.availableBalance.toLocaleString(deliveryLocale())}
                         </h2>
 
                         <div className="mt-4 flex items-center justify-between text-white bg-white/10 p-2.5 rounded-xl backdrop-blur-md border border-white/10">
                             <div className="flex items-center">
                                 <Clock size={14} className="mr-1.5 opacity-80" />
-                                <span className="text-[10px] font-bold">Pending: ₹{stats.pendingWithdrawals.toLocaleString()}</span>
+                                <span className="text-[10px] font-bold">{t("dWithdrawals.pending", { v1: stats.pendingWithdrawals.toLocaleString(deliveryLocale()) })}</span>
                             </div>
                             <ArrowUpRight size={14} className="opacity-80" />
                         </div>
@@ -131,13 +135,13 @@ const Withdrawals = () => {
                         <div className="p-1.5 bg-[#1A4516]/5 text-[#1A4516] rounded-lg">
                             <Wallet size={16} />
                         </div>
-                        <h3 className="font-bold text-gray-800 text-xs">Request Fund Transfer</h3>
+                        <h3 className="font-bold text-gray-800 text-xs">{t("dWithdrawals.request_fund_transfer")}</h3>
                     </div>
 
                     <div className="space-y-3.5">
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
-                                Amount to Withdraw
+                               {t("dWithdrawals.amount_to_withdraw")}
                             </label>
                             <div className="relative">
                                 <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -154,7 +158,7 @@ const Withdrawals = () => {
                         <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100/50 rounded-xl">
                             <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={14} />
                             <p className="text-[10px] text-amber-700 font-medium leading-normal">
-                                Processing may take 24-48 business hours. Funds will be transferred to your primary bank account.
+                               {t("dWithdrawals.processing_may_take_24_48")}
                             </p>
                         </div>
 
@@ -166,7 +170,7 @@ const Withdrawals = () => {
                             {loading ? (
                                 <RotateCw className="animate-spin mr-1.5 text-white" size={14} />
                             ) : null}
-                            {loading ? "PROCESSING..." : "SUBMIT REQUEST"}
+                            {loading ? t("dWithdrawals.processing") : t("dWithdrawals.submit_request")}
                         </Button>
                     </div>
                 </Card>
@@ -175,14 +179,14 @@ const Withdrawals = () => {
                 <div className="space-y-3">
                     <div className="flex items-center justify-between px-1 pt-1">
                         <h3 className="font-bold text-gray-400 flex items-center gap-2 uppercase tracking-wider text-[10px]">
-                            Transfer History
+                           {t("dWithdrawals.transfer_history")}
                         </h3>
                         <button
                             onClick={fetchData}
                             className="text-[#1A4516] text-[10px] font-bold flex items-center gap-1 uppercase hover:underline cursor-pointer"
                         >
                             <RotateCw size={10} className={fetching ? "animate-spin" : ""} />
-                            Refresh
+                           {t("dWithdrawals.refresh")}
                         </button>
                     </div>
 
@@ -208,21 +212,21 @@ const Withdrawals = () => {
                                                     <Clock size={14} />}
                                         </div>
                                         <div>
-                                            <p className="font-extrabold text-xs text-gray-900">₹{Math.abs(item.amount).toLocaleString()}</p>
+                                            <p className="font-extrabold text-xs text-gray-900">₹{Math.abs(item.amount).toLocaleString(deliveryLocale())}</p>
                                             <p className="text-[9px] font-bold text-gray-400 mt-0.5">
-                                                {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} • {item.id}
+                                                {new Date(item.date).toLocaleDateString(deliveryLocale(), { day: 'numeric', month: 'short' })} • {item.id}
                                             </p>
                                         </div>
                                     </div>
                                     <Badge variant={item.status === 'Settled' ? 'success' : item.status === 'Failed' ? 'destructive' : 'warning'}>
-                                        {item.status.toUpperCase()}
+                                        {translateLabel(t, item.status).toUpperCase()}
                                     </Badge>
                                 </motion.div>
                             ))
                         ) : (
                             <div className="bg-white p-8 rounded-xl border border-dashed border-gray-200 text-center">
                                 <Clock className="mx-auto text-gray-300 mb-1.5" size={24} />
-                                <p className="text-[10px] text-gray-400 font-bold tracking-tight">No history found</p>
+                                <p className="text-[10px] text-gray-400 font-bold tracking-tight">{t("dWithdrawals.no_history_found")}</p>
                             </div>
                         )}
                     </div>
