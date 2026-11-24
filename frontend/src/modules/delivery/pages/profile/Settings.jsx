@@ -4,8 +4,10 @@ import { ArrowLeft, Bell, Smartphone, Moon, Globe, ChevronRight } from "lucide-r
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { toast } from "sonner";
+import { useDeliveryTranslation as useTranslation } from "../../i18n/useDeliveryTranslation";
 
 const Settings = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [settings, setSettings] = useState({
@@ -19,7 +21,7 @@ const Settings = () => {
 
   const toggleSetting = (key) => {
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
-    toast.success("Settings updated");
+    toast.success(t("dSettings.settings_updated"));
   };
 
   return (
@@ -33,20 +35,20 @@ const Settings = () => {
           >
             <ArrowLeft size={20} className="text-gray-600" />
           </button>
-          <h1 className="ds-h3 text-gray-900">App Settings</h1>
+          <h1 className="ds-h3 text-gray-900">{t("dSettings.app_settings")}</h1>
         </div>
       </div>
 
       <div className="p-4 max-w-lg mx-auto space-y-6">
         {/* Notifications */}
         <section>
-          <h2 className="text-sm uppercase font-bold text-gray-500 mb-3 tracking-wider ml-1">Notifications</h2>
+          <h2 className="text-sm uppercase font-bold text-gray-500 mb-3 tracking-wider ml-1">{t("dSettings.notifications")}</h2>
           <Card className="divide-y divide-gray-100">
             <div className="p-4 flex justify-between items-center cursor-pointer" onClick={() => toggleSetting('pushNotifications')}>
               <div className="flex items-center">
                 <Bell size={20} className="text-gray-400 mr-3" />
                 <div>
-                  <h4 className="font-medium text-gray-800">Push Notifications</h4>
+                  <h4 className="font-medium text-gray-800">{t("dSettings.push_notifications")}</h4>
                 </div>
               </div>
               <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${settings.pushNotifications ? 'bg-primary' : 'bg-gray-300'}`}>
@@ -58,7 +60,7 @@ const Settings = () => {
               <div className="flex items-center">
                 <Smartphone size={20} className="text-gray-400 mr-3" />
                 <div>
-                  <h4 className="font-medium text-gray-800">Sound & Vibration</h4>
+                  <h4 className="font-medium text-gray-800">{t("dSettings.sound_vibration")}</h4>
                 </div>
               </div>
               <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${settings.sound ? 'bg-primary' : 'bg-gray-300'}`}>
@@ -71,9 +73,9 @@ const Settings = () => {
 
         <div className="text-center pt-8">
           <Button variant="ghost" className="text-red-500 hover:bg-red-50 hover:text-red-600">
-            Clear Cache (45 MB)
+           {t("dSettings.clear_cache_45_mb")}
           </Button>
-          <p className="text-xs text-gray-400 mt-2">App Version 1.2.0 (Build 450)</p>
+          <p className="text-xs text-gray-400 mt-2">{t("dSettings.app_version_1_2_0")}</p>
         </div>
       </div>
     </div>

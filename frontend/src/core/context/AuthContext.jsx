@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+﻿import { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import axiosInstance from '@core/api/axios';
 import { getWithDedupe } from '@core/api/dedupe';
 import { getStoredAuthToken } from '@core/utils/authStorage';
@@ -26,7 +26,17 @@ const ROLE_STORAGE_KEYS = {
 const LEGACY_TOKEN_KEY = STORAGE_KEYS.AUTH_LEGACY;
 
 export const AuthProvider = ({ children }) => {
-    const getSafeToken = (key) => getStoredAuthToken(ROLE_STORAGE_KEYS[key]);
+    // Tokens the server rejected (401/404 on profile). Never retried or restored,
+    // otherwise a stale token loops: fetch -> 404 -> cleared -> re-synced -> fetch.
+    const rejectedTokensRef = useRef(new Set());
+    const getSafeToken = (key) => {
+        const t = getStoredAuthToken(ROLE_STORAGE_KEYS[key]);
+        if (t && rejectedTokensRef.current.has(t)) {
+            rawRemove(ROLE_STORAGE_KEYS[key]);
+            return null;
+        }
+        return t;
+    };
 
     const [authData, setAuthData] = useState({
         customer: getSafeToken('customer'),
@@ -160,6 +170,11 @@ export const AuthProvider = ({ children }) => {
     // Fetch user profile on mount or token change
     useEffect(() => {
         const fetchProfile = async () => {
+            if (token && rejectedTokensRef.current.has(token)) {
+                setUser(null);
+                setIsLoading(false);
+                return;
+            }
             if (token) {
                 try {
                     setIsLoading(true);
@@ -171,6 +186,7 @@ export const AuthProvider = ({ children }) => {
                     console.error('Failed to fetch profile:', error);
                     const status = error.response?.status;
                     if (status === 401 || status === 404) {
+                        rejectedTokensRef.current.add(token);
                         const storageKey = ROLE_STORAGE_KEYS[currentRole];
                         if (storageKey) {
                             rawRemove(storageKey);

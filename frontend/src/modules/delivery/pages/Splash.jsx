@@ -2,8 +2,10 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Truck } from "lucide-react";
 import { useSettings } from "@core/context/SettingsContext";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 const Splash = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
@@ -28,13 +30,13 @@ const Splash = () => {
         </div>
         <h1 className="text-4xl font-bold tracking-tight mb-2">{appName}</h1>
         <p className="text-lg font-medium opacity-90">
-          Quick Commerce Delivery
+         {t("dSplash.quick_commerce_delivery")}
         </p>
       </div>
 
       <div className="absolute bottom-12 text-center w-full z-10 px-6">
-        <p className="text-xl font-bold mb-1">Deliver Faster.</p>
-        <p className="text-xl font-bold text-white/80">Earn Better.</p>
+        <p className="text-xl font-bold mb-1">{t("dSplash.deliver_faster")}</p>
+        <p className="text-xl font-bold text-white/80">{t("dSplash.earn_better")}</p>
 
         {/* Minimal Loading Animation */}
         <div className="mt-8 flex justify-center space-x-2">

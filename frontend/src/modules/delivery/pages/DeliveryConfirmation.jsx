@@ -21,8 +21,10 @@ import { compressImage } from "@core/utils/imageUtils";
 import { toast } from "sonner";
 import DeliverySlideButton from "../components/DeliverySlideButton";
 import OtpInput from "../components/OtpInput";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 const DeliveryConfirmation = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
@@ -51,7 +53,7 @@ const DeliveryConfirmation = () => {
           setOrder(res.data.result);
         }
       } catch (error) {
-        toast.error("Failed to load order details");
+        toast.error(t("dDeliveryConfirmation.failed_to_load_order_details"));
       } finally {
         setLoading(false);
       }
@@ -90,7 +92,7 @@ const DeliveryConfirmation = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center">{t("dDeliveryConfirmation.loading")}</div>;
   }
 
   const orderAmount = order?.pricing?.total || 0;
@@ -111,15 +113,13 @@ const DeliveryConfirmation = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-3xl font-bold text-gray-900 mb-2">
-          Delivery Successful!
+         {t("dDeliveryConfirmation.delivery_successful")}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="text-gray-500 mb-8">
-          Order #{formatOrderId(orderId)} has been delivered.
-        </motion.p>
+          className="text-gray-500 mb-8">{t("dDeliveryConfirmation.order_has_been_delivered", { v1: formatOrderId(orderId) })}</motion.p>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -127,7 +127,7 @@ const DeliveryConfirmation = () => {
           <Button
             onClick={() => navigate("/delivery/dashboard")}
             className="px-8">
-            Back to Dashboard
+           {t("dDeliveryConfirmation.back_to_dashboard")}
           </Button>
         </motion.div>
       </div>
@@ -138,8 +138,8 @@ const DeliveryConfirmation = () => {
     <div className="bg-gray-50/50 min-h-screen flex flex-col p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6 pt-2 sticky top-0 z-50">
-        <h1 className="ds-h2 text-gray-900">Confirm Delivery</h1>
-        <div className="text-xs font-bold text-gray-400">Order: #{formatOrderId(orderId)}</div>
+        <h1 className="ds-h2 text-gray-900">{t("dDeliveryConfirmation.confirm_delivery")}</h1>
+        <div className="text-xs font-bold text-gray-400">{t("dDeliveryConfirmation.order", { v1: formatOrderId(orderId) })}</div>
       </div>
 
       <div className="flex-1 space-y-6 max-w-lg mx-auto w-full">
@@ -153,11 +153,11 @@ const DeliveryConfirmation = () => {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-                  {isPrepaid ? "Payment Status" : "Amount to Collect"}
+                  {isPrepaid ? t("dDeliveryConfirmation.payment_status") : t("dDeliveryConfirmation.amount_to_collect")}
                 </p>
                 <h2
                   className={`text-4xl font-extrabold ${isPrepaid ? "text-brand-600" : "text-orange-600"}`}>
-                  {isPrepaid ? "PAID" : `₹${orderAmount}`}
+                  {isPrepaid ? t("dDeliveryConfirmation.paid") : `₹${orderAmount}`}
                 </h2>
               </div>
               <div
@@ -173,7 +173,7 @@ const DeliveryConfirmation = () => {
             {!isPrepaid && (
               <div className="bg-white p-4 rounded-xl border border-orange-100 shadow-sm mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cash Received
+                 {t("dDeliveryConfirmation.cash_received")}
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -195,7 +195,7 @@ const DeliveryConfirmation = () => {
                     animate={{ opacity: 1, height: "auto" }}
                     className="mt-3 p-2 bg-brand-50 border border-brand-100 rounded-lg text-sm text-brand-700 font-medium flex items-center">
                     <CheckCircle size={16} className="mr-2" />
-                    Return Change:{" "}
+                   {t("dDeliveryConfirmation.return_change")}{" "}
                     <span className="font-bold ml-1">
                       ₹{Number(cashCollected) - orderAmount}
                     </span>
@@ -215,10 +215,10 @@ const DeliveryConfirmation = () => {
             <Card className="p-6">
               <div className="flex items-center mb-4 text-gray-800">
                 <ShieldCheck className="mr-2 text-primary" size={24} />
-                <h3 className="font-bold text-lg">Generate Delivery OTP</h3>
+                <h3 className="font-bold text-lg">{t("dDeliveryConfirmation.generate_delivery_otp")}</h3>
               </div>
               <p className="text-gray-500 text-sm mb-4">
-                Slide the button below to generate an OTP for the customer. You must be within 0-120 meters of the delivery location.
+               {t("dDeliveryConfirmation.slide_the_button_below_to")}
               </p>
 
               <DeliverySlideButton
@@ -279,7 +279,7 @@ const DeliveryConfirmation = () => {
               <div className="relative">
                 <img
                   src={deliveryPhotoPreview}
-                  alt="Delivery proof"
+                  alt={t("dDeliveryConfirmation.delivery_proof")}
                   className="w-full h-48 object-cover"
                 />
                 <button
@@ -291,7 +291,7 @@ const DeliveryConfirmation = () => {
                 </button>
                 <div className="p-3 bg-green-50 flex items-center gap-2">
                   <CheckCircle size={16} className="text-green-600" />
-                  <span className="text-sm font-medium text-green-700">Photo captured</span>
+                  <span className="text-sm font-medium text-green-700">{t("dDeliveryConfirmation.photo_captured")}</span>
                 </div>
               </div>
             ) : (
@@ -301,8 +301,8 @@ const DeliveryConfirmation = () => {
                 className="w-full p-4 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 <Camera size={32} className="mb-2 text-gray-400" />
-                <span className="font-medium text-sm">Take Delivery Photo (Optional)</span>
-                <span className="text-xs text-gray-400 mt-0.5">Opens camera directly</span>
+                <span className="font-medium text-sm">{t("dDeliveryConfirmation.take_delivery_photo_optional")}</span>
+                <span className="text-xs text-gray-400 mt-0.5">{t("dDeliveryConfirmation.opens_camera_directly")}</span>
               </button>
             )}
           </Card>

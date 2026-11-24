@@ -38,6 +38,10 @@ import {
   leaveOrderRoom,
   onOrderStatusUpdate,
 } from "@/core/services/orderSocket";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
+import { localizeAddress } from "../i18n/format";
+import deliveryI18n from "../i18n";
+import { deliveryLocale } from "../i18n/format";
 
 const getPublicStatusStage = (internalStep) => {
   if (internalStep >= 4) return 3;
@@ -62,9 +66,9 @@ const orderOfReturn = (s) => {
 };
 
 const PUBLIC_STATUS_STEPS = [
-  { id: 1, label: "Confirmed" },
-  { id: 2, label: "Out for Delivery" },
-  { id: 3, label: "Delivered" },
+  { id: 1, labelKey: "dOrderDetails.step_confirmed" },
+  { id: 2, labelKey: "dOrderDetails.step_out_for_delivery" },
+  { id: 3, labelKey: "dOrderDetails.step_delivered" },
 ];
 
 const getPersistedRiderStep = (order, viewType) => {
@@ -137,15 +141,15 @@ const distanceMeters = (from, to) => {
 };
 
 const formatArrivalTime = (arrivalMs) =>
-  new Date(arrivalMs).toLocaleTimeString([], {
+  new Date(arrivalMs).toLocaleTimeString(deliveryLocale(), {
     hour: "numeric",
     minute: "2-digit",
   });
 
 const formatArrivingIn = (minutes) => {
-  if (!Number.isFinite(minutes) || minutes < 0) return "Soon";
+  if (!Number.isFinite(minutes) || minutes < 0) return deliveryI18n.t("dOrderDetails.soon");
   const rounded = Math.max(1, Math.round(minutes));
-  return `${rounded} min${rounded === 1 ? "" : "s"}`;
+  return deliveryI18n.t("dOrderDetails.min_count", { count: rounded });
 };
 
 const formatDistance = (meters) => {
@@ -153,7 +157,7 @@ const formatDistance = (meters) => {
   if (meters < 1000) {
     return `${Math.max(50, Math.round(meters / 10) * 10)} m`;
   }
-  return `${(meters / 1000).toFixed(meters >= 10000 ? 1 : 2)} km`;
+  return deliveryI18n.t("common.km", { value: (meters / 1000).toFixed(meters >= 10000 ? 1 : 2) });
 };
 
 const estimateMinutesFromDistance = (meters) => {
@@ -162,6 +166,7 @@ const estimateMinutesFromDistance = (meters) => {
 };
 
 const OrderDetails = () => {
+  const { t } = useTranslation();
   const { orderId } = useParams();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -257,7 +262,7 @@ const OrderDetails = () => {
       setOrder(ord);
       setStep(getPersistedRiderStep(ord, viewType));
     } catch (error) {
-      toast.error("Failed to fetch order details");
+      toast.error(t("dOrderDetails.failed_to_fetch_order_details"));
       navigate("/delivery/dashboard");
     } finally {
       setLoading(false);
@@ -300,7 +305,7 @@ const OrderDetails = () => {
       return [
         {
           id: 1,
-          label: "Task Accepted",
+          label: t("dOrderDetails.task_accepted"),
           action: "NAVIGATE TO CUSTOMER",
           color: "bg-brand-500",
           bg: "bg-brand-50",
@@ -308,7 +313,7 @@ const OrderDetails = () => {
         },
         {
           id: 2,
-          label: "At Customer",
+          label: t("dOrderDetails.at_customer"),
           action: "UPLOAD PROOF & OTP",
           color: "bg-orange-500",
           bg: "bg-orange-50",
@@ -316,7 +321,7 @@ const OrderDetails = () => {
         },
         {
           id: 3,
-          label: "In Transit",
+          label: t("dOrderDetails.in_transit"),
           action: "NAVIGATE TO SELLER",
           color: "bg-purple-600",
           bg: "bg-purple-50",
@@ -324,7 +329,7 @@ const OrderDetails = () => {
         },
         {
           id: 4,
-          label: "At Seller",
+          label: t("dOrderDetails.at_seller"),
           action: "SELLER OTP VERIFY",
           color: "bg-green-600",
           bg: "bg-green-50",
@@ -332,7 +337,7 @@ const OrderDetails = () => {
         },
         {
           id: 5,
-          label: "Completed",
+          label: t("dOrderDetails.completed"),
           action: "DONE",
           color: "bg-brand-700",
           bg: "bg-brand-50",
@@ -344,7 +349,7 @@ const OrderDetails = () => {
     return [
       {
         id: 1,
-        label: "Navigate to Store",
+        label: t("dOrderDetails.navigate_to_store"),
         action: "ARRIVED AT STORE",
         color: "bg-black ",
         bg: "bg-brand-50",
@@ -352,7 +357,7 @@ const OrderDetails = () => {
       },
       {
         id: 2,
-        label: "At Store",
+        label: t("dOrderDetails.at_store"),
         action: "PICKED UP ORDER",
         color: "bg-orange-500",
         bg: "bg-orange-50",
@@ -360,7 +365,7 @@ const OrderDetails = () => {
       },
       {
         id: 3,
-        label: "Start Delivery",
+        label: t("dOrderDetails.start_delivery"),
         action: "START DELIVERY",
         color: "bg-black ",
         bg: "bg-brand-50",
@@ -368,7 +373,7 @@ const OrderDetails = () => {
       },
       {
         id: 4,
-        label: "Delivering",
+        label: t("dOrderDetails.delivering"),
         action: "DELIVERED",
         color: "bg-brand-700",
         bg: "bg-brand-50",
@@ -389,12 +394,12 @@ const OrderDetails = () => {
 
   const summary = useMemo(() => {
     const actualDist = order?.distanceSnapshot?.distanceKmActual || order?.paymentBreakdown?.distanceKmActual;
-    const finalDistanceStr = actualDist ? `${actualDist >= 10 ? actualDist.toFixed(1) : actualDist.toFixed(2)} km` : "0 km";
+    const finalDistanceStr = actualDist ? t("common.km", { value: actualDist >= 10 ? actualDist.toFixed(1) : actualDist.toFixed(2) }) : t("common.km", { value: 0 });
 
     if (publicStatusStage === 3 || step >= 4) {
       return {
-        arrivalTimeText: "Arrived",
-        arrivingInText: "Delivered",
+        arrivalTimeText: t("dOrderDetails.arrived"),
+        arrivingInText: t("dOrderDetails.delivered"),
         totalDistanceText: finalDistanceStr,
       };
     }
@@ -473,7 +478,7 @@ const OrderDetails = () => {
           setIsSlideComplete(false);
           setDragX(0);
           window.scrollTo({ top: 0, behavior: "smooth" });
-          toast.success("Mark: Arrived at customer. Upload proof to continue.");
+          toast.success(t("dOrderDetails.mark_arrived_at_customer_upload"));
           return;
         } else if (step === 3) {
           // In transit → Arrived at Seller: advance UI to show seller OTP
@@ -481,7 +486,7 @@ const OrderDetails = () => {
           setIsSlideComplete(false);
           setDragX(0);
           window.scrollTo({ top: 0, behavior: "smooth" });
-          toast.success("Mark: Arrived at seller. Request OTP to complete.");
+          toast.success(t("dOrderDetails.mark_arrived_at_seller_request"));
           return;
         } else {
           // Steps 2 and 4 are handled by OTP flows, not the slide button
@@ -503,7 +508,7 @@ const OrderDetails = () => {
               ? { lat: destCoords[1], lng: destCoords[0] } 
               : { lat: 22.7196, lng: 75.8577 }; // fallback
           } else {
-            throw new Error("Location unavailable. Please enable GPS to proceed.");
+            throw new Error(t("dOrderDetails.location_unavailable_please_enable_gps"));
           }
         }
 
@@ -514,17 +519,17 @@ const OrderDetails = () => {
           });
           persistStep(2);
           await fetchOrderDetails();
-          toast.success(`${currentStep.action} Confirmed!`);
+          toast.success(t("dOrderDetails.confirmed", { action: currentStep.action }));
         } else if (step === 2) {
           await deliveryApi.requestSellerPickupOtp(order.orderId, {
             lat: location.lat,
             lng: location.lng,
           });
           setShowSellerOtpInput(true);
-          toast.success("OTP sent to seller! Please enter it to confirm pickup.");
+          toast.success(t("dOrderDetails.otp_sent_to_seller_please"));
         } else if (step === 3) {
           persistStep(4);
-          toast.success(`${currentStep.action} Confirmed!`);
+          toast.success(t("dOrderDetails.confirmed", { action: currentStep.action }));
         } else {
           navigate(`/delivery/confirm-delivery/${order.orderId}`);
         }
@@ -535,7 +540,7 @@ const OrderDetails = () => {
       }
     } catch (error) {
       console.error("Failed to update status", error);
-      const message = error?.response?.data?.message || error?.message || (typeof error === "string" ? error : "Failed to update status");
+      const message = error?.response?.data?.message || error?.message || (typeof error === "string" ? error : t("dOrderDetails.failed_to_update_status"));
       toast.error(message);
       setIsSlideComplete(false);
       setDragX(0);
@@ -593,7 +598,7 @@ const OrderDetails = () => {
     }
     
     setShowOtpInput(true);
-    toast.success("OTP sent to customer!");
+    toast.success(t("dOrderDetails.otp_sent_to_customer"));
   };
 
   const handleOtpGenerationError = (error) => {
@@ -614,13 +619,13 @@ const OrderDetails = () => {
       persistStep(3);
       await fetchOrderDetails();
       window.scrollTo({ top: 0, behavior: "smooth" });
-      toast.success("✅ Pickup verified! Navigate to seller for drop-off.");
+      toast.success(t("dOrderDetails.pickup_verified_navigate_to_seller"));
     } else {
       // Standard delivery OTP → order is delivered, hide map immediately
       persistStep(4);
       await fetchOrderDetails();
       window.scrollTo({ top: 0, behavior: "smooth" });
-      toast.success("✅ Order delivered successfully!");
+      toast.success(t("dOrderDetails.order_delivered_successfully"));
     }
   };
 
@@ -638,7 +643,7 @@ const OrderDetails = () => {
     persistStep(3);
     await fetchOrderDetails();
     window.scrollTo({ top: 0, behavior: "smooth" });
-    toast.success("✅ Pickup verified! Navigate to customer for drop-off.");
+    toast.success(t("dOrderDetails.pickup_verified_navigate_to_customer"));
   };
 
   const handleAcceptReturn = async () => {
@@ -646,11 +651,11 @@ const OrderDetails = () => {
       setAccepting(true);
       const res = await deliveryApi.acceptReturnPickup(order.orderId);
       await fetchOrderDetails();
-      toast.success("Return pickup task accepted!");
+      toast.success(t("dOrderDetails.return_pickup_task_accepted"));
       persistStep(1);
     } catch (error) {
       console.error("Failed to accept return pickup", error);
-      toast.error(error.response?.data?.message || "Failed to accept task");
+      toast.error(error.response?.data?.message || t("dOrderDetails.failed_to_accept_task"));
     } finally {
       setAccepting(false);
     }
@@ -699,7 +704,7 @@ const OrderDetails = () => {
           >
             <ChevronDown className="rotate-90 text-slate-800" size={24} />
           </Button>
-          <h1 className="text-base font-bold text-slate-800">Order #{orderShortId}</h1>
+          <h1 className="text-base font-bold text-slate-800">{t("dOrderDetails.order", { orderShortId })}</h1>
         </div>
         <div className="flex flex-col items-end">
           <span
@@ -711,21 +716,20 @@ const OrderDetails = () => {
               }`}
           >
             {isReturn ? (
-              publicStatusStage === 1 ? "Return Assigned" :
-                publicStatusStage === 2 ? "Out for Pickup" :
-                  "Return Received"
+              publicStatusStage === 1 ? t("dOrderDetails.return_assigned") :
+                publicStatusStage === 2 ? t("dOrderDetails.out_for_pickup") :
+                  t("dOrderDetails.return_received")
             ) : (
-              publicStatusStage === 1 ? "Confirmed" :
-                publicStatusStage === 2 ? "Out for Delivery" :
-                  "Delivered"
+              publicStatusStage === 1 ? t("dOrderDetails.confirmed_2") :
+                publicStatusStage === 2 ? t("dOrderDetails.out_for_delivery") :
+                  t("dOrderDetails.delivered")
             )}
           </span>
           {(order.payment?.method?.toLowerCase() === "cash" ||
             order.payment?.method?.toLowerCase() === "cod") &&
             !isReturn &&
             step < 4 && (
-              <span className={`mt-1 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm animate-pulse bg-orange-600`}>
-                COLLECT CASH: ₹{Math.max(0, (order.pricing?.total || 0) - (order.pricing?.walletAmount || 0))}
+              <span className={`mt-1 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm animate-pulse bg-orange-600`}>{t("dOrderDetails.collect_cash", { v1: Math.max(0, (order.pricing?.total || 0) - (order.pricing?.walletAmount || 0)) })}
               </span>
             )}
         </div>
@@ -750,17 +754,17 @@ const OrderDetails = () => {
                 </div>
                 <div>
                   <h2 className="text-2xl font-black mb-1 uppercase tracking-tight text-white">
-                    New Return Task
+                    {t("dOrderDetails.new_return_task")}
                   </h2>
                   <p className="text-brand-100 text-sm font-medium leading-relaxed">
-                    Pick up product from customer and deliver back to seller.
+                    {t("dOrderDetails.pick_up_product_from_customer")}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 w-full pt-4">
                   <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10">
                     <p className="text-[10px] uppercase font-bold text-brand-200 mb-1">
-                      Earnings
+                      {t("dOrderDetails.earnings")}
                     </p>
                     <p className="text-xl font-black text-white">
                       ₹{order.returnDeliveryCommission || 0}
@@ -768,7 +772,7 @@ const OrderDetails = () => {
                   </div>
                   <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10">
                     <p className="text-[10px] uppercase font-bold text-brand-200 mb-1">
-                      Distance
+                      {t("dOrderDetails.distance")}
                     </p>
                     <p className="text-xl font-black text-white">
                       {summary.totalDistanceText}
@@ -779,7 +783,7 @@ const OrderDetails = () => {
                 {/* Product Detail List */}
                 <div className="w-full space-y-3 pt-2">
                   <p className="text-[10px] uppercase font-bold text-brand-200 text-left px-1">
-                    Items to pick up
+                    {t("dOrderDetails.items_to_pick_up")}
                   </p>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar-dark text-left">
                     {(isReturn ? order.returnItems : order.items)?.map((item, i) => (
@@ -803,14 +807,14 @@ const OrderDetails = () => {
                               </div>
                             </div>
                           )}
-                          <p className="text-[10px] text-brand-200 font-medium">Qty: {item.quantity}</p>
+                          <p className="text-[10px] text-brand-200 font-medium">{t("dOrderDetails.qty", { quantity: item.quantity })}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                   {order.returnReason && (
                     <div className="bg-brand-900/30 rounded-xl p-3 border border-brand-400/20 text-left">
-                      <p className="text-[10px] uppercase font-bold text-brand-200 mb-1">Reason for return</p>
+                      <p className="text-[10px] uppercase font-bold text-brand-200 mb-1">{t("dOrderDetails.reason_for_return")}</p>
                       <p className="text-xs text-white leading-relaxed line-clamp-2">{order.returnReason}</p>
                       {order.returnReasonDetail && (
                         <p className="text-[10px] text-brand-100 italic mt-1 line-clamp-2">"{order.returnReasonDetail}"</p>
@@ -819,7 +823,7 @@ const OrderDetails = () => {
                       {order.returnImages?.length > 0 && (
                         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
                           {order.returnImages.map((img, idx) => (
-                            <img key={idx} src={img} alt={`Return Proof ${idx}`} className="w-10 h-10 rounded-lg object-cover border border-white/20 shrink-0" />
+                            <img key={idx} src={img} alt={t("dOrderDetails.return_proof", { idx })} className="w-10 h-10 rounded-lg object-cover border border-white/20 shrink-0" />
                           ))}
                         </div>
                       )}
@@ -833,7 +837,7 @@ const OrderDetails = () => {
                     onClick={handleAcceptReturn}
                     className="w-full bg-white text-slate-900 hover:bg-slate-50 h-14 rounded-2xl font-black text-lg shadow-lg border-none"
                   >
-                    ACCEPT TASK
+                    {t("dOrderDetails.accept_task")}
                   </Button>
                 </div>
               </div>
@@ -848,7 +852,7 @@ const OrderDetails = () => {
             >
               <AlertTriangle className="mr-3" size={20} />
               <p className="font-bold text-sm">
-                This task has been accepted by another partner.
+                {t("dOrderDetails.this_task_has_been_accepted")}
               </p>
             </motion.div>
           )}
@@ -884,7 +888,7 @@ const OrderDetails = () => {
             </div>
             <div>
               <p className="text-[11px] font-bold text-[#C85D00] uppercase tracking-wider">
-                Estimated Time
+                {t("dOrderDetails.estimated_time")}
               </p>
               <p className="text-xl font-black text-[#8B3F00] leading-none">
                 {summary.arrivalTimeText}
@@ -895,15 +899,14 @@ const OrderDetails = () => {
             {!(publicStatusStage === 3 || step >= 4) && (
               <div>
                 <p className="text-[11px] font-bold text-[#C85D00] uppercase tracking-wider">
-                  Arriving in
+                  {t("dOrderDetails.arriving_in")}
                 </p>
                 <p className="text-xl font-black text-[#8B3F00] leading-none">
                   {summary.arrivingInText}
                 </p>
               </div>
             )}
-            <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-bold text-[#C87400] ring-1 ring-[#F4D98B]">
-              Total distance: {summary.totalDistanceText}
+            <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-bold text-[#C87400] ring-1 ring-[#F4D98B]">{t("dOrderDetails.total_distance", { totalDistanceText: summary.totalDistanceText })}
             </div>
           </div>
         </motion.div>
@@ -920,7 +923,7 @@ const OrderDetails = () => {
             </div>
             <div>
               <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">
-                Expected Earnings
+                {t("dOrderDetails.expected_earnings")}
               </p>
               <p className="text-xl font-black text-emerald-700 leading-none">
                 ₹{isReturn ? (order.returnDeliveryCommission || 0) : (order.paymentBreakdown?.riderPayoutTotal || 0)}
@@ -929,7 +932,7 @@ const OrderDetails = () => {
           </div>
           <div className="text-right flex flex-col items-end gap-2">
             <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-bold text-emerald-600 ring-1 ring-emerald-200">
-              + Tip if applicable
+              {t("dOrderDetails.tip_if_applicable")}
             </div>
           </div>
         </motion.div>
@@ -945,7 +948,7 @@ const OrderDetails = () => {
               }}
               transition={{ duration: 0.5, ease: "easeInOut" }}
             />
-            {PUBLIC_STATUS_STEPS.map(({ id, label }) => (
+            {PUBLIC_STATUS_STEPS.map(({ id, labelKey }) => (
               <motion.div
                 key={id}
                 initial={false}
@@ -956,16 +959,16 @@ const OrderDetails = () => {
                   color: id <= publicStatusStage ? "#ffffff" : "#9ca3af",
                 }}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 z-10 shadow-sm"
-                aria-label={label}
+                aria-label={t(labelKey)}
               >
                 {id < publicStatusStage ? <CheckCircle size={16} /> : id}
               </motion.div>
             ))}
           </div>
           <div className="flex justify-between mt-2 text-xs text-slate-500 font-medium px-1">
-            {PUBLIC_STATUS_STEPS.map(({ id, label }) => (
+            {PUBLIC_STATUS_STEPS.map(({ id, labelKey }) => (
               <span key={id} className="text-center">
-                {label}
+                {t(labelKey)}
               </span>
             ))}
           </div>
@@ -993,10 +996,10 @@ const OrderDetails = () => {
                     </div>
                     <div>
                       <h2 className="font-bold text-gray-800">
-                        {isReturn ? "Customer Pickup" : "Pickup Location"}
+                        {isReturn ? t("dOrderDetails.customer_pickup") : t("dOrderDetails.pickup_location")}
                       </h2>
                       <p className="text-xs text-orange-600 font-medium">
-                        {isReturn ? "Customer Address" : "Store Location"}
+                        {isReturn ? t("dOrderDetails.customer_address") : t("dOrderDetails.store_location")}
                       </p>
                     </div>
                   </div>
@@ -1028,17 +1031,17 @@ const OrderDetails = () => {
                 <div className="p-4">
                   <h3 className="font-bold text-lg mb-1">
                     {isReturn
-                      ? order.address?.name || "Customer"
-                      : order.seller?.shopName || "Seller Store"}
+                      ? order.address?.name || t("dOrderDetails.customer")
+                      : order.seller?.shopName || t("dOrderDetails.seller_store")}
                   </h3>
                   <p className="text-gray-500 text-sm mb-4 leading-relaxed">
                     {isReturn
-                      ? order.address?.address || "Address not available"
-                      : order.seller?.address || "Address not available"}
+                      ? order.address?.address || t("dOrderDetails.address_not_available")
+                      : order.seller?.address || t("dOrderDetails.address_not_available")}
                   </p>
                   <Button onClick={handleNavigate} className="w-full" variant="outline">
                     <Navigation size={18} className="mr-2" />{" "}
-                    {isReturn ? "Navigate to Customer" : "Navigate to Store"}
+                    {isReturn ? t("dOrderDetails.navigate_to_customer") : t("dOrderDetails.navigate_to_store")}
                   </Button>
                 </div>
               </Card>
@@ -1067,7 +1070,7 @@ const OrderDetails = () => {
                     </div>
                     <div>
                       <h2 className="font-bold text-gray-800">
-                        {isReturn ? "Return Drop" : "Customer Details"}
+                        {isReturn ? t("dOrderDetails.return_drop") : t("dOrderDetails.customer_details")}
                       </h2>
                       <div className="flex items-center space-x-2 mt-0.5">
                         <p
@@ -1077,9 +1080,9 @@ const OrderDetails = () => {
                               : "bg-brand-50 text-brand-700 border-brand-200"
                             }`}
                         >
-                          {order.payment?.method?.toUpperCase() || "PENDING"}
+                          {order.payment?.method?.toUpperCase() || t("dOrderDetails.pending")}
                         </p>
-                        <p className="text-[10px] text-gray-400 font-medium">Bill: Rs.{order.pricing?.total}</p>
+                        <p className="text-[10px] text-gray-400 font-medium">{t("dOrderDetails.bill_rs", { total: order.pricing?.total })}</p>
                       </div>
                     </div>
                   </div>
@@ -1113,18 +1116,18 @@ const OrderDetails = () => {
                 <div className="p-4">
                   <h3 className="font-bold text-lg mb-1">
                     {isReturn
-                      ? order.seller?.shopName || "Seller Store"
-                      : order.address?.name || "Customer"}
+                      ? order.seller?.shopName || t("dOrderDetails.seller_store")
+                      : order.address?.name || t("dOrderDetails.customer")}
                   </h3>
                   <p className="text-gray-500 text-sm mb-1">
-                    {isReturn ? order.seller?.address : order.address?.address}
+                    {localizeAddress(isReturn ? order.seller?.address : order.address?.address)}
                   </p>
                   <p className="text-gray-500 text-sm mb-4">
-                    {isReturn ? order.seller?.address : order.address?.city}
+                    {localizeAddress(isReturn ? order.seller?.address : order.address?.city)}
                   </p>
                   <Button onClick={handleNavigate} className="w-full bg-black hover:bg-brand-700 text-white border-none">
                     <Navigation size={18} className="mr-2" />{" "}
-                    {isReturn ? "Navigate to Seller" : "Navigate to Customer"}
+                    {isReturn ? t("dOrderDetails.navigate_to_seller") : t("dOrderDetails.navigate_to_customer")}
                   </Button>
                 </div>
               </Card>
@@ -1142,9 +1145,9 @@ const OrderDetails = () => {
                 <Package size={20} />
               </div>
               <div>
-                <span>Order Items</span>
+                <span>{t("dOrderDetails.order_items")}</span>
                 <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                  {(isReturn ? order.returnItems : order.items)?.length || 0} items
+                  {(isReturn ? order.returnItems : order.items)?.length || 0} {t("dOrderDetails.items")}
                 </span>
               </div>
             </div>
@@ -1190,13 +1193,13 @@ const OrderDetails = () => {
                           )}
                         </div>
                       </div>
-                      <span className="font-bold text-gray-600 flex-shrink-0">Rs.{item.price * item.quantity}</span>
+                      <span className="font-bold text-gray-600 flex-shrink-0">{t("dOrderDetails.rs", { v1: item.price * item.quantity })}</span>
                     </div>
                   ))}
                   <div className="pt-3 mt-2 border-t border-gray-200 flex justify-between items-center">
-                    <span className="text-gray-500 text-sm">{isReturn ? "Refund Value" : "Total Bill"}</span>
+                    <span className="text-gray-500 text-sm">{isReturn ? t("dOrderDetails.refund_value") : t("dOrderDetails.total_bill")}</span>
                     <span className="text-lg font-bold text-gray-900">
-                      Rs.{isReturn 
+                      {t("dOrderDetails.rs_2")}{isReturn 
                         ? (order.returnRefundAmount || order.returnItems?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0) 
                         : order.pricing?.total}
                     </span>
@@ -1221,10 +1224,10 @@ const OrderDetails = () => {
               <Card className="p-6 rounded-3xl shadow-sm border border-slate-100">
                 <div className="flex items-center mb-4 text-gray-800">
                   <ShieldCheck className="mr-2 text-primary" size={24} />
-                  <h3 className="font-bold text-lg">Request Pickup OTP</h3>
+                  <h3 className="font-bold text-lg">{t("dOrderDetails.request_pickup_otp")}</h3>
                 </div>
                 <p className="text-gray-500 text-sm mb-4">
-                  Proof uploaded ✅. Slide to send OTP to customer.
+                  {t("dOrderDetails.proof_uploaded_slide_to_send")}
                 </p>
                 <DeliverySlideButton
                   orderId={orderId}
@@ -1233,7 +1236,7 @@ const OrderDetails = () => {
                   isReturn={true}
                   bgColor="bg-orange-500"
                   bgColorLight="bg-orange-50"
-                  label="SLIDE TO SEND CUSTOMER OTP"
+                  label={t("dOrderDetails.slide_to_send_customer_otp")}
                 />
               </Card>
             )}
@@ -1246,10 +1249,10 @@ const OrderDetails = () => {
             <Card className="p-6 rounded-3xl shadow-sm border border-slate-100">
               <div className="flex items-center mb-4 text-gray-800">
                 <ShieldCheck className="mr-2 text-primary" size={24} />
-                <h3 className="font-bold text-lg">Generate Delivery OTP</h3>
+                <h3 className="font-bold text-lg">{t("dOrderDetails.generate_delivery_otp")}</h3>
               </div>
               <p className="text-gray-500 text-sm mb-4">
-                Slide to generate OTP for the customer.
+                {t("dOrderDetails.slide_to_generate_otp_for")}
               </p>
               <DeliverySlideButton
                 orderId={orderId}
@@ -1267,10 +1270,10 @@ const OrderDetails = () => {
             <Card className="p-6 rounded-3xl shadow-sm border border-green-100">
               <div className="flex items-center mb-4 text-gray-800">
                 <ShieldCheck className="mr-2 text-green-600" size={24} />
-                <h3 className="font-bold text-lg">Request Seller OTP</h3>
+                <h3 className="font-bold text-lg">{t("dOrderDetails.request_seller_otp")}</h3>
               </div>
               <p className="text-gray-500 text-sm mb-4">
-                Slide to send OTP to seller (via app + SMS). Seller will share it with you.
+                {t("dOrderDetails.slide_to_send_otp_to")}
               </p>
               <DeliverySlideButton
                 orderId={orderId}
@@ -1278,16 +1281,16 @@ const OrderDetails = () => {
                 isReturnDrop={true}
                 bgColor="bg-green-600"
                 bgColorLight="bg-green-50"
-                label="SLIDE TO SEND SELLER OTP"
+                label={t("dOrderDetails.slide_to_send_seller_otp")}
                 onSuccess={(data) => {
                   const newExpiresAt = data?.result?.expiresAt || data?.data?.expiresAt || data?.expiresAt;
                   if (newExpiresAt && order) {
                      setOrder({ ...order, activeReturnOtpExpiresAt: newExpiresAt });
                   }
                   setShowDropOtpInput(true);
-                  toast.success("OTP sent to seller!");
+                  toast.success(t("dOrderDetails.otp_sent_to_seller"));
                 }}
-                onError={(err) => toast.error(err?.message || "Failed to send seller OTP")}
+                onError={(err) => toast.error(err?.message || t("dOrderDetails.failed_to_send_seller_otp"))}
               />
             </Card>
           </motion.div>
@@ -1341,7 +1344,7 @@ const OrderDetails = () => {
                   const updatedOrder = data?.result || data?.data?.result;
                   if (updatedOrder) setOrder(updatedOrder);
                   setStep(5);
-                  toast.success("✅ Return complete! Commission credited to your wallet.");
+                  toast.success(t("dOrderDetails.return_complete_commission_credited_to"));
                   setTimeout(() => navigate("/delivery/dashboard"), 1800);
                 }}
                 onError={handleOtpValidationError}
@@ -1368,13 +1371,13 @@ const OrderDetails = () => {
               {isSlideComplete ? (
                 <>
                   <Loader2 className="animate-spin mr-2" size={20} />
-                  Processing...
+                  {t("dOrderDetails.processing")}
                 </>
               ) : (
                 <>
                   {isReturn
-                    ? step === 1 ? "ARRIVED AT CUSTOMER"
-                      : step === 3 ? "ARRIVED AT SELLER"
+                    ? step === 1 ? t("dOrderDetails.arrived_at_customer")
+                      : step === 3 ? t("dOrderDetails.arrived_at_seller")
                         : steps[step - 1]?.action
                     : steps[step - 1]?.action}
                 </>

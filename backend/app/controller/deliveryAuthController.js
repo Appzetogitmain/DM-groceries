@@ -1,4 +1,5 @@
 import Delivery from "../models/delivery.js";
+import { normalizeUiLanguage } from "../constants/languages.js";
 import jwt from "jsonwebtoken";
 import handleResponse from "../utils/helper.js";
 import { sendSmsIndiaHubOtp } from "../services/smsIndiaHubService.js";
@@ -279,13 +280,20 @@ export const getDeliveryProfile = async (req, res) => {
 ================================ */
 export const updateDeliveryProfile = async (req, res) => {
     try {
-        const { name, vehicleType, vehicleNumber, drivingLicenseNumber, currentArea, isOnline, accountHolder, accountNumber, ifsc, dob, email, bloodGroup, address, emergencyContacts, shareLiveLocation, profileVisibility } = req.body;
+        const { name, vehicleType, vehicleNumber, drivingLicenseNumber, currentArea, isOnline, accountHolder, accountNumber, ifsc, dob, email, bloodGroup, address, emergencyContacts, shareLiveLocation, profileVisibility, preferredLanguage } = req.body;
 
         const delivery = await Delivery.findById(req.user.id);
         if (!delivery) {
             return handleResponse(res, 404, "Delivery partner not found");
         }
 
+        if (preferredLanguage !== undefined) {
+            const lang = normalizeUiLanguage(preferredLanguage);
+            if (!lang) {
+                return handleResponse(res, 400, "Unsupported language");
+            }
+            delivery.preferredLanguage = lang;
+        }
         if (name) delivery.name = name;
         if (vehicleType) delivery.vehicleType = vehicleType;
         if (vehicleNumber) delivery.vehicleNumber = vehicleNumber;

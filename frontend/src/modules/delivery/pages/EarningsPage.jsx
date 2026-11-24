@@ -16,6 +16,9 @@ import { toast } from "sonner";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { deliveryApi } from "../services/deliveryApi";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
+import { deliveryLocale } from "../i18n/format";
+import { translateLabel } from "../i18n/format";
 
 const RUPEE = "\u20B9";
 const DOT = "\u2022";
@@ -28,6 +31,7 @@ const resolveTipAmount = (txn) =>
   );
 
 const EarningsPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("today");
   const [loading, setLoading] = useState(true);
@@ -64,7 +68,7 @@ const EarningsPage = () => {
         });
       }
     } catch {
-      toast.error("Failed to fetch earnings data");
+      toast.error(t("dEarningsPage.failed_to_fetch_earnings_data"));
     } finally {
       setLoading(false);
     }
@@ -75,7 +79,7 @@ const EarningsPage = () => {
     const available = Number(earningsData.balances?.availableBalance || 0);
 
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0 || parseFloat(withdrawAmount) > available) {
-        toast.error(`Please enter a valid amount within your available balance (₹${available}).`);
+        toast.error(t("dEarningsPage.please_enter_a_valid_amount", { available }));
         return;
     }
 
@@ -83,13 +87,13 @@ const EarningsPage = () => {
         setIsSubmitting(true);
         const response = await deliveryApi.requestWithdrawal({ amount: parseFloat(withdrawAmount) });
         if (response.data.success) {
-            toast.success('Withdrawal request submitted successfully!');
+            toast.success(t("dEarningsPage.withdrawal_request_submitted_successfull"));
             setIsModalOpen(false);
             setWithdrawAmount('');
             fetchEarnings();
         }
     } catch (error) {
-        toast.error(error.response?.data?.message || "Failed to submit request");
+        toast.error(error.response?.data?.message || t("dEarningsPage.failed_to_submit_request"));
     } finally {
         setIsSubmitting(false);
     }
@@ -146,26 +150,26 @@ const EarningsPage = () => {
       <div className="bg-[#1A4516] text-white pt-4 pb-12 px-6 relative sticky top-0 z-50">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-lg font-black leading-tight tracking-tight">My Earnings</h1>
-            <p className="text-[11px] text-white/70 font-medium mt-0.5">Track your commission & tips</p>
+            <h1 className="text-lg font-black leading-tight tracking-tight">{t("dEarningsPage.my_earnings")}</h1>
+            <p className="text-[11px] text-white/70 font-medium mt-0.5">{t("dEarningsPage.track_your_commission_tips")}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate("/delivery/cod-cash")}
               className="px-3 py-2 bg-orange-500 text-white font-bold text-xs rounded-full shadow-sm hover:bg-orange-600 transition-colors"
             >
-              COD Cash
+             {t("dEarningsPage.cod_cash")}
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2.5 bg-white text-[#1A4516] font-bold text-xs rounded-full shadow-sm hover:bg-gray-100 transition-colors"
             >
-              Withdraw Funds
+             {t("dEarningsPage.withdraw_funds")}
             </button>
             <button
-              onClick={() => toast.success("Downloading earnings report...")}
+              onClick={() => toast.success(t("dEarningsPage.downloading_earnings_report"))}
               className="p-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full transition-colors cursor-pointer"
-              aria-label="Download Report"
+              aria-label={t("dEarningsPage.download_report")}
             >
               <Download size={18} className="text-white" />
             </button>
@@ -182,7 +186,7 @@ const EarningsPage = () => {
             >
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
-            <img src={viewProofImage} alt="Payment Proof" className="w-full h-auto rounded-xl shadow-2xl bg-white" />
+            <img src={viewProofImage} alt={t("dEarningsPage.payment_proof")} className="w-full h-auto rounded-xl shadow-2xl bg-white" />
           </div>
         </div>
       )}
@@ -219,28 +223,28 @@ const EarningsPage = () => {
             <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full -ml-6 -mb-6 blur-lg" />
 
             <p className="text-white/60 font-bold text-[9px] uppercase tracking-wider mb-0.5 relative z-10">
-              Total Earnings
+             {t("dEarningsPage.total_earnings")}
             </p>
             <div className="flex items-baseline mb-2 relative z-10">
               <span className="text-xl font-bold mr-0.5">{RUPEE}</span>
               <span className="text-3xl font-black tracking-tight">
-                {Number(earningsData.totalEarnings || 0).toLocaleString()}
+                {Number(earningsData.totalEarnings || 0).toLocaleString(deliveryLocale())}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-white/10 relative z-10">
               <div>
-                <p className="text-white/55 text-[9px] font-bold uppercase tracking-wide">Incentives</p>
+                <p className="text-white/55 text-[9px] font-bold uppercase tracking-wide">{t("dEarningsPage.incentives")}</p>
                 <p className="font-extrabold text-sm mt-0.5">
                   +{RUPEE}
-                  {Number(earningsData.incentives || 0).toLocaleString()}
+                  {Number(earningsData.incentives || 0).toLocaleString(deliveryLocale())}
                 </p>
               </div>
               <div>
-                <p className="text-white/55 text-[9px] font-bold uppercase tracking-wide">Tips</p>
+                <p className="text-white/55 text-[9px] font-bold uppercase tracking-wide">{t("dEarningsPage.tips")}</p>
                 <p className="font-extrabold text-sm mt-0.5">
                   +{RUPEE}
-                  {Number(earningsData.tipsReceived || 0).toLocaleString()}
+                  {Number(earningsData.tipsReceived || 0).toLocaleString(deliveryLocale())}
                 </p>
               </div>
             </div>
@@ -253,10 +257,10 @@ const EarningsPage = () => {
             <div className="flex justify-between items-center mb-2.5">
               <h3 className="font-bold text-gray-800 text-xs flex items-center">
                 <TrendingUp size={16} className="mr-1.5 text-[#1A4516]" />
-                Earnings Trend
+               {t("dEarningsPage.earnings_trend")}
               </h3>
               <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-gray-400 hover:text-gray-600">
-                Last 7 Days
+               {t("dEarningsPage.last_7_days")}
               </Button>
             </div>
             <div className="h-32 w-full">
@@ -292,9 +296,9 @@ const EarningsPage = () => {
         <motion.div variants={itemVariants}>
           <Card className="overflow-hidden border border-gray-100 rounded-xl shadow-sm bg-white">
             <div className="p-3 px-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/40">
-              <h3 className="font-bold text-gray-800 text-xs">Recent Earnings</h3>
+              <h3 className="font-bold text-gray-800 text-xs">{t("dEarningsPage.recent_earnings")}</h3>
               <Button variant="link" className="text-[#1A4516] text-[11px] font-bold h-auto p-0 hover:underline">
-                View All
+               {t("dEarningsPage.view_all")}
               </Button>
             </div>
             <div className="divide-y divide-gray-100">
@@ -316,14 +320,14 @@ const EarningsPage = () => {
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-xs text-gray-900">
-                          {txn.reference && String(txn.reference).startsWith("RET-DEL-") ? "Return Earning" : txn.type}
+                          {txn.reference && String(txn.reference).startsWith("RET-DEL-") ? t("dEarningsPage.return_earning") : translateLabel(t, txn.type)}
                         </p>
                         <p className="text-[10px] text-gray-400 mt-0.5">
                           {(() => {
                             const dateStr = txn.date || txn.createdAt;
                             if (!dateStr) return "N/A";
                             const d = new Date(dateStr);
-                            return isNaN(d.getTime()) ? txn.date : d.toLocaleString("en-IN", {
+                            return isNaN(d.getTime()) ? txn.date : d.toLocaleString(deliveryLocale(), {
                               day: "numeric",
                               month: "short",
                               year: "numeric",
@@ -337,8 +341,7 @@ const EarningsPage = () => {
                             (txn._id ? txn._id.toString().slice(-6).toUpperCase() : "N/A")}
                         </p>
                         {resolveTipAmount(txn) > 0 && (
-                          <p className="text-[9px] font-bold text-pink-600 mt-0.5">
-                            Includes tip: {RUPEE}{resolveTipAmount(txn).toLocaleString()}
+                          <p className="text-[9px] font-bold text-pink-600 mt-0.5">{t("dEarningsPage.includes_tip", { RUPEE, v2: resolveTipAmount(txn).toLocaleString(deliveryLocale()) })}
                           </p>
                         )}
                         {txn.type === 'Withdrawal' && txn.status === 'Settled' && txn.meta?.paymentProofUrl && (
@@ -347,7 +350,7 @@ const EarningsPage = () => {
                             className="mt-1 text-[10px] font-bold text-brand-600 flex items-center hover:underline"
                           >
                             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                            View Proof
+                           {t("dEarningsPage.view_proof")}
                           </button>
                         )}
                       </div>
@@ -356,7 +359,7 @@ const EarningsPage = () => {
                       <p className="font-bold text-xs text-gray-900">
                         {String(txn.type || "").includes("Withdrawal") || Number(txn.amount || 0) < 0 ? "-" : "+"}
                         {RUPEE}
-                        {Math.abs(Number(txn.amount || 0)).toLocaleString()}
+                        {Math.abs(Number(txn.amount || 0)).toLocaleString(deliveryLocale())}
                       </p>
                       <p
                         className={`text-[9px] font-bold ${
@@ -372,7 +375,7 @@ const EarningsPage = () => {
                 ))
               ) : (
                 <div className="p-8 text-center text-gray-400 text-xs italic">
-                  No recent earnings or withdrawals.
+                 {t("dEarningsPage.no_recent_earnings_or_withdrawals")}
                 </div>
               )}
             </div>
@@ -384,13 +387,13 @@ const EarningsPage = () => {
       <Modal
           isOpen={isModalOpen}
           onClose={() => !isSubmitting && setIsModalOpen(false)}
-          title="Request Withdrawal"
+          title={t("dEarningsPage.request_withdrawal")}
       >
           <form onSubmit={handleSubmitWithdrawal} className="space-y-6 py-4">
               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
                   <div>
-                      <p className="text-xs font-black text-slate-600 uppercase tracking-widest mb-1">Available to Withdraw</p>
-                      <h4 className="text-2xl font-black text-brand-600">{RUPEE}{Number(earningsData.balances?.availableBalance || 0).toLocaleString()}</h4>
+                      <p className="text-xs font-black text-slate-600 uppercase tracking-widest mb-1">{t("dEarningsPage.available_to_withdraw")}</p>
+                      <h4 className="text-2xl font-black text-brand-600">{RUPEE}{Number(earningsData.balances?.availableBalance || 0).toLocaleString(deliveryLocale())}</h4>
                   </div>
                   <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
                       <Info className="h-6 w-6 text-slate-300" />
@@ -399,7 +402,7 @@ const EarningsPage = () => {
 
               <div className="space-y-4">
                   <div>
-                      <label className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 block ml-1">Enter Amount</label>
+                      <label className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 block ml-1">{t("dEarningsPage.enter_amount")}</label>
                       <div className="relative group">
                           <span className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 group-focus-within:text-brand-500 transition-colors">{RUPEE}</span>
                           <input
@@ -413,7 +416,7 @@ const EarningsPage = () => {
                   </div>
 
                   <div className="p-4 bg-brand-50/50 rounded-2xl border border-brand-100/50 space-y-3">
-                      <p className="text-[10px] font-black text-brand-600 uppercase tracking-widest mb-1">Transfer Destination</p>
+                      <p className="text-[10px] font-black text-brand-600 uppercase tracking-widest mb-1">{t("dEarningsPage.transfer_destination")}</p>
                       <div 
                           className="flex items-center gap-4 cursor-pointer"
                           onClick={() => setShowBankDetails(!showBankDetails)}
@@ -422,8 +425,8 @@ const EarningsPage = () => {
                               <Building2 className="h-5 w-5 text-brand-400" />
                           </div>
                           <div className="flex-1">
-                              <p className="text-xs font-black text-slate-900 uppercase">Bank Transfer</p>
-                              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">Registered Bank Account</p>
+                              <p className="text-xs font-black text-slate-900 uppercase">{t("dEarningsPage.bank_transfer")}</p>
+                              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">{t("dEarningsPage.registered_bank_account")}</p>
                           </div>
                           <ArrowRight className={`h-4 w-4 text-slate-300 transition-transform ${showBankDetails ? 'rotate-90' : ''}`} />
                       </div>
@@ -433,20 +436,20 @@ const EarningsPage = () => {
                               {bankDetails ? (
                                   <>
                                       <div className="flex justify-between">
-                                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Account Holder</span>
+                                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t("dEarningsPage.account_holder")}</span>
                                           <span className="text-[10px] text-slate-900 font-black">{bankDetails.accountHolder}</span>
                                       </div>
                                       <div className="flex justify-between">
-                                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Account Number</span>
+                                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t("dEarningsPage.account_number")}</span>
                                           <span className="text-[10px] text-slate-900 font-black">{bankDetails.accountNumber}</span>
                                       </div>
                                       <div className="flex justify-between">
-                                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">IFSC</span>
+                                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t("dEarningsPage.ifsc")}</span>
                                           <span className="text-[10px] text-slate-900 font-black">{bankDetails.ifsc}</span>
                                       </div>
                                   </>
                               ) : (
-                                  <p className="text-[10px] text-amber-600 font-bold text-center">No bank details added yet. Please add them in your profile.</p>
+                                  <p className="text-[10px] text-amber-600 font-bold text-center">{t("dEarningsPage.no_bank_details_added_yet")}</p>
                               )}
                           </div>
                       )}
@@ -459,14 +462,14 @@ const EarningsPage = () => {
                       disabled={isSubmitting}
                       className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-slate-800 disabled:opacity-50 transition-all active:scale-95"
                   >
-                      {isSubmitting ? <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'SUBMIT REQUEST'}
+                      {isSubmitting ? <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : t("dEarningsPage.submit_request")}
                   </button>
                   <button
                       type="button"
                       onClick={() => setIsModalOpen(false)}
                       className="w-full py-2 text-xs font-black text-slate-600 uppercase tracking-widest hover:text-slate-600 transition-colors"
                   >
-                      Nevermind, keep funds
+                     {t("dEarningsPage.nevermind_keep_funds")}
                   </button>
               </div>
           </form>

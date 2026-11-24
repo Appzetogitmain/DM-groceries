@@ -17,6 +17,7 @@ import {
   Camera,
   XCircle,
   Image as ImageIcon,
+  Globe,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lottie from "lottie-react";
@@ -26,14 +27,19 @@ import { useAuth } from "@core/context/AuthContext";
 import { useSettings } from "@core/context/SettingsContext";
 import { toast } from "sonner";
 import Tesseract from "tesseract.js";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
+import { useDeliveryLanguage } from "../i18n/DeliveryLanguageProvider";
+import { getLanguageMeta } from "@/shared/i18n/languages";
 
 const VEHICLE_TYPES = [
-  { value: "bike", label: "Bike" },
-  { value: "scooter", label: "Scooter" },
-  { value: "cycle", label: "Cycle" },
+  { value: "bike", labelKey: "dDeliveryAuth.vehicle_bike" },
+  { value: "scooter", labelKey: "dDeliveryAuth.vehicle_scooter" },
+  { value: "cycle", labelKey: "dDeliveryAuth.vehicle_cycle" },
 ];
 
 const DeliveryAuth = () => {
+  const { t } = useTranslation();
+  const { language, openLanguagePicker } = useDeliveryLanguage();
   const navigate = useNavigate();
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
@@ -176,24 +182,24 @@ const DeliveryAuth = () => {
         }
       } catch (error) {
         console.error("Camera handler error:", error);
-        toast.error("Failed to open camera");
+        toast.error(t("dDeliveryAuth.failed_to_open_camera"));
       }
     }
   };
 
   const handleSendPhoneVerifyOtp = async () => {
     if (!signupPhone || signupPhone.length !== 10) {
-      toast.error("Please enter a valid 10-digit phone number first");
+      toast.error(t("dDeliveryAuth.please_enter_a_valid_10"));
       return;
     }
     updatePhoneVerify({ isSending: true, status: "sending" });
     try {
       await deliveryApi.sendPhoneVerificationOtp({ phone: signupPhone });
       updatePhoneVerify({ isSending: false, status: "otp-sent", isOtpVisible: true, otp: "", timer: 60 });
-      toast.success("OTP sent to your phone number");
+      toast.success(t("dDeliveryAuth.otp_sent_to_your_phone"));
     } catch (error) {
       updatePhoneVerify({ isSending: false, status: "idle" });
-      const msg = error.response?.data?.message || "Failed to send OTP";
+      const msg = error.response?.data?.message || t("dDeliveryAuth.failed_to_send_otp");
       const isAlreadyRegistered = msg.toLowerCase().includes("already registered");
       if (isAlreadyRegistered) {
         setErrors(prev => ({ ...prev, phone: msg }));
@@ -205,7 +211,7 @@ const DeliveryAuth = () => {
 
   const handleConfirmPhoneVerifyOtp = async () => {
     if (!/^\d{4}$/.test(phoneVerify.otp)) {
-      toast.error("Enter a valid 4-digit OTP");
+      toast.error(t("dDeliveryAuth.enter_a_valid_4_digit"));
       return;
     }
     updatePhoneVerify({ isVerifying: true });
@@ -213,10 +219,10 @@ const DeliveryAuth = () => {
       const res = await deliveryApi.verifyPhoneVerificationOtp({ phone: signupPhone, otp: phoneVerify.otp });
       const { verificationToken } = res.data.result || {};
       updatePhoneVerify({ isVerifying: false, status: "verified", isOtpVisible: false, otp: "", token: verificationToken, verifiedPhone: signupPhone });
-      toast.success("Phone number verified successfully");
+      toast.success(t("dDeliveryAuth.phone_number_verified_successfully"));
     } catch (error) {
       updatePhoneVerify({ isVerifying: false });
-      toast.error(error.response?.data?.message || "Invalid OTP");
+      toast.error(error.response?.data?.message || t("dDeliveryAuth.invalid_otp"));
     }
   };
 
@@ -225,15 +231,15 @@ const DeliveryAuth = () => {
       setLoading(true);
       if (mode === "login") {
         if (!loginPhone || loginPhone.length < 10) {
-          toast.error("Please enter a valid 10-digit phone number");
+          toast.error(t("dDeliveryAuth.please_enter_a_valid_10_2"));
           return;
         }
         const res = await deliveryApi.sendLoginOtp({ phone: loginPhone });
-        toast.success(res.data?.message || "OTP sent!");
+        toast.success(res.data?.message || t("dDeliveryAuth.otp_sent"));
       } else {
-        if (!signupName.trim()) { toast.error("Please enter your name"); return; }
-        if (!signupPhone || signupPhone.length < 10) { toast.error("Please enter a valid 10-digit phone number"); return; }
-        if (!profileImageFile) { toast.error("Please upload your profile photo"); return; }
+        if (!signupName.trim()) { toast.error(t("dDeliveryAuth.please_enter_your_name")); return; }
+        if (!signupPhone || signupPhone.length < 10) { toast.error(t("dDeliveryAuth.please_enter_a_valid_10_2")); return; }
+        if (!profileImageFile) { toast.error(t("dDeliveryAuth.please_upload_your_profile_photo")); return; }
 
         const formData = new FormData();
         formData.append("name", signupName.trim());
@@ -256,18 +262,18 @@ const DeliveryAuth = () => {
         const res = await deliveryApi.sendSignupOtp(formData);
         // If phone was pre-verified, backend returns pendingApproval directly — no OTP screen needed.
         if (res.data?.result?.pendingApproval) {
-          toast.success("Registration submitted! Your application is under review. We'll notify you once approved.");
+          toast.success(t("dDeliveryAuth.registration_submitted_your_application_"));
           switchMode("login");
           return;
         }
-        toast.success(res.data?.message || "OTP sent!");
+        toast.success(res.data?.message || t("dDeliveryAuth.otp_sent"));
       }
       setOtp(["", "", "", ""]);
       setTimer(60);
       setStep("otp");
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Failed to send OTP");
+      toast.error(error.response?.data?.message || t("dDeliveryAuth.failed_to_send_otp"));
     } finally {
       setLoading(false);
     }
@@ -283,7 +289,7 @@ const DeliveryAuth = () => {
       const result = response.data.result || {};
 
       if (result.pendingApproval) {
-        toast.success("Phone verified! Your application is under review. We'll notify you once approved.");
+        toast.success(t("dDeliveryAuth.phone_verified_your_application_is"));
         switchMode("login");
         return;
       }
@@ -291,11 +297,11 @@ const DeliveryAuth = () => {
       const { token, delivery } = result;
       login({ ...delivery, token, role: "delivery" });
 
-      toast.success("Welcome! Redirecting to dashboard...");
+      toast.success(t("dDeliveryAuth.welcome_redirecting_to_dashboard"));
       navigate("/delivery/dashboard");
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Invalid OTP");
+      toast.error(error.response?.data?.message || t("dDeliveryAuth.invalid_otp"));
     } finally {
       setLoading(false);
     }
@@ -356,6 +362,15 @@ const DeliveryAuth = () => {
         <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-brand-200/20 rounded-full blur-3xl" />
       </div>
 
+      <button
+        type="button"
+        onClick={openLanguagePicker}
+        className="absolute top-4 right-4 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-brand-100 bg-white text-[11px] font-bold text-[#1A4516] shadow-sm hover:bg-slate-50 transition-colors"
+      >
+        <Globe size={12} />
+        {t("common.language")}: {getLanguageMeta(language).nativeName}
+      </button>
+
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -377,7 +392,7 @@ const DeliveryAuth = () => {
 
           {/* Logo Container (No Circle) */}
           <div className="relative -mt-28 self-center z-10 flex justify-center">
-            <img src="/Logo.png" alt="Logo" className="w-44 h-44 object-contain" />
+            <img src="/Logo.png" alt={t("dDeliveryAuth.logo")} className="w-44 h-44 object-contain" />
           </div>
 
           <AnimatePresence mode="wait">
@@ -390,17 +405,17 @@ const DeliveryAuth = () => {
             >
               <h1 className="text-2xl font-black text-[#1A4516] tracking-tight">
                 {step === "otp"
-                  ? "Verify OTP"
+                  ? t("dDeliveryAuth.verify_otp")
                   : mode === "login"
-                    ? "Welcome Back!"
-                    : "Join Our Team"}
+                    ? t("dDeliveryAuth.welcome_back")
+                    : t("dDeliveryAuth.join_our_team")}
               </h1>
               <p className="text-gray-500 text-sm mt-1.5 max-w-[280px] mx-auto">
                 {step === "otp"
-                  ? `Enter the 4-digit code sent to +91 ${mode === "login" ? loginPhone : signupPhone}`
+                  ? t("dDeliveryAuth.enter_the_4_digit_code", { v1: mode === "login" ? loginPhone : signupPhone })
                   : mode === "login"
-                    ? "Login to continue your deliveries"
-                    : `Step ${signupStep} of 4: ${signupStep === 1 ? "Personal Info" : signupStep === 2 ? "Vehicle Info" : signupStep === 3 ? "Bank Info" : "Documents"}`}
+                    ? t("dDeliveryAuth.login_to_continue_your_deliveries")
+                    : t("dDeliveryAuth.step_of_4", { signupStep, v2: signupStep === 1 ? t("dDeliveryAuth.step_personal") : signupStep === 2 ? t("dDeliveryAuth.step_vehicle") : signupStep === 3 ? t("dDeliveryAuth.step_bank") : t("dDeliveryAuth.step_documents") })}
               </p>
             </motion.div>
           </AnimatePresence>
@@ -429,11 +444,11 @@ const DeliveryAuth = () => {
                         >
                           {/* Profile Photo Capture */}
                           <div className="flex flex-col items-center justify-center py-2">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 self-start ml-1">Profile Photo</label>
+                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 self-start ml-1">{t("dDeliveryAuth.profile_photo")}</label>
                             <div className="relative group">
                               <div className="w-24 h-24 rounded-3xl bg-brand-50 border-2 border-dashed border-brand-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-brand-400">
                                 {profileImagePreview ? (
-                                  <img src={profileImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                  <img src={profileImagePreview} alt={t("dDeliveryAuth.preview")} className="w-full h-full object-cover" />
                                 ) : (
                                   <User className="w-10 h-10 text-brand-300" />
                                 )}
@@ -467,11 +482,11 @@ const DeliveryAuth = () => {
                                 <Camera className="w-4 h-4" />
                               </label>
                             </div>
-                            <p className="text-[10px] text-gray-400 font-bold mt-3">Upload a clear photo of your face</p>
+                            <p className="text-[10px] text-gray-400 font-bold mt-3">{t("dDeliveryAuth.upload_a_clear_photo_of")}</p>
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Full Name</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.full_name")}</label>
                             <div className="relative">
                               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
@@ -479,14 +494,14 @@ const DeliveryAuth = () => {
                                 value={signupName}
                                 onChange={(e) => { setSignupName(e.target.value); setErrors(prev => ({...prev, name: ''})); }}
                                 className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
-                                placeholder="Enter your full name"
+                                placeholder={t("dDeliveryAuth.enter_your_full_name")}
                               />
                             </div>
-                            {errors.name ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.name}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">As per government ID</p>}
+                            {errors.name ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.name}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.as_per_government_id")}</p>}
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Phone Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.phone_number")}</label>
                             <div className="flex items-center gap-2">
                               <div className="relative flex-1">
                                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
@@ -526,13 +541,13 @@ const DeliveryAuth = () => {
                                 {phoneVerify.isSending ? (
                                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
                                 ) : phoneVerify.status === "verified" ? (
-                                  "✓ Done"
+                                  t("dDeliveryAuth.done")
                                 ) : phoneVerify.isOtpVisible && phoneVerify.timer > 0 ? (
                                   `${phoneVerify.timer}s`
                                 ) : phoneVerify.isOtpVisible ? (
-                                  "Resend"
+                                  t("dDeliveryAuth.resend")
                                 ) : (
-                                  "Verify"
+                                  t("dDeliveryAuth.verify")
                                 )}
                               </button>
                             </div>
@@ -545,12 +560,12 @@ const DeliveryAuth = () => {
                                     onClick={() => switchMode("login")}
                                     className="text-[10px] text-brand-600 font-black underline mt-0.5"
                                   >
-                                    Sign In instead →
+                                   {t("dDeliveryAuth.sign_in_instead")}
                                   </button>
                                 )}
                               </div>
                             ) : (
-                              <p className="text-[10px] text-gray-400 font-semibold ml-1">10-digit mobile number</p>
+                              <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.10_digit_mobile_number")}</p>
                             )}
 
                             {/* Inline OTP input */}
@@ -560,7 +575,7 @@ const DeliveryAuth = () => {
                                   type="text"
                                   inputMode="numeric"
                                   maxLength={4}
-                                  placeholder="Enter 4-digit OTP"
+                                  placeholder={t("dDeliveryAuth.enter_4_digit_otp")}
                                   value={phoneVerify.otp}
                                   onChange={(e) => updatePhoneVerify({ otp: e.target.value.replace(/\D/g, "").slice(0, 4) })}
                                   className="flex-1 bg-transparent text-sm font-bold text-gray-900 outline-none placeholder:text-gray-300"
@@ -571,20 +586,20 @@ const DeliveryAuth = () => {
                                   disabled={phoneVerify.isVerifying || phoneVerify.otp.length !== 4}
                                   className="px-3 py-1.5 bg-[#1A4516] text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-[#133A10] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
-                                  {phoneVerify.isVerifying ? "Checking..." : "Confirm OTP"}
+                                  {phoneVerify.isVerifying ? t("dDeliveryAuth.checking") : t("dDeliveryAuth.confirm_otp")}
                                 </button>
                               </div>
                             )}
                             {phoneVerify.status === "verified" && (
                               <div className="flex items-center gap-1.5 text-[10px] font-black text-brand-600 px-1">
                                 <CheckCircle className="w-3.5 h-3.5" />
-                                <span>Phone number verified successfully.</span>
+                                <span>{t("dDeliveryAuth.phone_number_verified_successfully_2")}</span>
                               </div>
                             )}
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Email Address</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.email_address")}</label>
                             <div className="relative">
                               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
@@ -592,41 +607,41 @@ const DeliveryAuth = () => {
                                 value={signupEmail}
                                 onChange={(e) => { setSignupEmail(e.target.value); setErrors(prev => ({...prev, email: ''})); }}
                                 className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.email ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
-                                placeholder="example@gmail.com"
+                                placeholder={t("dDeliveryAuth.example_gmail_com")}
                               />
                             </div>
-                            {errors.email ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.email}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">Used for important updates and receipts</p>}
+                            {errors.email ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.email}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.used_for_important_updates_and")}</p>}
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Permanent Address</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.permanent_address")}</label>
                             <div className="relative">
                               <MapPin className="absolute left-4 top-4 text-gray-300 w-4 h-4" />
                               <textarea
                                 value={signupAddress}
                                 onChange={(e) => { setSignupAddress(e.target.value); setErrors(prev => ({...prev, address: ''})); }}
                                 className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all resize-none h-24 ${errors.address ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
-                                placeholder="Complete building address..."
+                                placeholder={t("dDeliveryAuth.complete_building_address")}
                               />
                             </div>
-                            {errors.address ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.address}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">Include flat number, street, and landmark</p>}
+                            {errors.address ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.address}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.include_flat_number_street_and")}</p>}
                           </div>
 
                           <button
                             onClick={() => {
                               const newErrors = {};
                               if (!profileImageFile) {
-                                toast.error("Please upload your profile photo");
+                                toast.error(t("dDeliveryAuth.please_upload_your_profile_photo"));
                                 return;
                               }
-                              if (!signupName || signupName.trim().length < 3) newErrors.name = "Minimum 3 characters required";
-                              if (!signupPhone || signupPhone.length !== 10) newErrors.phone = "Must be exactly 10 digits";
+                              if (!signupName || signupName.trim().length < 3) newErrors.name = t("dDeliveryAuth.minimum_3_characters_required");
+                              if (!signupPhone || signupPhone.length !== 10) newErrors.phone = t("dDeliveryAuth.must_be_exactly_10_digits");
                               if (signupPhone.length === 10 && phoneVerify.status !== "verified") {
-                                toast.error("Please verify your phone number before continuing");
+                                toast.error(t("dDeliveryAuth.please_verify_your_phone_number"));
                                 return;
                               }
-                              if (!signupEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) newErrors.email = "Invalid email address";
-                              if (!signupAddress || signupAddress.trim().length < 10) newErrors.address = "Please enter a detailed address";
+                              if (!signupEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) newErrors.email = t("dDeliveryAuth.invalid_email_address");
+                              if (!signupAddress || signupAddress.trim().length < 10) newErrors.address = t("dDeliveryAuth.please_enter_a_detailed_address");
 
                               if (Object.keys(newErrors).length > 0) {
                                 setErrors(newErrors);
@@ -637,7 +652,7 @@ const DeliveryAuth = () => {
                             disabled={signupPhone.length === 10 && phoneVerify.status !== "verified"}
                             className="w-full py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                           >
-                            Next Step <ArrowRight className="w-4 h-4" />
+                           {t("dDeliveryAuth.next_step")} <ArrowRight className="w-4 h-4" />
                           </button>
                         </motion.div>
                       )}
@@ -650,7 +665,7 @@ const DeliveryAuth = () => {
                           className="space-y-4"
                         >
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Vehicle Type</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.vehicle_type")}</label>
                             <div className="relative">
                               <Bike className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <button
@@ -658,7 +673,7 @@ const DeliveryAuth = () => {
                                 onClick={() => setShowVehicleDropdown(!showVehicleDropdown)}
                                 className="w-full pl-11 pr-10 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none text-left"
                               >
-                                {VEHICLE_TYPES.find((v) => v.value === signupVehicle)?.label}
+                                {t(VEHICLE_TYPES.find((v) => v.value === signupVehicle)?.labelKey || "dDeliveryAuth.vehicle_bike")}
                               </button>
                               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                               <AnimatePresence>
@@ -675,7 +690,7 @@ const DeliveryAuth = () => {
                                         onClick={() => { setSignupVehicle(v.value); setShowVehicleDropdown(false); }}
                                         className="w-full px-4 py-3 text-sm font-bold text-left hover:bg-brand-50 transition-colors"
                                       >
-                                        {v.label}
+                                        {t(v.labelKey)}
                                       </button>
                                     ))}
                                   </motion.div>
@@ -685,7 +700,7 @@ const DeliveryAuth = () => {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Vehicle Plate Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.vehicle_plate_number")}</label>
                             <div className="relative">
                               <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
@@ -693,14 +708,14 @@ const DeliveryAuth = () => {
                                 value={signupVehicleNumber}
                                 onChange={(e) => { setSignupVehicleNumber(e.target.value.toUpperCase()); setErrors(prev => ({...prev, vehicleNumber: ''})); }}
                                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
-                                placeholder="e.g., MH 02 AB 1234"
+                                placeholder={t("dDeliveryAuth.e_g_mh_02_ab")}
                               />
                             </div>
-                            <p className="text-[10px] text-gray-400 font-semibold ml-1">e.g., MH 01 AB 1234</p>
+                            <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.e_g_mh_01_ab")}</p>
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Driving License Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.driving_license_number")}</label>
                             <div className="relative">
                               <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
@@ -708,10 +723,10 @@ const DeliveryAuth = () => {
                                 value={signupDLNumber}
                                 onChange={(e) => { setSignupDLNumber(formatDL(e.target.value)); setErrors(prev => ({...prev, dlNumber: ''})); }}
                                 className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.dlNumber ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
-                                placeholder="DL-1420110012345"
+                                placeholder={t("dDeliveryAuth.dl_1420110012345")}
                               />
                             </div>
-                            {errors.dlNumber ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.dlNumber}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">10 to 20 character driving license number</p>}
+                            {errors.dlNumber ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.dlNumber}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.10_to_20_character_driving")}</p>}
                           </div>
 
                           <div className="flex gap-4 pt-2">
@@ -719,13 +734,13 @@ const DeliveryAuth = () => {
                               onClick={() => setSignupStep(1)}
                               className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
                             >
-                              Back
+                             {t("dDeliveryAuth.back")}
                             </button>
                             <button
                               onClick={() => {
                                 const newErrors = {};
                                 if (!signupDLNumber || !/^[A-Z]{2}-[0-9]{2}-[0-9]{4}-[0-9]{6,7}$/.test(signupDLNumber)) {
-                                  newErrors.dlNumber = "Invalid DL format. Expected SS-RR-YYYY-NNNNNNN";
+                                  newErrors.dlNumber = t("dDeliveryAuth.invalid_dl_format_expected_ss");
                                 }
                                 
                                 if (Object.keys(newErrors).length > 0) {
@@ -736,7 +751,7 @@ const DeliveryAuth = () => {
                               }}
                               className="flex-[2] py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
                             >
-                              Next Step <ArrowRight className="w-4 h-4" />
+                             {t("dDeliveryAuth.next_step")} <ArrowRight className="w-4 h-4" />
                             </button>
                           </div>
                         </motion.div>
@@ -750,7 +765,7 @@ const DeliveryAuth = () => {
                           className="space-y-4"
                         >
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Aadhar Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.aadhar_number")}</label>
                             <input
                               type="text"
                               value={signupAadharNumber}
@@ -758,32 +773,32 @@ const DeliveryAuth = () => {
                               className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all font-mono ${errors.aadhar ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                               placeholder="0000 0000 0000"
                             />
-                            {errors.aadhar ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.aadhar}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">12-digit unique identification number</p>}
+                            {errors.aadhar ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.aadhar}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.12_digit_unique_identification_number")}</p>}
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">PAN Card Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.pan_card_number")}</label>
                             <input
                               type="text"
                               value={signupPanNumber}
                               onChange={(e) => { setSignupPanNumber(e.target.value.toUpperCase().slice(0, 10)); setErrors(prev => ({...prev, pan: ''})); }}
                               className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all font-mono ${errors.pan ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
-                              placeholder="ABCDE1234F"
+                              placeholder={t("dDeliveryAuth.abcde1234f")}
                             />
-                            {errors.pan ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.pan}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">10-character alphanumeric (e.g., ABCDE1234F)</p>}
+                            {errors.pan ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.pan}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.10_character_alphanumeric_e_g")}</p>}
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Account Holder Name</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.account_holder_name")}</label>
                             <input
                               type="text"
                               value={signupAccountHolder}
                               onChange={(e) => { setSignupAccountHolder(e.target.value.toUpperCase()); setErrors(prev => ({...prev, accountName: ''})); }}
                               className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.accountName ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
-                              placeholder="AS PER BANK RECORDS"
+                              placeholder={t("dDeliveryAuth.as_per_bank_records")}
                             />
                             {errors.accountName ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.accountName}</p> : null}
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">Account Number</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.account_number")}</label>
                             <input
                               type="text"
                               value={signupAccountNumber}
@@ -791,18 +806,18 @@ const DeliveryAuth = () => {
                               className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.accountNumber ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
                               placeholder="000000000000"
                             />
-                            {errors.accountNumber ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.accountNumber}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">9-18 digit account number</p>}
+                            {errors.accountNumber ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.accountNumber}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.9_18_digit_account_number")}</p>}
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">IFSC Code</label>
+                            <label className="text-xs font-black text-brand-700 uppercase tracking-widest ml-1">{t("dDeliveryAuth.ifsc_code")}</label>
                               <input
                                 type="text"
                                 value={signupIfsc}
                                 onChange={(e) => { setSignupIfsc(e.target.value.toUpperCase().slice(0, 11)); setErrors(prev => ({...prev, ifsc: ''})); }}
                               className={`w-full px-4 py-3.5 bg-gray-50 border rounded-2xl text-sm font-bold text-gray-900 focus:outline-none transition-all ${errors.ifsc ? 'border-red-500 focus:ring-red-200' : 'border-gray-100 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400'}`}
-                              placeholder="HDFC0001234"
+                              placeholder={t("dDeliveryAuth.hdfc0001234")}
                             />
-                            {errors.ifsc ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.ifsc}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">11-character bank IFSC (e.g., SBIN0001234)</p>}
+                            {errors.ifsc ? <p className="text-[10px] text-red-500 font-bold ml-1">{errors.ifsc}</p> : <p className="text-[10px] text-gray-400 font-semibold ml-1">{t("dDeliveryAuth.11_character_bank_ifsc_e")}</p>}
                           </div>
 
                           <div className="flex gap-4 pt-2">
@@ -810,25 +825,25 @@ const DeliveryAuth = () => {
                               onClick={() => setSignupStep(2)}
                               className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
                             >
-                              Back
+                             {t("dDeliveryAuth.back")}
                             </button>
                             <button
                               onClick={() => {
                                 const newErrors = {};
                                 if (!signupAadharNumber || !/^\d{12}$/.test(signupAadharNumber)) {
-                                  newErrors.aadhar = "Aadhar number must be exactly 12 digits";
+                                  newErrors.aadhar = t("dDeliveryAuth.aadhar_number_must_be_exactly");
                                 }
                                 if (!signupPanNumber || !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(signupPanNumber)) {
-                                  newErrors.pan = "Invalid PAN number format";
+                                  newErrors.pan = t("dDeliveryAuth.invalid_pan_number_format");
                                 }
                                 if (!signupAccountHolder || signupAccountHolder.trim().length < 3) {
-                                  newErrors.accountName = "Invalid account holder name";
+                                  newErrors.accountName = t("dDeliveryAuth.invalid_account_holder_name");
                                 }
                                 if (!signupAccountNumber || !/^\d{9,18}$/.test(signupAccountNumber)) {
-                                  newErrors.accountNumber = "Invalid account number length";
+                                  newErrors.accountNumber = t("dDeliveryAuth.invalid_account_number_length");
                                 }
                                 if (!signupIfsc || !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(signupIfsc)) {
-                                  newErrors.ifsc = "Invalid IFSC Code";
+                                  newErrors.ifsc = t("dDeliveryAuth.invalid_ifsc_code");
                                 }
                                 
                                 if (Object.keys(newErrors).length > 0) {
@@ -839,7 +854,7 @@ const DeliveryAuth = () => {
                               }}
                               className="flex-[2] py-4 bg-brand-600 text-primary-foreground rounded-2xl text-sm font-semibold tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
                             >
-                              Next Step <ArrowRight className="w-4 h-4" />
+                             {t("dDeliveryAuth.next_step")} <ArrowRight className="w-4 h-4" />
                             </button>
                           </div>
                         </motion.div>
@@ -854,9 +869,9 @@ const DeliveryAuth = () => {
                         >
                           <div className="space-y-3">
                             {[
-                              { label: "Aadhar Card (Front/Back)", state: aadharFile, setter: setAadharFile, id: "aadhar" },
-                              { label: "PAN Card", state: panFile, setter: setPanFile, id: "pan" },
-                              { label: "Driving License", state: dlFile, setter: setDlFile, id: "dl" },
+                              { label: t("dDeliveryAuth.aadhar_card_front_back"), state: aadharFile, setter: setAadharFile, id: "aadhar" },
+                              { label: t("dDeliveryAuth.pan_card"), state: panFile, setter: setPanFile, id: "pan" },
+                              { label: t("dDeliveryAuth.driving_license"), state: dlFile, setter: setDlFile, id: "dl" },
                             ].map((doc) => (
                               <div key={doc.id} className="relative">
                                 <input
@@ -915,7 +930,7 @@ const DeliveryAuth = () => {
                                         {doc.label}
                                       </p>
                                       <p className="text-[10px] text-gray-400 font-bold truncate max-w-[180px]">
-                                        {doc.state ? doc.state.name : "Tap to upload document"}
+                                        {doc.state ? doc.state.name : t("dDeliveryAuth.tap_to_upload_document")}
                                       </p>
                                     </div>
                                   </div>
@@ -937,7 +952,7 @@ const DeliveryAuth = () => {
                             ))}
                             <p className="text-[10px] text-gray-400 italic px-1 flex items-center gap-1.5">
                               <ShieldCheck className="w-3 h-3 text-brand-300" />
-                              Documents will be verified by our team after submission.
+                             {t("dDeliveryAuth.documents_will_be_verified_by")}
                             </p>
                           </div>
 
@@ -946,7 +961,7 @@ const DeliveryAuth = () => {
                               onClick={() => setSignupStep(3)}
                               className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
                             >
-                              Back
+                             {t("dDeliveryAuth.back")}
                             </button>
                             <button
                               onClick={handleSendOtp}
@@ -957,7 +972,7 @@ const DeliveryAuth = () => {
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                               ) : (
                                 <>
-                                  Register <ArrowRight className="w-4 h-4" />
+                                 {t("dDeliveryAuth.register")} <ArrowRight className="w-4 h-4" />
                                 </>
                               )}
                             </button>
@@ -975,30 +990,30 @@ const DeliveryAuth = () => {
                             className="mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
                           />
                           <label htmlFor="agreeSignup" className="text-[10px] text-gray-500 font-medium leading-tight cursor-pointer">
-                            I have read and agree to the{" "}
-                            <span onClick={(e) => { e.preventDefault(); navigate('/delivery/support'); }} className="text-brand-600 font-bold hover:underline">Support</span>
+                           {t("dDeliveryAuth.i_have_read_and_agree")}{" "}
+                            <span onClick={(e) => { e.preventDefault(); navigate('/delivery/support'); }} className="text-brand-600 font-bold hover:underline">{t("dDeliveryAuth.support")}</span>
                             {" "}&amp;{" "}
-                            <span onClick={(e) => { e.preventDefault(); navigate('/delivery/privacy'); }} className="text-brand-600 font-bold hover:underline">Privacy Policy</span>
+                            <span onClick={(e) => { e.preventDefault(); navigate('/delivery/privacy'); }} className="text-brand-600 font-bold hover:underline">{t("dDeliveryAuth.privacy_policy")}</span>
                             .
                           </label>
                         </div>
                       ) : (
                         <p className="text-center text-xs text-gray-400 font-semibold pt-1">
-                          By joining, you agree to our{" "}
-                          <span onClick={() => navigate('/delivery/support')} className="text-brand-500 font-bold cursor-pointer hover:underline">Support</span>{" "}
+                         {t("dDeliveryAuth.by_joining_you_agree_to")}{" "}
+                          <span onClick={() => navigate('/delivery/support')} className="text-brand-500 font-bold cursor-pointer hover:underline">{t("dDeliveryAuth.support")}</span>{" "}
                           &amp;{" "}
-                          <span onClick={() => navigate('/delivery/privacy')} className="text-brand-500 font-bold cursor-pointer hover:underline">Privacy Policy</span>
+                          <span onClick={() => navigate('/delivery/privacy')} className="text-brand-500 font-bold cursor-pointer hover:underline">{t("dDeliveryAuth.privacy_policy")}</span>
                         </p>
                       )}
 
                       <p className="text-center text-sm text-gray-500 mt-3 font-medium">
-                        Already have an account?{" "}
+                       {t("dDeliveryAuth.already_have_an_account")}{" "}
                         <button
                           type="button"
                           onClick={() => switchMode("login")}
                           className="text-[#1A4516] font-bold hover:underline"
                         >
-                          Sign In
+                         {t("dDeliveryAuth.sign_in")}
                         </button>
                       </p>
                     </div>
@@ -1010,7 +1025,7 @@ const DeliveryAuth = () => {
                       {/* Phone */}
                       <div className="space-y-1.5">
                         <label className="text-xs font-black text-[#1A4516] uppercase tracking-widest ml-1">
-                          Phone Number
+                         {t("dDeliveryAuth.phone_number")}
                         </label>
                         <div className="relative">
                           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -1039,18 +1054,18 @@ const DeliveryAuth = () => {
                         {loading ? (
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
-                          <>Login <ArrowRight className="w-4 h-4" /></>
+                          <>{t("dDeliveryAuth.login")} <ArrowRight className="w-4 h-4" /></>
                         )}
                       </button>
 
                       <p className="text-center text-sm text-gray-500 mt-6 font-medium">
-                        Don't have an account?{" "}
+                       {t("dDeliveryAuth.don_t_have_an_account")}{" "}
                         <button
                           type="button"
                           onClick={() => switchMode("signup")}
                           className="text-[#1A4516] font-bold hover:underline"
                         >
-                          Register
+                         {t("dDeliveryAuth.register")}
                         </button>
                       </p>
                     </div>
@@ -1071,7 +1086,7 @@ const DeliveryAuth = () => {
                   {/* OTP Boxes */}
                   <div className="space-y-2 text-center">
                     <label className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                      Enter Security Code
+                     {t("dDeliveryAuth.enter_security_code")}
                     </label>
                     <div className="flex justify-center gap-3 pt-1">
                       {otp.map((digit, index) => (
@@ -1093,14 +1108,14 @@ const DeliveryAuth = () => {
                   <div className="text-center">
                     {timer > 0 ? (
                       <p className="text-gray-400 text-sm font-medium">
-                        Resend code in <span className="text-[#1A4516] font-bold">{timer}s</span>
+                       {t("dDeliveryAuth.resend_code_in")} <span className="text-[#1A4516] font-bold">{timer}s</span>
                       </p>
                     ) : (
                       <button
                         onClick={handleSendOtp}
                         className="text-[#1A4516] font-black text-sm uppercase tracking-wide hover:underline"
                       >
-                        Resend OTP
+                       {t("dDeliveryAuth.resend_otp")}
                       </button>
                     )}
                   </div>
@@ -1114,7 +1129,7 @@ const DeliveryAuth = () => {
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <>Verify &amp; Login <CheckCircle className="w-4 h-4" /></>
+                      <>{t("dDeliveryAuth.verify_login")} <CheckCircle className="w-4 h-4" /></>
                     )}
                   </button>
 
@@ -1123,7 +1138,7 @@ const DeliveryAuth = () => {
                     onClick={() => { setStep("form"); setOtp(["", "", "", ""]); }}
                     className="w-full flex items-center justify-center gap-1.5 text-gray-400 hover:text-gray-600 text-sm font-bold transition-colors"
                   >
-                    <ChevronLeft className="w-4 h-4" /> Edit Phone Number
+                    <ChevronLeft className="w-4 h-4" /> {t("dDeliveryAuth.edit_phone_number")}
                   </button>
                 </motion.div>
               )}
@@ -1138,8 +1153,7 @@ const DeliveryAuth = () => {
           <span className="h-px w-8 bg-gray-400" />
         </div>
         <p className="text-center text-[10px] font-black text-gray-300 uppercase tracking-[4px] mt-2">
-          {appName} Partner Ecosystem • v1.0
-        </p>
+          {t("dDeliveryAuth.partner_ecosystem_v1_0", { appName })}</p>
       </motion.div>
 
       {/* Action Sheet for Document Upload */}
@@ -1162,7 +1176,7 @@ const DeliveryAuth = () => {
             >
               <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4" />
               <h3 className="text-sm font-black text-gray-800 text-center uppercase tracking-wider mb-2">
-                Upload Document
+               {t("dDeliveryAuth.upload_document")}
               </h3>
               
               <button
@@ -1182,7 +1196,7 @@ const DeliveryAuth = () => {
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3.5 bg-gray-50 hover:bg-brand-50 text-gray-700 hover:text-brand-700 rounded-xl font-bold transition-colors border border-gray-100"
               >
-                <Camera className="w-5 h-5" /> Open Camera
+                <Camera className="w-5 h-5" /> {t("dDeliveryAuth.open_camera")}
               </button>
               
               <button
@@ -1193,7 +1207,7 @@ const DeliveryAuth = () => {
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3.5 bg-gray-50 hover:bg-brand-50 text-gray-700 hover:text-brand-700 rounded-xl font-bold transition-colors border border-gray-100"
               >
-                <ImageIcon className="w-5 h-5" /> Choose from Gallery
+                <ImageIcon className="w-5 h-5" /> {t("dDeliveryAuth.choose_from_gallery")}
               </button>
               
               <button
@@ -1204,7 +1218,7 @@ const DeliveryAuth = () => {
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3.5 bg-gray-50 hover:bg-brand-50 text-gray-700 hover:text-brand-700 rounded-xl font-bold transition-colors border border-gray-100"
               >
-                <FileText className="w-5 h-5" /> Upload PDF File
+                <FileText className="w-5 h-5" /> {t("dDeliveryAuth.upload_pdf_file")}
               </button>
               
               <button
@@ -1212,7 +1226,7 @@ const DeliveryAuth = () => {
                 onClick={() => setActiveUploadDoc(null)}
                 className="w-full mt-2 py-3 text-gray-400 hover:text-gray-600 font-bold uppercase tracking-wider text-xs"
               >
-                Cancel
+               {t("dDeliveryAuth.cancel")}
               </button>
             </motion.div>
           </>

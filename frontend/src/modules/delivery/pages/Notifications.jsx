@@ -22,8 +22,12 @@ import {
 } from "@/core/services/orderSocket";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
+import { localizeAddress } from "../i18n/format";
+import { deliveryLocale } from "../i18n/format";
 
 const Notifications = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +41,7 @@ const Notifications = () => {
         setNotifications(response.data.result.notifications);
       }
     } catch (error) {
-      toast.error("Failed to fetch notifications");
+      toast.error(t("dNotifications.failed_to_fetch_notifications"));
     } finally {
       setLoading(false);
     }
@@ -56,7 +60,7 @@ const Notifications = () => {
       setNotifications((current) =>
         current.filter((notification) => notification?.data?.orderId !== orderId),
       );
-      toast.info("An order request was accepted by another partner.");
+      toast.info(t("dNotifications.an_order_request_was_accepted"));
     });
   }, []);
 
@@ -65,7 +69,7 @@ const Notifications = () => {
       await deliveryApi.markNotificationRead(id);
       setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error(t("dNotifications.failed_to_update_status"));
     }
   };
 
@@ -73,9 +77,9 @@ const Notifications = () => {
     try {
       await deliveryApi.markAllNotificationsRead();
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
-      toast.success("Marked all as read");
+      toast.success(t("dNotifications.marked_all_as_read"));
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error(t("dNotifications.failed_to_update_status"));
     }
   };
 
@@ -105,7 +109,7 @@ const Notifications = () => {
               className="mr-2">
               <ArrowLeft size={24} />
             </Button>
-            <h1 className="ds-h3 text-gray-900">Notifications</h1>
+            <h1 className="ds-h3 text-gray-900">{t("dNotifications.notifications")}</h1>
           </div>
           {notifications.some(n => !n.isRead) && (
             <Button
@@ -113,7 +117,7 @@ const Notifications = () => {
               size="sm"
               onClick={handleMarkAllAsRead}
               className="text-primary text-xs font-bold hover:bg-primary/5 px-2">
-              Mark all read
+             {t("dNotifications.mark_all_read")}
             </Button>
           )}
         </div>
@@ -178,7 +182,7 @@ const Notifications = () => {
                         ) : null}
                         <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                           <Clock size={10} className="mr-1" />
-                          {new Date(notification.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(notification.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                          {new Date(notification.createdAt).toLocaleDateString(deliveryLocale(), { day: 'numeric', month: 'short' })}, {new Date(notification.createdAt).toLocaleTimeString(deliveryLocale(), { hour: 'numeric', minute: '2-digit', hour12: true })}
                         </div>
                       </div>
                     </div>
@@ -196,9 +200,9 @@ const Notifications = () => {
                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Bell size={40} className="text-gray-300" />
                 </div>
-                <h3 className="ds-h3 text-gray-900 mb-2">You're All Caught Up!</h3>
+                <h3 className="ds-h3 text-gray-900 mb-2">{t("dNotifications.you_re_all_caught_up")}</h3>
                 <p className="text-gray-500 text-sm max-w-[200px] mx-auto">
-                  New notifications will appear here automatically.
+                 {t("dNotifications.new_notifications_will_appear_here")}
                 </p>
               </motion.div>
             )}
@@ -230,7 +234,7 @@ const Notifications = () => {
               </div>
               <div className="space-y-4">
                 <p className="text-sm text-gray-700 leading-relaxed font-medium">
-                  {selectedNotification.message || "No additional details provided."}
+                  {selectedNotification.message || t("dNotifications.no_additional_details_provided")}
                 </p>
                 {notificationImageUrl(selectedNotification) ? (
                   <img
@@ -242,19 +246,19 @@ const Notifications = () => {
                 {selectedNotification.data?.preview && (
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm space-y-3">
                     {selectedNotification.data.preview.pickup && (
-                      <div className="flex flex-col"><span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Pickup From</span> <span className="font-semibold text-gray-800">{selectedNotification.data.preview.pickup}</span></div>
+                      <div className="flex flex-col"><span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">{t("dNotifications.pickup_from")}</span> <span className="font-semibold text-gray-800">{localizeAddress(selectedNotification.data.preview.pickup)}</span></div>
                     )}
                     {selectedNotification.data.preview.drop && (
-                      <div className="flex flex-col"><span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Drop To</span> <span className="font-semibold text-gray-800">{selectedNotification.data.preview.drop}</span></div>
+                      <div className="flex flex-col"><span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">{t("dNotifications.drop_to")}</span> <span className="font-semibold text-gray-800">{localizeAddress(selectedNotification.data.preview.drop)}</span></div>
                     )}
                     {selectedNotification.data.preview.earnings !== undefined && (
-                      <div className="flex flex-col"><span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Earnings</span> <span className="font-bold text-green-600 text-base">₹{selectedNotification.data.preview.earnings}</span></div>
+                      <div className="flex flex-col"><span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">{t("dNotifications.earnings")}</span> <span className="font-bold text-green-600 text-base">₹{selectedNotification.data.preview.earnings}</span></div>
                     )}
                   </div>
                 )}
                 <div className="text-[11px] text-gray-400 font-bold uppercase tracking-wider flex items-center pt-2">
                   <Clock size={12} className="mr-1" />
-                  {new Date(selectedNotification.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} at {new Date(selectedNotification.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                  {new Date(selectedNotification.createdAt).toLocaleDateString(deliveryLocale(), { day: 'numeric', month: 'long', year: 'numeric' })} {t("dNotifications.at")} {new Date(selectedNotification.createdAt).toLocaleTimeString(deliveryLocale(), { hour: 'numeric', minute: '2-digit', hour12: true })}
                 </div>
               </div>
             </motion.div>

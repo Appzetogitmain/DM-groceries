@@ -21,13 +21,16 @@ import Card from "@/shared/components/ui/Card";
 import { useAuth } from "@core/context/AuthContext";
 import { deliveryApi } from "../services/deliveryApi";
 import { formatOrderId } from "@/lib/utils";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
+import { localizeAddress } from "../i18n/format";
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, isAuthenticated } = useAuth();
   const [isOnline, setIsOnline] = useState(user?.isOnline || false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [locationText, setLocationText] = useState("Fetching location...");
+  const [locationText, setLocationText] = useState(() => t("dDashboard.fetching_location"));
   const [isDetecting, setIsDetecting] = useState(false);
   const [activeTab, setActiveTab] = useState("delivery"); // 'delivery' or 'return'
   const [availableOrders, setAvailableOrders] = useState([]);
@@ -66,10 +69,10 @@ const Dashboard = () => {
            setLocationText(address);
         }
       } else {
-        setLocationText("Current Location");
+        setLocationText(t("dDashboard.current_location"));
       }
     } catch (error) {
-      setLocationText("Current Location");
+      setLocationText(t("dDashboard.current_location"));
     }
   };
 
@@ -77,7 +80,7 @@ const Dashboard = () => {
     import("../utils/deliveryLastLocation.js").then(({ getCachedDeliveryPartnerLocation }) => {
       const loc = getCachedDeliveryPartnerLocation();
       if (!loc) {
-        setLocationText("Location not available");
+        setLocationText(t("dDashboard.location_not_available"));
         return;
       }
       fetchAddress(loc.lat, loc.lng);
@@ -86,25 +89,25 @@ const Dashboard = () => {
 
   const handleDetectLocation = async () => {
     setIsDetecting(true);
-    setLocationText("Detecting...");
+    setLocationText(t("dDashboard.detecting"));
     try {
       const { getCurrentPositionWithCache } = await import("../utils/deliveryLastLocation.js");
       getCurrentPositionWithCache(
         (loc) => {
           fetchAddress(loc.lat, loc.lng);
           setIsDetecting(false);
-          toast.success("Location updated");
+          toast.success(t("dDashboard.location_updated"));
         },
         () => {
-          setLocationText("Failed to detect");
+          setLocationText(t("dDashboard.failed_to_detect"));
           setIsDetecting(false);
-          toast.error("Could not get your location. Please check GPS permissions.");
+          toast.error(t("dDashboard.could_not_get_your_location"));
         },
         { maxCacheAgeMs: 0 } // Force a fresh read
       );
     } catch (error) {
       setIsDetecting(false);
-      setLocationText("Current Location");
+      setLocationText(t("dDashboard.current_location"));
     }
   };
 
@@ -170,18 +173,22 @@ const Dashboard = () => {
   }, [isOnline, activeTab]);
 
   const handleOnlineToggle = async () => {
+    if (!isAuthenticated) {
+      navigate("/delivery/auth", { state: { from: "/delivery/dashboard" } });
+      return;
+    }
     const newStatus = !isOnline;
     try {
       await deliveryApi.updateProfile({ isOnline: newStatus });
       await refreshUser(); // Refresh global auth state
       setIsOnline(newStatus);
       if (newStatus) {
-        toast.success("You are now ONLINE. Finding orders...");
+        toast.success(t("dDashboard.you_are_now_online_finding"));
       } else {
-        toast.info("You are now OFFLINE. No new orders.");
+        toast.info(t("dDashboard.you_are_now_offline_no"));
       }
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error(t("dDashboard.failed_to_update_status"));
     }
   };
 
@@ -189,13 +196,13 @@ const Dashboard = () => {
     try {
       const response = await deliveryApi.acceptReturnPickup(orderId);
       if (response.data.success) {
-        toast.success("Return pickup accepted!");
+        toast.success(t("dDashboard.return_pickup_accepted"));
         fetchAvailableOrders();
         // Option: navigate to details
         navigate(`/delivery/order-details/${orderId}`);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to accept return");
+      toast.error(error.response?.data?.message || t("dDashboard.failed_to_accept_return"));
     }
   };
 
@@ -208,11 +215,11 @@ const Dashboard = () => {
       
       const response = await deliveryApi.triggerSos({ location: locationPayload });
       if (response.data.success) {
-        toast.success("SOS Alert sent to admin successfully!");
+        toast.success(t("dDashboard.sos_alert_sent_to_admin"));
         setIsSosModalOpen(false);
       }
     } catch (error) {
-      toast.error("Failed to trigger SOS alert.");
+      toast.error(t("dDashboard.failed_to_trigger_sos_alert"));
     } finally {
       setSosTriggering(false);
     }
@@ -231,7 +238,7 @@ const Dashboard = () => {
             >
               <img
                 src={user?.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
-                alt={user?.name || "Profile"}
+                alt={user?.name || t("dDashboard.profile")}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.target.onerror = null;
@@ -241,18 +248,18 @@ const Dashboard = () => {
             </div>
             <div>
               <h2 className="text-[16px] font-black leading-tight tracking-tight">
-                Hi, {user?.name?.split(" ")[0] || "Partner"} 👋
+               {t("dDashboard.hi")} {user?.name?.split(" ")[0] || t("dDashboard.partner")} 👋
               </h2>
               <div className="flex items-center mt-0.5 space-x-2">
                 <p className="text-xs text-white/70 font-medium flex items-center max-w-[200px] truncate">
                   <MapPin size={12} className="mr-1 shrink-0" />
-                  <span className="truncate">{locationText}</span>
+                  <span className="truncate">{localizeAddress(locationText)}</span>
                 </p>
                 <button
                   onClick={handleDetectLocation}
                   disabled={isDetecting}
                   className="p-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
-                  title="Detect Location"
+                  title={t("dDashboard.detect_location")}
                 >
                   <LocateFixed size={12} className={`text-white ${isDetecting ? 'animate-spin' : ''}`} />
                 </button>
@@ -264,7 +271,7 @@ const Dashboard = () => {
             <div
               className="relative p-2.5 bg-red-500 hover:bg-red-600 border border-red-400 rounded-full transition-colors cursor-pointer flex items-center shadow-lg animate-pulse"
               onClick={() => setIsSosModalOpen(true)}
-              title="SOS Emergency"
+              title={t("dDashboard.sos_emergency")}
             >
               <AlertCircle size={20} className="text-white" />
             </div>
@@ -295,9 +302,9 @@ const Dashboard = () => {
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle size={32} className="text-red-500" />
               </div>
-              <h2 className="text-xl font-black text-gray-900 mb-2 uppercase">Trigger SOS?</h2>
+              <h2 className="text-xl font-black text-gray-900 mb-2 uppercase">{t("dDashboard.trigger_sos")}</h2>
               <p className="text-sm text-gray-600 mb-6">
-                This will immediately alert the admin team with your live location and emergency contacts. Only use in real emergencies!
+               {t("dDashboard.this_will_immediately_alert_the")}
               </p>
               <div className="flex space-x-3">
                 <Button 
@@ -306,14 +313,14 @@ const Dashboard = () => {
                   className="flex-1 font-bold text-gray-600 h-12"
                   disabled={sosTriggering}
                 >
-                  Cancel
+                 {t("dDashboard.cancel")}
                 </Button>
                 <Button 
                   onClick={handleTriggerSos} 
                   className="flex-1 font-bold bg-red-600 hover:bg-red-700 text-white h-12"
                   isLoading={sosTriggering}
                 >
-                  Send SOS
+                 {t("dDashboard.send_sos")}
                 </Button>
               </div>
             </motion.div>
@@ -326,19 +333,19 @@ const Dashboard = () => {
         
         {/* Today's Overview Section */}
         <div>
-          <h3 className="text-[13px] font-bold text-gray-800 mb-2">Today's Overview</h3>
+          <h3 className="text-[13px] font-bold text-gray-800 mb-2">{t("dDashboard.today_s_overview")}</h3>
           <div className="grid grid-cols-3 gap-2.5">
             <div className="bg-white py-2 px-1 rounded-xl text-center border border-gray-100 shadow-sm flex flex-col justify-center min-h-[68px]">
               <span className="text-[17px] font-bold text-gray-900 block leading-none">{earnings.deliveries}</span>
-              <span className="text-[9px] text-gray-400 font-bold block mt-1">Orders</span>
+              <span className="text-[9px] text-gray-400 font-bold block mt-1">{t("dDashboard.orders")}</span>
             </div>
             <div className="bg-white py-2 px-1 rounded-xl text-center border border-gray-100 shadow-sm flex flex-col justify-center min-h-[68px]">
               <span className="text-[17px] font-bold text-gray-900 block leading-none">{earnings.deliveries}</span>
-              <span className="text-[9px] text-gray-400 font-bold block mt-1">Completed</span>
+              <span className="text-[9px] text-gray-400 font-bold block mt-1">{t("dDashboard.completed")}</span>
             </div>
             <div className="bg-white py-2 px-1 rounded-xl text-center border border-gray-100 shadow-sm flex flex-col justify-center min-h-[68px]">
               <span className="text-[17px] font-bold text-gray-900 block leading-none">₹{earnings.today}</span>
-              <span className="text-[9px] text-gray-400 font-bold block mt-1">Earnings</span>
+              <span className="text-[9px] text-gray-400 font-bold block mt-1">{t("dDashboard.earnings")}</span>
             </div>
           </div>
         </div>
@@ -346,19 +353,19 @@ const Dashboard = () => {
         {/* Today's Earnings Card */}
         <Card className="bg-white p-3.5 rounded-xl shadow-sm border border-gray-100">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-[10px] font-bold text-gray-400">Today's Earnings</span>
+            <span className="text-[10px] font-bold text-gray-400">{t("dDashboard.today_s_earnings")}</span>
             <button
               onClick={() => navigate("/delivery/earnings")}
               className="text-[#1A4516] text-[10px] font-bold hover:underline"
             >
-              View Details
+             {t("dDashboard.view_details")}
             </button>
           </div>
           <div className="flex justify-between items-end">
             <div>
               <div className="text-xl font-black text-gray-900 tracking-tight leading-none">₹{earnings.today}</div>
               <span className="text-[10px] font-bold text-emerald-600 flex items-center mt-1 whitespace-nowrap">
-                <TrendingUp size={10} className="mr-0.5 shrink-0" /> +₹120 vs yesterday
+                <TrendingUp size={10} className="mr-0.5 shrink-0" /> {t("dDashboard.120_vs_yesterday")}
               </span>
             </div>
             {/* Sparkline Graphic (SVG Line) matching user image */}
@@ -389,7 +396,7 @@ const Dashboard = () => {
 
         {/* Current Status (Toggle Card) */}
         <Card className="bg-white py-2.5 px-3.5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-800">Current Status</span>
+          <span className="text-xs font-bold text-gray-800">{t("dDashboard.current_status")}</span>
           <div className="flex items-center">
             <button
               onClick={handleOnlineToggle}
@@ -399,13 +406,13 @@ const Dashboard = () => {
             >
               {isOnline ? (
                 <>
-                  <span className="text-[9px] font-bold text-white ml-1">Online</span>
+                  <span className="text-[9px] font-bold text-white ml-1">{t("dDashboard.online")}</span>
                   <div className="w-4.5 h-4.5 bg-white rounded-full absolute right-1 shadow-sm" />
                 </>
               ) : (
                 <>
                   <div className="w-4.5 h-4.5 bg-white rounded-full absolute left-1 shadow-sm" />
-                  <span className="text-[9px] font-bold text-gray-400 ml-auto mr-1">Offline</span>
+                  <span className="text-[9px] font-bold text-gray-400 ml-auto mr-1">{t("dDashboard.offline")}</span>
                 </>
               )}
             </button>
@@ -421,7 +428,7 @@ const Dashboard = () => {
               if (isOnline) {
                 setActiveTab("delivery");
               } else {
-                toast.error("Please go online to check available orders");
+                toast.error(t("dDashboard.please_go_online_to_check"));
               }
             }}
             className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-gray-50/50 transition-colors"
@@ -430,7 +437,7 @@ const Dashboard = () => {
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100/30">
                 <Package size={15} />
               </div>
-              <span className="text-xs font-bold text-gray-700">New Orders</span>
+              <span className="text-xs font-bold text-gray-700">{t("dDashboard.new_orders")}</span>
             </div>
             <span className="h-5 w-5 rounded-full bg-[#1A4516] text-white text-[9px] font-black flex items-center justify-center">
               {availableOrders.length}
@@ -443,7 +450,7 @@ const Dashboard = () => {
               if (earnings.ongoingCount > 0) {
                 navigate("/delivery/history");
               } else {
-                toast.info("No ongoing order currently");
+                toast.info(t("dDashboard.no_ongoing_order_currently"));
               }
             }}
             className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-gray-50/50 transition-colors"
@@ -452,7 +459,7 @@ const Dashboard = () => {
               <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-100/30">
                 <MapPin size={15} />
               </div>
-              <span className="text-xs font-bold text-gray-700">Ongoing Orders</span>
+              <span className="text-xs font-bold text-gray-700">{t("dDashboard.ongoing_orders")}</span>
             </div>
             <span className="h-5 w-5 rounded-full bg-[#1A4516] text-white text-[9px] font-black flex items-center justify-center">
               {earnings.ongoingCount || 0}
@@ -468,7 +475,7 @@ const Dashboard = () => {
               <div className="w-8 h-8 rounded-lg bg-green-50 text-[#1A4516] flex items-center justify-center border border-green-100/30">
                 <CheckCircle size={15} />
               </div>
-              <span className="text-xs font-bold text-gray-700">Completed Orders</span>
+              <span className="text-xs font-bold text-gray-700">{t("dDashboard.completed_orders")}</span>
             </div>
             <span className="h-5 w-5 rounded-full bg-[#1A4516] text-white text-[9px] font-black flex items-center justify-center">
               {earnings.deliveries}
@@ -495,15 +502,15 @@ const Dashboard = () => {
                     </div>
                     <h3 className="text-sm font-bold text-gray-900 mb-1">
                       {availableOrders.length === 1
-                        ? "1 order waiting"
-                        : `${availableOrders.length} orders waiting`}
+                        ? t("dDashboard.1_order_waiting")
+                        : t("dDashboard.orders_waiting", { length: availableOrders.length })}
                     </h3>
                     <p className="text-xs text-gray-500 leading-relaxed px-1">
-                      A fullscreen alert will open with Accept and Reject. Use that to respond before the timer ends.
+                     {t("dDashboard.a_fullscreen_alert_will_open")}
                     </p>
                     <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                       <span className="w-2 h-2 bg-[#1A4516] rounded-full animate-pulse" />
-                      Listening for assignments
+                     {t("dDashboard.listening_for_assignments")}
                     </div>
                   </motion.div>
                 ) : ongoingOrder ? (
@@ -522,14 +529,14 @@ const Dashboard = () => {
                         <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shadow-sm">
                           <LocateFixed size={14} className="text-white animate-pulse" />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/90">Ongoing Order</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/90">{t("dDashboard.ongoing_order")}</span>
                       </div>
                       <h3 className="text-xl font-black mb-1">#{formatOrderId(ongoingOrder.orderId)}</h3>
                       <p className="text-xs text-white/80 mb-5 truncate max-w-[80%] font-medium">
-                        {ongoingOrder.historyJobType === 'RETURN' ? 'Return Pickup' : 'Delivery to Customer'}
+                        {ongoingOrder.historyJobType === 'RETURN' ? t("dDashboard.return_pickup") : t("dDashboard.delivery_to_customer")}
                       </p>
                       <Button onClick={() => navigate(`/delivery/order-details/${ongoingOrder.orderId}`)} variant="secondary" className="w-full bg-white text-[#1A4516] hover:bg-gray-50 font-bold border-0 shadow-sm py-2.5">
-                        View Order Details
+                       {t("dDashboard.view_order_details")}
                       </Button>
                     </div>
                   </motion.div>
@@ -551,10 +558,10 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <h3 className="text-xs font-bold mb-1 text-gray-800">
-                        Finding Orders Nearby...
+                       {t("dDashboard.finding_orders_nearby")}
                       </h3>
                       <p className="text-[10px] text-gray-400 max-w-[180px] mx-auto">
-                        We're looking for delivery requests in your area. Stay online!
+                       {t("dDashboard.we_re_looking_for_delivery")}
                       </p>
                     </div>
                   </motion.div>
@@ -568,31 +575,31 @@ const Dashboard = () => {
                   className="space-y-4 text-left"
                 >
                   <div className="flex justify-between items-center mb-1">
-                    <h3 className="text-sm font-bold text-gray-800 tracking-tight">Available Return Pickups</h3>
-                    <span className="text-[10px] font-bold text-[#1A4516] bg-[#1A4516]/10 px-2 py-0.5 rounded-full uppercase italic">Open for Acceptance</span>
+                    <h3 className="text-sm font-bold text-gray-800 tracking-tight">{t("dDashboard.available_return_pickups")}</h3>
+                    <span className="text-[10px] font-bold text-[#1A4516] bg-[#1A4516]/10 px-2 py-0.5 rounded-full uppercase italic">{t("dDashboard.open_for_acceptance")}</span>
                   </div>
                   {availableOrders.length > 0 ? (
                     availableOrders.map((order) => (
                       <Card key={order._id} className="p-4 border border-gray-100 hover:border-[#1A4516]/30 transition-all shadow-sm bg-white rounded-2xl">
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <span className="text-[10px] font-black text-[#1A4516]/60 uppercase tracking-widest mb-1 block">Return Task</span>
+                            <span className="text-[10px] font-black text-[#1A4516]/60 uppercase tracking-widest mb-1 block">{t("dDashboard.return_task")}</span>
                             <h4 className="font-bold text-gray-900">#{formatOrderId(order.orderId)}</h4>
                           </div>
                           <div className="text-right">
                             <span className="block font-black text-[#1A4516] text-lg">₹{order.returnDeliveryCommission || 0}</span>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Commission</span>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{t("dDashboard.commission")}</span>
                           </div>
                         </div>
                         
                         <div className="space-y-2 mb-5">
                           <div className="flex items-center text-xs text-gray-600">
                             <MapPin size={12} className="mr-2 text-gray-400" />
-                            <span className="truncate">{order.seller?.shopName || "Store"}</span>
+                            <span className="truncate">{order.seller?.shopName || t("dDashboard.store")}</span>
                           </div>
                           <div className="flex items-center text-[11px] text-gray-500 font-medium">
                             <Package size={12} className="mr-2 text-gray-400" />
-                            <span>Pickup from Customer & Return to Store</span>
+                            <span>{t("dDashboard.pickup_from_customer_return_to")}</span>
                           </div>
                         </div>
 
@@ -603,7 +610,7 @@ const Dashboard = () => {
                             className="flex-1 font-black text-[10px] tracking-widest uppercase h-10 shadow-md bg-[#1A4516] hover:bg-[#0f2d0f] text-white rounded-xl"
                             onClick={() => handleAcceptReturn(order.orderId)}
                           >
-                            Accept Pickup
+                           {t("dDashboard.accept_pickup")}
                           </Button>
                           <Button 
                             variant="ghost" 
@@ -611,7 +618,7 @@ const Dashboard = () => {
                             className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 hover:bg-gray-50 h-10 rounded-xl"
                             onClick={() => navigate(`/delivery/order-details/${order.orderId}`)}
                           >
-                            View
+                           {t("dDashboard.view")}
                           </Button>
                         </div>
                       </Card>
@@ -621,8 +628,8 @@ const Dashboard = () => {
                       <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100 opacity-60">
                         <Package size={20} className="text-gray-400" />
                       </div>
-                      <h4 className="text-sm font-bold text-gray-800 mb-1">No returns nearby</h4>
-                      <p className="text-[11px] text-gray-400">Keep checking back for new return tasks.</p>
+                      <h4 className="text-sm font-bold text-gray-800 mb-1">{t("dDashboard.no_returns_nearby")}</h4>
+                      <p className="text-[11px] text-gray-400">{t("dDashboard.keep_checking_back_for_new")}</p>
                     </div>
                   )}
                 </motion.div>
@@ -636,7 +643,7 @@ const Dashboard = () => {
           onClick={handleOnlineToggle}
           className="w-full py-3.5 rounded-2xl text-sm font-black uppercase tracking-wider transition-all duration-300 shadow-md bg-[#1A4516] hover:bg-[#0f2d0f] text-white shadow-[#1A4516]/10"
         >
-          {isOnline ? "Go Offline" : "Go Online"}
+          {isOnline ? t("dDashboard.go_offline") : t("dDashboard.go_online")}
         </button>
 
       </div>

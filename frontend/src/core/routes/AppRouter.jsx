@@ -16,6 +16,7 @@ import { LocationProvider } from '../../modules/customer/context/LocationContext
 import ScrollToTop from '../../modules/customer/components/shared/ScrollToTop';
 import CustomerLanguageProvider from '../../modules/customer/i18n/CustomerLanguageProvider';
 import SellerLanguageProvider from '../../modules/seller/i18n/SellerLanguageProvider';
+import DeliveryLanguageProvider from '../../modules/delivery/i18n/DeliveryLanguageProvider';
 
 // Public Pages
 import Auth from '../../modules/seller/pages/Auth';
@@ -158,7 +159,7 @@ const AppRouter = () => {
                 },
                 {
                     path: 'delivery/auth',
-                    element: <DeliveryAuth />,
+                    element: <DeliveryLanguageProvider><DeliveryAuth /></DeliveryLanguageProvider>,
                 },
                 {
                     path: 'delivery/login',

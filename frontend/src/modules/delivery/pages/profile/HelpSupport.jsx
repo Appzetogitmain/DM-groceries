@@ -12,30 +12,32 @@ import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "@core/context/SettingsContext";
+import { useDeliveryTranslation as useTranslation } from "../../i18n/useDeliveryTranslation";
 
 const HelpSupport = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const faqs = [
     {
-      question: "How do I change my bank account details?",
+      question: t("dHelpSupport.how_do_i_change_my"),
       answer:
-        "Go to Profile > Bank Account and tap on 'Request Change'. You will need to upload a cancelled cheque or passbook copy for verification.",
+        t("dHelpSupport.go_to_profile_bank_account"),
     },
     {
-      question: "What if I can't find the customer's location?",
+      question: t("dHelpSupport.what_if_i_can_t"),
       answer:
-        "Use the in-app map navigation. If you're still stuck, you can call the customer directly using the 'Call' button on the order screen.",
+        t("dHelpSupport.use_the_in_app_map"),
     },
     {
-      question: "How are my earnings calculated?",
+      question: t("dHelpSupport.how_are_my_earnings_calculated"),
       answer:
-        "Earnings are based on base fare + distance pay + surge pricing (if applicable). You can view detailed breakdown in the Earnings tab.",
+        t("dHelpSupport.earnings_are_based_on_base"),
     },
     {
-      question: "I had an accident during delivery. What to do?",
+      question: t("dHelpSupport.i_had_an_accident_during"),
       answer:
-        "Use the SOS button immediately in the Safety section. Our emergency response team will contact you and provide assistance.",
+        t("dHelpSupport.use_the_sos_button_immediately"),
     },
   ];
 
@@ -57,11 +59,11 @@ const HelpSupport = () => {
         <button
           onClick={() => navigate(-1)}
           className="p-1.5 rounded-full hover:bg-white/10 transition-colors mr-2 cursor-pointer"
-          aria-label="Go Back"
+          aria-label={t("dHelpSupport.go_back")}
         >
           <ArrowLeft className="text-white" size={18} />
         </button>
-        <h1 className="text-sm font-black leading-tight tracking-tight">Help & Support</h1>
+        <h1 className="text-sm font-black leading-tight tracking-tight">{t("dHelpSupport.help_support")}</h1>
       </div>
 
       {/* Main Content Area overlapping with rounded corners */}
@@ -75,8 +77,8 @@ const HelpSupport = () => {
             <div className="w-10 h-10 bg-[#1A4516]/5 rounded-full flex items-center justify-center text-[#1A4516] mb-2 shrink-0">
               <MessageCircle size={18} />
             </div>
-            <h4 className="font-bold text-gray-800 text-xs">Chat Support</h4>
-            <p className="text-[10px] text-gray-400 mt-0.5">Wait time: ~2 mins</p>
+            <h4 className="font-bold text-gray-800 text-xs">{t("dHelpSupport.chat_support")}</h4>
+            <p className="text-[10px] text-gray-400 mt-0.5">{t("dHelpSupport.wait_time_2_mins")}</p>
           </Card>
           <Card 
             className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow"
@@ -85,7 +87,7 @@ const HelpSupport = () => {
             <div className="w-10 h-10 bg-[#1A4516]/5 rounded-full flex items-center justify-center text-[#1A4516] mb-2 shrink-0">
               <Phone size={18} />
             </div>
-            <h4 className="font-bold text-gray-800 text-xs">Call Support</h4>
+            <h4 className="font-bold text-gray-800 text-xs">{t("dHelpSupport.call_support")}</h4>
             <p className="text-[10px] text-gray-400 mt-0.5 font-bold tracking-wide">{supportPhone}</p>
           </Card>
         </section>
@@ -93,7 +95,7 @@ const HelpSupport = () => {
         {/* FAQs */}
         <section className="space-y-2.5">
           <h2 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2.5 flex items-center px-1">
-            <HelpCircle size={14} className="mr-1.5 text-[#1A4516]" /> Frequently Asked Questions
+            <HelpCircle size={14} className="mr-1.5 text-[#1A4516]" /> {t("dHelpSupport.frequently_asked_questions")}
           </h2>
           <div className="space-y-2.5">
             {faqs.map((faq, index) => (

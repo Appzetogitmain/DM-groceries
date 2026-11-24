@@ -4,6 +4,7 @@ import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
 import { getCurrentPositionWithCache } from "../utils/deliveryLastLocation";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 /**
  * DeliverySlideButton - A slide-to-confirm button for delivery actions
@@ -30,6 +31,7 @@ const DeliverySlideButton = ({
   bgColor = "bg-black ",
   bgColorLight = "bg-brand-50",
 }) => {
+  const { t } = useTranslation();
   const [isSlideComplete, setIsSlideComplete] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +68,7 @@ const DeliverySlideButton = ({
           console.warn("GPS failed, using fallback location for testing");
           location = { lat: 22.7196, lng: 75.8577 }; // fallback
         } else {
-          throw new Error("Location unavailable. Please enable GPS to proceed.");
+          throw new Error(t("dDeliverySlideButton.location_unavailable_please_enable_gps"));
         }
       }
 
@@ -80,7 +82,7 @@ const DeliverySlideButton = ({
           : await deliveryApi.requestDeliveryOtp(orderId, payload);
 
       // Handle success
-      toast.success(response.data?.message || "OTP generated and sent to customer");
+      toast.success(response.data?.message || t("dDeliverySlideButton.otp_generated_and_sent_to"));
 
       if (onSuccess) {
         onSuccess(response.data);
@@ -98,7 +100,7 @@ const DeliverySlideButton = ({
         structured.message ||
         respData.message ||
         error?.message ||
-        "Failed to generate OTP";
+        t("dDeliverySlideButton.failed_to_generate_otp");
       const errorCode = structured.code;
 
       // Display user-friendly error messages
@@ -108,15 +110,15 @@ const DeliverySlideButton = ({
         const range = details?.requiredRange || "0-120m";
 
         toast.error(
-          `You are too ${distance > 120 ? "far" : "close"}. You must be within ${range} of the delivery location.`,
+          t(distance > 120 ? "dDeliverySlideButton.too_far" : "dDeliverySlideButton.too_close", { range }),
           { duration: 5000 }
         );
       } else if (errorCode === "LOCATION_REQUIRED" || errorCode === "LOCATION_STALE") {
-        toast.error(errorMessage || "Location data is not available. Please ensure location tracking is enabled.");
+        toast.error(errorMessage || t("dDeliverySlideButton.location_data_is_not_available"));
       } else if (errorCode === "ORDER_NOT_FOUND") {
-        toast.error("Order not found. Please refresh and try again.");
+        toast.error(t("dDeliverySlideButton.order_not_found_please_refresh"));
       } else if (errorCode === "UNAUTHORIZED_DELIVERY") {
-        toast.error("This order is not assigned to you.");
+        toast.error(t("dDeliverySlideButton.this_order_is_not_assigned"));
       } else {
         toast.error(errorMessage);
       }
@@ -145,7 +147,7 @@ const DeliverySlideButton = ({
       {isLoading ? (
         <>
           <Loader2 className="animate-spin mr-2" size={20} />
-          {isReturn ? "Requesting OTP..." : "Generating OTP..."}
+          {isReturn ? t("dDeliverySlideButton.requesting_otp") : t("dDeliverySlideButton.generating_otp")}
         </>
       ) : (
         <>

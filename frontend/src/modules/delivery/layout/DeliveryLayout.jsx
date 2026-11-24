@@ -24,6 +24,8 @@ import { STORAGE_KEYS } from "@core/utils/storage";
 import { showSystemNotification } from "@/core/firebase/pushClient";
 import AppZetoBridge, { NATIVE_PUSH_EVENT } from "@/lib/appZetoBridge";
 import orderAlertSound from "@/assets/sounds/order_alert.mp3";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
+import { localizeAddress } from "../i18n/format";
 
 const getDeliveryToken = createSocketTokenReader(STORAGE_KEYS.AUTH_DELIVERY);
 
@@ -35,6 +37,7 @@ function secondsLeftUntilDeliveryExpiry(expiresAt) {
 }
 
 const DeliveryLayout = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -172,8 +175,8 @@ const DeliveryLayout = () => {
       mongoId: undefined,
       pickup: p.pickup,
       drop: dropLabel,
-      distance: "Nearby",
-      estTime: "10-15 min",
+      distance: t("dDeliveryLayout.nearby"),
+      estTime: t("dDeliveryLayout.est_time_range"),
       value: total,
       earnings: earnings,
       expiresAt: payload.deliverySearchExpiresAt || null,
@@ -183,8 +186,8 @@ const DeliveryLayout = () => {
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       showSystemNotification({
-        title: isUrgent ? "URGENT: Order needs a driver!" : "New Order Request!",
-        body: isUrgent ? `Last call! Earn ₹${earnings} for this nearby order.` : `You have a new delivery request for ₹${earnings} earnings.`
+        title: isUrgent ? t("dDeliveryLayout.urgent_order_needs_a_driver") : t("dDeliveryLayout.new_order_request"),
+        body: isUrgent ? t("dDeliveryLayout.last_call_earn_for_this", { earnings }) : t("dDeliveryLayout.you_have_a_new_delivery", { earnings })
       });
     }
 
@@ -219,13 +222,13 @@ const DeliveryLayout = () => {
       id: newOrder.orderId,
       mongoId: newOrder._id,
       pickup: isReturnPickup
-        ? newOrder.address?.address || "Customer Address"
-        : newOrder.seller?.shopName || "Seller",
+        ? newOrder.address?.address || t("dDeliveryLayout.customer_address")
+        : newOrder.seller?.shopName || t("dDeliveryLayout.seller"),
       drop: isReturnPickup
-        ? newOrder.seller?.shopName || "Seller Store"
-        : newOrder.address?.address || "Customer Address",
-      distance: "Nearby",
-      estTime: "10-15 min",
+        ? newOrder.seller?.shopName || t("dDeliveryLayout.seller_store")
+        : newOrder.address?.address || t("dDeliveryLayout.customer_address"),
+      distance: t("dDeliveryLayout.nearby"),
+      estTime: t("dDeliveryLayout.est_time_range"),
       value: total,
       earnings: earnings,
       expiresAt: newOrder.deliverySearchExpiresAt || newOrder.returnSearchExpiresAt || null,
@@ -235,8 +238,8 @@ const DeliveryLayout = () => {
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       showSystemNotification({
-        title: "New Order Request!",
-        body: `You have a new delivery request for ₹${earnings} earnings.`
+        title: t("dDeliveryLayout.new_order_request"),
+        body: t("dDeliveryLayout.you_have_a_new_delivery", { earnings })
       });
     }
   }, []);
@@ -604,7 +607,7 @@ const DeliveryLayout = () => {
         setIsAcceptingOrder(false);
         stopOrderRingtone();
         setActiveOrder(null);
-        toast.info("Another delivery partner accepted this order.");
+        toast.info(t("dDeliveryLayout.another_delivery_partner_accepted_this"));
       }
     });
   }, [user?.isOnline]);
@@ -758,7 +761,7 @@ const DeliveryLayout = () => {
       markIncomingOrderHandled(trackingId);
       stopOrderRingtone();
       setActiveOrder(null);
-      toast.info("Order skipped");
+      toast.info(t("dDeliveryLayout.order_skipped"));
     } catch (error) {
       console.error("Delivery Alert - Skip failed:", error);
       setActiveOrder(null);
@@ -772,7 +775,7 @@ const DeliveryLayout = () => {
     if (left <= 0) {
       if (!acceptInFlightRef.current) {
         skipOrder();
-        toast.error("Order request timed out");
+        toast.error(t("dDeliveryLayout.order_request_timed_out"));
       }
       return undefined;
     }
@@ -785,8 +788,8 @@ const DeliveryLayout = () => {
         hasPlayedUrgentReminderRef.current = true;
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           showSystemNotification({
-            title: "URGENT: Order needs a driver!",
-            body: `Last call! Earn ₹${activeOrderRef.current?.earnings || ''} for this nearby order.`
+            title: t("dDeliveryLayout.urgent_order_needs_a_driver"),
+            body: t("dDeliveryLayout.last_call_earn_for_this_2", { v1: activeOrderRef.current?.earnings || '' })
           });
         }
         startOrderRingtone();
@@ -795,7 +798,7 @@ const DeliveryLayout = () => {
         clearInterval(timer);
         if (!acceptInFlightRef.current) {
           skipOrder();
-          toast.error("Order request timed out");
+          toast.error(t("dDeliveryLayout.order_request_timed_out"));
         }
       }
     }, 1000);
@@ -808,7 +811,7 @@ const DeliveryLayout = () => {
       activeOrder.expiresAt &&
       secondsLeftUntilDeliveryExpiry(activeOrder.expiresAt) <= 0
     ) {
-      toast.error("This request has expired. Try the next one.");
+      toast.error(t("dDeliveryLayout.this_request_has_expired_try"));
       setActiveOrder(null);
       return;
     }
@@ -825,7 +828,7 @@ const DeliveryLayout = () => {
       } else {
         await deliveryApi.acceptOrder(activeOrder.id, idem);
       }
-      toast.success("Order accepted!");
+      toast.success(t("dDeliveryLayout.order_accepted"));
       const trackingId = activeOrder.isReturnPickup ? `${activeOrder.id}-return` : activeOrder.id;
       shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(trackingId);
       markIncomingOrderHandled(trackingId);
@@ -837,7 +840,7 @@ const DeliveryLayout = () => {
       const msg =
         error.response?.data?.message ||
         (typeof error.response?.data === "string" ? error.response.data : null);
-      toast.error(msg || "Failed to accept order");
+      toast.error(msg || t("dDeliveryLayout.failed_to_accept_order"));
       setActiveOrder(null);
     } finally {
       acceptInFlightRef.current = false;
@@ -875,15 +878,15 @@ const DeliveryLayout = () => {
                       id="delivery-order-alert-title"
                       className="text-xl font-black text-slate-900 mb-1"
                     >
-                      {activeOrder.isReturnPickup ? "Return pickup request" : "New order request"}
+                      {activeOrder.isReturnPickup ? t("dDeliveryLayout.return_pickup_request") : t("dDeliveryLayout.new_order_request_2")}
                     </h2>
                     <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-4">
-                      {activeOrder.isReturnPickup ? "Collect return item" : "Accept or reject"}
+                      {activeOrder.isReturnPickup ? t("dDeliveryLayout.collect_return_item") : t("dDeliveryLayout.accept_or_reject")}
                     </p>
                     <div className="flex items-center gap-2 mb-6">
                       <span className="text-2xl font-black text-brand-600">₹{activeOrder.earnings}</span>
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-outfit">
-                        Earnings
+                       {t("dDeliveryLayout.earnings")}
                       </span>
                     </div>
 
@@ -891,9 +894,7 @@ const DeliveryLayout = () => {
                       {/* Return Items "Small Cart" */}
                       {activeOrder.isReturnPickup && activeOrder.items?.length > 0 && (
                         <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 flex flex-col gap-2">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
-                            Return Items ({activeOrder.items.length})
-                          </p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">{t("dDeliveryLayout.return_items", { length: activeOrder.items.length })}</p>
                           <div className="flex gap-2 overflow-x-auto no-scrollbar">
                             {activeOrder.items.map((item, idx) => (
                               <div key={idx} className="flex-shrink-0 flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-100 shadow-sm min-w-[140px]">
@@ -902,7 +903,7 @@ const DeliveryLayout = () => {
                                     <img src={item.image} alt="" className="h-full w-full object-cover" />
                                   ) : (
                                     <div className="h-full w-full flex items-center justify-center text-slate-300 font-bold text-[8px]">
-                                      NO IMG
+                                     {t("dDeliveryLayout.no_img")}
                                     </div>
                                   )}
                                 </div>
@@ -911,7 +912,7 @@ const DeliveryLayout = () => {
                                     {item.name}
                                   </p>
                                   <p className="text-[10px] font-black text-primary">
-                                    {item.quantity} Unit{item.quantity > 1 ? 's' : ''}
+                                    {item.quantity} {t("dDeliveryLayout.unit")}{item.quantity > 1 ? 's' : ''}
                                   </p>
                                 </div>
                               </div>
@@ -926,18 +927,18 @@ const DeliveryLayout = () => {
                         </div>
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase">
-                            {activeOrder.isReturnPickup ? "Customer Pickup" : "Pickup"}
+                            {activeOrder.isReturnPickup ? t("dDeliveryLayout.customer_pickup") : t("dDeliveryLayout.pickup")}
                           </p>
-                          <p className="text-sm font-bold text-slate-900">{activeOrder.pickup}</p>
+                          <p className="text-sm font-bold text-slate-900">{localizeAddress(activeOrder.pickup)}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <MapPin className="h-5 w-5 text-rose-500 mt-1 shrink-0" />
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase">
-                            {activeOrder.isReturnPickup ? "Return To Seller" : "Drop"}
+                            {activeOrder.isReturnPickup ? t("dDeliveryLayout.return_to_seller") : t("dDeliveryLayout.drop")}
                           </p>
-                          <p className="text-sm font-bold text-slate-900 line-clamp-2">{activeOrder.drop}</p>
+                          <p className="text-sm font-bold text-slate-900 line-clamp-2">{localizeAddress(activeOrder.drop)}</p>
                         </div>
                       </div>
                     </div>
@@ -955,8 +956,7 @@ const DeliveryLayout = () => {
                       />
                     </div>
                     <p className="text-[10px] font-bold text-slate-400 mb-4 w-full text-center">
-                      {timeLeft}s left to respond
-                    </p>
+                      {t("dDeliveryLayout.s_left_to_respond", { timeLeft })}</p>
 
                     <div className="grid grid-cols-2 gap-4 w-full">
                       <button
@@ -965,7 +965,7 @@ const DeliveryLayout = () => {
                         disabled={isAcceptingOrder}
                         className="py-4 rounded-2xl bg-slate-100 text-slate-700 font-black text-xs uppercase tracking-wider hover:bg-slate-200/80 disabled:opacity-50 disabled:pointer-events-none"
                       >
-                        Reject
+                       {t("dDeliveryLayout.reject")}
                       </button>
                       <button
                         type="button"
@@ -973,7 +973,7 @@ const DeliveryLayout = () => {
                         disabled={isAcceptingOrder}
                         className="py-4 rounded-2xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-lg shadow-primary/30 active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
                       >
-                        {isAcceptingOrder ? "Accepting…" : "Accept"}
+                        {isAcceptingOrder ? t("dDeliveryLayout.accepting") : t("dDeliveryLayout.accept")}
                       </button>
                     </div>
                   </div>

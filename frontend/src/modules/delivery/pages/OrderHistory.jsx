@@ -13,6 +13,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import Card from "@/shared/components/ui/Card";
 import { deliveryApi } from "../services/deliveryApi";
 import { toast } from "sonner";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
+import { deliveryLocale } from "../i18n/format";
+import { translateLabel } from "../i18n/format";
 
 const displayOrderStatus = (order) => {
   if (order.displayStatus) return order.displayStatus;
@@ -24,6 +27,7 @@ const displayOrderStatus = (order) => {
 };
 
 const OrderHistory = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -64,7 +68,7 @@ const OrderHistory = () => {
           return;
         }
         if (runSeq !== fetchSeqRef.current) return;
-        toast.error("Failed to fetch order history");
+        toast.error(t("dOrderHistory.failed_to_fetch_order_history"));
       } finally {
         if (runSeq === fetchSeqRef.current) {
           setLoading(false);
@@ -112,7 +116,7 @@ const OrderHistory = () => {
             return;
           }
           if (runSeq !== fetchSeqRef.current) return;
-          toast.error("Failed to fetch order history");
+          toast.error(t("dOrderHistory.failed_to_fetch_order_history"));
         } finally {
           if (runSeq === fetchSeqRef.current) {
             setLoading(false);
@@ -143,7 +147,7 @@ const OrderHistory = () => {
   const openOrderDetail = (order) => {
     const id = order.orderId || order._id;
     if (!id) {
-      toast.error("Missing order reference");
+      toast.error(t("dOrderHistory.missing_order_reference"));
       return;
     }
     const typeQuery = order.historyJobType ? `?type=${order.historyJobType}` : '';
@@ -155,7 +159,7 @@ const OrderHistory = () => {
       
       {/* Deep Green Header Banner */}
       <div className="bg-[#1A4516] text-white pt-4 pb-12 px-6 relative sticky top-0 z-50">
-        <h1 className="text-lg font-black leading-tight tracking-tight mb-3">Order History</h1>
+        <h1 className="text-lg font-black leading-tight tracking-tight mb-3">{t("dOrderHistory.order_history")}</h1>
         
         {/* Search Input inside Green Header */}
         <div className="relative">
@@ -165,7 +169,7 @@ const OrderHistory = () => {
           />
           <input
             type="text"
-            placeholder="Search Order ID, Customer..."
+            placeholder={t("dOrderHistory.search_order_id_customer")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-white/10 text-white placeholder:text-white/50 rounded-xl text-xs focus:outline-none focus:bg-white focus:text-gray-900 focus:placeholder:text-gray-400 focus:ring-2 focus:ring-white/10 transition-all border border-white/5"
@@ -188,7 +192,7 @@ const OrderHistory = () => {
                   : "bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100"
               }`}
             >
-              {status}
+              {translateLabel(t, status)}
             </button>
           ))}
         </div>
@@ -198,7 +202,7 @@ const OrderHistory = () => {
           {refreshing && (
             <div className="flex items-center justify-center gap-1.5 py-1 text-[11px] font-bold text-[#1A4516]">
               <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#1A4516] border-t-transparent" />
-              <span>Updating…</span>
+              <span>{t("dOrderHistory.updating")}</span>
             </div>
           )}
           
@@ -235,7 +239,7 @@ const OrderHistory = () => {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 mb-0.5 min-w-0 flex-wrap">
                               <span className="font-bold text-gray-900 text-xs group-hover:text-[#1A4516] transition-colors break-all">
-                                #{formatOrderId(order.orderId)} {order.historyJobType === 'RETURN' ? <span className="text-amber-600">(Return)</span> : ''}
+                                #{formatOrderId(order.orderId)} {order.historyJobType === 'RETURN' ? <span className="text-amber-600">{t("dOrderHistory.return")}</span> : ''}
                               </span>
                               <span
                                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
@@ -251,14 +255,14 @@ const OrderHistory = () => {
                             </div>
                             <div className="flex items-center text-gray-400 text-[10px]">
                               <Calendar size={10} className="mr-1" />
-                              {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(order.createdAt).toLocaleDateString(deliveryLocale(), { day: 'numeric', month: 'short' })}, {new Date(order.createdAt).toLocaleTimeString(deliveryLocale(), { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
                             <span className="block font-black text-base text-[#1A4516] leading-none mb-0.5">
                               ₹{Math.round(order.displayEarnings ?? (order.paymentBreakdown?.riderPayoutTotal || ((order.pricing?.total || 0) * 0.1)))}
                             </span>
-                            <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Earnings</span>
+                            <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">{t("dOrderHistory.earnings")}</span>
                           </div>
                         </div>
 
@@ -266,18 +270,18 @@ const OrderHistory = () => {
                           <div className="flex items-center">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 flex-shrink-0 shadow-[0_0_6px_rgba(34,197,94,0.4)]"></div>
                             <div className="flex items-center gap-1 min-w-0">
-                              <span className="text-[10px] text-gray-400 font-bold uppercase shrink-0">Store:</span>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase shrink-0">{t("dOrderHistory.store")}</span>
                               <span className="text-xs font-semibold text-gray-700 truncate">
-                                {order.seller?.shopName || "Unknown Store"}
+                                {order.seller?.shopName || t("dOrderHistory.unknown_store")}
                               </span>
                             </div>
                           </div>
                           <div className="flex items-center">
                             <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2 flex-shrink-0 shadow-[0_0_6px_rgba(239,68,68,0.4)]"></div>
                             <div className="flex items-center gap-1 min-w-0">
-                              <span className="text-[10px] text-gray-400 font-bold uppercase shrink-0">Cust:</span>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase shrink-0">{t("dOrderHistory.cust")}</span>
                               <span className="text-xs font-semibold text-gray-700 truncate">
-                                {order.customer?.name || "Customer"}
+                                {order.customer?.name || t("dOrderHistory.customer")}
                               </span>
                             </div>
                           </div>
@@ -287,14 +291,14 @@ const OrderHistory = () => {
                           <div className="flex items-center gap-2">
                             <span className="flex items-center bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 font-medium">
                               <MapPin size={10} className="mr-0.5 text-gray-400" />{" "}
-                              {order.distanceSnapshot?.distanceKmRounded || 2.4} km
+                              {order.distanceSnapshot?.distanceKmRounded || 2.4} {t("dOrderHistory.km")}
                             </span>
                             <span className="flex items-center bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 font-medium">
-                              <Clock size={10} className="mr-0.5 text-gray-400" /> {Math.round((order.distanceSnapshot?.distanceKmRounded || 2.4) * 6.25)} min
+                              <Clock size={10} className="mr-0.5 text-gray-400" /> {Math.round((order.distanceSnapshot?.distanceKmRounded || 2.4) * 6.25)} {t("dOrderHistory.min")}
                             </span>
                           </div>
                           <div className="flex items-center text-[#1A4516] font-bold group-hover:underline">
-                            View Details <ChevronRight size={12} className="ml-0.5" />
+                           {t("dOrderHistory.view_details")} <ChevronRight size={12} className="ml-0.5" />
                           </div>
                         </div>
                       </div>
@@ -310,8 +314,8 @@ const OrderHistory = () => {
                   <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-gray-100">
                     <Filter size={24} className="text-gray-400" />
                   </div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-1">No Orders Found</h3>
-                  <p className="text-gray-400 text-xs">Try changing your filters.</p>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">{t("dOrderHistory.no_orders_found")}</h3>
+                  <p className="text-gray-400 text-xs">{t("dOrderHistory.try_changing_your_filters")}</p>
                 </motion.div>
               )}
             </AnimatePresence>

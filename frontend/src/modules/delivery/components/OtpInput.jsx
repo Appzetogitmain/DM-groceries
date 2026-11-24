@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
 import { getCurrentPositionWithCache } from "../utils/deliveryLastLocation";
 import { compressImage } from "@core/utils/imageUtils";
+import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 function dataURLtoFile(dataUrl, filename = "proof.jpg") {
   const arr = dataUrl.split(",");
@@ -47,6 +48,7 @@ const formatTime = (seconds) => {
 };
 
 const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPickup = false, initialExpiresAt = null, onSuccess, onError, onCancel }) => {
+  const { t } = useTranslation();
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -180,7 +182,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
 
         newImages.push({ url, preview });
       } catch (err) {
-        toast.error("Failed to process image");
+        toast.error(t("dOtpInput.failed_to_process_image"));
       }
     }
 
@@ -280,7 +282,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
           : isReturn
             ? await deliveryApi.requestReturnOtp(orderId, {})
             : await deliveryApi.requestDeliveryOtp(orderId, {});
-      toast.success(response.data?.message || "OTP generated successfully");
+      toast.success(response.data?.message || t("dOtpInput.otp_generated_successfully"));
       setError(null);
       setLastErrorCode(null);
       
@@ -295,7 +297,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
       const errorMessage =
         err.response?.data?.error?.message ||
         err.message ||
-        "Failed to generate OTP";
+        t("dOtpInput.failed_to_generate_otp");
       toast.error(errorMessage);
       setError(errorMessage);
     } finally {
@@ -313,12 +315,12 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
 
     // Validate OTP format before submission
     if (otpString.length !== 4) {
-      setError("Please enter all 4 digits");
+      setError(t("dOtpInput.please_enter_all_4_digits"));
       return;
     }
     
     if (requirePhotos && images.length === 0) {
-      setError("Please upload at least 1 product photo");
+      setError(t("dOtpInput.please_upload_at_least_1"));
       return;
     }
 
@@ -341,7 +343,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
             console.warn("GPS failed, using fallback location for testing");
             locationData = { lat: 22.7196, lng: 75.8577 }; // fallback
           } else {
-            throw new Error("Location unavailable. Please enable GPS to proceed.");
+            throw new Error(t("dOtpInput.location_unavailable_please_enable_gps"));
           }
         }
       }
@@ -359,12 +361,12 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
       toast.success(
         response.data?.message ||
         (isSellerPickup
-          ? "Seller confirmed! Order picked up."
+          ? t("dOtpInput.seller_confirmed_order_picked_up")
           : isReturnDrop
-            ? "Seller confirmed! Return complete."
+            ? t("dOtpInput.seller_confirmed_return_complete")
             : isReturn
-              ? "Return pickup verified!"
-              : "Order delivered successfully!")
+              ? t("dOtpInput.return_pickup_verified")
+              : t("dOtpInput.order_delivered_successfully"))
       );
 
       try {
@@ -389,7 +391,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
         errorData.message ||
         respData.message ||
         err.message ||
-        "Failed to validate OTP";
+        t("dOtpInput.failed_to_validate_otp");
       const remainingAttempts = errorData.attemptsRemaining;
 
       setLastErrorCode(errorCode || null);
@@ -401,27 +403,27 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
 
       // Display appropriate error message
       if (errorCode === "OTP_MISMATCH") {
-        setError(`Incorrect OTP. ${remainingAttempts} attempt${remainingAttempts !== 1 ? "s" : ""} remaining.`);
-        toast.error(`Incorrect OTP. ${remainingAttempts} attempt${remainingAttempts !== 1 ? "s" : ""} remaining.`);
+        setError(t("dOtpInput.incorrect_otp_attempts", { count: remainingAttempts }));
+        toast.error(t("dOtpInput.incorrect_otp_attempts", { count: remainingAttempts }));
         clearInputs();
       } else if (errorCode === "OTP_EXPIRED") {
-        setError("OTP has expired. Please generate a new one.");
-        toast.error("OTP has expired. Please generate a new one.");
+        setError(t("dOtpInput.otp_has_expired_please_generate"));
+        toast.error(t("dOtpInput.otp_has_expired_please_generate"));
       } else if (errorCode === "OTP_CONSUMED") {
-        setError("OTP was already used. Please generate a new one.");
-        toast.error("OTP was already used. Please generate a new one.");
+        setError(t("dOtpInput.otp_was_already_used_please"));
+        toast.error(t("dOtpInput.otp_was_already_used_please"));
       } else if (errorCode === "MAX_ATTEMPTS_EXCEEDED") {
-        setError("Maximum attempts exceeded. Please contact supervisor.");
-        toast.error("Maximum attempts exceeded. Please contact supervisor.", {
+        setError(t("dOtpInput.maximum_attempts_exceeded_please_contact"));
+        toast.error(t("dOtpInput.maximum_attempts_exceeded_please_contact"), {
           duration: 6000,
         });
       } else if (errorCode === "OTP_INVALID_FORMAT") {
-        setError("Invalid OTP format. Please enter 4 digits.");
-        toast.error("Invalid OTP format. Please enter 4 digits.");
+        setError(t("dOtpInput.invalid_otp_format_please_enter"));
+        toast.error(t("dOtpInput.invalid_otp_format_please_enter"));
         clearInputs();
       } else if (errorCode === "OTP_NOT_FOUND") {
-        setError("No active OTP found. Please generate one first.");
-        toast.error("No active OTP found. Please generate one first.");
+        setError(t("dOtpInput.no_active_otp_found_please"));
+        toast.error(t("dOtpInput.no_active_otp_found_please"));
       } else {
         setError(errorMessage);
         toast.error(errorMessage);
@@ -443,12 +445,12 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
       {/* Header */}
       <div className="text-center">
         <h3 className="text-lg font-bold text-gray-900 mb-1">
-          {isSellerPickup ? "Enter Seller OTP" : isReturnDrop ? "Enter Seller OTP" : isReturn ? "Enter Return OTP" : "Enter Delivery OTP"}
+          {isSellerPickup ? t("dOtpInput.enter_seller_otp") : isReturnDrop ? t("dOtpInput.enter_seller_otp") : isReturn ? t("dOtpInput.enter_return_otp") : t("dOtpInput.enter_delivery_otp")}
         </h3>
         <p className="text-sm text-gray-600">
           {isSellerPickup || isReturnDrop
-            ? "Ask the seller for the 4-digit confirmation code"
-            : "Ask the customer for the 4-digit code"}
+            ? t("dOtpInput.ask_the_seller_for_the")
+            : t("dOtpInput.ask_the_customer_for_the")}
         </p>
       </div>
 
@@ -457,15 +459,15 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex justify-between items-center mb-3">
             <p className="text-sm font-bold text-gray-800">
-              Product Photos <span className="text-red-500">*</span>
+             {t("dOtpInput.product_photos")} <span className="text-red-500">*</span>
             </p>
-            <p className="text-xs text-gray-500">{images.length}/3 uploaded</p>
+            <p className="text-xs text-gray-500">{t("dOtpInput.3_uploaded", { length: images.length })}</p>
           </div>
           
           <div className="grid grid-cols-3 gap-3">
             {images.map((img, index) => (
               <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
-                <img src={img.preview || img.url} alt={`proof-${index}`} className="w-full h-full object-cover" />
+                <img src={img.preview || img.url} alt={t("dOtpInput.proof", { index })} className="w-full h-full object-cover" />
                 <button
                   onClick={() => removeImage(index)}
                   className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center"
@@ -485,7 +487,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
                 ) : (
                   <>
                     <Camera className="w-6 h-6 text-gray-400" />
-                    <span className="text-xs text-gray-400 mt-1">Add Photo</span>
+                    <span className="text-xs text-gray-400 mt-1">{t("dOtpInput.add_photo")}</span>
                   </>
                 )}
               </button>
@@ -523,7 +525,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
                   ? "border-primary bg-primary/10 text-slate-900 focus:border-primary focus:ring-primary"
                   : "border-gray-300 bg-white text-gray-900 focus:border-brand-500 focus:ring-brand-500"
               } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            aria-label={`Digit ${index + 1}`}
+            aria-label={t("dOtpInput.digit", { v1: index + 1 })}
           />
         ))}
       </div>
@@ -541,7 +543,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
       {attemptsRemaining < 3 && attemptsRemaining > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
           <p className="text-sm text-amber-800 font-medium">
-            {attemptsRemaining} attempt{attemptsRemaining !== 1 ? "s" : ""} remaining
+            {t("dOtpInput.attempts_remaining", { count: attemptsRemaining })}
           </p>
         </div>
       )}
@@ -563,7 +565,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className={`text-sm font-medium ${remainingSeconds <= 120 ? "text-amber-900" : "text-gray-700"}`}>
-              Valid For
+             {t("dOtpInput.valid_for")}
             </p>
           </div>
           <p className={`text-lg font-bold font-mono tracking-wider ${remainingSeconds <= 120 ? "text-amber-700" : "text-gray-900"}`}>
@@ -581,10 +583,10 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
           {isGenerating ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Generating OTP...</span>
+              <span>{t("dOtpInput.generating_otp")}</span>
             </>
           ) : (
-            <span>Generate New OTP</span>
+            <span>{t("dOtpInput.generate_new_otp")}</span>
           )}
         </button>
       )}
@@ -602,12 +604,12 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
         {isLoading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Validating...</span>
+            <span>{t("dOtpInput.validating")}</span>
           </>
         ) : (
           <>
             <CheckCircle className="w-5 h-5" />
-            <span>{isReturnDrop ? "Confirm Return Delivery" : isReturn ? "Confirm Pickup" : "Confirm Delivery"}</span>
+            <span>{isReturnDrop ? t("dOtpInput.confirm_return_delivery") : isReturn ? t("dOtpInput.confirm_pickup") : t("dOtpInput.confirm_delivery")}</span>
           </>
         )}
       </button>
@@ -618,7 +620,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
         disabled={isLoading || otp.every((d) => !d)}
         className="w-full h-10 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all duration-200 outline-none focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Clear
+       {t("dOtpInput.clear")}
       </button>
 
       {/* Resend OTP Button */}
@@ -630,10 +632,10 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
         {isGenerating ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Sending...</span>
+            <span>{t("dOtpInput.sending")}</span>
           </>
         ) : (
-          <span>Resend OTP</span>
+          <span>{t("dOtpInput.resend_otp")}</span>
         )}
       </button>
 
@@ -644,14 +646,14 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
           disabled={isLoading}
           className="w-full h-10 rounded-xl font-medium text-gray-600 hover:text-gray-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Cancel
+         {t("dOtpInput.cancel")}
         </button>
       )}
 
       {/* Help Text */}
       <div className="bg-brand-50 border border-brand-200 rounded-xl p-3">
         <p className="text-xs text-brand-800 text-center">
-          💡 The {isSellerPickup || isReturnDrop ? "seller" : "customer"} will see this OTP on their app when you're nearby
+         {isSellerPickup || isReturnDrop ? t("dOtpInput.seller_will_see_otp") : t("dOtpInput.customer_will_see_otp")}
         </p>
       </div>
     </div>
