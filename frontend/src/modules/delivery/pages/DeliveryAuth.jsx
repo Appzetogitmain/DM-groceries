@@ -1068,6 +1068,25 @@ const DeliveryAuth = () => {
                          {t("dDeliveryAuth.register")}
                         </button>
                       </p>
+
+                      {/* Support & Privacy Policy links (login) */}
+                      <div className="flex items-center justify-center gap-2 text-xs font-medium text-gray-400">
+                        <button
+                          type="button"
+                          onClick={() => navigate('/delivery/support')}
+                          className="text-brand-500 font-bold hover:underline"
+                        >
+                          {t("dDeliveryAuth.support")}
+                        </button>
+                        <span aria-hidden="true">•</span>
+                        <button
+                          type="button"
+                          onClick={() => navigate('/delivery/privacy')}
+                          className="text-brand-500 font-bold hover:underline"
+                        >
+                          {t("dDeliveryAuth.privacy_policy")}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </motion.div>
