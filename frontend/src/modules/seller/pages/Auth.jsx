@@ -1451,6 +1451,25 @@ const Auth = () => {
                     </button>
                   </p>
                 )}
+
+                {/* Support & Privacy Policy links (login + all signup steps) */}
+                <div className="flex items-center justify-center gap-2 text-[10px] font-medium text-slate-400">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/seller/support')}
+                    className="text-[#1A4516] hover:underline font-bold"
+                  >
+                    {t("sAuth.support")}
+                  </button>
+                  <span aria-hidden="true">•</span>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/seller/privacy')}
+                    className="text-[#1A4516] hover:underline font-bold"
+                  >
+                    {t("sAuth.privacyPolicy")}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </AnimatePresence>
