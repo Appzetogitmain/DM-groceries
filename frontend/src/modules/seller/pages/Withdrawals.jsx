@@ -44,8 +44,9 @@ const Withdrawals = () => {
     const [pageSize, setPageSize] = useState(10);
 
     const [isLocked, setIsLocked] = useState(false);
-    const [isCheckingPlan, setIsCheckingPlan] = useState(true);
+    const [isCheckingPlan, setIsCheckingPlan] = useState(false); // [SUBSCRIPTION DISABLED] was useState(true)
 
+    /* [SUBSCRIPTION DISABLED] plan-feature check that locked this page
     React.useEffect(() => {
         sellerApi.getCurrentSubscription().then(res => {
             if (res.data?.success) {
@@ -63,6 +64,7 @@ const Withdrawals = () => {
             setIsCheckingPlan(false);
         });
     }, []);
+    */
 
     const ledger = Array.isArray(data?.ledger) ? data.ledger : [];
     const withdrawalHistory = ledger.filter((row) => (row.type || '').toString() === 'Withdrawal');
@@ -177,6 +179,7 @@ const Withdrawals = () => {
         return <div className="flex items-center justify-center h-screen font-black text-slate-600">{t("sWithdraw.loading")}</div>;
     }
 
+    /* [SUBSCRIPTION DISABLED] "Feature Locked - Buy Subscription" screen
     if (isLocked) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white rounded-2xl border border-slate-100 p-8 text-center space-y-6">
@@ -193,6 +196,7 @@ const Withdrawals = () => {
             </div>
         );
     }
+    */
 
     const balances = {
         available: Number(data.balances?.availableBalance ?? 0),

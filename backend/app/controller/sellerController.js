@@ -46,6 +46,7 @@ export const toggleShopStatus = async (req, res) => {
     }
 
     // Can't go online while the subscription order limit is used up
+    /* [SUBSCRIPTION DISABLED] block going online when order limit reached
     if (!seller.isShopOpen && (await hasSellerReachedOrderLimit(seller._id, seller))) {
       return handleResponse(
         res,
@@ -54,6 +55,7 @@ export const toggleShopStatus = async (req, res) => {
         { isShopOpen: false, shopClosedReason: SHOP_CLOSED_REASON_ORDER_LIMIT },
       );
     }
+    */
 
     seller.isShopOpen = !seller.isShopOpen;
     seller.shopClosedReason = null; // manual open/close clears any automatic reason
@@ -121,12 +123,14 @@ export const getNearbySellers = async (req, res) => {
     });
 
     // Hide sellers whose subscription order limit is used up
-    const limitReached = await getLimitReachedSellerIds(
-      nearbySellers.map((s) => s._id),
-    );
-    const visibleSellers = limitReached.size
-      ? nearbySellers.filter((s) => !limitReached.has(String(s._id)))
-      : nearbySellers;
+    // [SUBSCRIPTION DISABLED] order-limit filter
+    // const limitReached = await getLimitReachedSellerIds(
+    //   nearbySellers.map((s) => s._id),
+    // );
+    // const visibleSellers = limitReached.size
+    //   ? nearbySellers.filter((s) => !limitReached.has(String(s._id)))
+    //   : nearbySellers;
+    const visibleSellers = nearbySellers;
 
     return handleResponse(
       res,

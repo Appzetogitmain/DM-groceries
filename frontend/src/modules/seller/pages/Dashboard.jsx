@@ -319,6 +319,7 @@ const Dashboard = () => {
         </button>
       </div>
 
+      {/* [SUBSCRIPTION DISABLED] Subscription Required banner + 50%/90%/limit-reached order limit banners
       {!subLoading && (!subscription || subscription.status !== 'ACTIVE') && (
         <div className="mb-6 p-4 rounded-xl border-2 border-red-200 bg-red-50 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3">
@@ -339,7 +340,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* 50% Order Limit Warning Banner */}
+      // 50% Order Limit Warning Banner
       {!subLoading && subscription && subscription.status === 'ACTIVE' && subscription.isHalfUsed && !subscription.isNearLimit && !subscription.isLimitReached && (
         <div className="mb-6 p-4 rounded-xl border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
           <div className="flex items-start sm:items-center gap-3">
@@ -364,7 +365,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* 90% Order Limit Warning Banner */}
+      // 90% Order Limit Warning Banner
       {!subLoading && subscription && subscription.status === 'ACTIVE' && subscription.isNearLimit && !subscription.isLimitReached && (
         <div className="mb-6 p-4 rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
           <div className="flex items-start sm:items-center gap-3">
@@ -389,7 +390,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Order Limit Reached Banner */}
+      // Order Limit Reached Banner
       {!subLoading && subscription && subscription.status === 'ACTIVE' && subscription.isLimitReached && (
         <div className="mb-6 p-4 rounded-xl border-2 border-red-300 bg-gradient-to-r from-red-50 to-rose-50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
           <div className="flex items-start sm:items-center gap-3">
@@ -412,6 +413,7 @@ const Dashboard = () => {
           </button>
         </div>
       )}
+      */}
 
       <PageHeader
         title={t("nav.dashboard")}
@@ -448,7 +450,8 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Subscription Order Usage */}
+      {/* [SUBSCRIPTION DISABLED] Subscription Order Usage card
+      // Subscription Order Usage
       {!subLoading && subscription && subscription.status === 'ACTIVE' && subscription.orderLimit !== null && subscription.orderLimit !== undefined && (
         <div className="mt-4">
           <Card className="!p-0 overflow-hidden">
@@ -502,6 +505,7 @@ const Dashboard = () => {
           </Card>
         </div>
       )}
+      */}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

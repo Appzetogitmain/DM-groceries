@@ -38,7 +38,7 @@ const POS = React.lazy(() => import("../pages/POS"));
 const PosSalesHistory = React.lazy(() => import("../pages/PosSalesHistory"));
 const SupportPage = React.lazy(() => import("../pages/SupportPage"));
 const PrivacyPage = React.lazy(() => import("../pages/PrivacyPage"));
-const Subscription = React.lazy(() => import("../pages/Subscription"));
+// [SUBSCRIPTION DISABLED] const Subscription = React.lazy(() => import("../pages/Subscription"));
 
 const navItems = [
   { labelKey: "nav.dashboard", path: "/seller", icon: HiOutlineSquares2X2, end: true },
@@ -70,7 +70,7 @@ const navItems = [
   },
   { labelKey: "nav.posBilling", path: "/seller/pos", icon: HiOutlineComputerDesktop },
   { labelKey: "nav.posHistory", path: "/seller/pos-history", icon: HiOutlineComputerDesktop },
-  { labelKey: "nav.subscription", path: "/seller/subscription", icon: HiOutlineCreditCard },
+  // [SUBSCRIPTION DISABLED] { labelKey: "nav.subscription", path: "/seller/subscription", icon: HiOutlineCreditCard },
   { labelKey: "nav.profile", path: "/seller/profile", icon: HiOutlineUser },
 ];
 
@@ -110,7 +110,7 @@ const SellerRoutesInner = () => {
         <Route path="/withdrawals" element={<Withdrawals />} />
         <Route path="/pos" element={<POS />} />
         <Route path="/pos-history" element={<PosSalesHistory />} />
-        <Route path="/subscription" element={<Subscription />} />
+        {/* [SUBSCRIPTION DISABLED] <Route path="/subscription" element={<Subscription />} /> */}
         <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -104,9 +104,10 @@ const ProductManagement = () => {
     }
   };
 
-  const [hasVariantsFeature, setHasVariantsFeature] = useState(false);
-  const [hasImagesFeature, setHasImagesFeature] = useState(false);
+  const [hasVariantsFeature, setHasVariantsFeature] = useState(true); // [SUBSCRIPTION DISABLED] was useState(false)
+  const [hasImagesFeature, setHasImagesFeature] = useState(true); // [SUBSCRIPTION DISABLED] was useState(false)
 
+  /* [SUBSCRIPTION DISABLED] plan-feature check (variants / gallery images)
   const fetchSubscription = async () => {
     try {
       const res = await sellerApi.getCurrentSubscription();
@@ -122,10 +123,11 @@ const ProductManagement = () => {
       // fail silently
     }
   };
+  */
 
   React.useEffect(() => {
     fetchCategories();
-    fetchSubscription();
+    // [SUBSCRIPTION DISABLED] fetchSubscription();
   }, []);
 
   const categories = dbCategories;

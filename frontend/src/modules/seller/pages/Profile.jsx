@@ -955,7 +955,8 @@ const SellerProfile = () => {
         </div>
       </Card>
 
-      {/* ==================== SIXTH ROW (Membership Card) ==================== */}
+      {/* [SUBSCRIPTION DISABLED] Membership / Active Plan card (Manage Plan / Upgrade Now)
+      // ==================== SIXTH ROW (Membership Card) ====================
       {subscription && subscription.plan ? (
         <Card className="bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-700 text-white p-6 md:p-8 rounded-[20px] shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none translate-x-12 -translate-y-12">
@@ -1013,6 +1014,7 @@ const SellerProfile = () => {
           </div>
         </Card>
       )}
+      */}
 
       {/* ==================== SEVENTH ROW (Quick Actions) ==================== */}
       <div className="space-y-4">
@@ -1022,7 +1024,7 @@ const SellerProfile = () => {
             { label: t("sProfile.manageProducts"), icon: Award, path: "/seller/products" },
             { label: t("sProfile.manageOrders"), icon: ShoppingBag, path: "/seller/orders" },
             { label: t("nav.wallet"), icon: Wallet, path: "/seller/withdrawals" },
-            { label: t("sProfile.membership"), icon: Zap, path: "/seller/subscription" },
+            // [SUBSCRIPTION DISABLED] { label: t("sProfile.membership"), icon: Zap, path: "/seller/subscription" },
             { label: t("sProfile.reports"), icon: BarChart3, path: "/seller/analytics" }
           ].map((act, idx) => (
             <motion.a

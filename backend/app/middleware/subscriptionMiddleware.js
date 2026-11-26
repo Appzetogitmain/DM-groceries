@@ -22,6 +22,10 @@ import {
  */
 export const requireFeature = (featureCode) => {
     return async (req, res, next) => {
+        // [SUBSCRIPTION DISABLED] subscription/feature check skipped for everyone.
+        // To re-enable: delete the next line and the "/*" ... "*/" markers below.
+        return next();
+        /* [SUBSCRIPTION DISABLED] original feature check
         try {
             // Only enforce for sellers
             if (req.user?.role !== "seller") {
@@ -65,6 +69,7 @@ export const requireFeature = (featureCode) => {
         } catch (error) {
             return handleResponse(res, 500, "Unable to validate subscription feature access");
         }
+        */
     };
 };
 
@@ -78,6 +83,9 @@ export const requireFeature = (featureCode) => {
  * If orderLimit is null (unlimited), it passes through.
  */
 export const checkOrderLimit = async (req, res, next) => {
+    // [SUBSCRIPTION DISABLED] order-limit check skipped.
+    return next();
+    /* [SUBSCRIPTION DISABLED] original order-limit check
     try {
         // Only enforce for sellers
         if (req.user?.role !== "seller") {
@@ -106,6 +114,7 @@ export const checkOrderLimit = async (req, res, next) => {
     } catch (error) {
         return handleResponse(res, 500, "Unable to validate order limit");
     }
+    */
 };
 
 /**
@@ -153,9 +162,10 @@ export const incrementOrderUsageAndAlert = async (sellerId) => {
         }
 
         // Limit reached → take the shop offline (exempt sellers are skipped inside)
-        if (isSubscriptionLimitReached(updated)) {
-            await enforceOrderLimitForSeller(sellerId, updated);
-        }
+        // [SUBSCRIPTION DISABLED] auto shop-offline on order limit
+        // if (isSubscriptionLimitReached(updated)) {
+        //     await enforceOrderLimitForSeller(sellerId, updated);
+        // }
 
         const usagePercent = (updated.ordersUsed / updated.orderLimit) * 100;
         const previousUsage = ((updated.ordersUsed - 1) / updated.orderLimit) * 100;

@@ -1,0 +1,118 @@
+=====================================================================
+ SELLER SUBSCRIPTION MODULE - COMMENTED OUT (TEMPORARY)
+ Date: 2026-11-26
+=====================================================================
+
+Every change is tagged with:   [SUBSCRIPTION DISABLED]
+To find all of them:           grep -rn "SUBSCRIPTION DISABLED" frontend/src backend/app
+To turn subscription back on:  uncomment every tagged block and put the
+                               original values back (each one notes "was ...").
+
+Nothing was deleted. The Subscription page file, the subscription
+controller, models and API routes are all still there. They are just
+not reachable or enforced right now.
+
+
+---------------------------------------------------------------------
+ A) FRONTEND - SELLER PANEL  (frontend/src/modules/seller/)
+---------------------------------------------------------------------
+
+1. routes/index.jsx
+   - Line 41  : lazy import of the Subscription page
+   - Line 73  : "Subscription" item in the sidebar nav
+   - Line 113 : <Route path="/subscription"> (opening /seller/subscription
+                now redirects to the dashboard)
+
+2. pages/Dashboard.jsx
+   - Line 322 : "Subscription Required" banner ("Your store operations are
+                currently paused... Choose a Plan")
+                + "50% Order Limit Reached" banner
+                + "90% Order Limit Almost Reached" banner
+                + "Order Limit Reached / Upgrade Now" banner
+   - Line 453 : "Order Usage" card (orders used / limit / remaining / %)
+
+3. pages/Profile.jsx
+   - Line 958  : Membership card ("Active Plan: ..." / "Basic Tier - Upgrade Now")
+   - Line 1027 : "Membership" quick action link (pointed to /seller/subscription)
+
+4. pages/StockManagement.jsx
+   - Line 55  : isCheckingPlan starts as false (was useState(true))
+   - Line 57  : plan check (INVENTORY_MANAGEMENT feature) that locked the page
+   - Line 237 : "Feature Locked - Buy Subscription" screen
+
+5. pages/Withdrawals.jsx
+   - Line 47  : isCheckingPlan starts as false (was useState(true))
+   - Line 49  : plan check (MONEY_WITHDRAWAL feature) that locked the page
+   - Line 182 : "Feature Locked - Buy Subscription" screen
+
+6. pages/Returns.jsx
+   - Line 127-134 : on a 403 error it showed the locked screen. Now it
+                    shows the normal "fetch failed" toast
+   - Line 279     : "Feature Locked - View Plans" screen
+
+7. pages/AddProduct.jsx
+   - Line 137-138 : hasVariantsFeature / hasImagesFeature now true
+                    (were useState(false)), so the gallery images section
+                    always shows
+   - Line 154     : fetchSubscription() function (plan feature check)
+   - Line 173     : fetchSubscription() call
+
+8. pages/ProductManagement.jsx
+   - Line 107-108 : hasVariantsFeature / hasImagesFeature now true
+                    (were useState(false))
+   - Line 110     : fetchSubscription() function
+   - Line 130     : fetchSubscription() call
+
+
+---------------------------------------------------------------------
+ B) BACKEND  (backend/app/)
+---------------------------------------------------------------------
+ Without these, the seller panel would still get
+ 403 "Active subscription required" from the API.
+
+9. middleware/subscriptionMiddleware.js
+   - Line 25-28 : requireFeature() now always calls next(). Its original
+                  check is commented out. That check sent:
+                    403 "Active subscription required to access this feature"
+                    403 "This feature (X) is not available in your current plan"
+                  It applied to these routes:
+                    products   : create / update product, stock-history, adjust-stock
+                    orders     : update order status, return approve / reject / qc / assign
+                    POS        : all /pos routes
+                    seller     : /stats, /earnings, /wallet/summary, /request-withdrawal
+   - Line 86-88 : checkOrderLimit() now always calls next(). Its original
+                  check is commented out. That check sent:
+                    403 "Active subscription required"
+                    403 "Order limit reached (x/y). Upgrade your plan..."
+   - Line 165   : the shop no longer goes offline automatically when the
+                  order limit is reached (enforceOrderLimitForSeller call).
+                  Order usage counting still runs, which is harmless.
+
+10. controller/sellerController.js
+    - Line 49  : block on turning the shop back online when the limit is
+                 reached ("Your order limit is reached, so your shop is
+                 offline. Upgrade or renew your plan...")
+    - Line 126 : filter that hid limit-reached sellers from the nearby
+                 sellers list
+
+11. services/checkoutPricingService.js
+    - Line 61 : checkout no longer rejects a store as "offline" because of
+                its order limit. A store the seller closed is still blocked.
+
+12. services/customerVisibilityService.js
+    - Line 66 : customers can see products from sellers whose order limit
+                is used up
+
+
+---------------------------------------------------------------------
+ NOT CHANGED (still active, plan-based)
+---------------------------------------------------------------------
+ - Delivery radius limit: backend/app/controller/sellerController.js
+   (~line 300) still caps serviceRadius at 5 km unless the plan has
+   CUSTOM_DELIVERY_RADIUS (15 km). The matching clamp is in
+   frontend/src/modules/seller/pages/Profile.jsx (~line 180).
+ - pages/Subscription.jsx and controller/seller/sellerSubscriptionController.js
+   are still in the code base and the /seller/subscriptions API still works.
+   The page just isn't reachable from the seller panel.
+ - The admin-side subscription plan management is untouched.
+ - Translation strings (sDash.subRequired etc.) are left in the locale files.

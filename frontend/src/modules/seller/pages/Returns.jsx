@@ -124,12 +124,14 @@ const Returns = () => {
             setReturns(items || []);
         } catch (error) {
             console.error("Failed to fetch returns", error);
+            /* [SUBSCRIPTION DISABLED] 403 "not in your plan" -> locked screen
             if (error?.response?.status === 403) {
                 setIsLocked(true);
                 setLockedMessage(error.response.data?.message || "This feature is not available in your current plan");
             } else {
+            */
                 showToast(t("sReturns.fetchFailed"), "error");
-            }
+            // [SUBSCRIPTION DISABLED] }
         } finally {
             setLoading(false);
         }
@@ -274,6 +276,7 @@ const Returns = () => {
         }
     };
 
+    /* [SUBSCRIPTION DISABLED] "Feature Locked - View Plans" screen
     if (isLocked) {
         return (
             <div className="flex flex-col items-center justify-center h-[75vh] text-center space-y-6 px-4">
@@ -297,6 +300,7 @@ const Returns = () => {
             </div>
         );
     }
+    */
 
     return (
         <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-16">

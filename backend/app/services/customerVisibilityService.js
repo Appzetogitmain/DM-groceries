@@ -63,10 +63,12 @@ export async function getNearbySellerIdsForCustomer(lat, lng) {
 
     // Sellers whose subscription order limit is used up are offline: their
     // products must not show to customers (exempt sellers are never removed).
-    const limitReached = await getLimitReachedSellerIds(inRangeIds);
-    return limitReached.size
-      ? inRangeIds.filter((id) => !limitReached.has(id))
-      : inRangeIds;
+    // [SUBSCRIPTION DISABLED] hide sellers whose order limit is used up
+    // const limitReached = await getLimitReachedSellerIds(inRangeIds);
+    // return limitReached.size
+    //   ? inRangeIds.filter((id) => !limitReached.has(id))
+    //   : inRangeIds;
+    return inRangeIds;
   };
 
   return getOrSet(buildNearbySellersKey(lat, lng), fetchFn, getTTL("nearbySellers"));

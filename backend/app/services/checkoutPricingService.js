@@ -57,8 +57,8 @@ async function computeDistanceKmForSeller({ sellerId, addressLocation, session =
   }
   // Offline shops (closed by the seller, or order limit reached) can't take orders
   if (
-    seller.isShopOpen === false ||
-    (await hasSellerReachedOrderLimit(sellerId, seller))
+    seller.isShopOpen === false
+    // [SUBSCRIPTION DISABLED] || (await hasSellerReachedOrderLimit(sellerId, seller))
   ) {
     const err = new Error(
       `${seller.shopName || "This store"} is currently offline. Please remove its items from your cart to continue.`,

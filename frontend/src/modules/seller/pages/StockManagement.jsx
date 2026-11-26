@@ -52,8 +52,9 @@ const StockManagement = () => {
     const [pageSize, setPageSize] = useState(20);
 
     const [isLocked, setIsLocked] = useState(false);
-    const [isCheckingPlan, setIsCheckingPlan] = useState(true);
+    const [isCheckingPlan, setIsCheckingPlan] = useState(false); // [SUBSCRIPTION DISABLED] was useState(true)
 
+    /* [SUBSCRIPTION DISABLED] plan-feature check that locked this page
     React.useEffect(() => {
         sellerApi.getCurrentSubscription().then(res => {
             if (res.data?.success) {
@@ -70,6 +71,7 @@ const StockManagement = () => {
             setIsCheckingPlan(false);
         });
     }, []);
+    */
 
     const fetchInventory = async (silent = false, stockStatus) => {
         if (!silent) setIsLoading(true);
@@ -232,6 +234,7 @@ const StockManagement = () => {
         return <div className="flex items-center justify-center h-screen font-black text-slate-600">{t("sStock.loading")}</div>;
     }
 
+    /* [SUBSCRIPTION DISABLED] "Feature Locked - Buy Subscription" screen
     if (isLocked) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white rounded-2xl border border-slate-100 p-8 text-center space-y-6">
@@ -248,6 +251,7 @@ const StockManagement = () => {
             </div>
         );
     }
+    */
 
     return (
         <div className="space-y-6 pb-16">
