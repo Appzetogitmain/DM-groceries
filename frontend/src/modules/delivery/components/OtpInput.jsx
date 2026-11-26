@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
 import { getCurrentPositionWithCache } from "../utils/deliveryLastLocation";
 import { compressImage } from "@core/utils/imageUtils";
+import { captureFromNativeCamera } from "../utils/nativeCamera";
 import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 function dataURLtoFile(dataUrl, filename = "proof.jpg") {
@@ -132,8 +133,22 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
     };
   }, [expiresAtStr]);
 
-  const handleImageSelect = async (e) => {
-    const files = Array.from(e.target.files || []);
+  const handleImageSelect = (e) => processImageFiles(Array.from(e.target.files || []));
+
+  const handleAddPhotoClick = async () => {
+    const result = await captureFromNativeCamera();
+    if (!result.handled) {
+      fileInputRef.current?.click();
+      return;
+    }
+    if (result.file) {
+      await processImageFiles([result.file]);
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+  };
+
+  const processImageFiles = async (files) => {
     if (!files.length) return;
 
     const remaining = 3 - images.length;
@@ -478,7 +493,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
             ))}
             {images.length < 3 && (
               <button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={handleAddPhotoClick}
                 disabled={isUploading}
                 className="aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-white hover:bg-gray-50 transition-colors"
               >

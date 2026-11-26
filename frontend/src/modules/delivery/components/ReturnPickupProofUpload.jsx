@@ -3,6 +3,7 @@ import { Camera, CheckCircle, Loader2, Package, AlertTriangle, X } from "lucide-
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
 import { compressImage } from "@core/utils/imageUtils";
+import { captureFromNativeCamera } from "../utils/nativeCamera";
 import { useDeliveryTranslation as useTranslation } from "../i18n/useDeliveryTranslation";
 
 const CONDITIONS = [
@@ -40,8 +41,22 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
     }
   }, [orderId]);
 
-  const handleImageSelect = async (e) => {
-    const files = Array.from(e.target.files || []);
+  const handleImageSelect = (e) => processImageFiles(Array.from(e.target.files || []));
+
+  const handleAddPhotoClick = async () => {
+    const result = await captureFromNativeCamera();
+    if (!result.handled) {
+      fileInputRef.current?.click();
+      return;
+    }
+    if (result.file) {
+      await processImageFiles([result.file]);
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+  };
+
+  const processImageFiles = async (files) => {
     if (!files.length) return;
 
     const remaining = 5 - images.length;
@@ -182,7 +197,7 @@ const ReturnPickupProofUpload = ({ orderId, onSubmitted }) => {
           ))}
           {images.length < 5 && (
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={handleAddPhotoClick}
               disabled={isUploading}
               className="aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
             >

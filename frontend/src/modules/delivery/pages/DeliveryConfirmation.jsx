@@ -18,6 +18,7 @@ import confetti from "canvas-confetti";
 import { useParams } from "react-router-dom";
 import { deliveryApi } from "../services/deliveryApi";
 import { compressImage } from "@core/utils/imageUtils";
+import { captureFromNativeCamera } from "../utils/nativeCamera";
 import { toast } from "sonner";
 import DeliverySlideButton from "../components/DeliverySlideButton";
 import OtpInput from "../components/OtpInput";
@@ -60,6 +61,38 @@ const DeliveryConfirmation = () => {
     };
     fetchOrder();
   }, [orderId]);
+
+  const processDeliveryPhoto = async (file) => {
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file, {
+        maxWidth: 1024,
+        maxHeight: 1024,
+        quality: 0.8,
+        maxSizeBytes: 25 * 1024 * 1024,
+      });
+      setDeliveryPhotoPreview(compressed);
+      setDeliveryPhoto(file);
+    } catch {
+      setDeliveryPhoto(file);
+      const reader = new FileReader();
+      reader.onload = (ev) => setDeliveryPhotoPreview(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleTakePhotoClick = async () => {
+    const result = await captureFromNativeCamera();
+    if (!result.handled) {
+      photoInputRef.current?.click();
+      return;
+    }
+    if (result.file) {
+      await processDeliveryPhoto(result.file);
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+  };
 
   const handleOtpGenerated = (data) => {
     console.log("OTP generated successfully:", data);
@@ -255,25 +288,7 @@ const DeliveryConfirmation = () => {
               accept="image/*"
               capture="environment"
               className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                try {
-                  const compressed = await compressImage(file, {
-                    maxWidth: 1024,
-                    maxHeight: 1024,
-                    quality: 0.8,
-                    maxSizeBytes: 25 * 1024 * 1024,
-                  });
-                  setDeliveryPhotoPreview(compressed);
-                  setDeliveryPhoto(file);
-                } catch {
-                  setDeliveryPhoto(file);
-                  const reader = new FileReader();
-                  reader.onload = (ev) => setDeliveryPhotoPreview(ev.target.result);
-                  reader.readAsDataURL(file);
-                }
-              }}
+              onChange={(e) => processDeliveryPhoto(e.target.files?.[0])}
             />
             {deliveryPhotoPreview ? (
               <div className="relative">
@@ -297,7 +312,7 @@ const DeliveryConfirmation = () => {
             ) : (
               <button
                 type="button"
-                onClick={() => photoInputRef.current?.click()}
+                onClick={handleTakePhotoClick}
                 className="w-full p-4 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 <Camera size={32} className="mb-2 text-gray-400" />

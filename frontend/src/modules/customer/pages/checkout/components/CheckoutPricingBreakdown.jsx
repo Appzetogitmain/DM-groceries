@@ -121,11 +121,6 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
                     ? ` ${t("checkout.billedKm", { km: pricingPreview.distanceKmRounded.toFixed(2) })}`
                     : ""}
                 </span>
-                <span className="uppercase tracking-wider">
-                  {pricingPreview?.snapshots?.deliverySettings?.deliveryPricingMode ||
-                    pricingPreview?.snapshots?.deliverySettings?.pricingMode ||
-                    ""}
-                </span>
               </div>
             )}
           <div className="flex justify-between items-center px-2">
