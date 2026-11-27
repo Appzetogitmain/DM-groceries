@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Search } from 'lucide-react';
-import { useLocation } from '../../context/LocationContext';
+import { useLocation as useRouterLocation } from 'react-router-dom';
+import { useLocation, isLocationFreePath } from '../../context/LocationContext';
 import LocationDrawer from './LocationDrawer';
 import { useTranslation } from 'react-i18next';
 
@@ -10,8 +11,10 @@ const LocationRequiredModal = () => {
     const { t } = useTranslation();
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const { pathname } = useRouterLocation();
 
-    if (hasSetLocation) return null;
+    // Privacy Policy and Support open without asking for location
+    if (hasSetLocation || isLocationFreePath(pathname)) return null;
 
     const handleEnableLocation = async () => {
         setIsLoading(true);

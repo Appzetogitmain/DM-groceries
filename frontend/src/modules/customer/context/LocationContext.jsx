@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
+import { useLocation as useRouterLocation } from "react-router-dom";
 import { customerApi } from "../services/customerApi";
 import { hasValidStoredAuthToken } from "@core/utils/authStorage";
 import { getJSON, setJSON, remove, STORAGE_KEYS } from "@core/utils/storage";
@@ -18,6 +19,14 @@ const STORAGE_KEY = STORAGE_KEYS.LOCATION;
 // after roughly a month so we don't keep serving locations from a previous
 // address indefinitely.
 const LOCATION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Pages that must open without asking for location (Privacy Policy and the
+// public Support page). Customer pages are served at /x and /user/x.
+export function isLocationFreePath(pathname = "") {
+  const path = String(pathname).replace(/^\/user(?=\/|$)/, "") || "/";
+  return path === "/privacy" || path.startsWith("/privacy/") ||
+    path === "/support" || path.startsWith("/support/");
+}
 
 // Accounts flagged with `useFixedLocation` (test/demo accounts, set in the DB)
 // never use live location: the app always uses their first saved address.
@@ -74,6 +83,8 @@ export const LocationProvider = ({ children }) => {
   const fixedLocationRef = useRef(readFixedLocation());
   const [isFixedLocation, setIsFixedLocation] = useState(() => !!fixedLocationRef.current);
   const { token: authToken } = useAuth();
+  const onLocationFreePage = isLocationFreePath(useRouterLocation().pathname);
+  const autoLocationDoneRef = useRef(false);
 
   // Update the current location.
   // By default this does NOT change saved addresses; only explicit
@@ -358,7 +369,11 @@ export const LocationProvider = ({ children }) => {
   }, [refreshAddresses, authToken]);
 
   // On mount: restore from cache if available for fast render, then auto-fetch live location.
+  // Skipped while on the Privacy Policy / Support pages; runs once the user
+  // moves to any other page.
   useEffect(() => {
+    if (autoLocationDoneRef.current || onLocationFreePage) return;
+    autoLocationDoneRef.current = true;
     // Fixed-location accounts: use the saved address, never auto-fetch live location
     if (fixedLocationRef.current) {
       updateLocation(fixedLocationRef.current, { persist: true });
@@ -395,7 +410,7 @@ export const LocationProvider = ({ children }) => {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [onLocationFreePage]);
 
   const locationValue = useMemo(() => ({
     currentLocation,
