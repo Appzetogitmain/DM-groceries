@@ -78,13 +78,6 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
 
   const requirePhotos = isSellerPickup || (!isReturn && !isReturnDrop);
 
-  // Auto-focus first input on mount
-  useEffect(() => {
-    if (inputRefs[0].current) {
-      inputRefs[0].current.focus();
-    }
-  }, []);
-
   // Reset component when orderId changes
   useEffect(() => {
     setOtp(["", "", "", ""]);
@@ -99,9 +92,6 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isSellerPic
     } catch { setImages([]); }
     setExpiresAtStr(initialExpiresAt);
     setRemainingSeconds(initialExpiresAt ? calculateRemainingTime(initialExpiresAt) : 0);
-    if (inputRefs[0].current) {
-      inputRefs[0].current.focus();
-    }
   }, [orderId, initialExpiresAt]);
 
   // Countdown timer logic using dynamic calculation to prevent drift

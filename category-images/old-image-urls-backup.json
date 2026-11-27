@@ -1,0 +1,56 @@
+[
+  {
+    "_id": "6acf116977c110971d033633",
+    "name": "Wheat Flour",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1791955305/categories/w2e1wwovwkoqrugon910.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795760999/categories/dmyhatlzasm8nc80toq7.png"
+  },
+  {
+    "_id": "6acf119a77c110971d033647",
+    "name": "Multigrain Atta",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1791955353/categories/uoz8nw5lvgyqzxch48ea.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761000/categories/twkhpeuhgmltdju8zntg.png"
+  },
+  {
+    "_id": "6acf11ac77c110971d033658",
+    "name": "Rice",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1791955372/categories/c0volktwbrsgvzlat5pk.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761001/categories/rtufzwmamrtduyw8tund.png"
+  },
+  {
+    "_id": "6acf123b77c110971d033694",
+    "name": "Basmati Rice",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795167637/categories/whnihtsiapoqklmiq0ra.jpg",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761002/categories/xkgrpfac6qffnknx1mms.png"
+  },
+  {
+    "_id": "6acf11ca77c110971d033666",
+    "name": "Millets",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1791955402/categories/ljjxxbkqyzywiolsejik.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761003/categories/drdh3foiwhksaptfhiba.png"
+  },
+  {
+    "_id": "6acf127d77c110971d0336ab",
+    "name": "Bajra",
+    "oldImage": "",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761004/categories/mh09wwkxn9vla00xzdxd.png"
+  },
+  {
+    "_id": "6acf11e477c110971d033677",
+    "name": "Whole Grains",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1791955428/categories/edojfbvl9b9sm3ppxeeg.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761005/categories/anyip5kidjo0r90cetlj.png"
+  },
+  {
+    "_id": "6acf11fe77c110971d033685",
+    "name": "Poha & Other Grains",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1791955453/categories/vrxeqyqs5fyjy9kqli6f.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761006/categories/utjkznbzybn5pdqzxifq.png"
+  },
+  {
+    "_id": "6acf129c77c110971d0336c4",
+    "name": "Poha",
+    "oldImage": "",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761007/categories/sohxpd0yhv2o9c0lwuy3.png"
+  }
+]

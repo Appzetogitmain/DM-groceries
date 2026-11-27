@@ -207,14 +207,16 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
         </div>
       </div>
 
-      {/* Use current location */}
-      <button
-        type="button"
-        onClick={onUseCurrentLocation}
-        disabled={isFetchingLocation}
-        className="mt-3 w-full py-2.5 rounded-2xl border border-dashed border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-        {isFetchingLocation ? t("checkout.detectingLive") : t("checkout.useLive")}
-      </button>
+      {/* Use current location (hidden for fixed-location accounts) */}
+      {onUseCurrentLocation && (
+        <button
+          type="button"
+          onClick={onUseCurrentLocation}
+          disabled={isFetchingLocation}
+          className="mt-3 w-full py-2.5 rounded-2xl border border-dashed border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+          {isFetchingLocation ? t("checkout.detectingLive") : t("checkout.useLive")}
+        </button>
+      )}
 
       {/* Confirmation banner */}
       <motion.div className="mt-3 rounded-2xl border border-[#1A4516]/10 bg-[#F5FBF5]/70 px-4 py-3 flex items-center gap-3 shadow-sm">

@@ -116,3 +116,27 @@ not reachable or enforced right now.
    The page just isn't reachable from the seller panel.
  - The admin-side subscription plan management is untouched.
  - Translation strings (sDash.subRequired etc.) are left in the locale files.
+
+
+=====================================================================
+ USER APP - "MY REWARDS" COMMENTED OUT
+ Date: 2026-11-27
+=====================================================================
+
+Tag used:  [REWARDS DISABLED]
+Find it:   grep -rn "REWARDS DISABLED" frontend/src
+
+13. frontend/src/modules/customer/pages/ProfilePage.jsx
+    - Line 129 : "My Rewards" menu item in the Profile -> My Account list
+                 (it opened /user/rewards)
+
+ To turn it back on: remove the {/* [REWARDS DISABLED] ... */} wrapper
+ around that line.
+
+ NOT CHANGED
+ - The rewards page itself (route /user/rewards -> MilestoneRewards) and
+   the milestone/rewards backend are untouched. The page still opens if
+   someone goes to /user/rewards directly. It's just no longer linked
+   from the Profile.
+ - The `Gift` icon import in ProfilePage.jsx is now unused but left in
+   place so the line can be restored as-is.

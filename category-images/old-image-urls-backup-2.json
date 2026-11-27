@@ -1,0 +1,93 @@
+[
+  {
+    "_id": "6acf112e77c110971d033623",
+    "name": "Atta, Rice & Grains",
+    "type": "header",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1791955246/categories/b9wsh8hlcenfnyu39epf.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764175/categories/txhk1hkncgwoobbopggx.jpg"
+  },
+  {
+    "_id": "6acf116977c110971d033633",
+    "name": "Wheat Flour",
+    "type": "category",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761789/categories/nl880ggq6vozt8c8j7gi.jpg",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764175/categories/kazabilendq29j5tqirf.jpg"
+  },
+  {
+    "_id": "6acf119a77c110971d033647",
+    "name": "Multigrain Atta",
+    "type": "category",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761888/categories/eo6oqiguswjkbpghkjgt.jpg",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764176/categories/qdssnij6b5jdf5dlgp9f.jpg"
+  },
+  {
+    "_id": "6acf11ac77c110971d033658",
+    "name": "Rice",
+    "type": "category",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761818/categories/tmxqhroqkvvquyysbx08.jpg",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764177/categories/bmu5fnybz4filfdfodrl.jpg"
+  },
+  {
+    "_id": "6acf11ca77c110971d033666",
+    "name": "Millets",
+    "type": "category",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761871/categories/ualh7dfd5tb1dtofi9po.jpg",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764178/categories/otdaxfgotyotagzjqze6.jpg"
+  },
+  {
+    "_id": "6acf11fe77c110971d033685",
+    "name": "Poha & Other Grains",
+    "type": "category",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761833/categories/egyjmgnbpxptnuqe6d1y.jpg",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764179/categories/ssnq54o5a9wkmsxssaf7.jpg"
+  },
+  {
+    "_id": "6acf11e477c110971d033677",
+    "name": "Whole Grains",
+    "type": "category",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761800/categories/ne5fpi02ywrbf6jrwzyn.jpg",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764180/categories/v5o5tjg9b4xit51qog12.jpg"
+  },
+  {
+    "_id": "6b092c28c30f5aecebb4e19a",
+    "name": "Ashirwaad",
+    "type": "subcategory",
+    "oldImage": "",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764181/categories/y6gasfbiqawcjcibprws.jpg"
+  },
+  {
+    "_id": "6b092bbbc30f5aecebb4e0a1",
+    "name": "5 Grain",
+    "type": "subcategory",
+    "oldImage": "",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764184/categories/ciozusqkyfthe4ckluet.jpg"
+  },
+  {
+    "_id": "6acf123b77c110971d033694",
+    "name": "Basmati Rice",
+    "type": "subcategory",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761002/categories/xkgrpfac6qffnknx1mms.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764185/categories/rfwuzbysniltr602uh9l.jpg"
+  },
+  {
+    "_id": "6b092bc8c30f5aecebb4e0c6",
+    "name": "Mogra",
+    "type": "subcategory",
+    "oldImage": "",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764186/categories/edbw5nl6ytmjepcp6z8o.jpg"
+  },
+  {
+    "_id": "6acf127d77c110971d0336ab",
+    "name": "Bajra",
+    "type": "subcategory",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761004/categories/mh09wwkxn9vla00xzdxd.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764187/categories/e2szmfw0sj2xpkmvlgcl.jpg"
+  },
+  {
+    "_id": "6acf129c77c110971d0336c4",
+    "name": "Poha",
+    "type": "subcategory",
+    "oldImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795761007/categories/sohxpd0yhv2o9c0lwuy3.png",
+    "newImage": "https://res.cloudinary.com/yzynf4jg/image/upload/v1795764187/categories/vte3gvd8lh8a3da09twh.jpg"
+  }
+]

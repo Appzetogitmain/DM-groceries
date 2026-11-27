@@ -126,7 +126,7 @@ const ProfilePage = () => {
                         <MenuItem icon={ListOrdered} label={t('profile.myLists')} path="/user/lists" />
                         <MenuItem icon={MapPin} label={t('profile.myAddresses')} path="/user/addresses" />
                         <MenuItem icon={Wallet} label={t('profile.myWallet')} rightText={`₹${user?.walletBalance || 0}`} path="/user/wallet" />
-                        <MenuItem icon={Gift} label={t('profile.myRewards')} path="/user/rewards" />
+                        {/* [REWARDS DISABLED] <MenuItem icon={Gift} label={t('profile.myRewards')} path="/user/rewards" /> */}
                         <MenuItem icon={Heart} label={t('profile.myWishlist')} path="/user/wishlist" />
                         <MenuItem icon={Bell} label={t('profile.notifications')} path="/user/notifications" />
                         <MenuItem icon={HelpCircle} label={t('profile.helpSupport')} path="/user/help" />

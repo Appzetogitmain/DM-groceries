@@ -37,6 +37,7 @@ import {
   resolveProductApprovalStatus,
 } from "../services/productModerationService.js";
 import { buildSearchRegex } from "../utils/regex.js";
+import { buildVisibleProductCategoryFilter } from "../services/categoryVisibilityService.js";
 
 // Phase 3 P3-5: when search term is reasonably specific and the env flag
 // is enabled, prefer Mongo's `name + tags` text index over case-insensitive
@@ -352,7 +353,15 @@ export const getProducts = async (req, res) => {
     let finalQuery = { ...query };
     if (enforceRadius) {
       finalQuery.status = "active";
-      finalQuery = { $and: [finalQuery, getApprovedOrLegacyFilter()] };
+      // Hide products whose header / category / subcategory is inactive
+      const categoryVisibility = await buildVisibleProductCategoryFilter();
+      finalQuery = {
+        $and: [
+          finalQuery,
+          getApprovedOrLegacyFilter(),
+          ...(categoryVisibility ? [categoryVisibility] : []),
+        ],
+      };
     } else {
       if (status && status !== "all") {
         finalQuery.status = status;

@@ -115,7 +115,9 @@ const CategoryProductsPage = () => {
                         h?.type === 'header' &&
                         (String(h.slug || '').trim().toLowerCase() === 'all' ||
                             String(h.name || '').trim().toLowerCase() === 'all'));
-                    setSubCategories([{ id: 'all', name: 'All', icon: allHeader?.image || DEFAULT_ALL_ICON }, ...subs]);
+                    // Prefer this category's own photo for its "All" tile; the "All" header
+                    // may be inactive (and so not returned to customers).
+                    setSubCategories([{ id: 'all', name: 'All', icon: currentCat.image || allHeader?.image || DEFAULT_ALL_ICON }, ...subs]);
                 }
             }
         } catch (error) {

@@ -6,6 +6,7 @@ import handleResponse from "../utils/helper.js";
 import mongoose from "mongoose";
 import { buildKey, getOrSet, getTTL, invalidate } from "../services/cacheService.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
+import { getHiddenCategoryIds } from "../services/categoryVisibilityService.js";
 import {
   ensureBuiltinSections,
   getNextSectionOrder,
@@ -498,10 +499,18 @@ export const getPublicHeroConfig = async (req, res) => {
       getTTL("homepage"),
     );
 
+    // Drop hero categories that are inactive, or whose parent/header is inactive.
+    // Done outside the hero cache so admin status changes show up immediately.
+    let categoryIds = config?.categoryIds || [];
+    if (categoryIds.length) {
+      const hidden = new Set(await getHiddenCategoryIds());
+      categoryIds = categoryIds.filter((id) => !hidden.has(String(id)));
+    }
+
     const payload = config
       ? {
           banners: config.banners || { items: [] },
-          categoryIds: config.categoryIds || [],
+          categoryIds,
         }
       : { banners: { items: [] }, categoryIds: [] };
 

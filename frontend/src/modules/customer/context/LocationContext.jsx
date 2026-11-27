@@ -5,10 +5,12 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { customerApi } from "../services/customerApi";
 import { hasValidStoredAuthToken } from "@core/utils/authStorage";
-import { getJSON, setJSON, STORAGE_KEYS } from "@core/utils/storage";
+import { getJSON, setJSON, remove, STORAGE_KEYS } from "@core/utils/storage";
+import { useAuth } from "@core/context/AuthContext";
 
 const LocationContext = createContext(undefined);
 const STORAGE_KEY = STORAGE_KEYS.LOCATION;
@@ -16,6 +18,33 @@ const STORAGE_KEY = STORAGE_KEYS.LOCATION;
 // after roughly a month so we don't keep serving locations from a previous
 // address indefinitely.
 const LOCATION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Accounts flagged with `useFixedLocation` (test/demo accounts, set in the DB)
+// never use live location: the app always uses their first saved address.
+const FIXED_LOCATION_KEY = "customer_fixed_location";
+
+function readFixedLocation() {
+  if (!hasValidStoredAuthToken("auth_customer")) return null;
+  const loc = getJSON(FIXED_LOCATION_KEY, null);
+  return loc && Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude) ? loc : null;
+}
+
+function fixedLocationFromProfile(profile) {
+  if (!profile?.useFixedLocation) return null;
+  const addr = (Array.isArray(profile.addresses) ? profile.addresses : []).find(
+    (a) => Number.isFinite(a?.location?.lat) && Number.isFinite(a?.location?.lng),
+  );
+  if (!addr) return null;
+  return {
+    name: addr.fullAddress || addr.formattedAddress || "",
+    time: "12-15 mins",
+    city: addr.city || "",
+    state: addr.state || "",
+    pincode: addr.pincode || "",
+    latitude: addr.location.lat,
+    longitude: addr.location.lng,
+  };
+}
 
 export const LocationProvider = ({ children }) => {
   // Default location (used until we can resolve a better one)
@@ -40,6 +69,11 @@ export const LocationProvider = ({ children }) => {
 
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [locationError, setLocationError] = useState(null);
+
+  // Fixed location for flagged accounts (null for everyone else)
+  const fixedLocationRef = useRef(readFixedLocation());
+  const [isFixedLocation, setIsFixedLocation] = useState(() => !!fixedLocationRef.current);
+  const { token: authToken } = useAuth();
 
   // Update the current location.
   // By default this does NOT change saved addresses; only explicit
@@ -93,6 +127,12 @@ export const LocationProvider = ({ children }) => {
   // Must be called directly from a user gesture (click/tap) for the browser to show the permission prompt.
   const fetchAndCacheLocation = () =>
     new Promise((resolve) => {
+      // Fixed-location accounts: never ask for live location
+      if (fixedLocationRef.current) {
+        updateLocation(fixedLocationRef.current, { persist: true });
+        resolve({ ok: true, location: fixedLocationRef.current });
+        return;
+      }
       if (
         typeof window === "undefined" ||
         !("navigator" in window) ||
@@ -263,6 +303,17 @@ export const LocationProvider = ({ children }) => {
       const { data } = await customerApi.getProfile();
       const profile = data?.result ?? data?.data ?? data;
       const raw = Array.isArray(profile?.addresses) ? profile.addresses : [];
+
+      // Apply / clear the fixed location for flagged accounts
+      const fixed = fixedLocationFromProfile(profile);
+      fixedLocationRef.current = fixed;
+      setIsFixedLocation(!!fixed);
+      if (fixed) {
+        setJSON(FIXED_LOCATION_KEY, fixed);
+        updateLocation(fixed, { persist: true });
+      } else {
+        remove(FIXED_LOCATION_KEY);
+      }
       setSavedAddresses(
         raw.map((addr, idx) => ({
           id: addr._id ?? String(idx),
@@ -293,13 +344,26 @@ export const LocationProvider = ({ children }) => {
     }
   }, []);
 
-  // On mount: hydrate saved addresses from profile (only when customer is logged in)
+  // Hydrate saved addresses from profile when the app opens and whenever the
+  // customer logs in or out (so a fixed-location account applies right after OTP login)
   useEffect(() => {
-    refreshAddresses();
-  }, [refreshAddresses]);
+    if (hasValidStoredAuthToken("auth_customer")) {
+      refreshAddresses();
+    } else {
+      // Logged out: drop the per-account settings
+      fixedLocationRef.current = null;
+      setIsFixedLocation(false);
+      remove(FIXED_LOCATION_KEY);
+    }
+  }, [refreshAddresses, authToken]);
 
   // On mount: restore from cache if available for fast render, then auto-fetch live location.
   useEffect(() => {
+    // Fixed-location accounts: use the saved address, never auto-fetch live location
+    if (fixedLocationRef.current) {
+      updateLocation(fixedLocationRef.current, { persist: true });
+      return;
+    }
     const parsed = getJSON(STORAGE_KEY, null);
     const addressName = parsed?.address || parsed?.name;
     
@@ -343,8 +407,9 @@ export const LocationProvider = ({ children }) => {
     isFetchingLocation,
     locationError,
     refreshLocation: fetchAndCacheLocation,
+    isFixedLocation,
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [currentLocation, savedAddresses, hasSetLocation, isFetchingLocation, locationError, refreshAddresses]);
+  }), [currentLocation, savedAddresses, hasSetLocation, isFetchingLocation, locationError, refreshAddresses, isFixedLocation]);
 
   return (
     <LocationContext.Provider value={locationValue}>

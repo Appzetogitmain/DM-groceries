@@ -143,6 +143,7 @@ const CheckoutPage = () => {
     refreshLocation,
     isFetchingLocation,
     updateLocation,
+    isFixedLocation,
   } = useAppLocation();
   const navigate = useNavigate();
 
@@ -1080,7 +1081,7 @@ const CheckoutPage = () => {
               savedAddresses={locationSavedAddresses}
               onSelectAddress={() => setIsAddressModalOpen(true)}
               onEditAddress={handleOpenEditAddress}
-              onUseCurrentLocation={handleUseCurrentLiveLocation}
+              onUseCurrentLocation={isFixedLocation ? null : handleUseCurrentLiveLocation}
               isFetchingLocation={isFetchingLocation}
               showRecipientForm={showRecipientForm}
               onToggleRecipientForm={() => setShowRecipientForm((v) => !v)}

@@ -6,6 +6,7 @@ import { uploadToCloudinary } from "../services/mediaService.js";
 import mongoose from "mongoose";
 import { invalidateCategoryName } from "../services/entityNameCache.js";
 import { buildSearchRegex } from "../utils/regex.js";
+import { getHiddenCategoryIds } from "../services/categoryVisibilityService.js";
 import {
   ALL_HEADER_LOCKED_FIELDS,
   isAllHeaderCategory,
@@ -21,8 +22,22 @@ function normalizeUrl(value) {
   return normalized;
 }
 
-function categoryCacheKey({ tree = false, type = "all" } = {}) {
-  return buildKey("catalog", "categories", `${tree ? "tree" : "flat"}:${type || "all"}`);
+function categoryCacheKey({ tree = false, type = "all", publicOnly = false } = {}) {
+  // Public (customer) responses only hold active categories, so they get their own keys.
+  return buildKey(
+    "catalog",
+    "categories",
+    `${publicOnly ? "public:" : ""}${tree ? "tree" : "flat"}:${type || "all"}`,
+  );
+}
+
+// This router is mounted at both /admin/categories and /categories, and the
+// seller panel also reads /admin/categories. Only a logged-in admin on the
+// admin mount sees inactive categories; sellers and customers get active ones.
+function isPublicCategoryRequest(req) {
+  const onAdminMount = String(req.baseUrl || "").includes("/admin/");
+  const isAdmin = String(req.user?.role || "").toLowerCase() === "admin";
+  return !(onAdminMount && isAdmin);
 }
 
 function normalizeParentId(parentId) {
@@ -57,20 +72,24 @@ async function validateParentForType(type, parentId) {
 export const getCategories = async (req, res) => {
   try {
     const { flat, tree, type } = req.query;
+    const publicOnly = isPublicCategoryRequest(req);
+    const statusFilter = publicOnly ? { status: "active" } : {};
 
     if (tree === "true") {
-      const cacheKey = categoryCacheKey({ tree: true, type: "header" });
+      const cacheKey = categoryCacheKey({ tree: true, type: "header", publicOnly });
       const categories = await getOrSet(
         cacheKey,
         async () => {
-          const selectFields = "name nameHi nameGu slug image iconId type parentId headerColor headerFontColor headerIconColor";
-          return Category.find({ type: "header" })
+          const selectFields = "name nameHi nameGu slug image iconId type parentId status headerColor headerFontColor headerIconColor";
+          return Category.find({ type: "header", ...statusFilter })
             .select(selectFields)
             .populate({
               path: "children",
+              match: statusFilter,
               select: selectFields,
               populate: {
                 path: "children",
+                match: statusFilter,
                 select: selectFields,
               },
             })
@@ -89,7 +108,7 @@ export const getCategories = async (req, res) => {
         defaultLimit: 25,
         maxLimit: 100,
       });
-      const query = {};
+      const query = { ...statusFilter };
       if (type === "header" || type === "category" || type === "subcategory") {
         query.type = type;
       }
@@ -126,10 +145,18 @@ export const getCategories = async (req, res) => {
     if (type === "header" || type === "category" || type === "subcategory") {
       query.type = type;
     }
-    const cacheKey = categoryCacheKey({ tree: false, type: query.type || "all" });
+    const cacheKey = categoryCacheKey({ tree: false, type: query.type || "all", publicOnly });
     const categories = await getOrSet(
       cacheKey,
-      async () => Category.find(query).sort({ sortOrder: 1, name: 1, _id: 1 }).lean(),
+      async () => {
+        const filter = { ...query };
+        if (publicOnly) {
+          // Skip inactive categories and anything under an inactive parent/header
+          const hidden = await getHiddenCategoryIds();
+          if (hidden.length) filter._id = { $nin: hidden };
+        }
+        return Category.find(filter).sort({ sortOrder: 1, name: 1, _id: 1 }).lean();
+      },
       getTTL("categories"),
     );
     return handleResponse(
@@ -376,9 +403,8 @@ export const updateCategoryOrders = async (req, res) => {
       invalidateCategoryName(); // Clear caches if necessary
       
       // Also invalidate specific category caches
-      invalidate(categoryCacheKey({ tree: true, type: "header" }));
-      invalidate(categoryCacheKey({ tree: false, type: "header" }));
-      invalidate(categoryCacheKey({ tree: false, type: "all" }));
+      // Covers both the admin and the public (active-only) keys
+      invalidate("cache:catalog:categories:*");
     }
 
     return handleResponse(res, 200, "Category order updated successfully");

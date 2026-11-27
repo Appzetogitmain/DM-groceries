@@ -146,6 +146,17 @@ const userSchema = new mongoose.Schema(
             default: true,
         },
 
+        /**
+         * When true, the customer app never asks for live location for this
+         * account and always uses the first saved address instead.
+         * Set directly in the DB for test/demo accounts only (not editable
+         * through the profile API).
+         */
+        useFixedLocation: {
+            type: Boolean,
+            default: false,
+        },
+
         isDeleted: {
             type: Boolean,
             default: false,

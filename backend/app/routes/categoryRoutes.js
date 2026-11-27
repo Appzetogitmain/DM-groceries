@@ -6,7 +6,7 @@ import {
     deleteCategory,
     updateCategoryOrders
 } from "../controller/categoryController.js";
-import { verifyToken, allowRoles } from "../middleware/authMiddleware.js";
+import { verifyToken, allowRoles, optionalVerifyToken } from "../middleware/authMiddleware.js";
 import multer from "multer";
 
 const storage = multer.memoryStorage();
@@ -15,7 +15,8 @@ const upload = multer({ storage });
 const router = express.Router();
 
 // Public route to get categories
-router.get("/", getCategories);
+// optionalVerifyToken: lets the controller tell admins (see inactive) from sellers/customers (active only)
+router.get("/", optionalVerifyToken, getCategories);
 
 // Admin only routes
 router.post(
